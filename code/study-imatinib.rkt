@@ -6,8 +6,6 @@
 (displayln
   "Finished loading mk-db.rkt.")
 
-;; https://docs.google.com/presentation/d/12cNiuQgBbCz3bs20rzoX-D_VWzLvYMvloa7512XmpaU/edit#slide=id.g2ab4b1b7ae_0_602
-
 ;; we want a direct link bewteen imatinib and GIST
 ;; like TREATS predicate
 ;; or something like that
