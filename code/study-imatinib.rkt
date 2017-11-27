@@ -43,6 +43,31 @@
 "ASSOCIATED_WITH"
 "AFFECTS"
 
+(define rem-dups
+  (lambda (ls)
+    (cond
+      [(null? ls) '()]
+      [(member (car ls) (cdr ls)) (rem-dups (cdr ls))]
+      [else (cons (car ls) (rem-dups (cdr ls)))])))
+
+(define union
+  (lambda (l1 l2)
+    (cond
+      [(null? l1) l2]
+      [(member (car l1) l2) (union (cdr l1) l2)]
+      [else (cons (car l1) (union (cdr l1) l2))])))
+
+(define union*
+  (lambda args
+    (union*-aux args)))
+
+(define union*-aux
+  (lambda (ls)
+    (cond
+      [(null? ls) '()]
+      [(null? (cdr ls)) (car ls)]
+      [else (union (car ls) (union*-aux (cdr ls)))])))
+
 (define membero
   (lambda (x ls)
     (fresh (y rest)
@@ -76,6 +101,3553 @@
              [(== "CAUSES" p)])
            (edgeo e)
            (path-to-diseaseo y path^))]))))
+
+
+
+
+
+
+
+
+
+;; Greg says:
+
+;; the structure of an edge is:
+;; (subject object predicate subject-type object-type pred-info)
+
+;; So instead of looking for "gngm" in the type list of a concept, you can instead use subject-type or object-type to constrain the edge itself.
+;; so:
+;; (== `(,s-imatinib/gene ,m-imatinib/gene ,p-imatinib/gene . ,e-rest-imatinib/gene) e-imatinib/gene)
+
+;; becomes (with fresh st-imatinib/gene):
+;; (== `(,s-imatinib/gene ,m-imatinib/gene ,p-imatinib/gene st-imatinib/gene "gngm". ,e-rest-imatinib/gene) e-imatinib/gene)
+
+;; then you no longer have to use membero
+
+
+
+;; Will says:
+
+;; What Greg says above, but stronger!  Using member can allow too many entry types--think of it as a "fuzzy" version of a query!  You asked for a gene?  Well, here are genes, and proteins, and ...
+
+
+
+;;; one step at a time!
+
+;; TODO all direct edges from all types of imatinib
+
+;; TODO count the number of times each gene appears inhibited, across all versions of imatinib
+
+;; TODO find all the subgraphs of the form 'some variant of imatinib INHIBITS some specific gene which CAUSES some specific disease or neoplasm which is directly TREATED by that version of imatinib'.  Ideally, fully explore most specific entities before broadening to categories.
+
+
+;; Ah!  Now Will is enlightened!  I *need* to use "gngm" as the object type in the query, rather than calling membero on the list of associated types.
+;; This will keep me from accidentally picking up aapp|T116|Amino Acid, Peptide, or Protein, for example, when I want genes.
+
+
+
+
+
+;; TODO try strategy of most-specific to least-specific, based on branching factor for the next "hop" during a query
+
+
+
+
+;; TODO intersection of relatively specific "dsyn", "neop", and "patf" directly treated by the relatively specific imatinib synonyms with the relatively specific "dsyn", "neop", and "patf" directly caused by the relatively specific genes (or gene groups) inhibited by the relatively specific imatinib synonyms
+
+
+
+;; TODO relatively specific "dsyn", "neop", and "patf" that are directly caused by relatively specific genes inhibited by relatively specific imatinib synonyms
+
+
+;; TODO intersection of "dsyn", "neop", and "patf" directly treated by the imatinib synonyms with the "dsyn", "neop", and "patf" directly caused by the genes (or gene groups) inhibited by the imatinib synonyms
+
+
+;; TODO "dsyn", "neop", and "patf" that are directly caused by the genes (or gene groups) inhibited by the imatinib synonyms
+
+
+
+;; TODO: How many of the cell functions below for KIT/C-KIT are unique?  And how many of those are specific enough to be meaningful/useful?
+;; try taking the union* of all the non-silly entries
+
+;; There are 47 genes are directly inhibited by Gleevec *and* directly cause diseases that Gleevec directly treats
+;; (vs. 50 genes that are inhibited directly by Gleevec).  (See query below that produces these answers.)
+;;
+;; For each gene, how many cell functions (celf|T043|Cell Function) are directly caused by that gene?
+(sort
+ (map
+  (lambda (gene)
+    (let ((cell-functions
+           (run* (q)
+             (fresh (cell-function e-gene/cell-function st-gene/cell-function ot-gene/cell-function e-gene/cell-function-rest)
+               (== cell-function q)
+               (== "celf" ot-gene/cell-function)              
+               (== `(,gene ,cell-function "CAUSES" ,st-gene/cell-function ,ot-gene/cell-function . ,e-gene/cell-function-rest) e-gene/cell-function)
+               (edgeo e-gene/cell-function)))))
+      (list (length (rem-dups cell-functions)) gene)))
+  '((1428985 "PDGFD gene" ("aapp" "gngm"))
+    (919477 "LCK gene" ("aapp" "enzy" "gngm"))
+    (1136340 "Semaphorins" ("bacs" "gngm" "aapp"))
+    (1366876 "MAPK14 gene" ("gngm" "aapp" "enzy"))
+    (1364818 "APP gene" ("enzy" "gngm" "bacs" "aapp" "imft"))
+    (1333568 "FLT3 gene" ("gngm" "phsu" "bacs" "aapp"))
+    (79050 "c-abl Proto-Oncogenes" ("aapp" "gngm"))
+    (79413 "Genes, abl" ("gngm" "aapp"))
+    (812253 "CRKL gene" ("bacs" "aapp" "gngm"))
+    (915156 "Ephrin Receptor EphA8" ("gngm" "enzy" "aapp"))
+    (2716 "Amyloid" ("bacs" "aapp" "gngm"))
+    (3241 "Antibodies" ("gngm" "aapp" "imft"))
+    (33640 "PROTEIN KINASE" ("gngm" "enzy" "aapp"))
+    (33681 "Protein Tyrosine Kinase" ("enzy" "gngm" "aapp"))
+    (164786 "Proto-Oncogene Proteins c-akt" ("gngm" "aapp" "enzy"))
+    (33684 "Proteins" ("bacs" "gngm" "aapp"))
+    (246681 "platelet-derived growth factor BB" ("gngm" "phsu" "aapp"))
+    (290068
+     "Platelet-Derived Growth Factor beta Receptor"
+     ("aapp" "gngm" "rcpt" "enzy"))
+    (812228 "AKT1 gene" ("aapp" "phsu" "enzy" "gngm" "bacs"))
+    (812375 "ELK3 gene" ("enzy" "gngm" "bacs" "aapp"))
+    (1335239 "PPBP gene" ("bacs" "aapp" "gngm"))
+    (1419240 "RAD51 gene" ("enzy" "gngm" "aapp"))
+    (1421416 "UVRAG gene" ("gngm" "phsu" "aapp"))
+    (1422009 "TP63 gene" ("rcpt" "phsu" "imft" "aapp" "gngm"))
+    (1424677 "CKAP4 gene" ("gngm" "aapp" "bacs" "phsu"))
+    (1425835 "KCNH8 gene" ("gngm" "aapp" "bacs"))
+    (1439347 "BTG1 gene" ("gngm" "aapp"))
+    (4891 "Fusion Proteins, bcr-abl" ("aapp" "gngm" "bacs"))
+    (1439337 "tyrosine kinase ABL1" ("aapp" "gngm" "enzy"))
+    (80092
+     "Macrophage Colony-Stimulating Factor Receptor"
+     ("enzy" "aapp" "imft" "gngm"))
+    (879468 "CSF1R gene" ("aapp" "imft" "rcpt" "gngm" "enzy"))
+    (32200 "Platelet-Derived Growth Factor" ("gngm" "aapp" "bacs"))
+    (72470 "Proto-Oncogene Protein c-kit" ("aapp" "gngm" "rcpt" "imft"))
+    (206364 "Receptor Protein-Tyrosine Kinases" ("enzy" "rcpt" "gngm" "aapp"))
+    (290067
+     "Platelet-Derived Growth Factor alpha Receptor"
+     ("rcpt" "aapp" "gngm" "enzy"))
+    (174680 "Cyclin D1" ("gngm" "bacs" "aapp"))
+    (812385 "BCR gene" ("gngm" "bacs" "enzy" "aapp"))
+    (1335202 "PDGFRB gene" ("bacs" "gngm" "rcpt" "enzy" "aapp"))
+    (597357 "receptor" ("aapp" "gngm" "rcpt"))
+    (31727 "Phosphotransferases" ("aapp" "gngm" "enzy"))
+    (1412097 "ABL1 gene" ("imft" "enzy" "gngm" "aapp" "bacs" "phsu"))
+    (71253 "Platelet-Derived Growth Factor Receptor" ("aapp" "gngm" "enzy"))
+    (1826328 "MTTP gene" ("aapp" "lipd" "gngm" "imft" "phsu" "bacs"))
+    (79427 "Tumor Suppressor Genes" ("gngm" "aapp"))
+    (105770 "beta catenin" ("aapp" "gngm" "bacs"))
+    (920288 "C-KIT Gene" ("gngm" "aapp"))
+    (1416655 "KIT gene" ("bacs" "imft" "gngm" "aapp"))))
+ (lambda (l1 l2) (< (car l1) (car l2))))
+=>
+'((1 (79413 "Genes, abl" ("gngm" "aapp")))
+  (2
+   (290067
+    "Platelet-Derived Growth Factor alpha Receptor"
+    ("rcpt" "aapp" "gngm" "enzy")))
+  (3 (1425835 "KCNH8 gene" ("gngm" "aapp" "bacs")))
+  (3 (1335202 "PDGFRB gene" ("bacs" "gngm" "rcpt" "enzy" "aapp")))
+  (4 (1428985 "PDGFD gene" ("aapp" "gngm")))
+  (4 (1136340 "Semaphorins" ("bacs" "gngm" "aapp")))
+  (4 (812375 "ELK3 gene" ("enzy" "gngm" "bacs" "aapp")))
+  (4 (1439347 "BTG1 gene" ("gngm" "aapp")))
+  (5 (79050 "c-abl Proto-Oncogenes" ("aapp" "gngm")))
+  (7 (4891 "Fusion Proteins, bcr-abl" ("aapp" "gngm" "bacs")))
+  (7 (71253 "Platelet-Derived Growth Factor Receptor" ("aapp" "gngm" "enzy")))
+  (7 (920288 "C-KIT Gene" ("gngm" "aapp")))
+  (8 (1333568 "FLT3 gene" ("gngm" "phsu" "bacs" "aapp")))
+  (8 (1335239 "PPBP gene" ("bacs" "aapp" "gngm")))
+  (8 (1419240 "RAD51 gene" ("enzy" "gngm" "aapp")))
+  (8 (1439337 "tyrosine kinase ABL1" ("aapp" "gngm" "enzy")))
+  (8
+   (80092
+    "Macrophage Colony-Stimulating Factor Receptor"
+    ("enzy" "aapp" "imft" "gngm")))
+  (9 (915156 "Ephrin Receptor EphA8" ("gngm" "enzy" "aapp")))
+  (10 (1416655 "KIT gene" ("bacs" "imft" "gngm" "aapp")))
+  (11 (812253 "CRKL gene" ("bacs" "aapp" "gngm")))
+  (11
+   (290068
+    "Platelet-Derived Growth Factor beta Receptor"
+    ("aapp" "gngm" "rcpt" "enzy")))
+  (11 (1424677 "CKAP4 gene" ("gngm" "aapp" "bacs" "phsu")))
+  (11 (72470 "Proto-Oncogene Protein c-kit" ("aapp" "gngm" "rcpt" "imft")))
+  (12 (1421416 "UVRAG gene" ("gngm" "phsu" "aapp")))
+  (12 (879468 "CSF1R gene" ("aapp" "imft" "rcpt" "gngm" "enzy")))
+  (14 (1826328 "MTTP gene" ("aapp" "lipd" "gngm" "imft" "phsu" "bacs")))
+  (15 (919477 "LCK gene" ("aapp" "enzy" "gngm")))
+  (17 (1422009 "TP63 gene" ("rcpt" "phsu" "imft" "aapp" "gngm")))
+  (18 (33681 "Protein Tyrosine Kinase" ("enzy" "gngm" "aapp")))
+  (19 (1412097 "ABL1 gene" ("imft" "enzy" "gngm" "aapp" "bacs" "phsu")))
+  (24 (246681 "platelet-derived growth factor BB" ("gngm" "phsu" "aapp")))
+  (26 (174680 "Cyclin D1" ("gngm" "bacs" "aapp")))
+  (28 (2716 "Amyloid" ("bacs" "aapp" "gngm")))
+  (30
+   (206364 "Receptor Protein-Tyrosine Kinases" ("enzy" "rcpt" "gngm" "aapp")))
+  (33 (812385 "BCR gene" ("gngm" "bacs" "enzy" "aapp")))
+  (33 (79427 "Tumor Suppressor Genes" ("gngm" "aapp")))
+  (34 (1366876 "MAPK14 gene" ("gngm" "aapp" "enzy")))
+  (39 (1364818 "APP gene" ("enzy" "gngm" "bacs" "aapp" "imft")))
+  (43 (32200 "Platelet-Derived Growth Factor" ("gngm" "aapp" "bacs")))
+  (45 (105770 "beta catenin" ("aapp" "gngm" "bacs")))
+  (52 (33640 "PROTEIN KINASE" ("gngm" "enzy" "aapp")))
+  (57 (164786 "Proto-Oncogene Proteins c-akt" ("gngm" "aapp" "enzy")))
+  (71 (812228 "AKT1 gene" ("aapp" "phsu" "enzy" "gngm" "bacs")))
+  ;; marginal at best
+  (80 (31727 "Phosphotransferases" ("aapp" "gngm" "enzy")))
+  ;; below here are silly answers
+  (100 (597357 "receptor" ("aapp" "gngm" "rcpt")))
+  (104 (3241 "Antibodies" ("gngm" "aapp" "imft")))
+  (174 (33684 "Proteins" ("bacs" "gngm" "aapp"))))
+
+
+
+;; only 14 dsyn, neop, or patf directly caused by a celf,
+;; and many of these are so general as to be almost meaningless
+(rem-dups (run* (q)
+  (fresh (e subj obj pred st ot rest)
+    (== (list subj obj) q)
+    (== "celf" st)
+    (conde
+      [(== "dsyn" ot)]
+      [(== "neop" ot)]
+      [(== "patf" ot)])
+    (== "CAUSES" pred)
+    (== `(,subj ,obj ,pred ,st ,ot . ,rest) e)
+    (edgeo e))))
+'(((3272 "Antibody -dependent cell cytotoxicity" ("celf"))
+   (11854 "Diabetes Mellitus, Insulin-Dependent" ("dsyn")))
+  ((7613 "Cell physiology" ("celf"))
+   (4153 "Atherosclerosis" ("dsyn")))
+  ((7577 "Cell Adhesion" ("celf"))
+   (242184 "Hypoxia" ("patf")))
+  ((7577 "Cell Adhesion" ("celf"))
+   (852964 "Shunt occlusion" ("patf")))
+  ((24262 "Lymphocyte Activation" ("celf"))
+   (20517 "Hypersensitivity" ("patf")))
+  ((920567 "leukocyte activation" ("celf"))
+   (332448 "Infiltration" ("patf")))
+  ((1159339 "Protein Secretion" ("celf"))
+   (277785 "Functional disorder" ("patf")))
+  ((7613 "Cell physiology" ("celf"))
+   (12634 "Disease" ("dsyn")))
+  ((7613 "Cell physiology" ("celf"))
+   (42769 "Virus Diseases" ("dsyn")))
+  ((7613 "Cell physiology" ("celf"))
+   (524851 "Neurodegenerative Disorders" ("dsyn")))
+  ((7613 "Cell physiology" ("celf"))
+   (751651 "Mitochondrial Diseases" ("dsyn")))
+  ((1154987 "anti-inflammatory response" ("celf"))
+   (21290 "Infant, Newborn, Diseases" ("dsyn")))
+  ((1158770 "Transcriptional Regulation" ("celf"))
+   (42373 "Vascular Diseases" ("dsyn")))
+  ((1524026 "Metabolic Process, Cellular" ("celf"))
+   (12634 "Disease" ("dsyn"))))
+
+;; 9 results
+(run* (q)
+  (fresh (e subj obj pred st ot rest)
+    (== e q)
+    (fuzzy-concepto "mast cell activation" obj)
+    (conde
+      [(== "dsyn" st)]
+      [(== "neop" st)]
+      [(== "patf" st)])
+    (== "MANIFESTATION_OF" pred)
+    (== `(,subj ,obj ,pred ,st ,ot . ,rest) e)
+    (edgeo e)))
+=>
+'(((4096 "Asthma" ("dsyn"))
+   (1155074 "mast cell activation" ("celf"))
+   "MANIFESTATION_OF"
+   "dsyn"
+   "celf"
+   (2741114))
+  ((12634 "Disease" ("dsyn"))
+   (1155074 "mast cell activation" ("celf"))
+   "MANIFESTATION_OF"
+   "dsyn"
+   "celf"
+   (12217411))
+  ((36221 "Mast-Cell Sarcoma" ("neop"))
+   (1155074 "mast cell activation" ("celf"))
+   "MANIFESTATION_OF"
+   "neop"
+   "celf"
+   (26659448))
+  ((343378 "Helicobacter-associated gastritis" ("dsyn"))
+   (1155074 "mast cell activation" ("celf"))
+   "MANIFESTATION_OF"
+   "dsyn"
+   "celf"
+   (21932987))
+  ((13604 "Edema" ("patf"))
+   (1155074 "mast cell activation" ("celf"))
+   "MANIFESTATION_OF"
+   "patf"
+   "celf"
+   (21130119))
+  ((745283 "INFECTIOUS PROCESS" ("dsyn"))
+   (1155074 "mast cell activation" ("celf"))
+   "MANIFESTATION_OF"
+   "dsyn"
+   "celf"
+   (20706702))
+  ((598934 "tumor growth" ("neop"))
+   (1155074 "mast cell activation" ("celf"))
+   "MANIFESTATION_OF"
+   "neop"
+   "celf"
+   (24931643))
+  ((242184 "Hypoxia" ("patf"))
+   (1155074 "mast cell activation" ("celf"))
+   "MANIFESTATION_OF"
+   "patf"
+   "celf"
+   (16572929))
+  ((332448 "Infiltration" ("patf"))
+   (1155074 "mast cell activation" ("celf"))
+   "MANIFESTATION_OF"
+   "patf"
+   "celf"
+   (21130119)))
+
+
+;; mast cell activation directly AFFECTS which disorders, neoplasms,
+;; or pathologic functions?
+;;
+;; 35 results
+(run* (q)
+  (fresh (e subj obj pred st ot rest)
+    (== e q)    
+    (fuzzy-concepto "mast cell activation" subj)
+    (== "AFFECTS" pred)
+    (conde
+      [(== "dsyn" ot)]
+      [(== "neop" ot)]
+      [(== "patf" ot)])
+    (== `(,subj ,obj ,pred ,st ,ot . ,rest) e)
+    (edgeo e)))
+
+
+;; 41 results, none of which are CAUSES.  Most are AFFECTS.
+;;
+;; Results related to asthma include:
+;;
+;; ((1155074 "mast cell activation" ("celf"))
+;;  (4096 "Asthma" ("dsyn"))
+;;  "AFFECTS"
+;;  "celf"
+;;  "dsyn"
+;;  (18209484 10352758))
+;;
+;; ((1155074 "mast cell activation" ("celf"))
+;;  (4096 "Asthma" ("dsyn"))
+;;  "ASSOCIATED_WITH"
+;;  "celf"
+;;  "dsyn"
+;;  (2645347))
+;;
+;; ((1155074 "mast cell activation" ("celf"))
+;;  (4099 "Asthma, Exercise-Induced" ("dsyn"))
+;;  "NEG_AFFECTS"
+;;  "celf"
+;;  "dsyn"
+;;  (1730841))
+;;
+;; ((1155074 "mast cell activation" ("celf"))
+;;  (155877 "Extrinsic asthma NOS" ("dsyn"))
+;;  "AFFECTS"
+;;  "celf"
+;;  "dsyn"
+;;  (24509414))
+;;
+(run* (q)
+  (fresh (e subj obj pred st ot rest)
+    (== e q)
+    (fuzzy-concepto "mast cell activation" subj)
+    (conde
+      [(== "dsyn" ot)]
+      [(== "neop" ot)]
+      [(== "patf" ot)])
+    (== `(,subj ,obj ,pred ,st ,ot . ,rest) e)
+    (edgeo e)))
+
+;; find all direct edges between mast cell activation and asthma
+;;
+;; interesting!
+;;
+;; 'Asthma MANIFESTATION_OF mast cell activation' seems like the strongest claim,
+;; followed by 'mast cell activation AFFECTS Asthma'
+(run* (q)
+  (fresh (e subj obj pred st ot rest)
+    (== e q)
+    (conde
+      [(fuzzy-concepto "mast cell activation" subj)
+       (fuzzy-concepto "asthma" obj)]
+      [(fuzzy-concepto "asthma" subj)
+       (fuzzy-concepto "mast cell activation" obj)])
+    (== `(,subj ,obj ,pred ,st ,ot . ,rest) e)
+    (edgeo e)))
+=>
+'(((1155074 "mast cell activation" ("celf"))
+   (4096 "Asthma" ("dsyn"))
+   "AFFECTS"
+   "celf"
+   "dsyn"
+   (18209484 10352758))
+  ((1155074 "mast cell activation" ("celf"))
+   (4096 "Asthma" ("dsyn"))
+   "ASSOCIATED_WITH"
+   "celf"
+   "dsyn"
+   (2645347))
+  ((4096 "Asthma" ("dsyn"))
+   (1155074 "mast cell activation" ("celf"))
+   "AFFECTS"
+   "dsyn"
+   "celf"
+   (17498066 17192558))
+  ((4096 "Asthma" ("dsyn"))
+   (1155074 "mast cell activation" ("celf"))
+   "MANIFESTATION_OF"
+   "dsyn"
+   "celf"
+   (2741114))
+  ((1155074 "mast cell activation" ("celf"))
+   (4099 "Asthma, Exercise-Induced" ("dsyn"))
+   "NEG_AFFECTS"
+   "celf"
+   "dsyn"
+   (1730841))
+  ((1155074 "mast cell activation" ("celf"))
+   (155877 "Extrinsic asthma NOS" ("dsyn"))
+   "AFFECTS"
+   "celf"
+   "dsyn"
+   (24509414)))
+
+
+
+;; KIT or C-KIT directly causing some cell function (celf|T043|Cell Function)
+;;
+;; 22 results
+(let ((diseases (run* (q)
+                  (fresh (disease gene e-gene/disease st-gene/disease ot-gene/disease e-gene/disease-rest)
+                    (== disease q)
+                    (== "celf" ot-gene/disease)
+                    (conde
+                      [(== '(1416655 "KIT gene" ("bacs" "imft" "gngm" "aapp")) gene)]
+                      [(== '(920288 "C-KIT Gene" ("gngm" "aapp")) gene)]
+                      [(== '(72470 "Proto-Oncogene Protein c-kit" ("aapp" "gngm" "rcpt" "imft")) gene)])
+                    (== `(,gene ,disease "CAUSES" ,st-gene/disease ,ot-gene/disease . ,e-gene/disease-rest) e-gene/disease)
+                    (edgeo e-gene/disease)))))
+    (rem-dups diseases))
+=>
+'((7587 "Cell Death" ("celf"))
+  (7620 "Cell Survival" ("celf"))
+  (7595 "Cell Growth" ("celf"))
+  (7608 "cell motility" ("celf"))
+  (37083 "Signal Transduction" ("celf"))
+  (13081 "Down-Regulation" ("celf"))
+  (40682 "cell transformation" ("celf"))
+  (7613 "Cell physiology" ("celf"))
+  (86982 "Signal Transduction Pathways" ("moft" "celf"))
+  (26255 "Mitosis" ("celf"))
+  (1155074 "mast cell activation" ("celf"))
+  (37080 "Signal Pathways" ("celf" "moft"))
+  (1155781 "spindle assembly" ("celf"))
+  (162638 "Apoptosis" ("celf"))
+  (1155873 "Cell Cycle Arrest" ("celf"))
+  (221117 "Anergy" ("celf"))
+  (1514758 "Receptor Activation" ("celf"))
+  (596290 "Cell Proliferation" ("celf"))
+  (678903 "Neuronal Transmission" ("celf"))
+  (949469 "Receptor Down-Regulation" ("moft" "celf"))
+  (1155046 "T-Cell Proliferation" ("celf"))
+  (1325893 "histamine secretion" ("celf")))
+
+(let ((diseases (run* (q)
+                  (fresh (disease gene e-gene/disease st-gene/disease ot-gene/disease e-gene/disease-rest)
+                    (== disease q)
+                    (conde
+                      [(== '(1416655 "KIT gene" ("bacs" "imft" "gngm" "aapp")) gene)]
+                      [(== '(920288 "C-KIT Gene" ("gngm" "aapp")) gene)]
+                      [(== '(72470 "Proto-Oncogene Protein c-kit" ("aapp" "gngm" "rcpt" "imft")) gene)])
+                    (== `(,gene ,disease "CAUSES" ,st-gene/disease ,ot-gene/disease . ,e-gene/disease-rest) e-gene/disease)
+                    (edgeo e-gene/disease)))))
+    (length (rem-dups diseases)))
+=>
+104
+
+;; which diseases, neoplasms, pathologic functions are directly caused by KIT or C-KIT?
+;;
+;; 62 results, including
+;;
+;; (12634 "Disease" ("dsyn"))
+;; (678236 "Rare Diseases" ("dsyn"))
+;; (879626 "Adverse effects" ("patf"))
+;;
+;; notice asthma isn't one of them!
+(let ((diseases (run* (q)
+                  (fresh (disease gene e-gene/disease st-gene/disease ot-gene/disease e-gene/disease-rest)
+                    (== disease q)
+                    (conde
+                      [(== "dsyn" ot-gene/disease)]
+                      [(== "neop" ot-gene/disease)]
+                      [(== "patf" ot-gene/disease)])
+                    (conde
+                      [(== '(1416655 "KIT gene" ("bacs" "imft" "gngm" "aapp")) gene)]
+                      [(== '(920288 "C-KIT Gene" ("gngm" "aapp")) gene)]
+                      [(== '(72470 "Proto-Oncogene Protein c-kit" ("aapp" "gngm" "rcpt" "imft")) gene)])
+                    (== `(,gene ,disease "CAUSES" ,st-gene/disease ,ot-gene/disease . ,e-gene/disease-rest) e-gene/disease)
+                    (edgeo e-gene/disease)))))
+  (rem-dups diseases))
+=>
+'((2871 "Anemia" ("dsyn"))
+  (11603 "Dermatitis" ("dsyn"))
+  (1511 "Adhesions" ("acab" "dsyn"))
+  (12634 "Disease" ("dsyn"))
+  (16663 "Pathological fracture" ("dsyn"))
+  (2874 "Aplastic Anemia" ("dsyn"))
+  (17178 "Gastrointestinal Diseases" ("dsyn"))
+  (4509 "Azoospermia" ("dsyn"))
+  (37277 "Skin Diseases, Genetic" ("dsyn"))
+  (41408 "Turner's Syndrome" ("cgab" "dsyn"))
+  (11847 "Diabetes" ("dsyn"))
+  (15625 "Fanconi's Anemia" ("dsyn"))
+  (85215 "Ovarian Failure, Premature" ("dsyn"))
+  (24899 "mastocytosis" ("dsyn"))
+  (23435 "Leukemia, B-Cell, Acute" ("neop"))
+  (25218 "Chloasma" ("dsyn"))
+  (339789 "Congenital deafness" ("cgab" "dsyn"))
+  (27051 "Myocardial Infarction" ("dsyn"))
+  (29453 "Osteopenia" ("dsyn"))
+  (43154 "Dental White Spot" ("dsyn"))
+  (1136033 "Cutaneous Mastocytosis" ("dsyn"))
+  (25286 "meningioma" ("neop"))
+  (80024 "Piebaldism" ("dsyn"))
+  (221013 "Mastocytosis, Systemic" ("dsyn"))
+  (27022 "Myeloproliferative disease" ("neop"))
+  (242354 "Congenital Disorders" ("dsyn"))
+  (595978 "Idiopathic megacolon" ("dsyn"))
+  (678236 "Rare Diseases" ("dsyn"))
+  (948710 "Ureteropelvic junction obstruction" ("dsyn"))
+  (7137 "Squamous cell carcinoma" ("neop"))
+  (152254 "Fatty degeneration" ("patf"))
+  (9402 "Carcinoma of the Large Intestine" ("neop"))
+  (346421 "Chronic eosinophilic leukemia" ("neop"))
+  (20507 "Hyperplasia" ("patf"))
+  (1334699 "Mesenchymal Cell Neoplasm" ("neop"))
+  (23467 "Leukemia, Myelocytic, Acute" ("neop"))
+  (1140999 "Contraction" ("patf"))
+  (20517 "Hypersensitivity" ("patf"))
+  (27708 "Nephroblastoma" ("neop"))
+  (27819 "Neuroblastoma" ("neop"))
+  (6826 "Malignant Neoplasms" ("neop"))
+  (25874 "Metrorrhagia" ("patf"))
+  (37579 "Soft Tissue Neoplasms" ("neop"))
+  (79218 "Fibromatosis, Aggressive" ("neop"))
+  (151686 "Growth retardation" ("patf"))
+  (85669 "Acute leukemia" ("neop"))
+  (25202 "melanoma" ("neop"))
+  (149925 "Small cell carcinoma of lung" ("neop"))
+  (277785 "Functional disorder" ("patf"))
+  (206728 "Plexiform Neurofibroma" ("neop"))
+  (26986 "Dysmyelopoietic Syndromes" ("neop"))
+  (679316 "MOTILITY DISORDER NOS" ("patf"))
+  (334664 "Mast Cell Neoplasm" ("neop"))
+  (27651 "Neoplasm" ("neop"))
+  (345905 "Intrahepatic Cholangiocarcinoma" ("neop"))
+  (699748 "Pathogenesis" ("patf"))
+  (1261473 "sarcoma" ("neop"))
+  (238198 "Gastrointestinal Stromal Tumors" ("neop"))
+  (1326912 "Tumorigenesis" ("neop"))
+  (879626 "Adverse effects" ("patf"))
+  (1608408 "Malignant transformation" ("neop"))
+  (1510411 "metaplastic cell transformation" ("patf")))
+
+
+;; Combine two of the queries below: which of the Diseases or
+;; Syndromes or Neoplastic Processes or Pathologic Functions directly
+;; treated by imatinib synonyms are *directly* caused by the genes
+;; directly inhibited by the imatinib synonyms?
+(map
+ (lambda (drug)
+   (let ((diseases (run* (q)
+                     (fresh (disease e-drug/disease p-st-drug/disease p-ob-drug/disease e-drug/disease-rest
+                             gene e-drug/gene p-st-drug/gene e-drug/gene-rest
+                             e-gene/disease st-gene/disease ot-gene/disease e-gene/disease-rest)
+                       (== disease q)
+                       (conde
+                         [(== "dsyn" p-ob-drug/disease)]
+                         [(== "neop" p-ob-drug/disease)]
+                         [(== "patf" p-ob-drug/disease)])
+                       (== `(,drug ,disease "TREATS" ,p-st-drug/disease ,p-ob-drug/disease . ,e-drug/disease-rest) e-drug/disease)
+                       (== `(,drug ,gene "INHIBITS" ,p-st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+                       (== `(,gene ,disease "CAUSES" ,st-gene/disease ,ot-gene/disease . ,e-gene/disease-rest) e-gene/disease)
+                       (edgeo e-drug/disease)
+                       (edgeo e-drug/gene)
+                       (edgeo e-gene/disease)))))
+     (list (length (rem-dups diseases)) drug)))
+ '((935989 "imatinib" ("phsu" "orch"))
+   (939537 "Imatinib mesylate" ("orch" "phsu"))
+   (385728 "CGP 57148" ("phsu" "orch"))
+   (906802 "STI571" ("phsu" "orch"))
+   (935987 "Gleevec" ("orch" "phsu"))))
+
+(time (map
+       (lambda (drug)
+         (let ((diseases (run* (q)
+                           (fresh (disease e-drug/disease p-st-drug/disease p-ob-drug/disease e-drug/disease-rest
+                                           gene e-drug/gene p-st-drug/gene e-drug/gene-rest
+                                           e-gene/disease st-gene/disease ot-gene/disease e-gene/disease-rest)
+                             (== disease q)
+                             (conde
+                               [(== "dsyn" p-ob-drug/disease)]
+                               [(== "neop" p-ob-drug/disease)]
+                               [(== "patf" p-ob-drug/disease)])
+                             (== `(,drug ,disease "TREATS" ,p-st-drug/disease ,p-ob-drug/disease . ,e-drug/disease-rest) e-drug/disease)
+                             (== `(,drug ,gene "INHIBITS" ,p-st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+                             (== `(,gene ,disease "CAUSES" ,st-gene/disease ,ot-gene/disease . ,e-gene/disease-rest) e-gene/disease)
+                             (edgeo e-drug/disease)
+                             (edgeo e-drug/gene)
+                             (edgeo e-gene/disease)))))
+           (list (length (rem-dups diseases)) drug)))
+       '(
+         ;;(935989 "imatinib" ("phsu" "orch"))
+         ;;(939537 "Imatinib mesylate" ("orch" "phsu"))
+         ;;(385728 "CGP 57148" ("phsu" "orch"))
+         ;;(906802 "STI571" ("phsu" "orch"))
+         (935987 "Gleevec" ("orch" "phsu"))
+         )))
+cpu time: 7663 real time: 7680 gc time: 48
+'((35 (935987 "Gleevec" ("orch" "phsu"))))
+
+> (time (map
+         (lambda (drug)
+           (let ((diseases (run* (q)
+                             (fresh (disease e-drug/disease p-st-drug/disease p-ob-drug/disease e-drug/disease-rest
+                                             gene e-drug/gene p-st-drug/gene e-drug/gene-rest
+                                             e-gene/disease st-gene/disease ot-gene/disease e-gene/disease-rest)
+                               (== disease q)
+                               (conde
+                                 [(== "dsyn" p-ob-drug/disease)]
+                                 [(== "neop" p-ob-drug/disease)]
+                                 [(== "patf" p-ob-drug/disease)])
+                               (== `(,drug ,disease "TREATS" ,p-st-drug/disease ,p-ob-drug/disease . ,e-drug/disease-rest) e-drug/disease)
+                               (== `(,drug ,gene "INHIBITS" ,p-st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+                               (== `(,gene ,disease "CAUSES" ,st-gene/disease ,ot-gene/disease . ,e-gene/disease-rest) e-gene/disease)
+                               (edgeo e-drug/disease)
+                               (edgeo e-drug/gene)
+                               (edgeo e-gene/disease)))))
+             (rem-dups diseases)))
+         '(
+           ;;(935989 "imatinib" ("phsu" "orch"))
+           ;;(939537 "Imatinib mesylate" ("orch" "phsu"))
+           ;;(385728 "CGP 57148" ("phsu" "orch"))
+           ;;(906802 "STI571" ("phsu" "orch"))
+           (935987 "Gleevec" ("orch" "phsu"))
+           )))
+cpu time: 7748 real time: 7763 gc time: 56
+'(((2395 "Alzheimer's Disease" ("dsyn"))
+   (8679 "Chronic Disease" ("dsyn"))
+   (5699 "Blast Phase" ("neop"))
+   (11847 "Diabetes" ("dsyn"))
+   (16059 "Fibrosis" ("patf"))
+   (11860 "Diabetes Mellitus, Non-Insulin-Dependent" ("dsyn"))
+   (37274 "skin disorder" ("dsyn"))
+   (21655 "Insulin Resistance" ("patf"))
+   (6826 "Malignant Neoplasms" ("neop"))
+   (332448 "Infiltration" ("patf"))
+   (920563 "insulin sensitivity" ("patf"))
+   (7131 "Carcinoma, Non-Small-Cell Lung" ("neop"))
+   (7134 "Renal Cell Carcinoma" ("neop"))
+   (17636 "Glioblastoma" ("neop"))
+   (23418 "leukemia" ("neop"))
+   (23449 "Leukemia, Lymphocytic, Acute" ("neop"))
+   (23467 "Leukemia, Myelocytic, Acute" ("neop"))
+   (23473 "Myeloid Leukemia, Chronic" ("neop"))
+   (23474 "Leukemia, Myeloid, Chronic-Phase" ("neop"))
+   (25149 "medulloblastoma" ("neop"))
+   (25202 "melanoma" ("neop"))
+   (27627 "Neoplasm Metastasis" ("neop"))
+   (27831 "Neurofibromatosis 1" ("neop"))
+   (27651 "Neoplasm" ("neop"))
+   (27859 "Acoustic Neuroma" ("neop"))
+   (35335 "Retinoblastoma" ("neop"))
+   (85669 "Acute leukemia" ("neop"))
+   (153690 "Secondary malignant neoplasm of bone" ("neop"))
+   (238198 "Gastrointestinal Stromal Tumors" ("neop"))
+   (279671 "Cervical Squamous Cell Carcinoma" ("neop"))
+   (280100 "Solid tumor" ("neop"))
+   (392784 "Dermatofibrosarcoma Protuberans" ("neop"))
+   (677886 "Epithelial ovarian cancer" ("neop"))
+   (856536 "Philadelphia chromosome positive" ("neop"))
+   (1261473 "sarcoma" ("neop"))))
+
+
+;; instead of diseases from the above query, lets look at the genes
+;;
+;; 47 genes are directly inhibited by Gleevec *and* directly cause diseases that Gleevec directly treats
+;; (vs. 50 genes that are inhibited directly by Gleevec)
+;;
+;; still some slop:
+;;
+;; (3241 "Antibodies" ("gngm" "aapp" "imft"))
+;; (33684 "Proteins" ("bacs" "gngm" "aapp"))
+;; (597357 "receptor" ("aapp" "gngm" "rcpt"))
+;;
+;; At most 43 of these results are specific or semi-specific (and arguably fewer than 43).
+;; 3 of these are KIT or C-KIT.
+> (time (map
+         (lambda (drug)
+           (let ((genes (run* (q)
+                             (fresh (disease e-drug/disease p-st-drug/disease p-ob-drug/disease e-drug/disease-rest
+                                             gene e-drug/gene p-st-drug/gene e-drug/gene-rest
+                                             e-gene/disease st-gene/disease ot-gene/disease e-gene/disease-rest)
+                               (== gene q)
+                               (conde
+                                 [(== "dsyn" p-ob-drug/disease)]
+                                 [(== "neop" p-ob-drug/disease)]
+                                 [(== "patf" p-ob-drug/disease)])
+                               (== `(,drug ,disease "TREATS" ,p-st-drug/disease ,p-ob-drug/disease . ,e-drug/disease-rest) e-drug/disease)
+                               (== `(,drug ,gene "INHIBITS" ,p-st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+                               (== `(,gene ,disease "CAUSES" ,st-gene/disease ,ot-gene/disease . ,e-gene/disease-rest) e-gene/disease)
+                               (edgeo e-drug/disease)
+                               (edgeo e-drug/gene)
+                               (edgeo e-gene/disease)))))
+             (rem-dups genes)))
+         '(
+           ;;(935989 "imatinib" ("phsu" "orch"))
+           ;;(939537 "Imatinib mesylate" ("orch" "phsu"))
+           ;;(385728 "CGP 57148" ("phsu" "orch"))
+           ;;(906802 "STI571" ("phsu" "orch"))
+           (935987 "Gleevec" ("orch" "phsu"))
+           )))
+cpu time: 7566 real time: 7580 gc time: 43
+'(((1428985 "PDGFD gene" ("aapp" "gngm"))
+   (919477 "LCK gene" ("aapp" "enzy" "gngm"))
+   (1136340 "Semaphorins" ("bacs" "gngm" "aapp"))
+   (1366876 "MAPK14 gene" ("gngm" "aapp" "enzy"))
+   (1364818 "APP gene" ("enzy" "gngm" "bacs" "aapp" "imft"))
+   (1333568 "FLT3 gene" ("gngm" "phsu" "bacs" "aapp"))
+   (79050 "c-abl Proto-Oncogenes" ("aapp" "gngm"))
+   (79413 "Genes, abl" ("gngm" "aapp"))
+   (812253 "CRKL gene" ("bacs" "aapp" "gngm"))
+   (915156 "Ephrin Receptor EphA8" ("gngm" "enzy" "aapp"))
+   (2716 "Amyloid" ("bacs" "aapp" "gngm"))
+   (3241 "Antibodies" ("gngm" "aapp" "imft"))
+   (33640 "PROTEIN KINASE" ("gngm" "enzy" "aapp"))
+   (33681 "Protein Tyrosine Kinase" ("enzy" "gngm" "aapp"))
+   (164786 "Proto-Oncogene Proteins c-akt" ("gngm" "aapp" "enzy"))
+   (33684 "Proteins" ("bacs" "gngm" "aapp"))
+   (246681 "platelet-derived growth factor BB" ("gngm" "phsu" "aapp"))
+   (290068
+    "Platelet-Derived Growth Factor beta Receptor"
+    ("aapp" "gngm" "rcpt" "enzy"))
+   (812228 "AKT1 gene" ("aapp" "phsu" "enzy" "gngm" "bacs"))
+   (812375 "ELK3 gene" ("enzy" "gngm" "bacs" "aapp"))
+   (1335239 "PPBP gene" ("bacs" "aapp" "gngm"))
+   (1419240 "RAD51 gene" ("enzy" "gngm" "aapp"))
+   (1421416 "UVRAG gene" ("gngm" "phsu" "aapp"))
+   (1422009 "TP63 gene" ("rcpt" "phsu" "imft" "aapp" "gngm"))
+   (1424677 "CKAP4 gene" ("gngm" "aapp" "bacs" "phsu"))
+   (1425835 "KCNH8 gene" ("gngm" "aapp" "bacs"))
+   (1439347 "BTG1 gene" ("gngm" "aapp"))
+   (4891 "Fusion Proteins, bcr-abl" ("aapp" "gngm" "bacs"))
+   (1439337 "tyrosine kinase ABL1" ("aapp" "gngm" "enzy"))
+   (80092
+    "Macrophage Colony-Stimulating Factor Receptor"
+    ("enzy" "aapp" "imft" "gngm"))
+   (879468 "CSF1R gene" ("aapp" "imft" "rcpt" "gngm" "enzy"))
+   (32200 "Platelet-Derived Growth Factor" ("gngm" "aapp" "bacs"))
+   (72470 "Proto-Oncogene Protein c-kit" ("aapp" "gngm" "rcpt" "imft"))
+   (206364 "Receptor Protein-Tyrosine Kinases" ("enzy" "rcpt" "gngm" "aapp"))
+   (290067
+    "Platelet-Derived Growth Factor alpha Receptor"
+    ("rcpt" "aapp" "gngm" "enzy"))
+   (174680 "Cyclin D1" ("gngm" "bacs" "aapp"))
+   (812385 "BCR gene" ("gngm" "bacs" "enzy" "aapp"))
+   (1335202 "PDGFRB gene" ("bacs" "gngm" "rcpt" "enzy" "aapp"))
+   (597357 "receptor" ("aapp" "gngm" "rcpt"))
+   (31727 "Phosphotransferases" ("aapp" "gngm" "enzy"))
+   (1412097 "ABL1 gene" ("imft" "enzy" "gngm" "aapp" "bacs" "phsu"))
+   (71253 "Platelet-Derived Growth Factor Receptor" ("aapp" "gngm" "enzy"))
+   (1826328 "MTTP gene" ("aapp" "lipd" "gngm" "imft" "phsu" "bacs"))
+   (79427 "Tumor Suppressor Genes" ("gngm" "aapp"))
+   (105770 "beta catenin" ("aapp" "gngm" "bacs"))
+   (920288 "C-KIT Gene" ("gngm" "aapp"))
+   (1416655 "KIT gene" ("bacs" "imft" "gngm" "aapp"))))
+
+;; Disease or Syndromes/Neoplastic Processes or Pathologic Functions directly treated by imatinib synonyms.
+;; (seems like "dsyn", "neop", and "patf" cover the actual disorders)
+(map
+ (lambda (drug)
+   (let ((diseases (run* (q)
+                     (fresh (disease e-drug/disease p-drug/disease p-st-drug/disease p-ob-drug/disease e-drug/disease-rest)
+                       (== disease q)
+                       (conde
+                         [(== "dsyn" p-ob-drug/disease)]
+                         [(== "neop" p-ob-drug/disease)]
+                         [(== "patf" p-ob-drug/disease)])
+                       (== `(,drug ,disease ,p-drug/disease ,p-st-drug/disease ,p-ob-drug/disease . ,e-drug/disease-rest) e-drug/disease)
+                       (== "TREATS" p-drug/disease)
+                       (edgeo e-drug/disease)))))
+     (list (length (rem-dups diseases)) drug)))
+ '((935989 "imatinib" ("phsu" "orch"))
+   (939537 "Imatinib mesylate" ("orch" "phsu"))
+   (385728 "CGP 57148" ("phsu" "orch"))
+   (906802 "STI571" ("phsu" "orch"))
+   (935987 "Gleevec" ("orch" "phsu"))))
+=>
+'((303 (935989 "imatinib" ("phsu" "orch")))
+  (195 (939537 "Imatinib mesylate" ("orch" "phsu")))
+  (5 (385728 "CGP 57148" ("phsu" "orch")))
+  (65 (906802 "STI571" ("phsu" "orch")))
+  (53 (935987 "Gleevec" ("orch" "phsu"))))
+
+
+;; *anything* directly treated by imatinib synonyms (not restricted to Disease or Syndromes/Neoplastic Processes)
+(map
+ (lambda (drug)
+   (let ((diseases (run* (q)
+                     (fresh (disease e-drug/disease p-drug/disease p-st-drug/disease p-ob-drug/disease e-drug/disease-rest)
+                       (== disease q)                                          
+                       (== `(,drug ,disease ,p-drug/disease ,p-st-drug/disease ,p-ob-drug/disease . ,e-drug/disease-rest) e-drug/disease)
+                       (== "TREATS" p-drug/disease)
+                       (edgeo e-drug/disease)))))
+     (list (length (rem-dups diseases)) drug)))
+ '((935989 "imatinib" ("phsu" "orch"))
+   (939537 "Imatinib mesylate" ("orch" "phsu"))
+   (385728 "CGP 57148" ("phsu" "orch"))
+   (906802 "STI571" ("phsu" "orch"))
+   (935987 "Gleevec" ("orch" "phsu"))))
+=>
+'((430 (935989 "imatinib" ("phsu" "orch")))
+  (247 (939537 "Imatinib mesylate" ("orch" "phsu")))
+  (5 (385728 "CGP 57148" ("phsu" "orch")))
+  (84 (906802 "STI571" ("phsu" "orch")))
+  (65 (935987 "Gleevec" ("orch" "phsu"))))
+
+;; Disease or Syndromes/Neoplastic Processes directly treated by imatinib synonyms.
+(map
+ (lambda (drug)
+   (let ((diseases (run* (q)
+                     (fresh (disease e-drug/disease p-drug/disease p-st-drug/disease p-ob-drug/disease e-drug/disease-rest)
+                       (== disease q)                     
+                       (conde
+                         [(== "dsyn" p-ob-drug/disease)]
+                         [(== "neop" p-ob-drug/disease)])
+                       (== `(,drug ,disease ,p-drug/disease ,p-st-drug/disease ,p-ob-drug/disease . ,e-drug/disease-rest) e-drug/disease)
+                       (== "TREATS" p-drug/disease)
+                       (edgeo e-drug/disease)))))
+     (list (length (rem-dups diseases)) drug)))
+ '((935989 "imatinib" ("phsu" "orch"))
+   (939537 "Imatinib mesylate" ("orch" "phsu"))
+   (385728 "CGP 57148" ("phsu" "orch"))
+   (906802 "STI571" ("phsu" "orch"))
+   (935987 "Gleevec" ("orch" "phsu"))))
+=>
+'((277 (935989 "imatinib" ("phsu" "orch")))
+  (184 (939537 "Imatinib mesylate" ("orch" "phsu")))
+  (3 (385728 "CGP 57148" ("phsu" "orch")))
+  (60 (906802 "STI571" ("phsu" "orch")))
+  (49 (935987 "Gleevec" ("orch" "phsu"))))
+
+
+;; if we remove "dsyn" and "neop", we see CGP 57148 also directly
+;; treats patf-related disorders (patf|T046|Pathologic Function)
+;;
+;; CML and Respiratory Depression are the only two specific disorders, though.
+(map
+ (lambda (drug)
+   (let ((diseases (run* (q)
+                     (fresh (disease e-drug/disease p-drug/disease p-st-drug/disease p-ob-drug/disease e-drug/disease-rest)
+                       (== e-drug/disease q)                     
+                       (== `(,drug ,disease ,p-drug/disease ,p-st-drug/disease ,p-ob-drug/disease . ,e-drug/disease-rest) e-drug/disease)
+                       (== "TREATS" p-drug/disease)
+                       (edgeo e-drug/disease)))))
+     diseases))
+ '(
+   ;;(935989 "imatinib" ("phsu" "orch"))
+   ;;(939537 "Imatinib mesylate" ("orch" "phsu"))
+   (385728 "CGP 57148" ("phsu" "orch"))
+   ;;(906802 "STI571" ("phsu" "orch"))
+   ;;(935987 "Gleevec" ("orch" "phsu"))
+   ))
+=>
+'((((385728 "CGP 57148" ("phsu" "orch"))
+    (12634 "Disease" ("dsyn"))
+    "TREATS"
+    "phsu"
+    "dsyn"
+    (8548747))
+   ((385728 "CGP 57148" ("phsu" "orch"))
+    (23473 "Myeloid Leukemia, Chronic" ("neop"))
+    "TREATS"
+    "orch"
+    "neop"
+    (10501919))
+   ((385728 "CGP 57148" ("phsu" "orch"))
+    (23474 "Leukemia, Myeloid, Chronic-Phase" ("neop"))
+    "TREATS"
+    "orch"
+    "neop"
+    (10501919))
+   ((385728 "CGP 57148" ("phsu" "orch"))
+    (235063 "Respiratory Depression" ("patf"))
+    "TREATS"
+    "orch"
+    "patf"
+    (11477209))
+   ((385728 "CGP 57148" ("phsu" "orch"))
+    (679222 "functional insufficiency" ("patf"))
+    "TREATS"
+    "orch"
+    "patf"
+    (12578692))))
+
+;; there really is only one specific disease directly treated by CGP 57148
+(map
+ (lambda (drug)
+   (let ((diseases (run* (q)
+                     (fresh (disease e-drug/disease p-drug/disease p-st-drug/disease p-ob-drug/disease e-drug/disease-rest)
+
+                       ;; (== disease q)
+                       (== e-drug/disease q)
+                     
+                       (conde
+                         [(== "dsyn" p-ob-drug/disease)]
+                         [(== "neop" p-ob-drug/disease)])
+                       (== `(,drug ,disease ,p-drug/disease ,p-st-drug/disease ,p-ob-drug/disease . ,e-drug/disease-rest) e-drug/disease)
+                       (== "TREATS" p-drug/disease)
+                       (edgeo e-drug/disease)))))
+     diseases))
+ '(
+                                        ;(935989 "imatinib" ("phsu" "orch"))
+                                        ;(939537 "Imatinib mesylate" ("orch" "phsu"))
+   (385728 "CGP 57148" ("phsu" "orch"))
+                                        ;(906802 "STI571" ("phsu" "orch"))
+                                        ;(935987 "Gleevec" ("orch" "phsu"))
+   ))
+'((((385728 "CGP 57148" ("phsu" "orch"))
+    (12634 "Disease" ("dsyn"))
+    "TREATS"
+    "phsu"
+    "dsyn"
+    (8548747))
+   ((385728 "CGP 57148" ("phsu" "orch"))
+    (23473 "Myeloid Leukemia, Chronic" ("neop"))
+    "TREATS"
+    "orch"
+    "neop"
+    (10501919))
+   ((385728 "CGP 57148" ("phsu" "orch"))
+    (23474 "Leukemia, Myeloid, Chronic-Phase" ("neop"))
+    "TREATS"
+    "orch"
+    "neop"
+    (10501919))))
+
+
+
+;; So, insisting on "gngm" as the subject type cuts down on stray proteins when we want genes.  What about "orch" (orch|T109|Organic Chemical) vs. "phsu" (phsu|T121|Pharmacologic Substance) for the subject type?  For "CGP 57148", the INHIBITS edges always have "orch" as the subject type.  What about for "imatinib", "Imatinib mesylate", "STI571", and "Gleevec"?  There are a handful of uses of "phsu" as the edge type for the other aliases, but these seem more noise than a specific pattern.  Doesn't look like anything we can exploit.
+
+
+
+;; the right way to do it
+;; every drug other than "CGP 57148" INHIBITS both KIT and C-KIT
+(map
+  (lambda (drug)
+    (let ((genes (run* (q)
+                   (fresh (gene e-drug/gene p-drug/gene p-st-drug/gene e-drug/gene-rest)
+                     (== gene q)
+                     (== `(,drug ,gene ,p-drug/gene ,p-st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+                     (== "INHIBITS" p-drug/gene)
+                     (edgeo e-drug/gene)))))
+      (let ((genes (rem-dups genes)))
+        (list (length genes)
+              (and (member '(1416655 "KIT gene" ("bacs" "imft" "gngm" "aapp")) genes) #t)
+              (and (member '(920288 "C-KIT Gene" ("gngm" "aapp")) genes) #t)
+              drug))))
+  '((935989 "imatinib" ("phsu" "orch"))
+    (939537 "Imatinib mesylate" ("orch" "phsu"))
+    (385728 "CGP 57148" ("phsu" "orch"))
+    (906802 "STI571" ("phsu" "orch"))
+    (935987 "Gleevec" ("orch" "phsu"))))
+=>
+'((206 #t #t (935989 "imatinib" ("phsu" "orch")))
+  (86 #t #t (939537 "Imatinib mesylate" ("orch" "phsu")))
+  ;; Of the 5 results for CGP 57148, 3 of them are for specific genes.  0 of those 3 are for KIT or C-KIT.
+  (5 #f #f (385728 "CGP 57148" ("phsu" "orch")))
+  (61 #t #t (906802 "STI571" ("phsu" "orch")))
+  ;; Of the 50 results for Gleevec, perhaps 38 of them are specific genes, rather than groupings of genes.
+  ;; 3 of those 38 are for KIT or C-KIT.
+  (50 #t #t (935987 "Gleevec" ("orch" "phsu"))))
+
+;; the wrong way to do it
+;; every drug other than "CGP 57148" INHIBITS both KIT and C-KIT
+(map
+  (lambda (drug)
+    (let ((genes (run* (q)
+                   (fresh (gene e-drug/gene p-drug/gene e-drug/gene-rest)                
+                     (== gene q)                
+                     (== `(,drug ,gene ,p-drug/gene . ,e-drug/gene-rest) e-drug/gene)
+                     (== "INHIBITS" p-drug/gene)
+                     (edgeo e-drug/gene)
+                     (fresh (cui name concept-type*)
+                       (== `(,cui ,name ,concept-type*) gene)
+                       (membero "gngm" concept-type*))))))
+      (let ((genes (rem-dups genes)))
+        (list (length genes)
+              (and (member '(1416655 "KIT gene" ("bacs" "imft" "gngm" "aapp")) genes) #t)
+              (and (member '(920288 "C-KIT Gene" ("gngm" "aapp")) genes) #t)
+              drug))))
+  '((935989 "imatinib" ("phsu" "orch"))
+    (939537 "Imatinib mesylate" ("orch" "phsu"))
+    (385728 "CGP 57148" ("phsu" "orch"))
+    (906802 "STI571" ("phsu" "orch"))
+    (935987 "Gleevec" ("orch" "phsu"))))
+=>
+'((206 #t #t (935989 "imatinib" ("phsu" "orch")))
+  (86 #t #t (939537 "Imatinib mesylate" ("orch" "phsu")))
+  (8 #f #f (385728 "CGP 57148" ("phsu" "orch")))
+  (61 #t #t (906802 "STI571" ("phsu" "orch")))
+  (52 #t #t (935987 "Gleevec" ("orch" "phsu"))))
+
+;; the right way to do it!
+;; a few of the genes for some of the drugs are dups for "imatinib", "Imatinib mesylate", and "STI571"
+(map
+  (lambda (drug)
+    (let ((genes (run* (q)
+                   (fresh (gene e-drug/gene p-drug/gene p-st-drug/gene e-drug/gene-rest)                
+                     (== gene q)
+                     (== `(,drug ,gene ,p-drug/gene ,p-st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+                     (== "INHIBITS" p-drug/gene)
+                     (edgeo e-drug/gene)))))
+      (list (length (rem-dups genes)) drug)))
+  '((935989 "imatinib" ("phsu" "orch"))
+    (939537 "Imatinib mesylate" ("orch" "phsu"))
+    (385728 "CGP 57148" ("phsu" "orch"))
+    (906802 "STI571" ("phsu" "orch"))
+    (935987 "Gleevec" ("orch" "phsu"))))
+=>
+'((206 (935989 "imatinib" ("phsu" "orch")))
+  (86 (939537 "Imatinib mesylate" ("orch" "phsu")))
+  (5 (385728 "CGP 57148" ("phsu" "orch")))
+  (61 (906802 "STI571" ("phsu" "orch")))
+  (50 (935987 "Gleevec" ("orch" "phsu"))))
+
+;; the wrong way to do it!
+;; a few of the genes for some of the drugs are dups
+(map
+  (lambda (drug)
+    (let ((genes (run* (q)
+                   (fresh (gene e-drug/gene p-drug/gene e-drug/gene-rest)                
+                     (== gene q)                
+                     (== `(,drug ,gene ,p-drug/gene . ,e-drug/gene-rest) e-drug/gene)
+                     (== "INHIBITS" p-drug/gene)
+                     (edgeo e-drug/gene)
+                     (fresh (cui name concept-type*)
+                       (== `(,cui ,name ,concept-type*) gene)
+                       (membero "gngm" concept-type*))))))
+      (list (length (rem-dups genes)) drug)))
+  '((935989 "imatinib" ("phsu" "orch"))
+    (939537 "Imatinib mesylate" ("orch" "phsu"))
+    (385728 "CGP 57148" ("phsu" "orch"))
+    (906802 "STI571" ("phsu" "orch"))
+    (935987 "Gleevec" ("orch" "phsu"))))
+=>
+'((206 (935989 "imatinib" ("phsu" "orch")))
+  (86 (939537 "Imatinib mesylate" ("orch" "phsu")))
+  (8 (385728 "CGP 57148" ("phsu" "orch")))
+  (61 (906802 "STI571" ("phsu" "orch")))
+  (52 (935987 "Gleevec" ("orch" "phsu"))))
+
+
+;; The right way!  Notice there are fewer answers
+(map
+  (lambda (drug)
+    (let ((genes (run* (q)
+                   (fresh (gene e-drug/gene p-drug/gene p-st-drug/gene e-drug/gene-rest)
+                     (== gene q)
+                     (== `(,drug ,gene ,p-drug/gene ,p-st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+                     (== "INHIBITS" p-drug/gene)
+                     (edgeo e-drug/gene)))))
+      (list (length genes) drug)))
+  '((935989 "imatinib" ("phsu" "orch"))
+    (939537 "Imatinib mesylate" ("orch" "phsu"))
+    (385728 "CGP 57148" ("phsu" "orch"))
+    (906802 "STI571" ("phsu" "orch"))
+    (935987 "Gleevec" ("orch" "phsu"))))
+=>
+'((213 (935989 "imatinib" ("phsu" "orch")))
+  (88 (939537 "Imatinib mesylate" ("orch" "phsu")))
+  (5 (385728 "CGP 57148" ("phsu" "orch")))
+  (62 (906802 "STI571" ("phsu" "orch")))
+  (50 (935987 "Gleevec" ("orch" "phsu"))))
+
+;; The wrong way
+(map
+  (lambda (drug)
+    (let ((genes (run* (q)
+                   (fresh (gene e-drug/gene p-drug/gene e-drug/gene-rest)                
+                     (== gene q)                
+                     (== `(,drug ,gene ,p-drug/gene . ,e-drug/gene-rest) e-drug/gene)
+                     (== "INHIBITS" p-drug/gene)
+                     (edgeo e-drug/gene)
+                     (fresh (cui name concept-type*)
+                       (== `(,cui ,name ,concept-type*) gene)
+                       (membero "gngm" concept-type*))))))
+      (list (length genes) drug)))
+  '((935989 "imatinib" ("phsu" "orch"))
+    (939537 "Imatinib mesylate" ("orch" "phsu"))
+    (385728 "CGP 57148" ("phsu" "orch"))
+    (906802 "STI571" ("phsu" "orch"))
+    (935987 "Gleevec" ("orch" "phsu"))))
+=>
+'((219 (935989 "imatinib" ("phsu" "orch")))
+  (90 (939537 "Imatinib mesylate" ("orch" "phsu")))
+  (8 (385728 "CGP 57148" ("phsu" "orch")))
+  (63 (906802 "STI571" ("phsu" "orch")))
+  (55 (935987 "Gleevec" ("orch" "phsu"))))
+
+;; The right way to do it
+;; Notice only 3 of the 5 answers are specific genes.
+(map
+  (lambda (drug)
+    (let ((e-drug/genes (run* (q)
+                          (fresh (gene e-drug/gene p-drug/gene p-st-drug/gene e-drug/gene-rest)
+                            (== e-drug/gene q)
+                            (== `(,drug ,gene ,p-drug/gene ,p-st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+                            (== "INHIBITS" p-drug/gene)
+                            (edgeo e-drug/gene)))))
+      e-drug/genes))
+  '((385728 "CGP 57148" ("phsu" "orch"))))
+'((((385728 "CGP 57148" ("phsu" "orch"))
+    (31727 "Phosphotransferases" ("aapp" "gngm" "enzy"))
+    "INHIBITS"
+    "orch"
+    "gngm"
+    (11680792 10979973 10815921 9389713 9345054))
+   ((385728 "CGP 57148" ("phsu" "orch"))
+    (33640 "PROTEIN KINASE" ("gngm" "enzy" "aapp"))
+    "INHIBITS"
+    "orch"
+    "gngm"
+    (9446752))
+   ((385728 "CGP 57148" ("phsu" "orch"))
+    (915156 "Ephrin Receptor EphA8" ("gngm" "enzy" "aapp"))
+    "INHIBITS"
+    "orch"
+    "gngm"
+    (10815921))
+   ((385728 "CGP 57148" ("phsu" "orch"))
+    (1417708 "NFKB1 gene" ("bacs" "aapp" "imft" "gngm"))
+    "INHIBITS"
+    "orch"
+    "gngm"
+    (10979973))
+   ((385728 "CGP 57148" ("phsu" "orch"))
+    (1439337 "tyrosine kinase ABL1" ("aapp" "gngm" "enzy"))
+    "INHIBITS"
+    "orch"
+    "gngm"
+    (10200527 9389713))))
+
+;; The wrong way to do it!  Notice that some of the edges include 'aapp' as their object type.
+(map
+  (lambda (drug)
+    (let ((e-drug/genes (run* (q)
+                          (fresh (gene e-drug/gene p-drug/gene e-drug/gene-rest)                
+                            (== e-drug/gene q)
+                            (== `(,drug ,gene ,p-drug/gene . ,e-drug/gene-rest) e-drug/gene)
+                            (== "INHIBITS" p-drug/gene)
+                            (edgeo e-drug/gene)
+                            (fresh (cui name concept-type*)
+                              (== `(,cui ,name ,concept-type*) gene)
+                              (membero "gngm" concept-type*))))))
+      e-drug/genes))
+  '((385728 "CGP 57148" ("phsu" "orch"))))
+'((((385728 "CGP 57148" ("phsu" "orch"))
+    (31727 "Phosphotransferases" ("aapp" "gngm" "enzy"))
+    "INHIBITS"
+    "orch"
+    "gngm"
+    (11680792 10979973 10815921 9389713 9345054))
+   ((385728 "CGP 57148" ("phsu" "orch"))
+    (33640 "PROTEIN KINASE" ("gngm" "enzy" "aapp"))
+    "INHIBITS"
+    "orch"
+    "gngm"
+    (9446752))
+   ((385728 "CGP 57148" ("phsu" "orch"))
+    (71253 "Platelet-Derived Growth Factor Receptor" ("aapp" "gngm" "enzy"))
+    "INHIBITS"
+    "orch"
+    "aapp"
+    (9389713))
+   ((385728 "CGP 57148" ("phsu" "orch"))
+    (164786 "Proto-Oncogene Proteins c-akt" ("gngm" "aapp" "enzy"))
+    "INHIBITS"
+    "orch"
+    "aapp"
+    (10979973))
+   ((385728 "CGP 57148" ("phsu" "orch"))
+    (915156 "Ephrin Receptor EphA8" ("gngm" "enzy" "aapp"))
+    "INHIBITS"
+    "orch"
+    "gngm"
+    (10815921))
+   ((385728 "CGP 57148" ("phsu" "orch"))
+    (812228 "AKT1 gene" ("aapp" "phsu" "enzy" "gngm" "bacs"))
+    "INHIBITS"
+    "orch"
+    "aapp"
+    (10979973))
+   ((385728 "CGP 57148" ("phsu" "orch"))
+    (1439337 "tyrosine kinase ABL1" ("aapp" "gngm" "enzy"))
+    "INHIBITS"
+    "orch"
+    "gngm"
+    (10200527 9389713))
+   ((385728 "CGP 57148" ("phsu" "orch"))
+    (1417708 "NFKB1 gene" ("bacs" "aapp" "imft" "gngm"))
+    "INHIBITS"
+    "orch"
+    "gngm"
+    (10979973))))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+;; these entries seem very similar (based on alias and synonym information)
+;; If the user asks for 'imatinib' in a query, may want to look for all of these,
+;; and perhaps in most-specific to least-specific order.
+(935989 "imatinib" ("phsu" "orch"))
+(939537 "Imatinib mesylate" ("orch" "phsu"))
+(385728 "CGP 57148" ("phsu" "orch"))
+(906802 "STI571" ("phsu" "orch"))
+(935987 "Gleevec" ("orch" "phsu"))
+
+;; how many genes do each of the imatinib synonyms INHIBIT?
+(map
+  (lambda (drug)
+    (let ((genes (run* (q)
+                   (fresh (gene e-drug/gene p-drug/gene e-drug/gene-rest)                
+                     (== gene q)                
+                     (== `(,drug ,gene ,p-drug/gene . ,e-drug/gene-rest) e-drug/gene)
+                     (== "INHIBITS" p-drug/gene)
+                     (edgeo e-drug/gene)
+                     (fresh (cui name concept-type*)
+                       (== `(,cui ,name ,concept-type*) gene)
+                       (membero "gngm" concept-type*))))))
+      (list (length genes) drug)))
+  '((935989 "imatinib" ("phsu" "orch"))
+    (939537 "Imatinib mesylate" ("orch" "phsu"))
+    (385728 "CGP 57148" ("phsu" "orch"))
+    (906802 "STI571" ("phsu" "orch"))
+    (935987 "Gleevec" ("orch" "phsu"))))
+=>
+'((219 (935989 "imatinib" ("phsu" "orch")))
+  (90 (939537 "Imatinib mesylate" ("orch" "phsu")))
+  (8 (385728 "CGP 57148" ("phsu" "orch")))
+  (63 (906802 "STI571" ("phsu" "orch")))
+  (55 (935987 "Gleevec" ("orch" "phsu"))))
+
+;; a few of the genes for some of the drugs are dups
+(map
+  (lambda (drug)
+    (let ((genes (run* (q)
+                   (fresh (gene e-drug/gene p-drug/gene e-drug/gene-rest)                
+                     (== gene q)                
+                     (== `(,drug ,gene ,p-drug/gene . ,e-drug/gene-rest) e-drug/gene)
+                     (== "INHIBITS" p-drug/gene)
+                     (edgeo e-drug/gene)
+                     (fresh (cui name concept-type*)
+                       (== `(,cui ,name ,concept-type*) gene)
+                       (membero "gngm" concept-type*))))))
+      (list (length (rem-dups genes)) drug)))
+  '((935989 "imatinib" ("phsu" "orch"))
+    (939537 "Imatinib mesylate" ("orch" "phsu"))
+    (385728 "CGP 57148" ("phsu" "orch"))
+    (906802 "STI571" ("phsu" "orch"))
+    (935987 "Gleevec" ("orch" "phsu"))))
+=>
+'((206 (935989 "imatinib" ("phsu" "orch")))
+  (86 (939537 "Imatinib mesylate" ("orch" "phsu")))
+  (8 (385728 "CGP 57148" ("phsu" "orch")))
+  (61 (906802 "STI571" ("phsu" "orch")))
+  (52 (935987 "Gleevec" ("orch" "phsu"))))
+
+(920288 "C-KIT Gene" ("gngm" "aapp"))
+(1416655 "KIT gene" ("bacs" "imft" "gngm" "aapp"))
+
+;; every drug other than "CGP 57148" INHIBITS both KIT and C-KIT
+(map
+  (lambda (drug)
+    (let ((genes (run* (q)
+                   (fresh (gene e-drug/gene p-drug/gene e-drug/gene-rest)                
+                     (== gene q)                
+                     (== `(,drug ,gene ,p-drug/gene . ,e-drug/gene-rest) e-drug/gene)
+                     (== "INHIBITS" p-drug/gene)
+                     (edgeo e-drug/gene)
+                     (fresh (cui name concept-type*)
+                       (== `(,cui ,name ,concept-type*) gene)
+                       (membero "gngm" concept-type*))))))
+      (let ((genes (rem-dups genes)))
+        (list (length genes)
+              (and (member '(1416655 "KIT gene" ("bacs" "imft" "gngm" "aapp")) genes) #t)
+              (and (member '(920288 "C-KIT Gene" ("gngm" "aapp")) genes) #t)
+              drug))))
+  '((935989 "imatinib" ("phsu" "orch"))
+    (939537 "Imatinib mesylate" ("orch" "phsu"))
+    (385728 "CGP 57148" ("phsu" "orch"))
+    (906802 "STI571" ("phsu" "orch"))
+    (935987 "Gleevec" ("orch" "phsu"))))
+=>
+'((206 #t #t (935989 "imatinib" ("phsu" "orch")))
+  (86 #t #t (939537 "Imatinib mesylate" ("orch" "phsu")))
+  (8 #f #f (385728 "CGP 57148" ("phsu" "orch")))
+  (61 #t #t (906802 "STI571" ("phsu" "orch")))
+  (52 #t #t (935987 "Gleevec" ("orch" "phsu"))))
+
+
+;; 286 genes combined across all synonyms
+(let ((all-genes
+       (map
+        (lambda (drug)
+          (let ((genes (run* (q)
+                         (fresh (gene e-drug/gene p-drug/gene e-drug/gene-rest)                
+                           (== gene q)                
+                           (== `(,drug ,gene ,p-drug/gene . ,e-drug/gene-rest) e-drug/gene)
+                           (== "INHIBITS" p-drug/gene)
+                           (edgeo e-drug/gene)
+                           (fresh (cui name concept-type*)
+                             (== `(,cui ,name ,concept-type*) gene)
+                             (membero "gngm" concept-type*))))))
+            (rem-dups genes)))
+        '((935989 "imatinib" ("phsu" "orch"))
+          (939537 "Imatinib mesylate" ("orch" "phsu"))
+          (385728 "CGP 57148" ("phsu" "orch"))
+          (906802 "STI571" ("phsu" "orch"))
+          (935987 "Gleevec" ("orch" "phsu"))))))
+  (length (apply union* all-genes)))
+=>
+286
+
+;; Genes inhibited by Gleevec
+;;
+;; Of the 52 results, at least a few appear to be classes of genes
+;; rather than specific genes:
+;;
+;; (3241 "Antibodies" ("gngm" "aapp" "imft"))
+;; (4891 "Fusion Proteins, bcr-abl" ("aapp" "gngm" "bacs"))
+;; (31727 "Phosphotransferases" ("aapp" "gngm" "enzy"))
+;; (33640 "PROTEIN KINASE" ("gngm" "enzy" "aapp"))
+;; (33684 "Proteins" ("bacs" "gngm" "aapp"))
+;; (79050 "c-abl Proto-Oncogenes" ("aapp" "gngm"))
+;; (79413 "Genes, abl" ("gngm" "aapp"))
+;; (79427 "Tumor Suppressor Genes" ("gngm" "aapp"))
+;; (80298 "v-src Oncogenes" ("gngm" "aapp" "enzy" "aapp" "gngm" "bacs"))
+;; (597357 "receptor" ("aapp" "gngm" "rcpt"))
+;; (1136340 "Semaphorins" ("bacs" "gngm" "aapp"))
+;;
+;; Of course, is something like (33684 "Proteins" ("bacs" "gngm" "aapp"))
+;; even considered a gene class?
+;;
+;; Oh wow--I had missed the first one of the c-kit names before!
+;; So there are actually three synonyms, not two.
+;;
+;; (72470 "Proto-Oncogene Protein c-kit" ("aapp" "gngm" "rcpt" "imft"))
+;; (920288 "C-KIT Gene" ("gngm" "aapp"))
+;; (1416655 "KIT gene" ("bacs" "imft" "gngm" "aapp"))
+;;
+;; So, of the 52 results, ~10 are actually categories rather
+;; than specific genes.  Of the remaining ~40 specific genes, 3 of
+;; them are synonyms/aliases for KIT.
+(time (rem-dups
+       (run* (q)
+         (fresh (drug gene e-drug/gene p-drug/gene e-drug/gene-rest)          
+           (== gene q)          
+           (== '(935987 "Gleevec" ("orch" "phsu")) drug)
+           (== `(,drug ,gene ,p-drug/gene . ,e-drug/gene-rest) e-drug/gene)
+           (== "INHIBITS" p-drug/gene)
+           (edgeo e-drug/gene)
+           (fresh (cui name concept-type*)
+             (== `(,cui ,name ,concept-type*) gene)
+             (membero "gngm" concept-type*))))))
+
+;; I think these two are *classes* of genes, not specific genes
+;;
+;; (31727 "Phosphotransferases" ("aapp" "gngm" "enzy"))
+;; (33640 "PROTEIN KINASE" ("gngm" "enzy" "aapp"))
+;;
+;; notice there is no KIT or C-KIT
+(time (run* (q)
+        (fresh (drug gene e-drug/gene p-drug/gene e-drug/gene-rest)          
+          (== gene q)          
+          (== '(385728 "CGP 57148" ("phsu" "orch")) drug)
+          (== `(,drug ,gene ,p-drug/gene . ,e-drug/gene-rest) e-drug/gene)
+          (== "INHIBITS" p-drug/gene)
+          (edgeo e-drug/gene)
+          (fresh (cui name concept-type*)
+            (== `(,cui ,name ,concept-type*) gene)
+            (membero "gngm" concept-type*)))))
+=>
+'((31727 "Phosphotransferases" ("aapp" "gngm" "enzy"))
+  (33640 "PROTEIN KINASE" ("gngm" "enzy" "aapp"))
+  (71253 "Platelet-Derived Growth Factor Receptor" ("aapp" "gngm" "enzy"))
+  (164786 "Proto-Oncogene Proteins c-akt" ("gngm" "aapp" "enzy"))
+  (915156 "Ephrin Receptor EphA8" ("gngm" "enzy" "aapp"))
+  (812228 "AKT1 gene" ("aapp" "phsu" "enzy" "gngm" "bacs"))
+  (1439337 "tyrosine kinase ABL1" ("aapp" "gngm" "enzy"))
+  (1417708 "NFKB1 gene" ("bacs" "aapp" "imft" "gngm")))
+
+
+
+(time (run 1 (q)
+        (fresh (drug gene e-drug/gene p-drug/gene e-drug/gene-rest)          
+          (== e-drug/gene q)          
+          (== '(935989 "imatinib" ("phsu" "orch")) drug)
+          (== `(,drug ,gene ,p-drug/gene . ,e-drug/gene-rest) e-drug/gene)
+          (== "INHIBITS" p-drug/gene)
+          (edgeo e-drug/gene)
+          (fresh (cui name concept-type*)
+            (== `(,cui ,name ,concept-type*) gene)
+            (membero "gngm" concept-type*)))))
+
+
+
+;; https://pubchem.ncbi.nlm.nih.gov/compound/Imatinib_mesylate#section=Synonyms
+
+;; MeSH Entry Terms
+;;
+;; alpha-(4-methyl-1-piperazinyl)-3'-((4-(3-pyridyl)-2-pyrimidinyl)amino)-p-tolu-p-toluidide
+;; CGP 57148
+;; CGP-57148
+;; CGP57148
+;; CGP57148B
+;; Gleevec
+;; Glivec
+;; imatinib
+;; imatinib mesylate
+;; imatinib methanesulfonate
+;; Mesylate, Imatinib
+;; Methanesulfonate, Imatinib
+;; ST 1571
+;; ST1571
+;; STI 571
+;; STI-571
+;; STI571
+
+;; https://pubchem.ncbi.nlm.nih.gov/compound/5291#section=MeSH-Entry-Terms
+
+;; Depositor-Supplied Synonyms
+;;
+;; Imatinib
+;; 152459-95-5
+;; sti-571
+;; STI571
+;; Cgp 57148
+;; STI 571
+;; Imatinib [INN:BAN]
+;; N-(4-Methyl-3-((4-(pyridin-3-yl)pyrimidin-2-yl)amino)phenyl)-4-((4-methylpiperazin-1-yl)methyl)benzamide
+;; Imatinib free base
+;; UNII-BKJ8M8G5HI
+;; CCRIS 9076
+;; Imatinib (STI571)
+;; CHEMBL941
+;; 1iep
+;; 1xbb
+;; CGP-57148
+;; Imatinib (INN)
+;; Glamox (TN)
+;; CHEBI:45783
+;; CGP 57148B
+;; Imatinib Methansulfonate
+;; Kinome_3724
+;; Imatinib base(IMA-3)
+;; NSC743414
+;; STK617705
+;; BKJ8M8G5HI
+;; AC1L1K0Z
+;; BIDD:GT0047
+;; 4-(4-METHYL-PIPERAZIN-1-YLMETHYL)-N-[4-METHYL-3-(4-PYRIDIN-3-YL-PYRIMIDIN-2-YLAMINO)-PHENYL]-BENZAMIDE
+
+;; https://pubchem.ncbi.nlm.nih.gov/compound/Imatinib_mesylate#section=Related-Records
+;;
+;; related compounds
+;;
+;; Same Connectivity 	3 records
+;; Same Parent, Connectivity 	115 records
+;; Same Parent, Exact 	89 records
+;; Mixtures, Components, and Neutralized Forms 	2 records
+;; Similar Compounds 	416 records
+
+> (time (pretty-print (run* (s) (fuzzy-concepto "imatinib" s))))
+'((935989 "imatinib" ("phsu" "orch"))
+  (939537 "Imatinib mesylate" ("orch" "phsu"))
+  (1127612 "imatinib 100 MG" ("clnd"))
+  (1329083 "imatinib 100 MG Oral Tablet" ("clnd"))
+  (1331284 "imatinib 400 MG" ("clnd")))
+cpu time: 93 real time: 94 gc time: 1
+
+> (time (pretty-print (run* (s) (fuzzy-concepto "Gleevec" s))))
+'((935987 "Gleevec" ("orch" "phsu")))
+cpu time: 94 real time: 96 gc time: 0
+
+> (time (pretty-print (run* (s) (fuzzy-concepto "CGP 57148" s))))
+'((385728 "CGP 57148" ("phsu" "orch")))
+cpu time: 93 real time: 95 gc time: 0
+
+> (time (pretty-print (run* (s) (fuzzy-concepto "57148" s))))
+'((385728 "CGP 57148" ("phsu" "orch")))
+cpu time: 105 real time: 106 gc time: 1
+
+> (time (pretty-print (run* (s) (fuzzy-concepto "1571" s))))
+'((760931 "LY 315712" ("phsu"))
+  (964110 "UK 157147" ("orch"))
+  (1097576 "ST 1571" ("orch" "phsu"))
+  (1175579 "GPI 15715" ("orch")))
+cpu time: 109 real time: 112 gc time: 1
+
+
+
+
+;; playing with ISA
+;; ??? ISA Protein-tyrosine kinase inhibitor
+;;
+;; cpu time: 4 real time: 10 gc time: 0
+'((13227 "Pharmaceutical Preparations" ("phsu"))
+  (13982 "Emodin" ("orch" "bacs" "phsu"))
+  (53622 "biochanin A" ("phsu" "orch"))
+  (57090 "daidzein" ("orch" "vita"))
+  (61202 "Genistein" ("phsu" "orch" "bacs"))
+  (61202 "Genistein" ("phsu" "orch" "bacs"))
+  (61202 "Genistein" ("phsu" "orch" "bacs"))
+  (64695 "lavendustin A" ("phsu" "orch"))
+  (83406 "methyl 2,5-dihydroxycinnamate" ("orch" "phsu"))
+  (207800 "monorden" ("phsu" "orch"))
+  (212399 "damnacanthal" ("phsu" "orch"))
+  (213654 "tyrphostin 25" ("orch" "phsu"))
+  (213997 "lavendustin C6" ("orch" "phsu"))
+  (253468 "tyrphostin A46" ("orch" "phsu"))
+  (258114 "PD 153035" ("phsu" "orch"))
+  (295108 "lavendustin B" ("phsu" "orch"))
+  (381676 "tyrphostin B46" ("orch" "phsu"))
+  (384553 "tyrphostin A47" ("phsu" "orch"))
+  (385728 "CGP 57148" ("phsu" "orch"))
+  (528985 "tyrphostin AG 1478" ("orch" "phsu"))
+  (538431 "SU 5402" ("phsu" "orch"))
+  (539578 "tyrphostin AG 1296" ("orch" "phsu"))
+  (638102 "tyrphostin A23" ("orch" "phsu"))
+  (663164 "tyrphostin B42" ("phsu"))
+  (758539 "tyrphostin A51" ("orch" "phsu"))
+  (879396 "ZD1839" ("orch" "phsu"))
+  (906802 "STI571" ("phsu" "orch"))
+  (912413 "PTK 787" ("phsu" "orch"))
+  (913199 "tyrphostin A9" ("orch" "phsu"))
+  (919281 "Iressa" ("orch" "phsu"))
+  (935987 "Gleevec" ("orch" "phsu"))
+  (935989 "imatinib" ("phsu" "orch"))
+  (939537 "Imatinib mesylate" ("orch" "phsu"))
+  (1122962 "gefitinib" ("phsu" "orch"))
+  (1135135 "erlotinib" ("phsu" "orch"))
+  (1135136 "Tarceva" ("orch" "phsu"))
+  (1135137 "OSI-774" ("orch" "phsu"))
+  (1176007 "3,3',4,5'-tetrahydroxystilbene" ("orch" "phsu"))
+  (1176021 "SU 11248" ("orch" "phsu"))
+  (1412731 "BAG3 gene" ("gngm" "enzy" "aapp"))
+  (1511179 "Bis-Tyrphostin" ("aapp"))
+  (1519728
+   "2-amino-4-(4'-hydroxyphenyl)-1,1,3-tricyanobuta-1,3-diene"
+   ("aapp"))
+  (1533491 "Erlotinib Hydrochloride" ("phsu" "orch"))
+  (1570599 "AG 112" ("orch")))
+(time
+  (run* (q)
+      (fresh (drug what-is-it e-drug/what st-drug/what ot-drug/what e-drug/what-rest)        
+        (== drug q)
+        (== '(1268567 "Protein-tyrosine kinase inhibitor" ("phsu")) what-is-it)
+        (== `(,drug ,what-is-it "ISA" ,st-drug/what ,ot-drug/what . ,e-drug/what-rest) e-drug/what)
+        (edgeo e-drug/what))))
+
+;; playing with ISA
+;; Gleevec ISA ???
+;;
+;; These answers seem mostly reasonable.
+;; Of course there is more structure/a richer relationship between these answers than may be apparent.  Different levels of hierarchy.
+'((3392 "Antineoplastic Agents" ("phsu"))
+  (13216 "Pharmacotherapy" ("topp"))
+  (13227 "Pharmaceutical Preparations" ("phsu"))
+  (87111 "Therapeutic procedure" ("topp"))
+  (243076 "antagonists" ("chvf"))
+  (920425 "Cancer Treatment" ("topp"))
+  (935989 "imatinib" ("phsu" "orch"))
+  (939537 "Imatinib mesylate" ("orch" "phsu"))
+  (1254351 "Pharmacologic Substance" ("phsu"))
+  (1268567 "Protein-tyrosine kinase inhibitor" ("phsu"))
+  (1449702 "Protein Kinase Inhibitors" ("phsu"))
+  (1611640 "Therapeutic agent (substance)" ("phsu")))
+(time
+  (run* (q)
+      (fresh (drug what-is-it e-drug/what st-drug/what ot-drug/what e-drug/what-rest)        
+        (== what-is-it q)
+        (== '(935987 "Gleevec" ("orch" "phsu")) drug)
+        (== `(,drug ,what-is-it "ISA" ,st-drug/what ,ot-drug/what . ,e-drug/what-rest) e-drug/what)
+        (edgeo e-drug/what))))
+
+;; playing with ISA
+;; ??? ISA Gleevec
+;;
+;; once again, this seems backwards.
+;; 'Protein-tyrosine kinase inhibitor ISA Gleevec' seems backwards.
+'((13227 "Pharmaceutical Preparations" ("phsu"))
+  (1268567 "Protein-tyrosine kinase inhibitor" ("phsu")))
+(time
+  (run* (q)
+      (fresh (what-is-it drug e-what/drug st-what/drug ot-what/drug e-what/drug-rest)        
+        (== what-is-it q)
+        (== '(935987 "Gleevec" ("orch" "phsu")) drug)
+        (== `(,what-is-it ,drug "ISA" ,st-what/drug ,ot-what/drug . ,e-what/drug-rest) e-what/drug)
+        (edgeo e-what/drug))))
+
+;; playing with ISA
+;; ??? ISA Imatinib mesylate
+;;
+;; Gleevec, CGP 57148, and STI571 are okay.
+;; imatinib is marginal, at best.
+;; The others are either backwards (Protein-tyrosine kinase inhibitor) or
+;; non-sensical (Operative Surgical Procedures).
+'((13227 "Pharmaceutical Preparations" ("phsu"))
+  (87111 "Therapeutic procedure" ("topp"))
+  (385728 "CGP 57148" ("phsu" "orch"))
+  (543467 "Operative Surgical Procedures" ("topp"))
+  (906802 "STI571" ("phsu" "orch"))
+  (935987 "Gleevec" ("orch" "phsu"))
+  (935989 "imatinib" ("phsu" "orch"))
+  (1268567 "Protein-tyrosine kinase inhibitor" ("phsu"))
+  (1268567 "Protein-tyrosine kinase inhibitor" ("phsu")))
+(time
+  (run* (q)
+      (fresh (what-is-it drug e-what/drug st-what/drug ot-what/drug e-what/drug-rest)        
+        (== what-is-it q)
+        (== '(939537 "Imatinib mesylate" ("orch" "phsu")) drug)
+        (== `(,what-is-it ,drug "ISA" ,st-what/drug ,ot-what/drug . ,e-what/drug-rest) e-what/drug)
+        (edgeo e-what/drug))))
+
+;; playing with ISA
+;; ??? ISA imatinib
+;;
+;; Gleevec makes sense (brand name), and probably Imatinib mesylate.
+;; STI571 is okay, probably. http://chemocare.com/chemotherapy/drug-info/STI-571.aspx
+;; And CGP 57148.  https://www.biovision.com/imatinib-mesylate-cgp-57148b-sti-571.html
+;;
+;; The others seem...less good. 'Therapeutic procedure ISA imatinib' seems non-sensical.
+;; 'Protein-tyrosine kinase inhibitor ISA imatinib' seems backwards.
+'((3392 "Antineoplastic Agents" ("phsu"))
+  (13216 "Pharmacotherapy" ("topp"))
+  (13227 "Pharmaceutical Preparations" ("phsu"))
+  (87111 "Therapeutic procedure" ("topp"))
+  (385728 "CGP 57148" ("phsu" "orch"))
+  (543467 "Operative Surgical Procedures" ("topp"))
+  (906802 "STI571" ("phsu" "orch"))
+  (935987 "Gleevec" ("orch" "phsu"))
+  (939537 "Imatinib mesylate" ("orch" "phsu"))
+  (1268567 "Protein-tyrosine kinase inhibitor" ("phsu"))
+  (1268567 "Protein-tyrosine kinase inhibitor" ("phsu")))
+(time
+  (run* (q)
+      (fresh (what-is-it drug e-what/drug st-what/drug ot-what/drug e-what/drug-rest)        
+        (== what-is-it q)
+        (== '(935989 "imatinib" ("phsu" "orch")) drug)
+        (== `(,what-is-it ,drug "ISA" ,st-what/drug ,ot-what/drug . ,e-what/drug-rest) e-what/drug)
+        (edgeo e-what/drug))))
+
+;; playing with ISA
+;; imatinib ISA ???
+'((3392 "Antineoplastic Agents" ("phsu"))
+  (13216 "Pharmacotherapy" ("topp"))
+  (13227 "Pharmaceutical Preparations" ("phsu"))
+  (13227 "Pharmaceutical Preparations" ("phsu"))
+  (39796 "The science and art of healing" ("topp"))
+  (87111 "Therapeutic procedure" ("topp"))
+  (87111 "Therapeutic procedure" ("topp"))
+  (243076 "antagonists" ("chvf"))
+  (418981 "Medical therapy" ("topp"))
+  (543467 "Operative Surgical Procedures" ("topp"))
+  (679607 "treatment method" ("topp"))
+  (920425 "Cancer Treatment" ("topp"))
+  (935451 "neoplasm/cancer chemotherapy" ("topp"))
+  (939537 "Imatinib mesylate" ("orch" "phsu"))
+  (1254351 "Pharmacologic Substance" ("phsu"))
+  (1268567 "Protein-tyrosine kinase inhibitor" ("phsu"))
+  (1372955 "Active Ingredients" ("phsu"))
+  (1449702 "Protein Kinase Inhibitors" ("phsu"))
+  (1519313 "Signal Transduction Inhibitor" ("phsu"))
+  (1533685 "Injection procedure" ("topp"))
+  (1579409 "Molecular Target Inhibitors" ("phsu"))
+  (1611640 "Therapeutic agent (substance)" ("phsu")))
+(time
+  (run* (q)
+      (fresh (drug what-is-it e-drug/what st-drug/what ot-drug/what e-drug/what-rest)        
+        (== what-is-it q)
+        (== '(935989 "imatinib" ("phsu" "orch")) drug)
+        (== `(,drug ,what-is-it "ISA" ,st-drug/what ,ot-drug/what . ,e-drug/what-rest) e-drug/what)
+        (edgeo e-drug/what))))
+
+
+
+
+;; let's test the individual parts of the query
+
+;; compare
+;;
+;; (32 (920288 "C-KIT Gene" ("gngm" "aapp")))
+;;
+;; and
+;;
+;; (35 (1416655 "KIT gene" ("bacs" "imft" "gngm" "aapp")))
+;;
+;; which cause 32 and 35 diseases, respectively, with these monstrosities:
+;;
+;; (291 (597357 "receptor" ("aapp" "gngm" "rcpt")))
+;; (296 (1823619 "VEGFA gene" ("bacs" "phsu" "rcpt" "gngm" "imft" "enzy" "aapp")))
+;; (418 (1456820 "Tumor Necrosis Factor-alpha" ("imft" "gngm" "aapp")))
+;; (506 (33684 "Proteins" ("bacs" "gngm" "aapp")))
+;; (579 (79189 "cytokine" ("aapp" "imft" "gngm")))
+;; (1171 (17337 "Genes" ("aapp" "gngm"))))
+;;
+;; Could either just drop entries like (1171 (17337 "Genes" ("aapp" "gngm")))
+;; and (506 (33684 "Proteins" ("bacs" "gngm" "aapp"))), or prioritize search
+;; to start with smallest number of diseases (or both).
+;;
+;; Also, should make sure to remove duplicate diseases in the results!
+;; And remove ridiculous entries like (12634 "Disease" ("dsyn"))
+;;
+;; Also, should take the union of diseases caused by C-KIT and KIT,
+;; rather than trying them both separately (and getting duplicate
+;; answers).
+;;
+;; Should also consider taking the union of all diseases produced by
+;; all genes, to avoid duplicate work, or do caching/memoization/tabling.
+;;
+(let ((genes-inhibited-by-imatinib
+       (run* (q)
+         (fresh (drug gene known-disease something unknown-disease
+                      e-drug/gene st-drug/gene e-drug/gene-rest
+                      e-gene/known-disease st-gene/known-disease ot-gene/known-disease e-gene/known-disease-rest
+                      e-drug/known-disease e-drug/known-disease-rest
+                      e-gene/something p-gene/something st-gene/something ot-gene/something e-gene/something-rest
+                      e-something/unknown-disease p-something/unknown-disease st-something/unknown-disease ot-something/unknown-disease e-something/unknown-disease-rest)
+          
+           (== gene q)
+
+           ;; imatinib inhibits some gene
+           (== '(935989 "imatinib" ("phsu" "orch")) drug)
+           (== `(,drug ,gene "INHIBITS" ,st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+           (edgeo e-drug/gene)
+
+           ))))
+  (let ((genes-inhibited-by-imatinib (rem-dups genes-inhibited-by-imatinib)))
+    (sort
+      (map (lambda (gene)
+             (let ((num-diseases-caused-by-gene
+                    (length
+                     (run* (q)
+                       (fresh (drug known-disease something unknown-disease
+                                    e-drug/gene st-drug/gene e-drug/gene-rest
+                                    e-gene/known-disease st-gene/known-disease ot-gene/known-disease e-gene/known-disease-rest
+                                    e-drug/known-disease e-drug/known-disease-rest
+                                    e-gene/something p-gene/something st-gene/something ot-gene/something e-gene/something-rest
+                                    e-something/unknown-disease p-something/unknown-disease st-something/unknown-disease ot-something/unknown-disease e-something/unknown-disease-rest)
+                       
+                         (== e-gene/known-disease q)
+
+                         ;; that gene directly causes some disease...
+                         (== `(,gene ,known-disease "CAUSES" ,st-gene/known-disease ,ot-gene/known-disease . ,e-gene/known-disease-rest) e-gene/known-disease)
+                         (conde
+                           [(== "dsyn" ot-gene/known-disease)]
+                           [(== "neop" ot-gene/known-disease)])
+                         (edgeo e-gene/known-disease))))))
+               (list num-diseases-caused-by-gene gene)))
+           genes-inhibited-by-imatinib)
+      (lambda (l1 l2) (< (car l1) (car l2))))))
+
+;; how many genes are inhibited by imatinib?
+;;
+;; cpu time: 10 real time: 10 gc time: 0
+;; 213 genes inhibited by imatinib
+;;
+;; some of these genes are dups!  why?
+;; 206 unique genes
+;;
+;; one of these answers is (17337 "Genes" ("aapp" "gngm")), as opposed to a specific gene--does this result in a degenerate blowup?  This seems fishy!!
+(time
+  (length
+    (run* (q)
+      (fresh (drug gene known-disease something unknown-disease
+                   e-drug/gene st-drug/gene e-drug/gene-rest
+                   e-gene/known-disease st-gene/known-disease ot-gene/known-disease e-gene/known-disease-rest
+                   e-drug/known-disease e-drug/known-disease-rest
+                   e-gene/something p-gene/something st-gene/something ot-gene/something e-gene/something-rest
+                   e-something/unknown-disease p-something/unknown-disease st-something/unknown-disease ot-something/unknown-disease e-something/unknown-disease-rest)
+          
+        (== gene q)
+
+        ;; imatinib inhibits some gene
+        (== '(935989 "imatinib" ("phsu" "orch")) drug)
+        (== `(,drug ,gene "INHIBITS" ,st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+        (edgeo e-drug/gene)
+
+        ))))
+
+;; how many diseases is imatinib known to treat (directly)?
+;;
+;; cpu time: 11 real time: 11 gc time: 0
+;; 349 diseases that imatinib is known to treat
+;;
+;; hmmm--list contains dups!  why is that?
+;;
+;; only 277 of the diseases are unique--the rest are dups
+;;
+;; also, once again we see general categories of diseases--do they result in degenerate blowup?
+;;
+;; (3047 "Animal Diseases" ("dsyn"))
+;; (8679 "Chronic Disease" ("dsyn"))
+;; (12634 "Disease" ("dsyn"))
+;; (12634 "Disease" ("dsyn"))
+;; (920627 "Orphan Diseases" ("dsyn"))
+;;
+;; many of these diseases seen overlapping, or members of another class of disease
+;;
+;; (598934 "tumor growth" ("neop"))
+;; (877373 "Advanced cancer" ("neop"))
+;;
+;; (1266119 "Solitary fibrous tumor" ("neop"))
+;; (1266120 "Solitary fibrous tumor, malignant" ("neop"))
+;;
+;; (6118 "Brain Neoplasms" ("neop"))
+;; (17636 "Glioblastoma" ("neop"))
+;;
+;; (17638 "Glioma" ("neop"))
+;; (555198 "Malignant Glioma" ("neop"))
+;; (677865 "Brain stem glioma" ("neop"))
+;; (1319185 "Chiasmal glioma" ("neop"))
+;;
+;;
+;; wut!?
+;; (1524028 "Intraepithelial Neoplasia of the Mouse Mammary Gland" ("neop"))
+;;
+;; I'm pretty sure we don't want animal diseases, unless humans are considered animals!
+(time
+  (length
+    (run* (q)
+      (fresh (drug gene known-disease something unknown-disease
+                   e-drug/gene st-drug/gene e-drug/gene-rest
+                   e-gene/known-disease st-gene/known-disease ot-gene/known-disease e-gene/known-disease-rest
+                   e-drug/known-disease st-drug/known-disease ot-drug/known-disease e-drug/known-disease-rest
+                   e-gene/something p-gene/something st-gene/something ot-gene/something e-gene/something-rest
+                   e-something/unknown-disease p-something/unknown-disease st-something/unknown-disease ot-something/unknown-disease e-something/unknown-disease-rest)
+          
+        (== known-disease q)
+    
+        ;; imatinib
+        (== '(935989 "imatinib" ("phsu" "orch")) drug)
+        
+        ;; ...which imatinib is known to treat
+        (== `(,drug ,known-disease "TREATS" ,st-drug/known-disease ,ot-drug/known-disease . ,e-drug/known-disease-rest) e-drug/known-disease)
+
+        (conde
+          [(== "dsyn" ot-drug/known-disease)]
+          [(== "neop" ot-drug/known-disease)])
+        
+        (edgeo e-drug/known-disease)                  
+
+        ))))
+
+;; let's look at the duplicate entries for (12634 "Disease" ("dsyn")), treated by imatinib
+;;
+;; That seems a bit unfortunate!  imatinib is considered 'orch'
+;; (Organic Chemical) in one entry, and 'phsu' (Pharmacologic
+;; Substance) in the other.
+;;
+;; (((935989 "imatinib" ("phsu" "orch"))
+;;   (12634 "Disease" ("dsyn"))
+;;   "TREATS"
+;;   "orch"
+;;   "dsyn"
+;;   (86095345 67097950 63793027))
+;;
+;;  ((935989 "imatinib" ("phsu" "orch"))
+;;   (12634 "Disease" ("dsyn"))
+;;   "TREATS"
+;;   "phsu"
+;;   "dsyn"
+;;   (89407082 ... 41787008)))
+;;
+(run* (q)
+  (fresh (drug gene known-disease something unknown-disease
+               e-drug/gene st-drug/gene e-drug/gene-rest
+               e-gene/known-disease st-gene/known-disease ot-gene/known-disease e-gene/known-disease-rest
+               e-drug/known-disease st-drug/known-disease ot-drug/known-disease e-drug/known-disease-rest
+               e-gene/something p-gene/something st-gene/something ot-gene/something e-gene/something-rest
+               e-something/unknown-disease p-something/unknown-disease st-something/unknown-disease ot-something/unknown-disease e-something/unknown-disease-rest)
+    
+    (== e-drug/known-disease q)
+    
+    ;; imatinib
+    (== '(935989 "imatinib" ("phsu" "orch")) drug)
+        
+    ;; ...which imatinib is known to treat
+    (== `(,drug ,known-disease "TREATS" ,st-drug/known-disease ,ot-drug/known-disease . ,e-drug/known-disease-rest) e-drug/known-disease)
+
+    (== '(12634 "Disease" ("dsyn")) known-disease)
+    
+    (conde
+      [(== "dsyn" ot-drug/known-disease)]
+      [(== "neop" ot-drug/known-disease)])
+        
+    (edgeo e-drug/known-disease)                  
+
+    ))
+
+;; more minor cleanup/inlining
+;;
+;; same speed, as expected
+;; cpu time: 17898 real time: 17893 gc time: 462
+(time (run 1 (q)
+  (fresh (drug gene known-disease something unknown-disease
+          e-drug/gene st-drug/gene e-drug/gene-rest
+          e-gene/known-disease st-gene/known-disease ot-gene/known-disease e-gene/known-disease-rest
+          e-drug/known-disease e-drug/known-disease-rest
+          e-gene/something p-gene/something st-gene/something ot-gene/something e-gene/something-rest
+          e-something/unknown-disease p-something/unknown-disease st-something/unknown-disease ot-something/unknown-disease e-something/unknown-disease-rest)
+          
+    (== `(,e-drug/gene ,e-gene/known-disease ,e-drug/known-disease ,e-gene/something ,e-something/unknown-disease) q)
+
+    ;; ** cheat **
+    (fuzzy-concepto "KIT gene" gene)
+    
+    ;; imatinib inhibits some gene
+    (== '(935989 "imatinib" ("phsu" "orch")) drug)
+    (== `(,drug ,gene "INHIBITS" ,st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+    (edgeo e-drug/gene)
+
+    ;; that gene directly causes some disease...
+    (== `(,gene ,known-disease "CAUSES" ,st-gene/known-disease ,ot-gene/known-disease . ,e-gene/known-disease-rest) e-gene/known-disease)
+    (conde
+      [(== "dsyn" ot-gene/known-disease)]
+      [(== "neop" ot-gene/known-disease)])
+    (edgeo e-gene/known-disease)
+
+    ;; ...which imatinib is known to treat
+    (== `(,drug ,known-disease "TREATS" . ,e-drug/known-disease-rest) e-drug/known-disease)
+    (edgeo e-drug/known-disease)                  
+    
+    ;; and that gene indirectly causes & indirectly affects some other disease
+    (== `(,gene ,something ,p-gene/something ,st-gene/something ,ot-gene/something . ,e-gene/something-rest) e-gene/something)
+    (== `(,something ,unknown-disease ,p-something/unknown-disease ,st-something/unknown-disease ,ot-something/unknown-disease . ,e-something/unknown-disease-rest) e-something/unknown-disease)
+    (== "CAUSES" p-gene/something)
+
+    (=/= "dsyn" ot-gene/something)
+    (=/= "neop" ot-gene/something)
+    
+    (edgeo e-gene/something)
+
+    (conde
+      [(== "AFFECTS" p-something/unknown-disease)]
+      [(== "CAUSES" p-something/unknown-disease)])
+
+    (conde
+      [(== "dsyn" ot-something/unknown-disease)]
+      [(== "neop" ot-something/unknown-disease)])
+    
+    (edgeo e-something/unknown-disease)
+    
+    ;; generate and test!!
+    (fuzzy-concepto "Gastrointestinal Stromal Tumors" known-disease)
+    (fuzzy-concepto "mast cell activation" something)
+    (fuzzy-concepto "asthma" unknown-disease)
+
+    )))
+
+;; replace
+;;
+;; (== `(,drug ,gene ,p-drug/gene ,st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+;; (== "INHIBITS" p-drug/gene)
+;;
+;; with
+;;
+;; (== `(,drug ,gene "INHIBITS" ,st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+;;
+;; same time, as expected
+;; cpu time: 17960 real time: 17956 gc time: 431
+(time (run 1 (q)
+  (fresh (drug gene known-disease something unknown-disease
+          e-drug/gene st-drug/gene e-drug/gene-rest
+          e-gene/known-disease p-gene/known-disease st-gene/known-disease ot-gene/known-disease e-gene/known-disease-rest
+          e-drug/known-disease p-drug/known-disease e-drug/known-disease-rest
+          e-gene/something p-gene/something st-gene/something ot-gene/something e-gene/something-rest
+          e-something/unknown-disease p-something/unknown-disease st-something/unknown-disease ot-something/unknown-disease e-something/unknown-disease-rest)
+          
+    (== `(,e-drug/gene ,e-gene/known-disease ,e-drug/known-disease ,e-gene/something ,e-something/unknown-disease) q)
+
+    ;; ** cheat **
+    (fuzzy-concepto "KIT gene" gene)
+    
+    ;; imatinib inhibits some gene
+    (== '(935989 "imatinib" ("phsu" "orch")) drug)
+    (== `(,drug ,gene "INHIBITS" ,st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+    (edgeo e-drug/gene)
+
+    ;; that gene directly causes some disease...
+    (== `(,gene ,known-disease ,p-gene/known-disease ,st-gene/known-disease ,ot-gene/known-disease . ,e-gene/known-disease-rest) e-gene/known-disease)
+    (== "CAUSES" p-gene/known-disease)
+    (conde
+      [(== "dsyn" ot-gene/known-disease)]
+      [(== "neop" ot-gene/known-disease)])
+    (edgeo e-gene/known-disease)
+
+    ;; ...which imatinib is known to treat
+    (== `(,drug ,known-disease ,p-drug/known-disease . ,e-drug/known-disease-rest) e-drug/known-disease)
+    (== "TREATS" p-drug/known-disease)
+    (edgeo e-drug/known-disease)                  
+    
+    ;; and that gene indirectly causes & indirectly affects some other disease
+    (== `(,gene ,something ,p-gene/something ,st-gene/something ,ot-gene/something . ,e-gene/something-rest) e-gene/something)
+    (== `(,something ,unknown-disease ,p-something/unknown-disease ,st-something/unknown-disease ,ot-something/unknown-disease . ,e-something/unknown-disease-rest) e-something/unknown-disease)
+    (== "CAUSES" p-gene/something)
+
+    (=/= "dsyn" ot-gene/something)
+    (=/= "neop" ot-gene/something)
+    
+    (edgeo e-gene/something)
+
+    (conde
+      [(== "AFFECTS" p-something/unknown-disease)]
+      [(== "CAUSES" p-something/unknown-disease)])
+
+    (conde
+      [(== "dsyn" ot-something/unknown-disease)]
+      [(== "neop" ot-something/unknown-disease)])
+    
+    (edgeo e-something/unknown-disease)
+    
+    ;; generate and test!!
+    (fuzzy-concepto "Gastrointestinal Stromal Tumors" known-disease)
+    (fuzzy-concepto "mast cell activation" something)
+    (fuzzy-concepto "asthma" unknown-disease)
+
+    )))
+
+;; replace (fuzzy-concepto "imatinib" drug) with (935989 "imatinib" ("phsu" "orch"))
+;;
+;; a bit faster
+;; cpu time: 17844 real time: 17840 gc time: 297
+(time (run 1 (q)
+  (fresh (drug gene known-disease something unknown-disease
+          e-drug/gene p-drug/gene st-drug/gene e-drug/gene-rest
+          e-gene/known-disease p-gene/known-disease st-gene/known-disease ot-gene/known-disease e-gene/known-disease-rest
+          e-drug/known-disease p-drug/known-disease e-drug/known-disease-rest
+          e-gene/something p-gene/something st-gene/something ot-gene/something e-gene/something-rest
+          e-something/unknown-disease p-something/unknown-disease st-something/unknown-disease ot-something/unknown-disease e-something/unknown-disease-rest)
+          
+    (== `(,e-drug/gene ,e-gene/known-disease ,e-drug/known-disease ,e-gene/something ,e-something/unknown-disease) q)
+
+    ;; ** cheat **
+    (fuzzy-concepto "KIT gene" gene)
+    
+    ;; imatinib inhibits some gene
+    (== '(935989 "imatinib" ("phsu" "orch")) drug)
+    (== `(,drug ,gene ,p-drug/gene ,st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+    (== "INHIBITS" p-drug/gene)
+    (edgeo e-drug/gene)
+
+    ;; that gene directly causes some disease...
+    (== `(,gene ,known-disease ,p-gene/known-disease ,st-gene/known-disease ,ot-gene/known-disease . ,e-gene/known-disease-rest) e-gene/known-disease)
+    (== "CAUSES" p-gene/known-disease)
+    (conde
+      [(== "dsyn" ot-gene/known-disease)]
+      [(== "neop" ot-gene/known-disease)])
+    (edgeo e-gene/known-disease)
+
+    ;; ...which imatinib is known to treat
+    (== `(,drug ,known-disease ,p-drug/known-disease . ,e-drug/known-disease-rest) e-drug/known-disease)
+    (== "TREATS" p-drug/known-disease)
+    (edgeo e-drug/known-disease)                  
+    
+    ;; and that gene indirectly causes & indirectly affects some other disease
+    (== `(,gene ,something ,p-gene/something ,st-gene/something ,ot-gene/something . ,e-gene/something-rest) e-gene/something)
+    (== `(,something ,unknown-disease ,p-something/unknown-disease ,st-something/unknown-disease ,ot-something/unknown-disease . ,e-something/unknown-disease-rest) e-something/unknown-disease)
+    (== "CAUSES" p-gene/something)
+
+    (=/= "dsyn" ot-gene/something)
+    (=/= "neop" ot-gene/something)
+    
+    (edgeo e-gene/something)
+
+    (conde
+      [(== "AFFECTS" p-something/unknown-disease)]
+      [(== "CAUSES" p-something/unknown-disease)])
+
+    (conde
+      [(== "dsyn" ot-something/unknown-disease)]
+      [(== "neop" ot-something/unknown-disease)])
+    
+    (edgeo e-something/unknown-disease)
+    
+    ;; generate and test!!
+    (fuzzy-concepto "Gastrointestinal Stromal Tumors" known-disease)
+    (fuzzy-concepto "mast cell activation" something)
+    (fuzzy-concepto "asthma" unknown-disease)
+
+    )))
+
+;; replaced
+;;
+;; (fresh (cui name concept-type*)
+;;   (== `(,cui ,name ,concept-type*) unknown-disease)
+;;     (conde
+;;       [(membero "dsyn" concept-type*)]
+;;       [(not-membero "dsyn" concept-type*) (membero "neop" concept-type*)]))
+;;
+;; with
+;;
+;; (conde
+;;   [(== "dsyn" ot-something/unknown-disease)]
+;;   [(== "neop" ot-something/unknown-disease)])
+;;
+;; faster!
+;; cpu time: 19553 real time: 19547 gc time: 507
+(time (run 1 (q)
+  (fresh (drug gene known-disease something unknown-disease
+          e-drug/gene p-drug/gene st-drug/gene e-drug/gene-rest
+          e-gene/known-disease p-gene/known-disease st-gene/known-disease ot-gene/known-disease e-gene/known-disease-rest
+          e-drug/known-disease p-drug/known-disease e-drug/known-disease-rest
+          e-gene/something p-gene/something st-gene/something ot-gene/something e-gene/something-rest
+          e-something/unknown-disease p-something/unknown-disease st-something/unknown-disease ot-something/unknown-disease e-something/unknown-disease-rest)
+          
+    (== `(,e-drug/gene ,e-gene/known-disease ,e-drug/known-disease ,e-gene/something ,e-something/unknown-disease) q)
+
+    ;; ** cheat **
+    (fuzzy-concepto "KIT gene" gene)
+    
+    ;; imatinib inhibits some gene
+    (fuzzy-concepto "imatinib" drug)
+    (== `(,drug ,gene ,p-drug/gene ,st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+    (== "INHIBITS" p-drug/gene)
+    (edgeo e-drug/gene)
+
+    ;; that gene directly causes some disease...
+    (== `(,gene ,known-disease ,p-gene/known-disease ,st-gene/known-disease ,ot-gene/known-disease . ,e-gene/known-disease-rest) e-gene/known-disease)
+    (== "CAUSES" p-gene/known-disease)
+    (conde
+      [(== "dsyn" ot-gene/known-disease)]
+      [(== "neop" ot-gene/known-disease)])
+    (edgeo e-gene/known-disease)
+
+    ;; ...which imatinib is known to treat
+    (== `(,drug ,known-disease ,p-drug/known-disease . ,e-drug/known-disease-rest) e-drug/known-disease)
+    (== "TREATS" p-drug/known-disease)
+    (edgeo e-drug/known-disease)                  
+    
+    ;; and that gene indirectly causes & indirectly affects some other disease
+    (== `(,gene ,something ,p-gene/something ,st-gene/something ,ot-gene/something . ,e-gene/something-rest) e-gene/something)
+    (== `(,something ,unknown-disease ,p-something/unknown-disease ,st-something/unknown-disease ,ot-something/unknown-disease . ,e-something/unknown-disease-rest) e-something/unknown-disease)
+    (== "CAUSES" p-gene/something)
+
+    (=/= "dsyn" ot-gene/something)
+    (=/= "neop" ot-gene/something)
+    
+    (edgeo e-gene/something)
+
+    (conde
+      [(== "AFFECTS" p-something/unknown-disease)]
+      [(== "CAUSES" p-something/unknown-disease)])
+
+    (conde
+      [(== "dsyn" ot-something/unknown-disease)]
+      [(== "neop" ot-something/unknown-disease)])
+    
+    (edgeo e-something/unknown-disease)
+    
+    ;; generate and test!!
+    (fuzzy-concepto "Gastrointestinal Stromal Tumors" known-disease)
+    (fuzzy-concepto "mast cell activation" something)
+    (fuzzy-concepto "asthma" unknown-disease)
+
+    )))
+
+;; pushed down conde slightly
+;;
+;; same time
+;; cpu time: 23358 real time: 23358 gc time: 1408
+(time (run 1 (q)
+  (fresh (drug gene known-disease something unknown-disease
+          e-drug/gene p-drug/gene st-drug/gene e-drug/gene-rest
+          e-gene/known-disease p-gene/known-disease st-gene/known-disease ot-gene/known-disease e-gene/known-disease-rest
+          e-drug/known-disease p-drug/known-disease e-drug/known-disease-rest
+          e-gene/something p-gene/something st-gene/something ot-gene/something e-gene/something-rest
+          e-something/unknown-disease p-something/unknown-disease e-something/unknown-disease-rest)
+          
+    (== `(,e-drug/gene ,e-gene/known-disease ,e-drug/known-disease ,e-gene/something ,e-something/unknown-disease) q)
+
+    ;; ** cheat **
+    (fuzzy-concepto "KIT gene" gene)
+    
+    ;; imatinib inhibits some gene
+    (fuzzy-concepto "imatinib" drug)
+    (== `(,drug ,gene ,p-drug/gene ,st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+    (== "INHIBITS" p-drug/gene)
+    (edgeo e-drug/gene)
+
+    ;; that gene directly causes some disease...
+    (== `(,gene ,known-disease ,p-gene/known-disease ,st-gene/known-disease ,ot-gene/known-disease . ,e-gene/known-disease-rest) e-gene/known-disease)
+    (== "CAUSES" p-gene/known-disease)
+    (conde
+      [(== "dsyn" ot-gene/known-disease)]
+      [(== "neop" ot-gene/known-disease)])
+    (edgeo e-gene/known-disease)
+
+    ;; ...which imatinib is known to treat
+    (== `(,drug ,known-disease ,p-drug/known-disease . ,e-drug/known-disease-rest) e-drug/known-disease)
+    (== "TREATS" p-drug/known-disease)
+    (edgeo e-drug/known-disease)                  
+    
+    ;; and that gene indirectly causes & indirectly affects some other disease
+    (== `(,gene ,something ,p-gene/something ,st-gene/something ,ot-gene/something . ,e-gene/something-rest) e-gene/something)
+    (== `(,something ,unknown-disease ,p-something/unknown-disease . ,e-something/unknown-disease-rest) e-something/unknown-disease)
+    (== "CAUSES" p-gene/something)
+
+    (=/= "dsyn" ot-gene/something)
+    (=/= "neop" ot-gene/something)
+       
+    (edgeo e-gene/something)
+
+    (conde
+      [(== "AFFECTS" p-something/unknown-disease)]
+      [(== "CAUSES" p-something/unknown-disease)])
+    
+    (edgeo e-something/unknown-disease)
+                                    
+    (fresh (cui name concept-type*)
+      (== `(,cui ,name ,concept-type*) unknown-disease)
+      (conde
+        [(membero "dsyn" concept-type*)]
+        [(not-membero "dsyn" concept-type*) (membero "neop" concept-type*)]))
+
+    ;; generate and test!!
+    (fuzzy-concepto "Gastrointestinal Stromal Tumors" known-disease)
+    (fuzzy-concepto "mast cell activation" something)
+    (fuzzy-concepto "asthma" unknown-disease)
+
+    )))
+
+;; moved disequality constraints before conde
+;;
+;; same speed
+;; cpu time: 23023 real time: 23015 gc time: 1251
+(time (run 1 (q)
+  (fresh (drug gene known-disease something unknown-disease
+          e-drug/gene p-drug/gene st-drug/gene e-drug/gene-rest
+          e-gene/known-disease p-gene/known-disease st-gene/known-disease ot-gene/known-disease e-gene/known-disease-rest
+          e-drug/known-disease p-drug/known-disease e-drug/known-disease-rest
+          e-gene/something p-gene/something st-gene/something ot-gene/something e-gene/something-rest
+          e-something/unknown-disease p-something/unknown-disease e-something/unknown-disease-rest)
+          
+    (== `(,e-drug/gene ,e-gene/known-disease ,e-drug/known-disease ,e-gene/something ,e-something/unknown-disease) q)
+
+    ;; ** cheat **
+    (fuzzy-concepto "KIT gene" gene)
+    
+    ;; imatinib inhibits some gene
+    (fuzzy-concepto "imatinib" drug)
+    (== `(,drug ,gene ,p-drug/gene ,st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+    (== "INHIBITS" p-drug/gene)
+    (edgeo e-drug/gene)
+
+    ;; that gene directly causes some disease...
+    (== `(,gene ,known-disease ,p-gene/known-disease ,st-gene/known-disease ,ot-gene/known-disease . ,e-gene/known-disease-rest) e-gene/known-disease)
+    (== "CAUSES" p-gene/known-disease)
+    (conde
+      [(== "dsyn" ot-gene/known-disease)]
+      [(== "neop" ot-gene/known-disease)])
+    (edgeo e-gene/known-disease)
+
+    ;; ...which imatinib is known to treat
+    (== `(,drug ,known-disease ,p-drug/known-disease . ,e-drug/known-disease-rest) e-drug/known-disease)
+    (== "TREATS" p-drug/known-disease)
+    (edgeo e-drug/known-disease)                  
+    
+    ;; and that gene indirectly causes & indirectly affects some other disease
+    (== `(,gene ,something ,p-gene/something ,st-gene/something ,ot-gene/something . ,e-gene/something-rest) e-gene/something)
+    (== `(,something ,unknown-disease ,p-something/unknown-disease . ,e-something/unknown-disease-rest) e-something/unknown-disease)
+    (== "CAUSES" p-gene/something)
+
+    (=/= "dsyn" ot-gene/something)
+    (=/= "neop" ot-gene/something)
+    
+    (conde
+      [(== "AFFECTS" p-something/unknown-disease)]
+      [(== "CAUSES" p-something/unknown-disease)])
+   
+    (edgeo e-gene/something)
+                  
+    (edgeo e-something/unknown-disease)
+                                    
+    (fresh (cui name concept-type*)
+      (== `(,cui ,name ,concept-type*) unknown-disease)
+      (conde
+        [(membero "dsyn" concept-type*)]
+        [(not-membero "dsyn" concept-type*) (membero "neop" concept-type*)]))
+
+    ;; generate and test!!
+    (fuzzy-concepto "Gastrointestinal Stromal Tumors" known-disease)
+    (fuzzy-concepto "mast cell activation" something)
+    (fuzzy-concepto "asthma" unknown-disease)
+
+    )))
+
+;; removed
+;;
+;; (fresh (cui name concept-type*)
+;;   (== `(,cui ,name ,concept-type*) something)
+;;   (not-membero "dsyn" concept-type*)
+;;   (not-membero "neop" concept-type*))
+;;
+;; no slower, but no faster
+;; cpu time: 23124 real time: 23118 gc time: 1233
+(time (run 1 (q)
+  (fresh (drug gene known-disease something unknown-disease
+          e-drug/gene p-drug/gene st-drug/gene e-drug/gene-rest
+          e-gene/known-disease p-gene/known-disease st-gene/known-disease ot-gene/known-disease e-gene/known-disease-rest
+          e-drug/known-disease p-drug/known-disease e-drug/known-disease-rest
+          e-gene/something p-gene/something st-gene/something ot-gene/something e-gene/something-rest
+          e-something/unknown-disease p-something/unknown-disease e-something/unknown-disease-rest)
+          
+    (== `(,e-drug/gene ,e-gene/known-disease ,e-drug/known-disease ,e-gene/something ,e-something/unknown-disease) q)
+
+    ;; ** cheat **
+    (fuzzy-concepto "KIT gene" gene)
+          
+    ;; imatinib inhibits some gene
+    (fuzzy-concepto "imatinib" drug)
+    (== `(,drug ,gene ,p-drug/gene ,st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+    (== "INHIBITS" p-drug/gene)
+    (edgeo e-drug/gene)
+
+    ;; that gene directly causes some disease...
+    (== `(,gene ,known-disease ,p-gene/known-disease ,st-gene/known-disease ,ot-gene/known-disease . ,e-gene/known-disease-rest) e-gene/known-disease)
+    (== "CAUSES" p-gene/known-disease)
+    (conde
+      [(== "dsyn" ot-gene/known-disease)]
+      [(== "neop" ot-gene/known-disease)])
+    (edgeo e-gene/known-disease)
+
+    ;; ...which imatinib is known to treat
+    (== `(,drug ,known-disease ,p-drug/known-disease . ,e-drug/known-disease-rest) e-drug/known-disease)
+    (== "TREATS" p-drug/known-disease)
+    (edgeo e-drug/known-disease)                  
+    
+    ;; and that gene indirectly causes & indirectly affects some other disease
+    (== `(,gene ,something ,p-gene/something ,st-gene/something ,ot-gene/something . ,e-gene/something-rest) e-gene/something)
+    (== `(,something ,unknown-disease ,p-something/unknown-disease . ,e-something/unknown-disease-rest) e-something/unknown-disease)
+    (== "CAUSES" p-gene/something)
+    (conde
+      [(== "AFFECTS" p-something/unknown-disease)]
+      [(== "CAUSES" p-something/unknown-disease)])
+
+    (=/= "dsyn" ot-gene/something)
+    (=/= "neop" ot-gene/something)
+   
+    (edgeo e-gene/something)
+                  
+    (edgeo e-something/unknown-disease)
+                                    
+    (fresh (cui name concept-type*)
+      (== `(,cui ,name ,concept-type*) unknown-disease)
+      (conde
+        [(membero "dsyn" concept-type*)]
+        [(not-membero "dsyn" concept-type*) (membero "neop" concept-type*)]))
+
+    ;; generate and test!!
+    (fuzzy-concepto "Gastrointestinal Stromal Tumors" known-disease)
+    (fuzzy-concepto "mast cell activation" something)
+    (fuzzy-concepto "asthma" unknown-disease)
+
+    )))
+
+;; added
+;;
+;; (=/= "dsyn" ot-gene/something)
+;; (=/= "neop" ot-gene/something)
+;;
+;; same time
+;; cpu time: 23524 real time: 23522 gc time: 1462
+(time (run 1 (q)
+  (fresh (drug gene known-disease something unknown-disease
+          e-drug/gene p-drug/gene st-drug/gene e-drug/gene-rest
+          e-gene/known-disease p-gene/known-disease st-gene/known-disease ot-gene/known-disease e-gene/known-disease-rest
+          e-drug/known-disease p-drug/known-disease e-drug/known-disease-rest
+          e-gene/something p-gene/something st-gene/something ot-gene/something e-gene/something-rest
+          e-something/unknown-disease p-something/unknown-disease e-something/unknown-disease-rest)
+          
+    (== `(,e-drug/gene ,e-gene/known-disease ,e-drug/known-disease ,e-gene/something ,e-something/unknown-disease) q)
+
+    ;; ** cheat **
+    (fuzzy-concepto "KIT gene" gene)
+          
+    ;; imatinib inhibits some gene
+    (fuzzy-concepto "imatinib" drug)
+    (== `(,drug ,gene ,p-drug/gene ,st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+    (== "INHIBITS" p-drug/gene)
+    (edgeo e-drug/gene)
+
+    ;; that gene directly causes some disease...
+    (== `(,gene ,known-disease ,p-gene/known-disease ,st-gene/known-disease ,ot-gene/known-disease . ,e-gene/known-disease-rest) e-gene/known-disease)
+    (== "CAUSES" p-gene/known-disease)
+    (conde
+      [(== "dsyn" ot-gene/known-disease)]
+      [(== "neop" ot-gene/known-disease)])
+    (edgeo e-gene/known-disease)
+
+    ;; ...which imatinib is known to treat
+    (== `(,drug ,known-disease ,p-drug/known-disease . ,e-drug/known-disease-rest) e-drug/known-disease)
+    (== "TREATS" p-drug/known-disease)
+    (edgeo e-drug/known-disease)                  
+    
+    ;; and that gene indirectly causes & indirectly affects some other disease
+    (== `(,gene ,something ,p-gene/something ,st-gene/something ,ot-gene/something . ,e-gene/something-rest) e-gene/something)
+    (== `(,something ,unknown-disease ,p-something/unknown-disease . ,e-something/unknown-disease-rest) e-something/unknown-disease)
+    (== "CAUSES" p-gene/something)
+    (conde
+      [(== "AFFECTS" p-something/unknown-disease)]
+      [(== "CAUSES" p-something/unknown-disease)])
+
+    (=/= "dsyn" ot-gene/something)
+    (=/= "neop" ot-gene/something)
+   
+    (edgeo e-gene/something)
+                  
+    (fresh (cui name concept-type*)
+      (== `(,cui ,name ,concept-type*) something)
+      (not-membero "dsyn" concept-type*)
+      (not-membero "neop" concept-type*))
+
+    (edgeo e-something/unknown-disease)
+                                    
+    (fresh (cui name concept-type*)
+      (== `(,cui ,name ,concept-type*) unknown-disease)
+      (conde
+        [(membero "dsyn" concept-type*)]
+        [(not-membero "dsyn" concept-type*) (membero "neop" concept-type*)]))
+
+    ;; generate and test!!
+    (fuzzy-concepto "Gastrointestinal Stromal Tumors" known-disease)
+    (fuzzy-concepto "mast cell activation" something)
+    (fuzzy-concepto "asthma" unknown-disease)
+
+    )))
+
+;; baby step!
+;;
+;; added st-gene/something ot-gene/something
+;;
+;; time is the same
+;; cpu time: 23438 real time: 23430 gc time: 1282
+(time (run 1 (q)
+  (fresh (drug gene known-disease something unknown-disease
+          e-drug/gene p-drug/gene st-drug/gene e-drug/gene-rest
+          e-gene/known-disease p-gene/known-disease st-gene/known-disease ot-gene/known-disease e-gene/known-disease-rest
+          e-drug/known-disease p-drug/known-disease e-drug/known-disease-rest
+          e-gene/something p-gene/something st-gene/something ot-gene/something e-gene/something-rest
+          e-something/unknown-disease p-something/unknown-disease e-something/unknown-disease-rest)
+          
+    (== `(,e-drug/gene ,e-gene/known-disease ,e-drug/known-disease ,e-gene/something ,e-something/unknown-disease) q)
+
+    ;; ** cheat **
+    (fuzzy-concepto "KIT gene" gene)
+          
+    ;; imatinib inhibits some gene
+    (fuzzy-concepto "imatinib" drug)
+    (== `(,drug ,gene ,p-drug/gene ,st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+    (== "INHIBITS" p-drug/gene)
+    (edgeo e-drug/gene)
+
+    ;; that gene directly causes some disease...
+    (== `(,gene ,known-disease ,p-gene/known-disease ,st-gene/known-disease ,ot-gene/known-disease . ,e-gene/known-disease-rest) e-gene/known-disease)
+    (== "CAUSES" p-gene/known-disease)
+    (conde
+      [(== "dsyn" ot-gene/known-disease)]
+      [(== "neop" ot-gene/known-disease)])
+    (edgeo e-gene/known-disease)
+
+    ;; ...which imatinib is known to treat
+    (== `(,drug ,known-disease ,p-drug/known-disease . ,e-drug/known-disease-rest) e-drug/known-disease)
+    (== "TREATS" p-drug/known-disease)
+    (edgeo e-drug/known-disease)                  
+    
+    ;; and that gene indirectly causes & indirectly affects some other disease
+    (== `(,gene ,something ,p-gene/something ,st-gene/something ,ot-gene/something . ,e-gene/something-rest) e-gene/something)
+    (== `(,something ,unknown-disease ,p-something/unknown-disease . ,e-something/unknown-disease-rest) e-something/unknown-disease)
+    (== "CAUSES" p-gene/something)
+    (conde
+      [(== "AFFECTS" p-something/unknown-disease)]
+      [(== "CAUSES" p-something/unknown-disease)])
+    (edgeo e-gene/something)
+                  
+    (fresh (cui name concept-type*)
+      (== `(,cui ,name ,concept-type*) something)
+      (not-membero "dsyn" concept-type*)
+      (not-membero "neop" concept-type*))
+
+    (edgeo e-something/unknown-disease)
+                                    
+    (fresh (cui name concept-type*)
+      (== `(,cui ,name ,concept-type*) unknown-disease)
+      (conde
+        [(membero "dsyn" concept-type*)]
+        [(not-membero "dsyn" concept-type*) (membero "neop" concept-type*)]))
+
+    ;; generate and test!!
+    (fuzzy-concepto "Gastrointestinal Stromal Tumors" known-disease)
+    (fuzzy-concepto "mast cell activation" something)
+    (fuzzy-concepto "asthma" unknown-disease)
+
+    )))
+
+
+;; replaced
+;;
+;; (fresh (cui name concept-type*)
+;;   (== `(,cui ,name ,concept-type*) known-disease)
+;;   (conde
+;;     [(membero "dsyn" concept-type*)]
+;;     [(not-membero "dsyn" concept-type*) (membero "neop" concept-type*)]))
+;;
+;; with
+;;
+;; (conde
+;;   [(== "dsyn" ot-gene/known-disease)]
+;;   [(== "neop" ot-gene/known-disease)])
+;;
+;; slight speedup
+;; cpu time: 23177 real time: 23178 gc time: 1245
+(time (run 1 (q)
+  (fresh (drug gene known-disease something unknown-disease
+          e-drug/gene p-drug/gene st-drug/gene e-drug/gene-rest
+          e-gene/known-disease p-gene/known-disease st-gene/known-disease ot-gene/known-disease e-gene/known-disease-rest
+          e-drug/known-disease p-drug/known-disease e-drug/known-disease-rest
+          e-gene/something p-gene/something e-gene/something-rest
+          e-something/unknown-disease p-something/unknown-disease e-something/unknown-disease-rest)
+          
+    (== `(,e-drug/gene ,e-gene/known-disease ,e-drug/known-disease ,e-gene/something ,e-something/unknown-disease) q)
+
+    ;; ** cheat **
+    (fuzzy-concepto "KIT gene" gene)
+          
+    ;; imatinib inhibits some gene
+    (fuzzy-concepto "imatinib" drug)
+    (== `(,drug ,gene ,p-drug/gene ,st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+    (== "INHIBITS" p-drug/gene)
+    (edgeo e-drug/gene)
+
+    ;; that gene directly causes some disease...
+    (== `(,gene ,known-disease ,p-gene/known-disease ,st-gene/known-disease ,ot-gene/known-disease . ,e-gene/known-disease-rest) e-gene/known-disease)
+    (== "CAUSES" p-gene/known-disease)
+    (conde
+      [(== "dsyn" ot-gene/known-disease)]
+      [(== "neop" ot-gene/known-disease)])
+    (edgeo e-gene/known-disease)
+
+    ;; ...which imatinib is known to treat
+    (== `(,drug ,known-disease ,p-drug/known-disease . ,e-drug/known-disease-rest) e-drug/known-disease)
+    (== "TREATS" p-drug/known-disease)
+    (edgeo e-drug/known-disease)                  
+    
+    ;; and that gene indirectly causes & indirectly affects some other disease
+    (== `(,gene ,something ,p-gene/something . ,e-gene/something-rest) e-gene/something)
+    (== `(,something ,unknown-disease ,p-something/unknown-disease . ,e-something/unknown-disease-rest) e-something/unknown-disease)
+    (== "CAUSES" p-gene/something)
+    (conde
+      [(== "AFFECTS" p-something/unknown-disease)]
+      [(== "CAUSES" p-something/unknown-disease)])
+    (edgeo e-gene/something)
+                  
+    (fresh (cui name concept-type*)
+      (== `(,cui ,name ,concept-type*) something)
+      (not-membero "dsyn" concept-type*)
+      (not-membero "neop" concept-type*))
+
+    (edgeo e-something/unknown-disease)
+                                    
+    (fresh (cui name concept-type*)
+      (== `(,cui ,name ,concept-type*) unknown-disease)
+      (conde
+        [(membero "dsyn" concept-type*)]
+        [(not-membero "dsyn" concept-type*) (membero "neop" concept-type*)]))
+
+    ;; generate and test!!
+    (fuzzy-concepto "Gastrointestinal Stromal Tumors" known-disease)
+    (fuzzy-concepto "mast cell activation" something)
+    (fuzzy-concepto "asthma" unknown-disease)
+
+    )))
+
+
+;; replaced
+;;
+;; (fresh (cui name concept-type*)
+;;   (== `(,cui ,name ,concept-type*) gene)
+;;   (membero "gngm" concept-type*))
+;;
+;; (== `(,drug ,gene ,p-drug/gene ,st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+;;
+;; no faster!
+;;
+;; cpu time: 26518 real time: 26509 gc time: 1552
+(time (run 1 (q)
+  (fresh (drug gene known-disease something unknown-disease
+          e-drug/gene p-drug/gene st-drug/gene e-drug/gene-rest
+          e-gene/known-disease p-gene/known-disease e-gene/known-disease-rest
+          e-drug/known-disease p-drug/known-disease e-drug/known-disease-rest
+          e-gene/something p-gene/something e-gene/something-rest
+          e-something/unknown-disease p-something/unknown-disease e-something/unknown-disease-rest)
+          
+    (== `(,e-drug/gene ,e-gene/known-disease ,e-drug/known-disease ,e-gene/something ,e-something/unknown-disease) q)
+
+    ;; ** cheat **
+    (fuzzy-concepto "KIT gene" gene)
+          
+    ;; imatinib inhibits some gene
+    (fuzzy-concepto "imatinib" drug)
+    (== `(,drug ,gene ,p-drug/gene ,st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+    (== "INHIBITS" p-drug/gene)
+    (edgeo e-drug/gene)
+
+    ;; that gene directly causes some disease...
+    (== `(,gene ,known-disease ,p-gene/known-disease . ,e-gene/known-disease-rest) e-gene/known-disease)
+    (== "CAUSES" p-gene/known-disease)
+    (edgeo e-gene/known-disease)
+    (fresh (cui name concept-type*)
+      (== `(,cui ,name ,concept-type*) known-disease)
+      (conde
+        [(membero "dsyn" concept-type*)]
+        [(not-membero "dsyn" concept-type*) (membero "neop" concept-type*)]))
+
+    ;; ...which imatinib is known to treat
+    (== `(,drug ,known-disease ,p-drug/known-disease . ,e-drug/known-disease-rest) e-drug/known-disease)
+    (== "TREATS" p-drug/known-disease)
+    (edgeo e-drug/known-disease)                  
+    
+    ;; and that gene indirectly causes & indirectly affects some other disease
+    (== `(,gene ,something ,p-gene/something . ,e-gene/something-rest) e-gene/something)
+    (== `(,something ,unknown-disease ,p-something/unknown-disease . ,e-something/unknown-disease-rest) e-something/unknown-disease)
+    (== "CAUSES" p-gene/something)
+    (conde
+      [(== "AFFECTS" p-something/unknown-disease)]
+      [(== "CAUSES" p-something/unknown-disease)])
+    (edgeo e-gene/something)
+                  
+    (fresh (cui name concept-type*)
+      (== `(,cui ,name ,concept-type*) something)
+      (not-membero "dsyn" concept-type*)
+      (not-membero "neop" concept-type*))
+
+    (edgeo e-something/unknown-disease)
+                                    
+    (fresh (cui name concept-type*)
+      (== `(,cui ,name ,concept-type*) unknown-disease)
+      (conde
+        [(membero "dsyn" concept-type*)]
+        [(not-membero "dsyn" concept-type*) (membero "neop" concept-type*)]))
+
+    ;; generate and test!!
+    (fuzzy-concepto "Gastrointestinal Stromal Tumors" known-disease)
+    (fuzzy-concepto "mast cell activation" something)
+    (fuzzy-concepto "asthma" unknown-disease)
+
+    )))
+
+;; original
+;; cpu time: 26492 real time: 26486 gc time: 1671
+(time (run 1 (q)
+  (fresh (drug gene known-disease something unknown-disease
+          e-drug/gene p-drug/gene e-drug/gene-rest
+          e-gene/known-disease p-gene/known-disease e-gene/known-disease-rest
+          e-drug/known-disease p-drug/known-disease e-drug/known-disease-rest
+          e-gene/something p-gene/something e-gene/something-rest
+          e-something/unknown-disease p-something/unknown-disease e-something/unknown-disease-rest)
+          
+    (== `(,e-drug/gene ,e-gene/known-disease ,e-drug/known-disease ,e-gene/something ,e-something/unknown-disease) q)
+
+    ;; ** cheat **
+    (fuzzy-concepto "KIT gene" gene)
+          
+    ;; imatinib inhibits some gene
+    (fuzzy-concepto "imatinib" drug)
+    (== `(,drug ,gene ,p-drug/gene . ,e-drug/gene-rest) e-drug/gene)
+    (== "INHIBITS" p-drug/gene)
+    (edgeo e-drug/gene)
+    (fresh (cui name concept-type*)
+      (== `(,cui ,name ,concept-type*) gene)
+      (membero "gngm" concept-type*))
+
+    ;; that gene directly causes some disease...
+    (== `(,gene ,known-disease ,p-gene/known-disease . ,e-gene/known-disease-rest) e-gene/known-disease)
+    (== "CAUSES" p-gene/known-disease)
+    (edgeo e-gene/known-disease)
+    (fresh (cui name concept-type*)
+      (== `(,cui ,name ,concept-type*) known-disease)
+      (conde
+        [(membero "dsyn" concept-type*)]
+        [(not-membero "dsyn" concept-type*) (membero "neop" concept-type*)]))
+
+    ;; ...which imatinib is known to treat
+    (== `(,drug ,known-disease ,p-drug/known-disease . ,e-drug/known-disease-rest) e-drug/known-disease)
+    (== "TREATS" p-drug/known-disease)
+    (edgeo e-drug/known-disease)                  
+    
+    ;; and that gene indirectly causes & indirectly affects some other disease
+    (== `(,gene ,something ,p-gene/something . ,e-gene/something-rest) e-gene/something)
+    (== `(,something ,unknown-disease ,p-something/unknown-disease . ,e-something/unknown-disease-rest) e-something/unknown-disease)
+    (== "CAUSES" p-gene/something)
+    (conde
+      [(== "AFFECTS" p-something/unknown-disease)]
+      [(== "CAUSES" p-something/unknown-disease)])
+    (edgeo e-gene/something)
+                  
+    (fresh (cui name concept-type*)
+      (== `(,cui ,name ,concept-type*) something)
+      (not-membero "dsyn" concept-type*)
+      (not-membero "neop" concept-type*))
+
+    (edgeo e-something/unknown-disease)
+                                    
+    (fresh (cui name concept-type*)
+      (== `(,cui ,name ,concept-type*) unknown-disease)
+      (conde
+        [(membero "dsyn" concept-type*)]
+        [(not-membero "dsyn" concept-type*) (membero "neop" concept-type*)]))
+
+    ;; generate and test!!
+    (fuzzy-concepto "Gastrointestinal Stromal Tumors" known-disease)
+    (fuzzy-concepto "mast cell activation" something)
+    (fuzzy-concepto "asthma" unknown-disease)
+
+    )))
+
+
+
+
+
+
+
+
+
+
+
+
+;;; messed up somehow...
+(time (run 1 (q)
+  (fresh (drug gene known-disease something unknown-disease
+          e-drug/gene p-drug/gene st-drug/gene e-drug/gene-rest
+          e-gene/known-disease p-gene/known-disease st-gene/known-disease ot-gene/known-disease e-gene/known-disease-rest
+          e-drug/known-disease p-drug/known-disease e-drug/known-disease-rest
+          e-gene/something p-gene/something st-gene/something ot-gene/something e-gene/something-rest
+          e-something/unknown-disease p-something/unknown-disease st-something/unknown-disease ot-something/unknown-disease e-something/unknown-disease-rest)
+    
+    (== `(,e-drug/gene ,e-gene/known-disease ,e-drug/known-disease ,e-gene/something ,e-something/unknown-disease) q)
+
+    ;; ** cheat **
+    (fuzzy-concepto "KIT gene" gene)
+    
+    ;; imatinib inhibits some gene
+    (fuzzy-concepto "imatinib" drug)
+    (== `(,drug ,gene ,p-drug/gene ,st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+    (== "INHIBITS" p-drug/gene)
+    (edgeo e-drug/gene)
+
+    ;; that gene directly causes some disease...
+    (== `(,gene ,known-disease ,p-gene/known-disease ,st-gene/known-disease ,ot-gene/known-disease . ,e-gene/known-disease-rest) e-gene/known-disease)
+    (== "CAUSES" p-gene/known-disease)
+    (conde
+      [(== "dsyn" ot-gene/known-disease)]
+      [(== "neop" ot-gene/known-disease)])
+    (edgeo e-gene/known-disease)
+
+    ;; ...which imatinib is known to treat
+    (== `(,drug ,known-disease ,p-drug/known-disease . ,e-drug/known-disease-rest) e-drug/known-disease)
+    (== "TREATS" p-drug/known-disease)
+    (edgeo e-drug/known-disease)                  
+                   
+    ;; and that gene indirectly causes & indirectly affects some other disease
+    (== `(,gene ,something ,p-gene/something ,st-gene/something ,ot-gene/something . ,e-gene/something-rest) e-gene/something)
+    (== `(,something ,unknown-disease ,p-something/unknown-disease ,st-something/unknown-disease ,ot-something/unknown-disease . ,e-something/unknown-disease-rest) e-something/unknown-disease)
+    (== "CAUSES" p-gene/something)
+    (conde
+      [(== "AFFECTS" p-something/unknown-disease)]
+      [(== "CAUSES" p-something/unknown-disease)])
+
+    ;; (=/= "dsyn" ot-gene/something)
+    ;; (=/= "neop" ot-gene/something)
+
+    ;; (=/= "dsyn" st-something/unknown-disease)
+    ;; (=/= "neop" st-something/unknown-disease)
+
+    (fresh (cui name concept-type*)
+      (== `(,cui ,name ,concept-type*) something)
+      (not-membero "dsyn" concept-type*)
+      (not-membero "neop" concept-type*))
+
+    
+    (edgeo e-gene/something)
+
+    (edgeo e-something/unknown-disease)
+                                    
+    (fresh (cui name concept-type*)
+      (== `(,cui ,name ,concept-type*) unknown-disease)
+      (conde
+        [(membero "dsyn" concept-type*)]
+        [(not-membero "dsyn" concept-type*) (membero "neop" concept-type*)]))
+
+    ;; generate and test!!
+    (fuzzy-concepto "Gastrointestinal Stromal Tumors" known-disease)
+    (fuzzy-concepto "mast cell activation" something)
+    (fuzzy-concepto "asthma" unknown-disease)
+
+    )))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(time (run 1 (q)
+  (fresh (drug gene known-disease something unknown-disease
+          e-drug/gene p-drug/gene e-drug/gene-rest
+          e-gene/known-disease p-gene/known-disease e-gene/known-disease-rest
+          e-drug/known-disease p-drug/known-disease e-drug/known-disease-rest
+          e-gene/something p-gene/something e-gene/something-rest
+          e-something/unknown-disease p-something/unknown-disease e-something/unknown-disease-rest)
+          
+    (== `(,e-drug/gene ,e-gene/known-disease ,e-drug/known-disease ,e-gene/something ,e-something/unknown-disease) q)
+
+    ;; ** cheat **
+    (fuzzy-concepto "KIT gene" gene)
+          
+    ;; imatinib inhibits some gene
+    (fuzzy-concepto "imatinib" drug)
+    (== `(,drug ,gene ,p-drug/gene . ,e-drug/gene-rest) e-drug/gene)
+    (== "INHIBITS" p-drug/gene)
+    (edgeo e-drug/gene)
+    (fresh (cui name concept-type*)
+      (== `(,cui ,name ,concept-type*) gene)
+      (membero "gngm" concept-type*))
+
+    ;; that gene directly causes some disease...
+    (== `(,gene ,known-disease ,p-gene/known-disease . ,e-gene/known-disease-rest) e-gene/known-disease)
+    (== "CAUSES" p-gene/known-disease)
+    (edgeo e-gene/known-disease)
+    (fresh (cui name concept-type*)
+      (== `(,cui ,name ,concept-type*) known-disease)
+      (conde
+        [(membero "dsyn" concept-type*)]
+        [(not-membero "dsyn" concept-type*) (membero "neop" concept-type*)]))
+
+    ;; ...which imatinib is known to treat
+    (== `(,drug ,known-disease ,p-drug/known-disease . ,e-drug/known-disease-rest) e-drug/known-disease)
+    (== "TREATS" p-drug/known-disease)
+    (edgeo e-drug/known-disease)                  
+    
+    ;; and that gene indirectly causes & indirectly affects some other disease
+    (== `(,gene ,something ,p-gene/something . ,e-gene/something-rest) e-gene/something)
+    (== `(,something ,unknown-disease ,p-something/unknown-disease . ,e-something/unknown-disease-rest) e-something/unknown-disease)
+    (== "CAUSES" p-gene/something)
+    (conde
+      [(== "AFFECTS" p-something/unknown-disease)]
+      [(== "CAUSES" p-something/unknown-disease)])
+    (edgeo e-gene/something)
+                  
+    (fresh (cui name concept-type*)
+      (== `(,cui ,name ,concept-type*) something)
+      (not-membero "dsyn" concept-type*)
+      (not-membero "neop" concept-type*))
+
+    (edgeo e-something/unknown-disease)
+                                    
+    (fresh (cui name concept-type*)
+      (== `(,cui ,name ,concept-type*) unknown-disease)
+      (conde
+        [(membero "dsyn" concept-type*)]
+        [(not-membero "dsyn" concept-type*) (membero "neop" concept-type*)]))
+
+    ;; generate and test!!
+    (fuzzy-concepto "Gastrointestinal Stromal Tumors" known-disease)
+    (fuzzy-concepto "mast cell activation" something)
+    (fuzzy-concepto "asthma" unknown-disease)
+
+    )))
+
+;; =>
+;;
+;; cpu time: 26928 real time: 27177 gc time: 1541
+;; '((((935989 "imatinib" ("phsu" "orch"))
+;;     (1416655 "KIT gene" ("bacs" "imft" "gngm" "aapp"))
+;;     "INHIBITS"
+;;     "orch"
+;;     "gngm"
+;;     (88094027
+;;      82038640
+;;      78690628
+;;      78513788
+;;      70397515
+;;      60608992
+;;      57775955
+;;      56779144
+;;      55866397
+;;      55866394
+;;      54750176
+;;      54602555
+;;      54524739
+;;      53954674
+;;      53827456
+;;      53794226
+;;      53155624
+;;      51843305
+;;      51685933
+;;      50494576
+;;      50287491
+;;      50287227
+;;      49443008
+;;      48324562
+;;      47259531
+;;      45719202
+;;      44323647
+;;      44187569
+;;      43969275
+;;      40811261
+;;      40130263
+;;      35363677
+;;      35363677))
+;;    ((1416655 "KIT gene" ("bacs" "imft" "gngm" "aapp"))
+;;     (238198 "Gastrointestinal Stromal Tumors" ("neop"))
+;;     "CAUSES"
+;;     "aapp"
+;;     "neop"
+;;     (59625558 59480455 43196727 40249098))
+;;    ((935989 "imatinib" ("phsu" "orch"))
+;;     (238198 "Gastrointestinal Stromal Tumors" ("neop"))
+;;     "TREATS"
+;;     "orch"
+;;     "neop"
+;;     (89468570
+;;      89468569
+;;      89468568
+;;      89258086
+;;      89258085
+;;      89205362
+;;      88927657
+;;      88924013
+;;      88642836
+;;      88557822
+;;      88416696
+;;      88236035
+;;      87703148
+;;      87639342
+;;      87563133
+;;      87355756
+;;      87277832
+;;      87259474
+;;      87190645
+;;      87155663
+;;      86726495
+;;      86726307
+;;      86567237
+;;      86229065
+;;      86172855
+;;      86172792
+;;      86131660
+;;      86095366
+;;      86035145
+;;      86029120
+;;      85975403
+;;      85946745
+;;      85712439
+;;      85533589
+;;      85460959
+;;      85258429
+;;      85258243
+;;      85102393
+;;      84799502
+;;      84760780
+;;      84600823
+;;      84489940
+;;      84455598
+;;      84282070
+;;      84199399
+;;      84031770
+;;      83839275
+;;      83526901
+;;      83164056
+;;      82850336
+;;      82797211
+;;      82613490
+;;      82405375
+;;      82317721
+;;      82174866
+;;      81986594
+;;      81966494
+;;      81868093
+;;      81836303
+;;      81836299
+;;      81821592
+;;      81821568
+;;      81779900
+;;      81749438
+;;      81749298
+;;      81693422
+;;      81660653
+;;      81532546
+;;      81446896
+;;      81292173
+;;      81292146
+;;      81187916
+;;      81096155
+;;      81085475
+;;      80369749
+;;      80098508
+;;      80091451
+;;      80030026
+;;      80007514
+;;      80007503
+;;      80007484
+;;      79704637
+;;      78892177
+;;      78600687
+;;      78533753
+;;      78245623
+;;      78014091
+;;      77943557
+;;      77943438
+;;      77510203
+;;      76776701
+;;      76743653
+;;      76743620
+;;      76462669
+;;      76289046
+;;      76148449
+;;      76070843
+;;      76070756
+;;      75933563
+;;      75933518
+;;      75933507
+;;      75779308
+;;      75779235
+;;      75722646
+;;      75678381
+;;      75574053
+;;      75393814
+;;      75385321
+;;      75385290
+;;      75335029
+;;      74891979
+;;      74719196
+;;      74658329
+;;      74658173
+;;      74617628
+;;      74612683
+;;      74510446
+;;      74436697
+;;      74324960
+;;      74324751
+;;      73941360
+;;      73846632
+;;      73821917
+;;      73790920
+;;      73636829
+;;      73619092
+;;      73604638
+;;      73358651
+;;      73358394
+;;      73338468
+;;      73192059
+;;      72992017
+;;      72991953
+;;      72925441
+;;      72925432
+;;      72387590
+;;      72235834
+;;      72163957
+;;      72163916
+;;      72152875
+;;      72006640
+;;      71966871
+;;      71819909
+;;      71747166
+;;      71634856
+;;      71548303
+;;      71548302
+;;      71458205
+;;      71302542
+;;      71290202
+;;      71193021
+;;      71178655
+;;      71047643
+;;      70800725
+;;      70795678
+;;      70677512
+;;      70592280
+;;      70531661
+;;      70516256
+;;      70480367
+;;      70407945
+;;      70392775
+;;      70218140
+;;      70065532
+;;      70064632
+;;      70064228
+;;      69980656
+;;      69922277
+;;      69798593
+;;      69628693
+;;      69574355
+;;      69574200
+;;      69326210
+;;      69173266
+;;      69143520
+;;      69073207
+;;      68990202
+;;      68961183
+;;      68805644
+;;      68756725
+;;      68695975
+;;      68641330
+;;      68543097
+;;      68490316
+;;      68490176
+;;      68451659
+;;      68428455
+;;      68428435
+;;      68128844
+;;      67447723
+;;      67447408
+;;      67447259
+;;      67420026
+;;      67420012
+;;      67395342
+;;      67377234
+;;      67353857
+;;      67224404
+;;      67097947
+;;      67020602
+;;      67020578
+;;      66947994
+;;      66947973
+;;      66919135
+;;      66907557
+;;      66794112
+;;      66717719
+;;      66717457
+;;      66700212
+;;      66658747
+;;      66548225
+;;      66498273
+;;      66492422
+;;      66464075
+;;      66437854
+;;      66316788
+;;      66259767
+;;      66030713
+;;      66030305
+;;      66030298
+;;      65997826
+;;      65895363
+;;      65895259
+;;      65895230
+;;      65847488
+;;      65628134
+;;      65617569
+;;      65512937
+;;      65498233
+;;      65154906
+;;      64925006
+;;      64924970
+;;      64812649
+;;      64812611
+;;      64812607
+;;      64752721
+;;      64721564
+;;      64711818
+;;      64711731
+;;      64656080
+;;      64624730
+;;      64622704
+;;      64156886
+;;      63841948
+;;      63817256
+;;      63816481
+;;      63816454
+;;      63683436
+;;      63571342
+;;      63405183
+;;      63405085
+;;      63381482
+;;      63331732
+;;      63324444
+;;      63319121
+;;      63318913
+;;      63316021
+;;      63315694
+;;      63185401
+;;      63070375
+;;      63054852
+;;      62989453
+;;      62973318
+;;      62841282
+;;      62830344
+;;      62785280
+;;      62784978
+;;      62784892
+;;      62784888
+;;      62784843
+;;      62784801
+;;      62462377
+;;      62428126
+;;      62426332
+;;      62378768
+;;      62378584
+;;      62330072
+;;      62324461
+;;      61797261
+;;      61735158
+;;      61548783
+;;      61207268
+;;      61202221
+;;      60969371
+;;      60969364
+;;      60866909
+;;      60850115
+;;      60662946
+;;      60621352
+;;      60621253
+;;      60551995
+;;      60440052
+;;      60428943
+;;      60428934
+;;      60428660
+;;      60393093
+;;      60392934
+;;      60211135
+;;      60205838
+;;      60062650
+;;      59973854
+;;      59954856
+;;      59807933
+;;      59797232
+;;      59683223
+;;      59554449
+;;      59554240
+;;      59553994
+;;      59553949
+;;      59234656
+;;      59060757
+;;      58957292
+;;      58911796
+;;      58800894
+;;      58782655
+;;      58759216
+;;      58758787
+;;      58758746
+;;      58650526
+;;      58547505
+;;      58547365
+;;      58489364
+;;      58489286
+;;      58489283
+;;      58489063
+;;      58488102
+;;      58370475
+;;      58082575
+;;      58036800
+;;      57952675
+;;      57925861
+;;      57528381
+;;      57461748
+;;      57396831
+;;      57173003
+;;      56779264
+;;      56779187
+;;      56736216
+;;      56675689
+;;      56644042
+;;      56635283
+;;      56581542
+;;      56521000
+;;      56516740
+;;      56305864
+;;      56246713
+;;      55788664
+;;      55669371
+;;      55504860
+;;      55461710
+;;      55144263
+;;      54972005
+;;      54899752
+;;      54750165
+;;      54655723
+;;      54637785
+;;      54185481
+;;      54167702
+;;      54131652
+;;      54065003
+;;      54064819
+;;      54063323
+;;      54033257
+;;      53990272
+;;      53844942
+;;      53790979
+;;      53789312
+;;      53781555
+;;      53770969
+;;      53756949
+;;      53514462
+;;      53485394
+;;      53408441
+;;      53348483
+;;      53324991
+;;      53090376
+;;      53035552
+;;      52986131
+;;      52774289
+;;      52626484
+;;      52626456
+;;      52401003
+;;      52400997
+;;      52384984
+;;      52383401
+;;      52145581
+;;      52080520
+;;      52080500
+;;      51966571
+;;      51966533
+;;      51940444
+;;      51843289
+;;      51785870
+;;      51517762
+;;      51429637
+;;      51233058
+;;      50980581
+;;      50980537
+;;      50965433
+;;      50781404
+;;      50721080
+;;      50508999
+;;      50503416
+;;      50494443
+;;      50443602
+;;      50428979
+;;      50221877
+;;      50221071
+;;      50146289
+;;      49793801
+;;      49662175
+;;      49459434
+;;      49235490
+;;      49234707
+;;      49217344
+;;      49217224
+;;      49188407
+;;      48984520
+;;      48956187
+;;      48740985
+;;      48710539
+;;      48710399
+;;      48658118
+;;      48629524
+;;      48629262
+;;      48629096
+;;      48456328
+;;      48420003
+;;      48222031
+;;      48189351
+;;      48111387
+;;      48019056
+;;      47581439
+;;      47261164
+;;      47241719
+;;      47241687
+;;      47038924
+;;      46851427
+;;      46841532
+;;      46821633
+;;      46603672
+;;      46590734
+;;      46440408
+;;      46423016
+;;      46090733
+;;      46075210
+;;      45928498
+;;      45928268
+;;      45878480
+;;      45605920
+;;      45412106
+;;      45295271
+;;      45253578
+;;      45182073
+;;      45147147
+;;      45071160
+;;      44966652
+;;      44860680
+;;      44776669
+;;      44760794
+;;      44677169
+;;      44310963
+;;      44045613
+;;      44045160
+;;      44013797
+;;      44013731
+;;      44013557
+;;      44005189
+;;      43500401
+;;      43500051
+;;      43499908
+;;      43467372
+;;      43412654
+;;      43255365
+;;      43254694
+;;      43254568
+;;      43065434
+;;      43064602
+;;      42945181
+;;      42944957
+;;      42932034
+;;      42866660
+;;      42860840
+;;      42860208
+;;      42859293
+;;      42797774
+;;      42621694
+;;      42598154
+;;      42593639
+;;      42592914
+;;      42483339
+;;      42475709
+;;      42473986
+;;      41934602
+;;      41934289
+;;      41934141
+;;      41824732
+;;      41823994
+;;      41823990
+;;      41823884
+;;      41823658
+;;      41770028
+;;      41719972
+;;      41636739
+;;      41636678
+;;      41474558
+;;      41474110
+;;      41417515
+;;      41357545
+;;      41047174
+;;      41047053
+;;      40913879
+;;      40913586
+;;      40882088
+;;      40879546
+;;      40810835
+;;      40670230
+;;      40628283
+;;      40618412
+;;      40508813
+;;      40264027
+;;      40263635
+;;      40263369
+;;      40248842
+;;      40213767
+;;      40159841
+;;      39984065
+;;      39953257
+;;      39841942
+;;      39833972
+;;      39787674
+;;      39649770
+;;      38920751
+;;      38459993
+;;      37901924
+;;      36961724
+;;      36754535
+;;      36753213
+;;      36012874
+;;      35363283
+;;      35363160
+;;      35129115
+;;      34362294
+;;      33891695
+;;      33891545
+;;      33891150
+;;      31900490
+;;      29766172
+;;      26570601
+;;      26548765))
+;;    ((1416655 "KIT gene" ("bacs" "imft" "gngm" "aapp"))
+;;     (1155074 "mast cell activation" ("celf"))
+;;     "CAUSES"
+;;     "gngm"
+;;     "celf"
+;;     (36804978))
+;;    ((1155074 "mast cell activation" ("celf"))
+;;     (4096 "Asthma" ("dsyn"))
+;;     "AFFECTS"
+;;     "celf"
+;;     "dsyn"
+;;     (54247735 38643255))))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 (run* (possible-treatment)
