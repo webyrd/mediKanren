@@ -168,6 +168,159 @@
 ;; TODO: How many of the cell functions below for KIT/C-KIT are unique?  And how many of those are specific enough to be meaningful/useful?
 ;; try taking the union* of all the non-silly entries
 
+;; throw out the 'howler' genes from the query below:
+;;
+;;   (100 (597357 "receptor" ("aapp" "gngm" "rcpt")))
+;;   (104 (3241 "Antibodies" ("gngm" "aapp" "imft")))
+;;   (174 (33684 "Proteins" ("bacs" "gngm" "aapp"))))
+;;
+;; Throwing out the top three super-broad classes of genes reduces
+;; the number of result from 298 to 189.
+(length
+ (apply
+  union*
+  (map
+   (lambda (gene)
+     (let ((cell-functions
+            (run* (q)
+              (fresh (cell-function e-gene/cell-function st-gene/cell-function ot-gene/cell-function e-gene/cell-function-rest)
+                (== cell-function q)
+                (== "celf" ot-gene/cell-function)              
+                (== `(,gene ,cell-function "CAUSES" ,st-gene/cell-function ,ot-gene/cell-function . ,e-gene/cell-function-rest) e-gene/cell-function)
+                (edgeo e-gene/cell-function)))))
+       cell-functions))
+   '((1428985 "PDGFD gene" ("aapp" "gngm"))
+     (919477 "LCK gene" ("aapp" "enzy" "gngm"))
+     (1136340 "Semaphorins" ("bacs" "gngm" "aapp"))
+     (1366876 "MAPK14 gene" ("gngm" "aapp" "enzy"))
+     (1364818 "APP gene" ("enzy" "gngm" "bacs" "aapp" "imft"))
+     (1333568 "FLT3 gene" ("gngm" "phsu" "bacs" "aapp"))
+     (79050 "c-abl Proto-Oncogenes" ("aapp" "gngm"))
+     (79413 "Genes, abl" ("gngm" "aapp"))
+     (812253 "CRKL gene" ("bacs" "aapp" "gngm"))
+     (915156 "Ephrin Receptor EphA8" ("gngm" "enzy" "aapp"))
+     (2716 "Amyloid" ("bacs" "aapp" "gngm"))
+     ;; ignore howler!
+     ;; (3241 "Antibodies" ("gngm" "aapp" "imft"))
+     (33640 "PROTEIN KINASE" ("gngm" "enzy" "aapp"))
+     (33681 "Protein Tyrosine Kinase" ("enzy" "gngm" "aapp"))
+     (164786 "Proto-Oncogene Proteins c-akt" ("gngm" "aapp" "enzy"))
+     ;; ignore howler!
+     ;; (33684 "Proteins" ("bacs" "gngm" "aapp"))
+     (246681 "platelet-derived growth factor BB" ("gngm" "phsu" "aapp"))
+     (290068
+      "Platelet-Derived Growth Factor beta Receptor"
+      ("aapp" "gngm" "rcpt" "enzy"))
+     (812228 "AKT1 gene" ("aapp" "phsu" "enzy" "gngm" "bacs"))
+     (812375 "ELK3 gene" ("enzy" "gngm" "bacs" "aapp"))
+     (1335239 "PPBP gene" ("bacs" "aapp" "gngm"))
+     (1419240 "RAD51 gene" ("enzy" "gngm" "aapp"))
+     (1421416 "UVRAG gene" ("gngm" "phsu" "aapp"))
+     (1422009 "TP63 gene" ("rcpt" "phsu" "imft" "aapp" "gngm"))
+     (1424677 "CKAP4 gene" ("gngm" "aapp" "bacs" "phsu"))
+     (1425835 "KCNH8 gene" ("gngm" "aapp" "bacs"))
+     (1439347 "BTG1 gene" ("gngm" "aapp"))
+     (4891 "Fusion Proteins, bcr-abl" ("aapp" "gngm" "bacs"))
+     (1439337 "tyrosine kinase ABL1" ("aapp" "gngm" "enzy"))
+     (80092
+      "Macrophage Colony-Stimulating Factor Receptor"
+      ("enzy" "aapp" "imft" "gngm"))
+     (879468 "CSF1R gene" ("aapp" "imft" "rcpt" "gngm" "enzy"))
+     (32200 "Platelet-Derived Growth Factor" ("gngm" "aapp" "bacs"))
+     (72470 "Proto-Oncogene Protein c-kit" ("aapp" "gngm" "rcpt" "imft"))
+     (206364 "Receptor Protein-Tyrosine Kinases" ("enzy" "rcpt" "gngm" "aapp"))
+     (290067
+      "Platelet-Derived Growth Factor alpha Receptor"
+      ("rcpt" "aapp" "gngm" "enzy"))
+     (174680 "Cyclin D1" ("gngm" "bacs" "aapp"))
+     (812385 "BCR gene" ("gngm" "bacs" "enzy" "aapp"))
+     (1335202 "PDGFRB gene" ("bacs" "gngm" "rcpt" "enzy" "aapp"))
+     ;; ignore howler
+     ;; (597357 "receptor" ("aapp" "gngm" "rcpt"))
+     (31727 "Phosphotransferases" ("aapp" "gngm" "enzy"))
+     (1412097 "ABL1 gene" ("imft" "enzy" "gngm" "aapp" "bacs" "phsu"))
+     (71253 "Platelet-Derived Growth Factor Receptor" ("aapp" "gngm" "enzy"))
+     (1826328 "MTTP gene" ("aapp" "lipd" "gngm" "imft" "phsu" "bacs"))
+     (79427 "Tumor Suppressor Genes" ("gngm" "aapp"))
+     (105770 "beta catenin" ("aapp" "gngm" "bacs"))
+     (920288 "C-KIT Gene" ("gngm" "aapp"))
+     (1416655 "KIT gene" ("bacs" "imft" "gngm" "aapp"))))))
+
+;; How many "celf"s are caused by the genes of interest, across all 47
+;; genes (the "naive" list of genes) that are directly inhibited by
+;; Gleevec *and* directly cause diseases that Gleevec directly treats?
+;;
+;; 298 "celfs"
+;;
+(length
+ (apply
+  union*
+  (map
+   (lambda (gene)
+     (let ((cell-functions
+            (run* (q)
+              (fresh (cell-function e-gene/cell-function st-gene/cell-function ot-gene/cell-function e-gene/cell-function-rest)
+                (== cell-function q)
+                (== "celf" ot-gene/cell-function)              
+                (== `(,gene ,cell-function "CAUSES" ,st-gene/cell-function ,ot-gene/cell-function . ,e-gene/cell-function-rest) e-gene/cell-function)
+                (edgeo e-gene/cell-function)))))
+       cell-functions))
+   '((1428985 "PDGFD gene" ("aapp" "gngm"))
+     (919477 "LCK gene" ("aapp" "enzy" "gngm"))
+     (1136340 "Semaphorins" ("bacs" "gngm" "aapp"))
+     (1366876 "MAPK14 gene" ("gngm" "aapp" "enzy"))
+     (1364818 "APP gene" ("enzy" "gngm" "bacs" "aapp" "imft"))
+     (1333568 "FLT3 gene" ("gngm" "phsu" "bacs" "aapp"))
+     (79050 "c-abl Proto-Oncogenes" ("aapp" "gngm"))
+     (79413 "Genes, abl" ("gngm" "aapp"))
+     (812253 "CRKL gene" ("bacs" "aapp" "gngm"))
+     (915156 "Ephrin Receptor EphA8" ("gngm" "enzy" "aapp"))
+     (2716 "Amyloid" ("bacs" "aapp" "gngm"))
+     (3241 "Antibodies" ("gngm" "aapp" "imft"))
+     (33640 "PROTEIN KINASE" ("gngm" "enzy" "aapp"))
+     (33681 "Protein Tyrosine Kinase" ("enzy" "gngm" "aapp"))
+     (164786 "Proto-Oncogene Proteins c-akt" ("gngm" "aapp" "enzy"))
+     (33684 "Proteins" ("bacs" "gngm" "aapp"))
+     (246681 "platelet-derived growth factor BB" ("gngm" "phsu" "aapp"))
+     (290068
+      "Platelet-Derived Growth Factor beta Receptor"
+      ("aapp" "gngm" "rcpt" "enzy"))
+     (812228 "AKT1 gene" ("aapp" "phsu" "enzy" "gngm" "bacs"))
+     (812375 "ELK3 gene" ("enzy" "gngm" "bacs" "aapp"))
+     (1335239 "PPBP gene" ("bacs" "aapp" "gngm"))
+     (1419240 "RAD51 gene" ("enzy" "gngm" "aapp"))
+     (1421416 "UVRAG gene" ("gngm" "phsu" "aapp"))
+     (1422009 "TP63 gene" ("rcpt" "phsu" "imft" "aapp" "gngm"))
+     (1424677 "CKAP4 gene" ("gngm" "aapp" "bacs" "phsu"))
+     (1425835 "KCNH8 gene" ("gngm" "aapp" "bacs"))
+     (1439347 "BTG1 gene" ("gngm" "aapp"))
+     (4891 "Fusion Proteins, bcr-abl" ("aapp" "gngm" "bacs"))
+     (1439337 "tyrosine kinase ABL1" ("aapp" "gngm" "enzy"))
+     (80092
+      "Macrophage Colony-Stimulating Factor Receptor"
+      ("enzy" "aapp" "imft" "gngm"))
+     (879468 "CSF1R gene" ("aapp" "imft" "rcpt" "gngm" "enzy"))
+     (32200 "Platelet-Derived Growth Factor" ("gngm" "aapp" "bacs"))
+     (72470 "Proto-Oncogene Protein c-kit" ("aapp" "gngm" "rcpt" "imft"))
+     (206364 "Receptor Protein-Tyrosine Kinases" ("enzy" "rcpt" "gngm" "aapp"))
+     (290067
+      "Platelet-Derived Growth Factor alpha Receptor"
+      ("rcpt" "aapp" "gngm" "enzy"))
+     (174680 "Cyclin D1" ("gngm" "bacs" "aapp"))
+     (812385 "BCR gene" ("gngm" "bacs" "enzy" "aapp"))
+     (1335202 "PDGFRB gene" ("bacs" "gngm" "rcpt" "enzy" "aapp"))
+     (597357 "receptor" ("aapp" "gngm" "rcpt"))
+     (31727 "Phosphotransferases" ("aapp" "gngm" "enzy"))
+     (1412097 "ABL1 gene" ("imft" "enzy" "gngm" "aapp" "bacs" "phsu"))
+     (71253 "Platelet-Derived Growth Factor Receptor" ("aapp" "gngm" "enzy"))
+     (1826328 "MTTP gene" ("aapp" "lipd" "gngm" "imft" "phsu" "bacs"))
+     (79427 "Tumor Suppressor Genes" ("gngm" "aapp"))
+     (105770 "beta catenin" ("aapp" "gngm" "bacs"))
+     (920288 "C-KIT Gene" ("gngm" "aapp"))
+     (1416655 "KIT gene" ("bacs" "imft" "gngm" "aapp"))))))
+=>
+298
+
 ;; There are 47 genes are directly inhibited by Gleevec *and* directly cause diseases that Gleevec directly treats
 ;; (vs. 50 genes that are inhibited directly by Gleevec).  (See query below that produces these answers.)
 ;;
