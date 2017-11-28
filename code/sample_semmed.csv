@@ -1,0 +1,1000 @@
+PREDICATION_ID,SENTENCE_ID,PMID,PREDICATE,SUBJECT_CUI,SUBJECT_NAME,SUBJECT_SEMTYPE,SUBJECT_NOVELTY,OBJECT_CUI,OBJECT_NAME,OBJECT_SEMTYPE,OBJECT_NOVELTY
+61,128,14420371,ISA,C0026879,Mutagens,hops,1,C0220806,Chemicals,chem,1
+62,116,5659339,PART_OF,C0017725,Glucose,bacs,1,C0022378,jejunum,bpoc,1
+63,146,12255310,PROCESS_OF,C0006147,Breast Feeding,orgf,1,C0020114,Human,humn,1
+64,170,12305488,TREATS,C0279494,Oestrogen therapy,topp,1,C0043210,Woman,popg,1
+65,116,5659339,PROCESS_OF,C0232338,Blood flow,orgf,1,C0012984,Canis familiaris,mamm,1
+66,120,14185243,LOCATION_OF,C0006104,Brain,bpoc,1,C0041249,Tryptophan,aapp,1
+67,134,13670501,PROCESS_OF,C0006434,Burn injury,inpo,1,C0728836,Young child,humn,1
+68,147,12305418,METHOD_OF,C0042387,Vasectomy,topp,1,C0038288,Sexual sterilization,topp,1
+69,167,14457919,TREATS,C0037766,Antispasmodics,phsu,1,C0002962,Angina Pectoris,sosy,1
+70,242,14934087,LOCATION_OF,C0036471,Scrotum,bpoc,1,C0016085,Filariasis,dsyn,1
+71,218,13930366,LOCATION_OF,C0037993,Spleen,bpoc,1,C0017086,Gangrene,dsyn,1
+72,136,5867984,PROCESS_OF,C0023290,"Leishmaniasis, Visceral",dsyn,1,C0020114,Human,humn,1
+73,221,6014351,LOCATION_OF,C1269901,Entire foramen magnum,bsoj,1,C0000768,Congenital Abnormality,cgab,1
+74,158,4966828,INTERACTS_WITH,C0024337,Lysine,aapp,1,C0038404,Enterococcus faecalis,bact,1
+75,127,13997680,LOCATION_OF,C0005767,Blood,tisu,1,C0007061,Carboxyhemoglobin,aapp,1
+76,163,13155021,LOCATION_OF,C0003483,Aorta,bpoc,1,C0332886,Coarctation,anab,1
+77,145,13974537,PART_OF,C0018563,Hand,bpoc,1,C0020114,Human,humn,1
+78,148,5776108,LOCATION_OF,C0022646,Kidney,bpoc,1,C0221198,Lesion,fndg,1
+79,181,13070168,ISA,C0025629,metharbital,orch,1,C0004743,Barbital,orch,1
+80,141,13738542,PROCESS_OF,C1457887,Symptoms,sosy,0,C0030705,Patients,humn,0
+81,256,13638644,LOCATION_OF,C0021853,Intestines,bpoc,1,C0010709,Cyst,anab,1
+82,216,5876094,LOCATION_OF,C0007806,Cerebrospinal Fluid,bdsu,1,C0022714,Kinins,aapp,1
+83,207,14812403,TREATS,C0396565,Lung excision,topp,1,C0041327,"Tuberculosis, Pulmonary",dsyn,1
+84,223,13384308,PROCESS_OF,C0005778,Blood coagulation,ortf,1,C0030705,Patients,humn,0
+85,243,12275609,COEXISTS_WITH,C0009637,Conception,orgf,1,C0006147,Breast Feeding,orgf,1
+86,163,13155021,TREATS,C0011900,Diagnosis,hlca,1,C0008059,Child,humn,1
+87,254,13502773,LOCATION_OF,C0042036,Urine,bdsu,1,C0016581,Formiminoglutamic Acid,bacs,1
+88,148,5776108,DIAGNOSES,C0194073,Kidney biopsy,diap,1,C0032914,Pre-Eclampsia,dsyn,1
+89,213,11396507,PART_OF,C0221921,Stratum corneum,tisu,1,C0020114,Human,humn,1
+90,186,18856411,PROCESS_OF,C1458155,Mammary Neoplasms,neop,1,C0025920,"Mice, Inbred C3H",mamm,1
+91,174,12254865,PROCESS_OF,C0702166,Acne,dsyn,1,C0043210,Woman,humn,1
+92,163,13155021,TREATS,C1273870,Management procedure,hlca,1,C0008059,Child,humn,1
+93,285,14772444,LOCATION_OF,C0042149,Uterus,bpoc,1,C0036690,Septicemia,dsyn,1
+94,289,4958141,PART_OF,C0040291,Tissue Extracts,bacs,1,C0085979,Cavia,mamm,1
+95,212,13789574,ISA,C1010578,Spermophilus tridecemlineatus,mamm,1,C0037877,Susliks,mamm,1
+96,216,5876094,LOCATION_OF,C0007806,Cerebrospinal Fluid,bdsu,1,C0054012,bradykininogen,aapp,1
+97,234,11526826,PART_OF,C1304649,Tissue fiber,tisu,1,C0327011,Toad,amph,1
+98,148,5776108,COEXISTS_WITH,C0221198,Lesion,fndg,1,C0032914,Pre-Eclampsia,dsyn,1
+99,243,12275609,COEXISTS_WITH,C0025344,Menstruation,orgf,1,C0006147,Breast Feeding,orgf,1
+100,265,12264098,PROCESS_OF,C0027651,Neoplasm,neop,1,C0026809,Mus,mamm,1
+101,293,12332297,PART_OF,C0029974,Ovum,cell,1,C0020114,Human,humn,1
+102,313,14934088,LOCATION_OF,C0037925,Spinal Cord,bpoc,1,C0221198,Lesion,fndg,1
+103,278,12255535,TREATS,C0021587,Artificial Insemination,topp,1,C1522384,sex,orga,1
+104,348,14087163,LOCATION_OF,C0042036,Urine,bdsu,1,C0004965,Bence Jones Protein,aapp,1
+105,307,13930367,ISA,C0008059,Child,inpr,1,C0018684,Health,idcn,1
+106,310,5585326,PROCESS_OF,C0021311,Infection,dsyn,0,C0020114,Human,humn,1
+107,269,6029542,PROCESS_OF,C0018854,gamma-Chain Disease,dsyn,1,C0524824,Brassicaceae,plnt,1
+108,367,5933793,LOCATION_OF,C1269010,Entire aortic arch,bpoc,1,C0851256,Pseudocoarctation,anab,1
+109,323,14216905,PROCESS_OF,C0035435,Rheumatism,dsyn,1,C0030705,Patients,humn,0
+110,364,12334535,PART_OF,C0006826,Malignant Neoplasms,neop,0,C0014180,Endometrium,bpoc,1
+111,320,13297195,CAUSES,C0003232,Antibiotics,antb,1,C0014356,Enterocolitis,dsyn,1
+112,338,14439951,PART_OF,C0025635,Methemoglobin,aapp,1,C0034693,Rattus norvegicus,mamm,1
+113,337,12233285,LOCATION_OF,C1280344,Entire vas deferens,bpoc,1,C0332853,Anastomosis,acab,1
+114,346,13582798,LOCATION_OF,C0227391,Sigmoid colon,bpoc,1,C1401877,vagina; artificial,fndg,1
+115,327,14055630,PROCESS_OF,C0151763,Liver damage,patf,1,C0741926,CARDIAC PATIENT,humn,1
+116,200,13867926,LOCATION_OF,C0022646,Kidney,bpoc,1,C0042036,Urine,bdsu,1
+117,294,14268251,AFFECTS,C0038425,Streptomycin,antb,1,C0178784,Organ,bpoc,1
+118,269,6029542,TREATS,C0450442,Agent,chvf,1,C0010709,Cyst,anab,1
+119,381,13384310,TREATS,C0008286,Chlorpromazine,orch,1,C0917816,Mental deficiency,mobd,1
+120,399,14772445,LOCATION_OF,C0227386,Transverse colon,bpoc,1,C0259974,"Labor, Complicated",dsyn,1
+121,345,12305487,ISA,C0039601,Testosterone,horm,1,C0087111,Therapeutic procedure,topp,0
+122,336,20285242,ASSOCIATED_WITH,C0005515,Biological Factors,bacs,0,C0596263,Carcinogenesis,neop,1
+123,200,13867926,PART_OF,C0022646,Kidney,bpoc,1,C0034493,Oryctolagus cuniculus,mamm,1
+124,305,12255534,PART_OF,C0037868,sperm cell,cell,1,C0020114,Human,humn,1
+125,284,12255446,TREATS,C0014912,Estradiol,horm,1,C0034693,Rattus norvegicus,mamm,1
+126,357,13070169,TREATS,C0012799,Mercurial diuretic,phsu,1,C0030705,Patients,podg,0
+127,269,6029542,TREATS,C0450442,Agent,chvf,1,C0018854,gamma-Chain Disease,dsyn,1
+128,208,16691646,ISA,C0008044,Chicago,geoa,1,C0020898,Illinois,geoa,1
+129,345,12305487,USES,C0087111,Therapeutic procedure,topp,0,C0039601,Testosterone,phsu,1
+130,452,12311486,PART_OF,C0024667,Animal Mammary Neoplasms,neop,1,C0939793,Bitch,mamm,1
+131,420,14934089,TREATS,C0011900,Diagnosis,hlca,1,C0008059,Child,humn,1
+132,374,6065069,LOCATION_OF,C0507816,Pulmonary capillary,bpoc,1,C0429627,Oxygen uptake,fndg,1
+133,398,12255008,METHOD_OF,C0042387,Vasectomy,topp,1,C0700589,Contraceptive methods,topp,1
+134,423,14880772,LOCATION_OF,C0005400,Bile duct structure,bpoc,1,C0175731,T-tube,medd,1
+135,284,12255446,TREATS,C0018061,Gonadotropins,horm,1,C0034693,Rattus norvegicus,mamm,1
+136,363,5659341,TREATS,C0001041,Acetylcholine,phsu,1,C0012984,Canis familiaris,mamm,1
+137,455,12255260,PRECEDES,C1148523,Childbirth,orgf,1,C0025344,Menstruation,orgf,1
+138,373,4159375,COEXISTS_WITH,C0032458,"Polycyclic Hydrocarbons, Aromatic",orch,1,C0043047,Water,inch,1
+139,306,14457921,LOCATION_OF,C0005767,Blood,tisu,1,C0036751,Serotonin,orch,1
+140,445,13551179,TREATS,C0543467,Operative Surgical Procedures,topp,1,C0267750,Acute peritonitis,dsyn,1
+141,306,14457921,PROCESS_OF,C0004153,Atherosclerosis,dsyn,1,C0325912,Columbidae,bird,1
+142,396,5729806,USES,C0087111,Therapeutic procedure,topp,0,C0008269,Chloroquine,phsu,1
+143,471,13582799,PART_OF,C0006826,Malignant Neoplasms,neop,0,C0001575,Uterine adnexae structure,bpoc,1
+144,284,12255446,TREATS,C0039607,Testosterone Propionate,horm,1,C0034693,Rattus norvegicus,mamm,1
+145,483,13638647,PROCESS_OF,C0033931,Psychophysiologic Disorders,mobd,1,C0008059,Child,humn,1
+146,493,13670504,LOCATION_OF,C0013453,External Ear,bpoc,1,C0332952,Congenital invagination,cgab,1
+147,425,12305572,PROCESS_OF,C0025874,Metrorrhagia,patf,1,C0026447,Monkeys,mamm,1
+148,480,13155023,COEXISTS_WITH,C0010520,Cyanosis,sosy,1,C0243050,Cardiovascular Abnormalities,dsyn,1
+149,436,13930369,PROCESS_OF,C0240318,Mediastinal mass,dsyn,1,C0008059,Child,humn,1
+150,430,14812405,LOCATION_OF,C0229671,Serum,bdsu,1,C0008377,Cholesterol,bacs,1
+151,385,18856412,METHOD_OF,C0034618,Radiation therapy,topp,1,C0857127,Induction,topp,1
+152,475,13997693,COEXISTS_WITH,C0019147,Hepatic Coma,dsyn,1,C0019158,Hepatitis,dsyn,1
+153,454,13219190,PROCESS_OF,C0151798,Hepatic necrosis,dsyn,1,C0030705,Patients,humn,0
+154,469,12339641,LOCATION_OF,C0002424,Ambulatory Care Facilities,hcro,1,C0038951,Surveys,resa,1
+155,487,13384311,USES,C0087111,Therapeutic procedure,topp,0,C0008286,Chlorpromazine,phsu,1
+156,426,14847741,PART_OF,C0027809,Neurilemmoma,neop,1,C0038351,Stomach,bpoc,1
+157,430,14812405,PART_OF,C0008377,Cholesterol,bacs,1,C0085766,Aleuts,humn,1
+158,383,12279177,PROCESS_OF,C0006142,Malignant neoplasm of breast,neop,1,C0034693,Rattus norvegicus,mamm,1
+159,435,12255683,PROCESS_OF,C0032961,Pregnancy,orgf,1,C0034693,Rattus norvegicus,mamm,1
+160,436,13930369,PROCESS_OF,C0240318,Mediastinal mass,dsyn,1,C0021270,Infant,humn,1
+161,379,12275481,INTERACTS_WITH,C0770355,NORETHYNODREL-MESTRANOL,horm,1,C0013058,Dosage Forms,bodm,1
+162,451,13431634,TREATS,C0022209,isoniazid,phsu,1,C0041327,"Tuberculosis, Pulmonary",dsyn,1
+163,402,11526826,PART_OF,C0018787,Heart,bpoc,1,C0327011,Toad,amph,1
+164,454,13219190,TREATS,C0041964,Urethane,orch,1,C0026764,Multiple Myeloma,neop,1
+165,509,13974540,LOCATION_OF,C0025066,Mediastinum,blor,1,C0010709,Cyst,anab,1
+166,383,12279177,CAUSES,C0025732,Methylcholanthrene,hops,1,C0006142,Malignant neoplasm of breast,neop,1
+167,426,14847741,COEXISTS_WITH,C0041582,Ulcer,patf,1,C0027809,Neurilemmoma,neop,1
+168,515,6029543,PROCESS_OF,C0678108,Sterility,patf,1,C0205653,Adolescent,humn,1
+169,454,13219190,PROCESS_OF,C0026764,Multiple Myeloma,neop,1,C0030705,Patients,humn,0
+170,439,12983060,PART_OF,C0040426,Tooth structure,bpoc,1,C0020114,Human,humn,1
+171,376,13502774,PART_OF,C0006826,Malignant Neoplasms,neop,0,C0005682,Bladder,bpoc,1
+172,478,13292662,USES,C0087111,Therapeutic procedure,topp,0,C0282223,Lucanthone Hydrochloride,phsu,1
+173,549,4304789,PART_OF,C1334603,Malignant Mixed Mesodermal (Mullerian) Tumor,neop,1,C0042149,Uterus,bpoc,1
+174,467,12312852,PART_OF,C0042149,Uterus,bpoc,1,C0025914,House mice,mamm,1
+175,567,13155024,PROCESS_OF,C0003811,cardiac arrhythmia,patf,1,C0008059,Child,humn,1
+176,543,14774047,LOCATION_OF,C0014876,Esophagus,bpoc,1,C0243066,Atresia,cgab,1
+177,462,12255545,PROCESS_OF,C0006147,Breast Feeding,orgf,1,C0026591,Mothers,humn,1
+178,478,13292662,USES,C0087111,Therapeutic procedure,topp,0,C0301349,Sodium antimonyl gluconate,phsu,1
+179,376,13502774,PART_OF,C0006826,Malignant Neoplasms,neop,0,C0023078,Larynx,bpoc,1
+180,560,14150908,PART_OF,C0025500,Mesothelioma,neop,1,C0032225,Pleura,bpoc,1
+181,467,12312852,CAUSES,C0014939,Estrogens,horm,1,C0027651,Neoplasm,neop,1
+182,567,13155024,PROCESS_OF,C0003811,cardiac arrhythmia,patf,1,C0021270,Infant,humn,1
+183,551,15394662,COEXISTS_WITH,C0015967,Fever,fndg,1,C0023891,"Liver Cirrhosis, Alcoholic",dsyn,1
+184,610,12304881,AFFECTS,C0019932,Hormones,horm,1,C1513094,Melanogenesis,moft,1
+185,512,5337389,PROCESS_OF,C0035203,Respiration,phsf,1,C0007450,Felis catus,mamm,1
+186,477,13789574,PROCESS_OF,C0003808,Arousal,menp,1,C0037877,Susliks,mamm,1
+187,612,14216908,COEXISTS_WITH,C0003892,Neurogenic arthropathy,dsyn,1,C0039144,Syringomyelia,dsyn,1
+188,467,12312852,PART_OF,C0027651,Neoplasm,neop,1,C0042149,Uterus,bpoc,1
+189,575,13997696,LOCATION_OF,C0734952,Wall of intestine,bpoc,1,C0025424,Mercury,elii,1
+190,376,13502774,PART_OF,C0006826,Malignant Neoplasms,neop,0,C0024109,Lung,bpoc,1
+191,594,13737739,PROCESS_OF,C0013395,Dyspepsia,dsyn,1,C0021270,Infant,humn,1
+192,611,14877283,LOCATION_OF,C0003584,Apocrine Glands,bpoc,1,C0012634,Disease,dsyn,0
+193,581,12275695,PRECEDES,C0589113,Bilateral vasectomy,topp,1,C0332853,Anastomosis,acab,1
+194,612,14216908,ISA,C0003892,Neurogenic arthropathy,dsyn,1,C0263661,Disorder of skeletal system,dsyn,1
+195,570,14806329,LOCATION_OF,C0024109,Lung,bpoc,1,C0013421,Dystonia,sosy,1
+196,594,13737739,PROCESS_OF,C0029877,Otitis,dsyn,1,C0021270,Infant,humn,1
+197,376,13502774,PART_OF,C0006826,Malignant Neoplasms,neop,0,C1522730,CNS (MMHCC),tisu,1
+198,636,12332362,PART_OF,C0015965,Fetus,emst,1,C0020114,Human,humn,1
+199,474,14268252,LOCATION_OF,C0042606,Vestibule,bsoj,1,C0001969,Alcoholic Intoxication,mobd,1
+200,546,13189559,TREATS,C0042402,Vasodilator Agents,phsu,1,C0023223,Leg Ulcer,dsyn,1
+201,538,5659342,PART_OF,C0021853,Intestines,bpoc,1,C0034693,Rattus norvegicus,mamm,1
+202,584,14055632,PART_OF,C0031678,Phosphoric Monoester Hydrolases,aapp,1,C0227308,Jejunal mucous membrane,bpoc,1
+203,530,14185247,PROCESS_OF,C0015672,Fatigue,sosy,1,C0020114,Human,humn,1
+204,658,13347199,LOCATION_OF,C0014876,Esophagus,bpoc,1,C0006826,Malignant Neoplasms,neop,0
+205,662,14812408,TREATS,C0013804,Electrocoagulation,topp,1,C0263316,Pemphigus vegetans,dsyn,1
+206,404,5698836,PART_OF,C0737240,Somatic cell,cell,1,C0025914,House mice,mamm,1
+207,687,13292663,COEXISTS_WITH,C0018926,Hematemesis,patf,1,C0036330,Schistosoma mansonii infection,dsyn,1
+208,612,14216908,COEXISTS_WITH,C0263661,Disorder of skeletal system,dsyn,1,C0039144,Syringomyelia,dsyn,1
+209,581,12275695,LOCATION_OF,C1280344,Entire vas deferens,bpoc,1,C0332853,Anastomosis,acab,1
+210,482,4959380,LOCATION_OF,C0026927,Atypical Mycobacteria,bact,1,C0014964,Ethambutol,orch,1
+211,648,13930376,LOCATION_OF,C0022646,Kidney,bpoc,1,C0549453,Traumatic hematoma,inpo,1
+212,626,13384313,USES,C0013819,Electroencephalography,diap,1,C0004745,Barbiturates,phsu,1
+213,530,14185247,compared_with,C0053284,benzquinamide,orch,1,C0030883,Pentobarbital,orch,1
+214,621,12279177,PROCESS_OF,C0006142,Malignant neoplasm of breast,neop,1,C0034716,"Rats, Wistar",mamm,1
+215,404,5698836,COEXISTS_WITH,C0020687,Hypoxanthine Phosphoribosyltransferase,aapp,1,C0002583,Aminopterin,hops,1
+216,705,14847743,COEXISTS_WITH,C0012242,Digestive System Disorders,dsyn,0,C0041327,"Tuberculosis, Pulmonary",dsyn,1
+217,724,5776110,LOCATION_OF,C0227391,Sigmoid colon,bpoc,1,C0032962,Pregnancy Complications,dsyn,1
+218,508,13867927,ASSOCIATED_WITH,C0005885,Body Composition,orga,1,C0028754,Obesity,dsyn,1
+219,658,13347199,LOCATION_OF,C0014876,Esophagus,bpoc,1,C0267085,Acquired supradiaphragmatic diverticulum of esophagus,acab,1
+220,588,12332367,LOCATION_OF,C1280344,Entire vas deferens,bpoc,1,C0332853,Anastomosis,acab,1
+221,474,14268252,AFFECTS,C0683208,oculomotor function,ortf,1,C0001969,Alcoholic Intoxication,mobd,1
+222,735,14934093,TREATS,C0700993,Resochin,phsu,1,C0024530,Malaria,dsyn,1
+223,725,5729809,PROCESS_OF,C0002871,Anemia,dsyn,1,C1265425,Hookworms,invt,1
+224,404,5698836,COEXISTS_WITH,C0020687,Hypoxanthine Phosphoribosyltransferase,aapp,1,C0020684,Hypoxanthine,bacs,1
+225,647,5933795,TREATS,C0001962,Ethanol,phsu,1,C0012984,Canis familiaris,mamm,1
+226,638,6065071,LOCATION_OF,C1281591,Entire face,bpoc,1,C0038561,Submersion,inpo,1
+227,626,13384313,USES,C0013819,Electroencephalography,diap,1,C0600062,Largactil,phsu,1
+228,633,14386674,LOCATION_OF,C0031066,Anogenital region,blor,1,C0043250,Injury wounds,inpo,1
+229,694,4961611,USES,C1510438,Assay,lbpr,1,C0040160,Thyrotropin,aapp,1
+230,482,4959380,LOCATION_OF,C0026927,Atypical Mycobacteria,bact,1,C0015021,Ethionamide,orch,1
+231,661,4865111,PART_OF,C0030274,Pancreas,bpoc,1,C0021270,Infant,humn,1
+232,617,14327662,PART_OF,C0021968,Iodine,bacs,1,C0007452,Cattle,mamm,1
+233,674,14457924,LOCATION_OF,C0015392,Eye,bpoc,1,C0043254,"Wounds, Penetrating",inpo,1
+234,647,5933795,TREATS,C0020268,Hydrocortisone,horm,1,C0012984,Canis familiaris,mamm,1
+235,733,16691885,PART_OF,C0027651,Neoplasm,neop,1,C0029130,Optic Nerve,bpoc,1
+236,404,5698836,COEXISTS_WITH,C0020687,Hypoxanthine Phosphoribosyltransferase,aapp,1,C0040077,Thymidine,bacs,1
+237,626,13384313,compared_with,C0600062,Largactil,orch,1,C0004745,Barbiturates,orch,1
+238,732,14251360,PROCESS_OF,C0597198,Performance,inbe,1,C0260267,School child,humn,1
+239,750,13189560,PROCESS_OF,C0011615,"Dermatitis, Atopic",dsyn,1,C0085979,Cavia,mamm,1
+240,789,13209178,TREATS,C0001632,Adrenalectomy,topp,1,C0006142,Malignant neoplasm of breast,neop,1
+241,699,15394663,ISA,C0025830,Methylthiouracil,nnon,1,C0040125,Antithyroid Agents,horm,1
+242,754,14055633,PART_OF,C0334108,Multiple polyps,neop,1,C0009368,Colon,bpoc,1
+243,674,14457924,PROCESS_OF,C0043254,"Wounds, Penetrating",inpo,1,C0008059,Child,humn,1
+244,721,6029544,PROCESS_OF,C1160618,molting cycle,orgf,1,C0023047,Larva,invt,1
+245,745,14087167,ISA,C0020114,Human,grup,1,C0029235,Organism,orgm,0
+246,482,4959380,TREATS,C0014964,Ethambutol,phsu,1,C0030705,Patients,podg,0
+247,734,14420386,ASSOCIATED_WITH,C0014563,Epinephrine,horm,1,C0020672,"hypothermia, natural",sosy,1
+248,696,5337390,PROCESS_OF,C0035203,Respiration,phsf,1,C0007450,Felis catus,mamm,1
+249,741,13737741,LOCATION_OF,C0025474,Mesentery,blor,1,C0497156,Enlargement of lymph nodes,fndg,1
+250,617,14327662,INTERACTS_WITH,C0001128,Acids,chem,1,C0021968,Iodine,bacs,1
+251,733,16691885,PART_OF,C0027651,Neoplasm,neop,1,C0035298,Retina,bpoc,1
+252,482,4959380,TREATS,C0015021,Ethionamide,phsu,1,C0030705,Patients,podg,0
+253,757,20241532,LOCATION_OF,C0205054,Hepatic,blor,1,C0009368,Colon,bpoc,1
+254,670,16691650,PART_OF,C0023317,"Lens, Crystalline",bpoc,1,C0015392,Eye,bpoc,1
+255,715,4974223,PART_OF,C0006104,Brain,bpoc,1,C0033147,Primates,mamm,1
+256,759,13100900,PART_OF,C0677930,Primary Neoplasm,neop,1,C0013303,Duodenum,bpoc,1
+257,741,13737741,PROCESS_OF,C0497156,Enlargement of lymph nodes,fndg,1,C0001675,Adult,humn,1
+258,762,13292664,ISA,C0012518,Dipetalonema perstans,invt,1,C0012516,Dipetalonema,invt,1
+259,757,20241532,PART_OF,C0007097,Carcinoma,neop,1,C0009368,Colon,bpoc,1
+260,617,14327662,INTERACTS_WITH,C0040165,Thyroxine,aapp,1,C0021968,Iodine,bacs,1
+261,670,16691650,LOCATION_OF,C0023317,"Lens, Crystalline",bpoc,1,C0016658,Fracture,inpo,1
+262,740,13738552,PART_OF,C0018787,Heart,bpoc,1,C0003459,Anura,amph,1
+263,786,13431637,TREATS,C0040071,Thymectomy,topp,1,C0026896,Myasthenia Gravis,dsyn,1
+264,819,12305503,TREATS,C0014942,Estrone,horm,1,C0006826,Malignant Neoplasms,neop,0
+265,715,4974223,LOCATION_OF,C0035804,Rodent,mamm,1,C0008429,Cholinesterases,aapp,1
+266,839,14150911,CAUSES,C0241669,Venous occlusion,patf,1,C0238261,Lymphedema praecox,dsyn,1
+267,740,13738552,LOCATION_OF,C0018787,Heart,bpoc,1,C0001041,Acetylcholine,orch,1
+268,778,13867928,PROCESS_OF,C0038435,Stress,fndg,1,C0021294,"Infant, Premature",humn,1
+269,749,5659343,PROCESS_OF,C0232750,Bile formation,ortf,1,C0085979,Cavia,mamm,1
+270,843,5933796,LOCATION_OF,C0459313,Left recurrent laryngeal nerve,bpoc,1,C0522224,Paralysed,fndg,1
+271,814,6065072,LOCATION_OF,C0011980,Diaphragm (Anatomy),bpoc,1,C0013839,Electromyography,diap,1
+272,819,12305503,TREATS,C0014942,Estrone,horm,1,C0034693,Rattus norvegicus,mamm,1
+273,847,14216910,PART_OF,C0006826,Malignant Neoplasms,neop,0,C0024109,Lung,bpoc,1
+274,775,13026427,LOCATION_OF,C0332915,Congenital failure of fusion,cgab,1,C0039082,Syndrome,dsyn,0
+275,821,12336694,PROCESS_OF,C0011175,Dehydration,dsyn,1,C0021270,Infant,humn,1
+276,868,12275532,PRECEDES,C0042387,Vasectomy,topp,1,C0524865,Reconstructive Surgical Procedures,topp,1
+277,809,13997701,DIAGNOSES,C0040395,tomography,diap,1,C0543829,Clinical pneumonia,dsyn,1
+278,896,14880778,PART_OF,C0025202,melanoma,neop,1,C0028429,Nose,bpoc,1
+279,866,14055634,LOCATION_OF,C0016976,Gallbladder,bpoc,1,C0332907,Congenital absence,cgab,1
+280,819,12305503,PROCESS_OF,C0006826,Malignant Neoplasms,neop,0,C0034693,Rattus norvegicus,mamm,1
+281,875,13685015,PART_OF,C1280536,Entire placental membrane,emst,1,C0020114,Human,humn,1
+282,881,13155029,LOCATION_OF,C0021853,Intestines,bpoc,1,C0221198,Lesion,fndg,1
+283,870,13582804,LOCATION_OF,C0017421,Female genitalia,bpoc,1,C0013502,Echinococcosis,dsyn,1
+284,900,5988837,ASSOCIATED_WITH,C0037473,Sodium,bacs,1,C0018801,Heart failure,dsyn,1
+286,905,13219279,LOCATION_OF,C0037004,Shoulder,bpoc,1,C0158300,Adhesive Capsulitis,dsyn,1
+287,866,14055634,LOCATION_OF,C1280323,Entire cystic duct,bpoc,1,C0332907,Congenital absence,cgab,1
+288,879,14877286,TREATS,C0358490,Procaine hydrochloride,phsu,1,C0033774,Pruritus,sosy,1
+289,787,5214757,PREVENTS,C0185125,Application procedure,hlca,1,C0333519,Caries,dsyn,1
+290,875,13685015,LOCATION_OF,C1280536,Entire placental membrane,emst,1,C0030016,Oxidoreductase,aapp,1
+291,902,12255392,ASSOCIATED_WITH,C0028360,Norethynodrel,horm,1,C0040038,Thromboembolism,patf,1
+292,872,13551183,LOCATION_OF,C0022646,Kidney,bpoc,1,C0522562,Multilocular cyst,acab,1
+293,871,13464036,PROCESS_OF,C0241863,Diabetic,fndg,1,C0043210,Woman,humn,1
+294,881,13155029,PROCESS_OF,C0221198,Lesion,fndg,1,C0021289,"Infant, Newborn",humn,1
+295,855,13638652,TREATS,C0042313,Vancomycin,antb,1,C0038160,Staphylococcal Infections,dsyn,1
+296,890,5876096,PROCESS_OF,C0234222,Baresthesia,ortf,1,C0007450,Felis catus,mamm,1
+297,806,12983061,LOCATION_OF,C0026724,Mucous Membrane,tisu,1,C0012634,Disease,dsyn,0
+298,854,14782737,ASSOCIATED_WITH,C0010137,Cortisone,horm,1,C0021311,Infection,dsyn,0
+299,855,13638652,PROCESS_OF,C0038160,Staphylococcal Infections,dsyn,1,C0030705,Patients,humn,0
+300,822,14806332,TREATS,C0002696,Ampyrone,phsu,1,C0162323,Polyarthritis,dsyn,1
+301,878,14457926,PART_OF,C0007634,Cells,cell,1,C0003483,Aorta,bpoc,1
+302,920,14771461,LOCATION_OF,C0021853,Intestines,bpoc,1,C0030499,Parasitic Diseases,dsyn,1
+303,903,13737742,PROCESS_OF,C0743336,E COLI BACTEREMIA,dsyn,1,C0034493,Oryctolagus cuniculus,mamm,1
+304,933,16691887,PART_OF,C1261473,sarcoma,neop,1,C1278891,Entire iris,bpoc,1
+305,864,14087168,TREATS,C0038913,Urologic Surgical Procedures,topp,1,C0008059,Child,aggp,1
+306,943,5333709,ISA,C0026652,Moxibustion,topp,1,C0087111,Therapeutic procedure,topp,0
+307,936,13070175,PART_OF,C0001625,Adrenal Glands,bpoc,1,C0019944,Equus caballus,mamm,1
+308,806,12983061,LOCATION_OF,C1519551,Tooth Tissue,tisu,1,C0012634,Disease,dsyn,0
+309,964,12338435,COEXISTS_WITH,C0029965,Ovulation,ortf,1,C0006147,Breast Feeding,orgf,1
+310,914,13292665,PROCESS_OF,C0858318,Plasmodium falciparum infection,dsyn,1,C0322918,Anopheles quadrimaculatus,invt,1
+311,855,13638652,TREATS,C0042313,Vancomycin,antb,1,C0030705,Patients,podg,0
+313,878,14457926,PART_OF,C0007634,Cells,cell,1,C0027061,Myocardium,tisu,1
+314,920,14771461,PROCESS_OF,C0030499,Parasitic Diseases,dsyn,1,C0008059,Child,humn,1
+315,971,12255278,TREATS,C0520483,Tubal Ligation,topp,1,C0043210,Woman,popg,1
+316,895,4966828,NEG_INHIBITS,C0020366,Hydroxylysine,aapp,1,C0023689,Ligase,aapp,1
+317,898,14268254,LOCATION_OF,C0023078,Larynx,bpoc,1,C0040395,tomography,diap,1
+318,806,12983061,PROCESS_OF,C0012634,Disease,dsyn,0,C0920541,Guamanian,humn,1
+319,864,14087168,TREATS,C0038913,Urologic Surgical Procedures,topp,1,C0021270,Infant,aggp,1
+320,888,13930378,LOCATION_OF,C0016129,Fingers,blor,1,C1609508,Ligamentitis,dsyn,1
+321,936,13070175,PART_OF,C0001625,Adrenal Glands,bpoc,1,C0242372,Hares,mamm,1
+322,961,5305917,LOCATION_OF,C0019994,Hospitals,hcro,1,C0008972,Clinical Research,resa,1
+323,922,20241533,USES,C1292856,Stimulation procedure,topp,1,C0017725,Glucose,carb,1
+324,966,14216911,COEXISTS_WITH,C0153690,Secondary malignant neoplasm of bone,neop,1,C0006142,Malignant neoplasm of breast,neop,1
+325,878,14457926,AFFECTS,C0028040,Nicotine,hops,1,C0007634,Cells,cell,1
+326,946,15394665,TREATS,C0038425,Streptomycin,antb,1,C0041327,"Tuberculosis, Pulmonary",dsyn,1
+327,913,16016715,ISA,C0015272,Exhibits,mnob,1,C0520510,Materials,sbst,1
+328,989,5988838,ASSOCIATED_WITH,C0032821,Potassium,bacs,1,C0018801,Heart failure,dsyn,1
+329,888,13930378,LOCATION_OF,C0018563,Hand,bpoc,1,C1609508,Ligamentitis,dsyn,1
+330,895,4966828,NEG_INHIBITS,C0024337,Lysine,aapp,1,C0023689,Ligase,aapp,1
+331,980,13789584,DIAGNOSES,C0019635,Histocytochemistry,lbpr,1,C0033860,Psoriasis,dsyn,1
+332,932,13297204,PART_OF,C0014876,Esophagus,bpoc,1,C0020114,Human,humn,1
+333,944,14150912,PROCESS_OF,C0002895,Sickle Cell Anemia,dsyn,1,C0008059,Child,humn,1
+334,947,5659344,LOCATION_OF,C0034693,Rattus norvegicus,mamm,1,C0003695,Arachidonic Acid,eico,1
+335,1017,12332147,METHOD_OF,C0007471,Cauterization - action,topp,1,C0015787,Female Sterilization,topp,1
+336,921,16691651,PART_OF,C0010031,Cornea,bpoc,1,C1278891,Entire iris,bpoc,1
+337,1030,16691888,PART_OF,C1261473,sarcoma,neop,1,C1278891,Entire iris,bpoc,1
+338,944,14150912,PROCESS_OF,C0002895,Sickle Cell Anemia,dsyn,1,C0238598,Young adult,humn,1
+339,980,13789584,TREATS,C0040864,Triamcinolone,phsu,1,C0033860,Psoriasis,dsyn,1
+340,910,12312852,COEXISTS_WITH,C0012203,Diethylstilbestrol,hops,1,C0028908,Oils,lipd,1
+341,932,13297204,LOCATION_OF,C0014876,Esophagus,bpoc,1,C0450432,Venous anastomosis,bsoj,1
+342,1042,13100904,USES,C0008327,Cholecystography,diap,1,C0795742,Telepaque,irda,1
+343,1009,5876097,CAUSES,C0441693,Hypothalamic stimulation,diap,1,C0748430,RIGHT VENTRICULAR HYPERTENSION,dsyn,1
+344,1020,14782738,TREATS,C1441129,Radioactive Iodine,hops,1,C0020550,Hyperthyroidism,dsyn,1
+345,856,5698836,ADMINISTERED_TO,C0040078,Thymidine Kinase,enzy,1,C0680022,member,humn,1
+346,921,16691651,PART_OF,C1304649,Tissue fiber,tisu,1,C1278891,Entire iris,bpoc,1
+347,986,20285250,LOCATION_OF,C0022417,Joints,bsoj,1,C0041296,Tuberculosis,dsyn,1
+348,991,13347203,CAUSES,C0600062,Largactil,orch,1,C0022346,Icterus,patf,1
+349,970,13997703,LOCATION_OF,C0023884,Liver,bpoc,1,C0017911,Glycogen,bacs,1
+350,992,14847745,PART_OF,C0006826,Malignant Neoplasms,neop,0,C0227389,Descending colon,bpoc,1
+351,1024,13372584,USES,C0087111,Therapeutic procedure,topp,0,C0030054,Oxygen,phsu,1
+352,887,13502776,PART_OF,C0007634,Cells,cell,1,C0025914,House mice,mamm,1
+353,976,14880779,LOCATION_OF,C0030471,Sinus,bsoj,1,C0029443,Osteomyelitis,dsyn,1
+354,1031,14439961,PROCESS_OF,C0001811,Aging,orgf,1,C0870668,Hospitalized Patients,humn,1
+355,1012,13551184,PART_OF,C0023267,Fibroid Tumor,neop,1,C1280340,Entire transverse mesocolon,bpoc,1
+356,1056,5255106,PART_OF,C0029463,osteosarcoma,neop,1,C0009780,Connective Tissue,tisu,1
+357,1009,5876097,PROCESS_OF,C0748430,RIGHT VENTRICULAR HYPERTENSION,dsyn,1,C0007450,Felis catus,mamm,1
+358,856,5698836,PART_OF,C0008643,"Chromosomes, Human",celc,1,C0025914,House mice,mamm,1
+359,986,20285250,ISA,C0041296,Tuberculosis,dsyn,1,C0012634,Disease,dsyn,0
+360,970,13997703,LOCATION_OF,C0023884,Liver,bpoc,1,C0023779,Lipids,lipd,1
+361,1024,13372584,COEXISTS_WITH,C0028682,Care given by nurses,hlca,1,C0087111,Therapeutic procedure,topp,0
+362,976,14880779,LOCATION_OF,C0037303,Bone structure of cranium,bpoc,1,C0029443,Osteomyelitis,dsyn,1
+363,986,20285250,LOCATION_OF,C0262950,Skeletal bone,bpoc,1,C0041296,Tuberculosis,dsyn,1
+364,928,11526826,AFFECTS,C0023882,Little's Disease,dsyn,1,C0025251,Membrane Potentials,celf,1
+365,1043,13292666,ISA,C0026584,Culicidae,invt,1,C0322918,Anopheles quadrimaculatus,invt,1
+366,1033,5933797,PART_OF,C0006826,Malignant Neoplasms,neop,0,C0003461,Anus,bpoc,1
+367,1047,13384315,AFFECTS,C0013819,Electroencephalography,diap,1,C0004936,Mental disorders,mobd,0
+368,1041,13638653,PROCESS_OF,C0039614,Tetanus,dsyn,1,C0443307,Plant spore,plnt,1
+369,986,20285250,LOCATION_OF,C0022417,Joints,bsoj,1,C0012634,Disease,dsyn,0
+370,1106,13100905,PART_OF,C0001430,adenoma,neop,1,C0032005,Pituitary Gland,bpoc,1
+371,1070,13209181,LOCATION_OF,C0003483,Aorta,bpoc,1,C0332886,Coarctation,anab,1
+372,1051,14771462,PROCESS_OF,C0041227,Trypanosomiasis,dsyn,1,C0020114,Human,humn,1
+373,1032,14327664,PART_OF,C0023607,Luteinizing Hormone,aapp,1,C0007452,Cattle,mamm,1
+374,1043,13292666,ISA,C0322918,Anopheles quadrimaculatus,invt,1,C0026584,Culicidae,invt,1
+375,1077,15394666,OCCURS_IN,C0011053,Deafness,dsyn,1,C0027362,Human Age Group,aggp,0
+376,1033,5933797,PART_OF,C0006826,Malignant Neoplasms,neop,0,C0009368,Colon,bpoc,1
+377,1063,13670511,LOCATION_OF,C1278997,Entire scalp,bpoc,1,C0263442,Acne conglobata,dsyn,1
+378,973,12255649,PART_OF,C0014180,Endometrium,bpoc,1,C0020114,Human,humn,1
+379,1015,4176301,LOCATION_OF,C0229671,Serum,bdsu,1,C0021027,Immunoglobulins,aapp,1
+380,986,20285250,LOCATION_OF,C0262950,Skeletal bone,bpoc,1,C0012634,Disease,dsyn,0
+381,1070,13209181,LOCATION_OF,C0003483,Aorta,bpoc,1,C0497428,Question of pregnancy,fndg,1
+382,1072,14457928,TREATS,C0001617,Adrenal Cortex Hormones,horm,1,C0543974,Mucocutaneous ocular syndrome,dsyn,1
+383,1083,14770453,PROCESS_OF,C0003873,Rheumatoid Arthritis,dsyn,1,C0008059,Child,humn,1
+384,1033,5933797,PART_OF,C0006826,Malignant Neoplasms,neop,0,C0034896,Rectum,bpoc,1
+385,1015,4176301,DIAGNOSES,C0231790,Thompson's test,diap,1,C0005830,Blood Protein Disorders,dsyn,1
+386,1083,14770453,PROCESS_OF,C0242154,Poisoning by vitamin D,inpo,1,C0008059,Child,humn,1
+387,1102,13789585,LOCATION_OF,C0521421,Entire ear,bpoc,1,C0039082,Syndrome,dsyn,0
+388,1147,10976199,PROCESS_OF,C0232976,Spermiogenesis,celf,1,C0524678,Lumbricus terrestris,invt,1
+389,1079,5988839,ASSOCIATED_WITH,C0014653,Equilibrium,orgf,1,C0018801,Heart failure,dsyn,1
+390,1095,5776114,ISA,C0012203,Diethylstilbestrol,hops,1,C0087111,Therapeutic procedure,topp,0
+391,1097,13974559,LOCATION_OF,C0728985,Cervical spine,bpoc,1,C0221198,Lesion,fndg,1
+392,1109,13685020,PROCESS_OF,C0042963,Vomiting,sosy,1,C0021270,Infant,humn,1
+393,1086,5659345,PROCESS_OF,C0221102,Excretory function,phsf,1,C0034693,Rattus norvegicus,mamm,1
+394,1104,12305404,ASSOCIATED_WITH,C0033308,Progesterone,horm,1,C0877373,Advanced cancer,neop,1
+395,1117,16691889,LOCATION_OF,C0230057,Orbital margin,bsoj,1,C0029463,osteosarcoma,neop,1
+396,1132,14847746,LOCATION_OF,C0022646,Kidney,bpoc,1,C0221198,Lesion,fndg,1
+397,1130,13551185,LOCATION_OF,C0014876,Esophagus,bpoc,1,C0243066,Atresia,cgab,1
+398,1078,12307964,LOCATION_OF,C0024400,Macaca mulatta,mamm,1,C0014939,Estrogens,strd,1
+399,1189,13670512,LOCATION_OF,C1278891,Entire iris,bpoc,1,C0009363,Coloboma,cgab,1
+400,1105,14386677,USES,C0021493,"Injections, Intraperitoneal",topp,1,C0030842,Penicillins,antb,1
+401,1061,5858957,PART_OF,C1517186,Filament,celc,1,C0002028,Algae,alga,1
+402,1095,5776114,TREATS,C0012203,Diethylstilbestrol,hops,1,C0014175,"Endometriosis, site unspecified",dsyn,1
+403,1198,14877290,TREATS,C0010137,Cortisone,horm,1,C0011606,"Dermatitis, Exfoliative",dsyn,1
+404,1193,15394667,USES,C0087111,Therapeutic procedure,topp,0,C0012799,Mercurial diuretic,phsu,1
+405,1113,13466835,PROCESS_OF,C0002875,Cooley's anemia,dsyn,1,C0008059,Child,humn,1
+406,1104,12305404,ASSOCIATED_WITH,C0167626,estradiol 3-benzoate,horm,1,C0877373,Advanced cancer,neop,1
+407,1205,14880781,LOCATION_OF,C0016734,frontal sinus,bsoj,1,C0206640,"Fibroma, Ossifying",neop,1
+408,1165,4869506,LOCATION_OF,C0445623,Microorganism,orgm,0,C0142281,Siderophores,orch,1
+409,1208,14770454,LOCATION_OF,C0030274,Pancreas,bpoc,1,C0221198,Lesion,fndg,1
+410,1195,13209182,COEXISTS_WITH,C0017086,Gangrene,dsyn,1,C0023434,Chronic Lymphocytic Leukemia,neop,1
+411,1152,13737748,PROCESS_OF,C0022680,Polycystic Kidney Diseases,dsyn,1,C0030705,Patients,humn,0
+412,1155,14087170,PART_OF,C0021853,Intestines,bpoc,1,C0005682,Bladder,bpoc,1
+413,1190,12233291,TREATS,C0857127,Induction,topp,1,C0001675,Adult,aggp,1
+414,1211,13789586,LOCATION_OF,C0521421,Entire ear,bpoc,1,C0175677,Injury,inpo,1
+415,1105,14386677,TREATS,C0030842,Penicillins,antb,1,C0031154,Peritonitis,dsyn,1
+416,1095,5776114,USES,C0087111,Therapeutic procedure,topp,0,C0012203,Diethylstilbestrol,phsu,1
+417,1113,13466835,LOCATION_OF,C0008059,Child,humn,1,C0003242,"Antibodies, Anti-Idiotypic",aapp,1
+418,1150,13347205,TREATS,C0001712,Aerosols,chvs,1,C0041327,"Tuberculosis, Pulmonary",dsyn,1
+419,1219,14055638,PART_OF,C0001418,Adenocarcinoma,neop,1,C0009368,Colon,bpoc,1
+420,1211,13789586,PROCESS_OF,C0175677,Injury,inpo,1,C0403082,Diver,humn,1
+421,1085,14185253,COEXISTS_WITH,C0016412,Folic Acid Deficiency,dsyn,1,C0238644,anemia; profound,dsyn,1
+422,1155,14087170,PROCESS_OF,C0020564,Hypertrophy,patf,1,C0008059,Child,humn,1
+423,1202,5933798,PART_OF,C0007097,Carcinoma,neop,1,C0021851,Large Intestine,bpoc,1
+424,1170,16691653,USES,C0005971,Bone plates,medd,1,C0017596,Glass,mnob,1
+425,1292,14934100,PROCESS_OF,C0162429,Malnutrition,dsyn,1,C0008059,Child,humn,1
+426,1197,14782740,NEG_ADMINISTERED_TO,C0087111,Therapeutic procedure,topp,0,C0030705,Patients,humn,0
+427,1279,13502777,LOCATION_OF,C0002084,Structure of allantois,emst,1,C0086943,Rous sarcoma virus,virs,1
+428,1185,5914350,CAUSES,C0038379,Strabismus,dsyn,1,C0012569,Diplopia,dsyn,1
+429,1290,15394668,LOCATION_OF,C0021852,"Intestines, Small",bpoc,1,C0243066,Atresia,cgab,1
+430,1209,12332461,ASSOCIATED_WITH,C0065879,Megestrol Acetate,horm,1,C0017411,"Genital Diseases, Female",dsyn,1
+431,1287,14877291,USES,C0087111,Therapeutic procedure,topp,0,C0262967,Dihydrostreptomycin,antb,1
+432,1294,14770455,PART_OF,C1261473,sarcoma,neop,1,C0023884,Liver,bpoc,1
+433,1224,12334391,METHOD_OF,C1441717,RAPID TEST,lbpr,1,C1511790,Detection,topp,1
+434,1301,12259097,PART_OF,C0027651,Neoplasm,neop,1,C0032005,Pituitary Gland,bpoc,1
+435,1221,12312852,ISA,C0014939,Estrogens,horm,1,C0087111,Therapeutic procedure,topp,0
+436,1313,13551187,LOCATION_OF,C0037993,Spleen,bpoc,1,C0013502,Echinococcosis,dsyn,1
+437,1279,13502777,PART_OF,C0002084,Structure of allantois,emst,1,C0008046,Chick Embryo,emst,1
+438,1185,5914350,PROCESS_OF,C0012569,Diplopia,dsyn,1,C0001675,Adult,humn,1
+439,1270,5659346,INTERACTS_WITH,C0038187,Starvation,sosy,1,C0486616,Composition,clna,1
+440,1245,13974560,ASSOCIATED_WITH,C0005802,Blood Glucose,carb,1,C0394017,Alcoholic coma,patf,1
+441,1273,13638655,ASSOCIATED_WITH,C0085732,Ability,orga,1,C0022658,Kidney Diseases,dsyn,1
+442,1185,5914350,PROCESS_OF,C0012569,Diplopia,dsyn,1,C0205653,Adolescent,humn,1
+443,1301,12259097,CAUSES,C0720298,Estrogenic,horm,1,C0027651,Neoplasm,neop,1
+444,1221,12312852,USES,C0087111,Therapeutic procedure,topp,0,C0014939,Estrogens,phsu,1
+445,1253,16691890,PART_OF,C0006826,Malignant Neoplasms,neop,0,C0008520,Choroid,bpoc,1
+446,1320,13347206,CAUSES,C0221386,Idiopathic hilar fibrosis,dsyn,1,C0039082,Syndrome,dsyn,0
+447,1221,12312852,PROCESS_OF,C0042138,Uterine Neoplasms,neop,1,C0026809,Mus,mamm,1
+448,1355,14185255,ISA,C0998427,Tribolium castaneum,invt,1,C0021585,Insecta,invt,1
+449,1235,5988840,ASSOCIATED_WITH,C0037494,Sodium Chloride,bacs,1,C0018801,Heart failure,dsyn,1
+450,1253,16691890,ISA,C0006826,Malignant Neoplasms,neop,0,C0027651,Neoplasm,neop,1
+451,1315,13789588,AFFECTS,C0017725,Glucose,bacs,1,C1158840,acetate metabolism,moft,1
+452,1282,13997705,ASSOCIATED_WITH,C0023823,Low-Density Lipoproteins,aapp,1,C0004153,Atherosclerosis,dsyn,1
+453,1234,10976199,COEXISTS_WITH,C0029385,Osmium Tetroxide,hops,1,C0052301,araldite,orch,1
+454,1321,5274921,LOCATION_OF,C0026367,Molar tooth,bpoc,1,C0549099,Perforation (observation),fndg,1
+455,1271,13670513,ADMINISTERED_TO,C0162476,Anatoxins,imft,1,C0019944,Equus caballus,mamm,1
+456,1253,16691890,PART_OF,C0027651,Neoplasm,neop,1,C0008520,Choroid,bpoc,1
+457,1282,13997705,PROCESS_OF,C0004153,Atherosclerosis,dsyn,1,C0034493,Oryctolagus cuniculus,mamm,1
+458,1236,4381579,LOCATION_OF,C0005767,Blood,tisu,1,C0019588,Histamine,orch,1
+459,1282,13997705,LOCATION_OF,C0229671,Serum,bdsu,1,C0023823,Low-Density Lipoproteins,aapp,1
+460,1317,13605273,PROCESS_OF,C0282607,Neoplasms in Vascular Tissue,neop,1,C0001675,Adult,humn,1
+461,1297,6029546,TREATS,C0038627,Succinylcholine,phsu,1,C0034493,Oryctolagus cuniculus,mamm,1
+462,1239,4966828,INTERACTS_WITH,C0020366,Hydroxylysine,aapp,1,C0024337,Lysine,aapp,1
+463,1347,13582811,METHOD_OF,C0199960,Transfusion - action,topp,1,C0199176,Prophylactic treatment,topp,1
+464,1441,13100911,PART_OF,C0027809,Neurilemmoma,neop,1,C0038351,Stomach,bpoc,1
+465,1377,5867990,LOCATION_OF,C0016504,Pes,bpoc,1,C0009081,Congenital clubfoot,cgab,1
+466,1381,13738561,CAUSES,C0018035,"Gold, radioactive",elii,1,C0009566,Complication,patf,0
+467,1367,14055639,LOCATION_OF,C0020026,"Hospitals, State",hcro,1,C0936012,Analysis,resa,1
+468,1428,5233223,LOCATION_OF,C1281562,Entire tooth,bpoc,1,C1289791,Plastic implant,medd,1
+469,1347,13582811,PROCESS_OF,C0272138,Erythroblastosis,dsyn,1,C0034493,Oryctolagus cuniculus,mamm,1
+470,1353,14934101,ASSOCIATED_WITH,C0027996,Nicotinic Acid,vita,1,C0011991,Diarrhea,sosy,1
+471,1406,13551188,LOCATION_OF,C0042425,Ampulla of Vater,bpoc,1,C0016542,Foreign Bodies,inpo,1
+472,1331,4171713,INTERACTS_WITH,C0005097,Benzpyrene,hops,1,C0020242,Hydrocarbons,orch,1
+473,1353,14934101,ASSOCIATED_WITH,C0027996,Nicotinic Acid,vita,1,C0027932,Neurotic Disorders,mobd,1
+474,1415,14880784,LOCATION_OF,C0005767,Blood,tisu,1,C0012634,Disease,dsyn,0
+475,1354,13464039,PROCESS_OF,C0241863,Diabetic,fndg,1,C0008059,Child,humn,1
+476,1427,12334491,PART_OF,C0027651,Neoplasm,neop,1,C0006141,Breast,bpoc,1
+477,1306,4162996,PROCESS_OF,C0003873,Rheumatoid Arthritis,dsyn,1,C0030705,Patients,humn,0
+478,1407,14877292,LOCATION_OF,C0229671,Serum,bdsu,1,C0023820,Lipoproteins,aapp,1
+479,1306,4162996,PART_OF,C0229671,Serum,bdsu,1,C0030705,Patients,humn,0
+480,1412,13867934,PART_OF,C0023884,Liver,bpoc,1,C0025914,House mice,mamm,1
+481,1354,13464039,PART_OF,C0030274,Pancreas,bpoc,1,C0008059,Child,humn,1
+482,1449,14770457,LOCATION_OF,C0036098,Salivary Glands,bpoc,1,C0275518,Acute infectious disease,dsyn,1
+483,1407,14877292,ASSOCIATED_WITH,C0023820,Lipoproteins,aapp,1,C0302314,Xanthoma,dsyn,1
+484,1434,12312852,PROCESS_OF,C0027651,Neoplasm,neop,1,C0026809,Mus,mamm,1
+485,1460,5776116,TREATS,C1511790,Detection,topp,1,C0152021,Congenital heart disease,dsyn,1
+486,1306,4162996,PART_OF,C0229671,Serum,bdsu,1,C0030705,Patients,humn,0
+487,1496,16691890,PART_OF,C1261473,sarcoma,neop,1,C0008520,Choroid,bpoc,1
+488,1394,12983065,LOCATION_OF,C0022122,Bone structure of ischium,bpoc,1,C1265664,Traumatic dislocation,inpo,1
+489,1397,5729812,TREATS,C0000163,17-Hydroxycorticosteroids,horm,1,C0034493,Oryctolagus cuniculus,mamm,1
+490,1306,4162996,LOCATION_OF,C0229671,Serum,bdsu,1,C0003242,"Antibodies, Anti-Idiotypic",aapp,1
+491,1460,5776116,PROCESS_OF,C0152021,Congenital heart disease,dsyn,1,C0008059,Child,humn,1
+492,1394,12983065,COEXISTS_WITH,C1265664,Traumatic dislocation,inpo,1,C0016658,Fracture,inpo,1
+493,1361,5339667,PART_OF,C0027651,Neoplasm,neop,1,C0015392,Eye,bpoc,1
+494,1511,14880785,PART_OF,C0086692,Benign Neoplasm,neop,0,C0014876,Esophagus,bpoc,1
+495,1402,13070180,METHOD_OF,C0260132,Flame photometry,lbpr,1,C0574032,Infusion procedures,topp,1
+496,1306,4162996,LOCATION_OF,C0229671,Serum,bdsu,1,C0003242,"Antibodies, Anti-Idiotypic",aapp,1
+497,1531,14847750,LOCATION_OF,C0009368,Colon,bpoc,1,C0012817,diverticulum,anab,1
+498,1394,12983065,LOCATION_OF,C0015811,Femur,bpoc,1,C0018670,Head,blor,1
+499,1472,5876098,LOCATION_OF,C0005767,Blood,tisu,1,C0019134,Heparin,carb,1
+500,1460,5776116,TREATS,C1511790,Detection,topp,1,C0008059,Child,aggp,1
+501,1361,5339667,PART_OF,C0034625,Radium,elii,1,C0015392,Eye,bpoc,1
+502,1310,13384317,USES,C0087111,Therapeutic procedure,topp,0,C0008286,Chlorpromazine,phsu,1
+503,1535,16691656,CAUSES,C0029385,Osmium Tetroxide,hops,1,C0002418,Amblyopia,dsyn,1
+504,1443,14268259,ISA,C1074887,Bufo stomaticus,amph,1,C0002668,Amphibia,amph,1
+505,1478,13974562,TREATS,C0041031,Trimeprazine,phsu,1,C0001957,Alcohol Withdrawal Delirium,dsyn,1
+506,1474,13997707,CAUSES,C0004611,Bacteria,bact,1,C0032285,Pneumonia,dsyn,1
+507,1419,4298172,LOCATION_OF,C0032105,Plasma,bdsu,1,C0003017,Angiotensinogen,aapp,1
+508,1491,13100912,PART_OF,C0006104,Brain,bpoc,1,C0020114,Human,humn,1
+509,1486,14386679,LOCATION_OF,C0230195,Linea alba,blor,1,C0019270,Hernia,anab,1
+510,1394,12983065,LOCATION_OF,C0018670,Head,blor,1,C0016658,Fracture,inpo,1
+511,1310,13384317,TREATS,C0087111,Therapeutic procedure,topp,0,C0013144,Drowsiness,sosy,1
+512,1491,13100912,LOCATION_OF,C0006104,Brain,bpoc,1,C0458360,Motor area,blor,1
+513,1475,20285299,PROCESS_OF,C0149781,Spontaneous pneumothorax NOS,dsyn,1,C0008059,Child,humn,1
+514,1424,13638656,PROCESS_OF,C0022658,Kidney Diseases,dsyn,1,C0030705,Patients,humn,0
+515,1491,13100912,LOCATION_OF,C0458360,Motor area,blor,1,C1280632,Entire trunk,bpoc,1
+516,1310,13384317,compared_with,C0087111,Therapeutic procedure,topp,0,C0087111,Therapeutic procedure,topp,0
+517,1534,13464040,PROCESS_OF,C0027059,Myocarditis,dsyn,1,C0023358,Leptospira,bact,1
+518,1424,13638656,PROCESS_OF,C0232827,Urinary concentration,ortf,1,C0030705,Patients,humn,0
+519,1541,14877293,COEXISTS_WITH,C0263367,Koebner phenomenon,dsyn,1,C0162849,Lichen Nitidus,dsyn,1
+520,1451,10976199,AFFECTS,C0007708,Centrioles,celc,1,C0026559,Morphogenesis,orgf,1
+521,1491,13100912,LOCATION_OF,C0458360,Motor area,blor,1,C1281592,Entire neck,bpoc,1
+522,1601,16691892,LOCATION_OF,C0009758,conjunctiva,bpoc,1,C0041296,Tuberculosis,dsyn,1
+523,1597,14934103,TREATS,C0038761,Sulfones,phsu,1,C0023343,Leprosy,dsyn,1
+524,1451,10976199,AFFECTS,C0007708,Centrioles,celc,1,C0029237,Physiologic Organization,phsf,1
+525,1468,14772458,LOCATION_OF,C0024109,Lung,bpoc,1,C0041321,"Tuberculosis, Miliary",dsyn,1
+526,1501,14185257,PROCESS_OF,C0221102,Excretory function,phsf,1,C0034693,Rattus norvegicus,mamm,1
+527,1545,13026597,LOCATION_OF,C0021853,Intestines,bpoc,1,C0012813,Diverticulitis,dsyn,0
+528,1497,13738563,PART_OF,C0230240,Falciform ligament,bpoc,1,C0023884,Liver,bpoc,1
+529,1468,14772458,PROCESS_OF,C0041321,"Tuberculosis, Miliary",dsyn,1,C0008059,Child,humn,1
+530,1506,13582812,CAUSES,C0036751,Serotonin,nsba,1,C0004096,Asthma,dsyn,1
+531,1545,13026597,LOCATION_OF,C0021853,Intestines,bpoc,1,C1510475,Diverticulosis,dsyn,1
+532,1572,13297211,LOCATION_OF,C0013303,Duodenum,bpoc,1,C0035955,Traumatic Rupture,inpo,1
+533,1553,5729813,ASSOCIATED_WITH,C0007412,Catecholamines,nsba,1,C1264527,Chronic poisoning,inpo,1
+534,1573,14216916,COEXISTS_WITH,C0031577,Phonation,ortf,1,C0035203,Respiration,phsf,1
+535,1590,13467017,PROCESS_OF,C0040921,Trichomonas Infections,dsyn,1,C0086582,Males,humn,1
+536,1514,13737754,CAUSES,C0026927,Atypical Mycobacteria,bact,1,C0021311,Infection,dsyn,0
+537,1552,5601121,TREATS,C0087111,Therapeutic procedure,topp,0,C0041327,"Tuberculosis, Pulmonary",dsyn,1
+538,1574,13551190,TREATS,C0019144,Hepatectomy,topp,1,C0019204,Primary carcinoma of the liver cells,neop,1
+539,1510,13930394,PART_OF,C0178784,Organ,bpoc,1,C0034493,Oryctolagus cuniculus,mamm,1
+540,1553,5729813,PART_OF,C0007412,Catecholamines,nsba,1,C0027061,Myocardium,tisu,1
+541,1586,14847751,PART_OF,C0006826,Malignant Neoplasms,neop,0,C0034896,Rectum,bpoc,1
+542,1596,5659347,LOCATION_OF,C0030518,Parathyroid gland,bpoc,1,C1565489,Renal Insufficiency,dsyn,1
+543,1604,13789593,COEXISTS_WITH,C0027051,Myocardial Infarction,dsyn,1,C0241863,Diabetic,fndg,1
+544,1635,5867991,PART_OF,C0032043,Placenta,emst,1,C0020114,Human,humn,1
+545,1669,13685032,PART_OF,C0007097,Carcinoma,neop,1,C0022646,Kidney,bpoc,1
+546,1599,14268260,PART_OF,C0007765,Cerebellum,bpoc,1,C0034693,Rattus norvegicus,mamm,1
+547,1542,12312852,PROCESS_OF,C0027651,Neoplasm,neop,1,C0026809,Mus,mamm,1
+548,1599,14268260,PART_OF,C0027750,Myelinated nerve fiber,celc,1,C0007765,Cerebellum,bpoc,1
+549,1621,6008280,USES,C1510438,Assay,lbpr,1,C0040160,Thyrotropin,aapp,1
+550,1539,15394671,TREATS,C0005841,Blood Transfusion,topp,1,C0023418,leukemia,neop,1
+551,1587,14880786,LOCATION_OF,C1116439,Posterior Fossa,bpoc,1,C0021311,Infection,dsyn,0
+552,1542,12312852,ADMINISTERED_TO,C0014939,Estrogens,horm,1,C0026809,Mus,mamm,1
+553,1526,12336540,METHOD_OF,C0441509,Coagulation procedure,topp,1,C0012002,Diathermy,topp,1
+554,1571,14770459,LOCATION_OF,C0506546,Wall of esophagus,bpoc,1,C0010709,Cyst,anab,1
+555,1587,14880786,LOCATION_OF,C1116439,Posterior Fossa,bpoc,1,C0270628,Cerebellar pyogenic abscess,acab,1
+556,1583,4290383,LOCATION_OF,C0042216,Vaccinia virus,virs,1,C0022209,isoniazid,orch,1
+557,1517,14782742,TREATS,C0030842,Penicillins,antb,1,C0014121,Bacterial Endocarditis,dsyn,1
+558,1677,14934105,TREATS,C0591251,Chloromycetin,phsu,1,C0041466,Typhoid Fever,dsyn,1
+559,1566,14806339,PROCESS_OF,C0039128,Syphilis,dsyn,1,C0699955,SUBCLASS SPIROCHETES,bact,1
+560,1693,4286771,LOCATION_OF,C1269041,Entire abdominal wall,bpoc,1,C0009062,Clostridium Infections,dsyn,1
+561,1592,13997710,LOCATION_OF,C0005767,Blood,tisu,1,C0014563,Epinephrine,orch,1
+562,1380,5698836,PART_OF,C0678933,genetic locus,gngm,1,C0020114,Human,humn,1
+563,1681,14457940,LOCATION_OF,C0262950,Skeletal bone,bpoc,1,C0034530,Radiation Injuries,inpo,1
+564,1587,14880786,PART_OF,C1116439,Posterior Fossa,bpoc,1,C0037303,Bone structure of cranium,bpoc,1
+565,1517,14782742,TREATS,C0728748,Aureomycin,antb,1,C0014121,Bacterial Endocarditis,dsyn,1
+566,1566,14806339,LOCATION_OF,C0699955,SUBCLASS SPIROCHETES,bact,1,C0030842,Penicillins,orch,1
+567,1592,13997710,LOCATION_OF,C0005767,Blood,tisu,1,C0019588,Histamine,orch,1
+568,1582,14055641,TREATS,C0034618,Radiation therapy,topp,1,C0006826,Malignant Neoplasms,neop,0
+569,1576,5955075,TREATS,C0441509,Coagulation procedure,topp,1,C0030705,Patients,podg,0
+570,1777,14087175,PROCESS_OF,C1261562,Detrusor instability,patf,1,C0043210,Woman,humn,1
+571,1665,14772459,INTERACTS_WITH,C0279516,Anti-Bacterial Agents,antb,1,C0038760,Sulfonamides,orch,1
+572,1736,13467019,LOCATION_OF,C0005682,Bladder,bpoc,1,C0041296,Tuberculosis,dsyn,1
+573,1724,14847753,LOCATION_OF,C0038351,Stomach,bpoc,1,C0012817,diverticulum,anab,1
+574,1707,14420409,AFFECTS,C0055819,Citric Acid,bacs,1,C0015852,Fermentation,moft,1
+575,1753,13026599,PROCESS_OF,C0016658,Fracture,inpo,1,C0008059,Child,humn,1
+576,1654,16691893,PART_OF,C1184740,Tubercle,bpoc,1,C1278891,Entire iris,bpoc,1
+577,1652,13372919,TREATS,C0013227,Pharmaceutical Preparations,phsu,0,C0277785,Functional disorder,patf,1
+578,1698,5601122,LOCATION_OF,C1266909,Entire bony skeleton,bdsy,1,C0087111,Therapeutic procedure,topp,0
+579,1784,5776118,DIAGNOSES,C0596473,Early Diagnosis,diap,1,C0018916,Hemangioma,neop,1
+580,1723,13502781,PART_OF,C0596707,histocompatibility gene,gngm,1,C0025914,House mice,mamm,1
+581,1747,16015914,LOCATION_OF,C0023625,"Libraries, Medical",hcro,1,C0043227,Work,ocac,1
+582,1641,12305492,PART_OF,C0018061,Gonadotropins,aapp,1,C0032005,Pituitary Gland,bpoc,1
+583,1756,5839808,LOCATION_OF,C0014876,Esophagus,bpoc,1,C0175677,Injury,inpo,1
+584,1730,20241545,USES,C0087111,Therapeutic procedure,topp,0,C0030842,Penicillins,antb,1
+585,1733,4294853,ASSOCIATED_WITH,C0013832,Electrolytes,inch,1,C0018802,Congestive heart failure,dsyn,1
+587,1697,13930398,LOCATION_OF,C1521714,Uterus - Cervix (MMHCC),tisu,1,C0027651,Neoplasm,neop,1
+588,1654,16691893,PART_OF,C1184740,Tubercle,bpoc,1,C1278891,Entire iris,bpoc,1
+589,1652,13372919,TREATS,C0450442,Agent,chvf,1,C0277785,Functional disorder,patf,1
+590,1718,13974566,LOCATION_OF,C0728985,Cervical spine,bpoc,1,C0221198,Lesion,fndg,1
+591,1719,5585336,TREATS,C0027996,Nicotinic Acid,phsu,1,C0034693,Rattus norvegicus,mamm,1
+592,1637,11712290,LOCATION_OF,C0036225,Sarcomeres,celc,1,C0233494,Tension,mobd,1
+593,1690,14327667,PART_OF,C0035946,Rumen,bpoc,1,C0007452,Cattle,mamm,1
+594,1641,12305492,TREATS,C0018061,Gonadotropins,phsu,1,C0043210,Woman,popg,1
+595,1697,13930398,PART_OF,C1521714,Uterus - Cervix (MMHCC),tisu,1,C0026809,Mus,mamm,1
+596,1659,14771467,ISA,C0020045,Musca domestica,invt,1,C0012578,Diptera,invt,1
+597,1784,5776118,DIAGNOSES,C0596473,Early Diagnosis,diap,1,C0038505,Sturge-Weber Syndrome,cgab,1
+598,1782,13867938,PROCESS_OF,C0006826,Malignant Neoplasms,neop,0,C0026809,Mus,mamm,1
+599,1733,4294853,ASSOCIATED_WITH,C0043047,Water,inch,1,C0018802,Congestive heart failure,dsyn,1
+600,1751,4966828,PART_OF,C0599104,mucopeptide,aapp,1,C0007623,Cell Wall,celc,1
+601,1799,14934107,LOCATION_OF,C0024109,Lung,bpoc,1,C0002438,Amebiasis,dsyn,1
+602,1814,14457943,PART_OF,C0027651,Neoplasm,neop,1,C0006655,Bone structure of calcaneum,bpoc,1
+603,1807,13070183,ISA,C0010980,Dapsone,orch,1,C0038761,Sulfones,orch,1
+604,1827,14770461,PART_OF,C0018915,Hemangioendothelioma,neop,1,C0023884,Liver,bpoc,1
+605,1400,12279177,CAUSES,C0025732,Methylcholanthrene,hops,1,C0006142,Malignant neoplasm of breast,neop,1
+606,1816,14055642,TREATS,C0003392,Antineoplastic Agents,phsu,1,C0029925,Ovarian Carcinoma,neop,1
+607,1845,15394674,DIAGNOSES,C0005560,Needle biopsy procedure,diap,1,C0024121,Lung Neoplasms,neop,1
+608,1700,5914353,LOCATION_OF,C0015392,Eye,bpoc,1,C0221198,Lesion,fndg,1
+609,1751,4966828,INTERACTS_WITH,C0243071,Analog,chvs,1,C0599104,mucopeptide,aapp,1
+610,1836,13209188,LOCATION_OF,C0004454,Axilla,blor,1,C0039259,Tail,bpoc,1
+611,1829,12305556,AFFECTS,C0175795,Oral medication,topp,1,C0015895,Fertility,orgf,1
+612,1803,20285372,TREATS,C0039957,Thiouracil,phsu,1,C0020550,Hyperthyroidism,dsyn,1
+613,1400,12279177,TREATS,C0039601,Testosterone,horm,1,C0006142,Malignant neoplasm of breast,neop,1
+614,1851,13738573,PROCESS_OF,C0006434,Burn injury,inpo,1,C0030705,Patients,humn,0
+615,1790,13100915,LOCATION_OF,C0005953,Bone Marrow,bpoc,1,C0002874,Aplastic Anemia,dsyn,1
+616,1838,16691659,LOCATION_OF,C0038925,Surgical Flaps,bpoc,1,C0038969,Surgical sutures,medd,1
+617,1831,13219295,TREATS,C0036075,salicylate,phsu,1,C0034693,Rattus norvegicus,mamm,1
+618,1836,13209188,PART_OF,C0039259,Tail,bpoc,1,C0006141,Breast,bpoc,1
+619,1774,13347212,TREATS,C0033972,"Psychotherapy, Multiple",topp,1,C0011608,Dermatitis Herpetiformis,dsyn,1
+620,1837,13384320,PROCESS_OF,C0014544,Epilepsy,dsyn,1,C0030705,Patients,humn,0
+621,1851,13738573,PART_OF,C0018563,Hand,bpoc,1,C0030705,Patients,humn,0
+622,1744,12279175,PROCESS_OF,C0001422,Adenofibroma,neop,1,C0034693,Rattus norvegicus,mamm,1
+623,1400,12279177,TREATS,C0014912,Estradiol,horm,1,C0032019,Pituitary Neoplasms,neop,1
+624,1757,13638658,PART_OF,C1514389,Pregnant Uterus,bpoc,1,C0020114,Human,humn,1
+625,1704,5659348,PART_OF,C0030016,Oxidoreductase,aapp,1,C0021289,"Infant, Newborn",humn,1
+626,1778,5933801,ASSOCIATED_WITH,C0011065,Cessation of life,orgf,1,C0031154,Peritonitis,dsyn,1
+627,1400,12279177,TREATS,C0014912,Estradiol,horm,1,C0032019,Pituitary Neoplasms,neop,1
+628,1826,5748939,STIMULATES,C0019878,homocysteine,aapp,1,C0015525,Factor XII,gngm,1
+629,1837,13384320,PROCESS_OF,C0027066,Myoclonus,sosy,1,C0030705,Patients,humn,0
+630,1821,13155043,LOCATION_OF,C0024109,Lung,bpoc,1,C0012634,Disease,dsyn,0
+631,1704,5659348,PART_OF,C0030016,Oxidoreductase,aapp,1,C0034693,Rattus norvegicus,mamm,1
+632,1757,13638658,LOCATION_OF,C1514389,Pregnant Uterus,bpoc,1,C0007343,Castor Oil,lipd,1
+633,1744,12279175,AFFECTS,C0036884,Gonadal Steroid Hormones,horm,1,C0018270,Growth,orgf,1
+634,1800,13464043,TREATS,C0547070,Ablation,topp,1,C0027627,Neoplasm Metastasis,neop,1
+635,1862,5877993,COEXISTS_WITH,C0012634,Disease,dsyn,0,C0027531,Neck Injuries,inpo,1
+636,1809,5955076,AFFECTS,C0038419,Streptolysins,bacs,1,C0003873,Rheumatoid Arthritis,dsyn,1
+637,1794,13605278,LOCATION_OF,C0596155,Basal Cell,cell,1,C0027960,Nevus,neop,1
+638,1800,13464043,PART_OF,C0027627,Neoplasm Metastasis,neop,1,C0006141,Breast,bpoc,1
+639,1907,14812427,LOCATION_OF,C0222603,Female breast,bpoc,1,C0080142,Self-Examination,diap,1
+640,1817,14386684,LOCATION_OF,C0025037,Meckel's Diverticulum,cgab,1,C0333291,Bleeding ulcer,dsyn,1
+641,1863,5839809,TREATS,C0035273,Resuscitation,topp,1,C0008059,Child,aggp,1
+642,1817,14386684,PROCESS_OF,C0025037,Meckel's Diverticulum,dsyn,1,C0021270,Infant,humn,1
+643,1892,5776119,ASSOCIATED_WITH,C0033452,Properdin,aapp,1,C0011847,Diabetes,dsyn,1
+644,1863,5839809,TREATS,C0035273,Resuscitation,topp,1,C0021270,Infant,aggp,1
+645,1894,13930399,PART_OF,C0596263,Carcinogenesis,neop,1,C0007874,Cervix Uteri,bpoc,1
+646,1842,5729815,PART_OF,C0022917,Lactate Dehydrogenase,aapp,1,C0014792,Erythrocytes,cell,1
+647,1840,4291298,LOCATION_OF,C0006104,Brain,bpoc,1,C0001617,Adrenal Cortex Hormones,strd,1
+648,1894,13930399,PART_OF,C0007874,Cervix Uteri,bpoc,1,C0026809,Mus,mamm,1
+649,1842,5729815,ASSOCIATED_WITH,C0022917,Lactate Dehydrogenase,aapp,1,C0002871,Anemia,dsyn,1
+651,1830,14772460,COEXISTS_WITH,C0027960,Nevus,neop,1,C0154653,Chronic meningitis,dsyn,1
+652,1894,13930399,ASSOCIATED_WITH,C0019932,Hormones,horm,1,C0596263,Carcinogenesis,neop,1
+653,1929,14420417,PROCESS_OF,C0006906,Capillary Permeability,ortf,1,C0008059,Child,humn,1
+654,1970,14268263,PART_OF,C0030518,Parathyroid gland,bpoc,1,C0023916,Lizards,rept,1
+655,1915,14877296,TREATS,C0454060,"Superficial teletherapy procedure, Grenz type",topp,1,C0235347,Black hairy tongue,dsyn,1
+656,1874,5585337,LOCATION_OF,C0227021,Enamel prisms,bpoc,1,C0009653,"Condoms, Male",medd,1
+657,1883,14327668,LOCATION_OF,C0026131,Milk,bdsu,1,C0021968,Iodine,bacs,1
+658,1929,14420417,PROCESS_OF,C0859036,Glomerulonephritis diffuse,dsyn,1,C0008059,Child,humn,1
+659,1957,5914355,LOCATION_OF,C1278891,Entire iris,bpoc,1,C0023794,Lipoidosis,dsyn,1
+660,1885,13372920,ISA,C1533685,Injection procedure,topp,1,C0087111,Therapeutic procedure,topp,0
+661,1969,20285399,PART_OF,C0006826,Malignant Neoplasms,neop,0,C0006141,Breast,bpoc,1
+662,1935,12332438,METHOD_OF,C0279025,Endocrine therapy,topp,1,C0025335,Menstrual Regulation,topp,1
+663,1957,5914355,PROCESS_OF,C0023794,Lipoidosis,dsyn,1,C0034493,Oryctolagus cuniculus,mamm,1
+664,1776,13670517,CAUSES,C0033807,Pseudomonadaceae,bact,1,C0036690,Septicemia,dsyn,1
+665,1891,13189573,ASSOCIATED_WITH,C0017007,Gamma globulin,aapp,1,C0032371,Poliomyelitis,dsyn,1
+666,1883,14327668,LOCATION_OF,C0035946,Rumen,bpoc,1,C0021968,Iodine,bacs,1
+667,1990,13297274,compared_with,C0020700,"Hysterectomy, Vaginal",topp,1,C0404077,Abdominal hysterectomy,topp,1
+668,1885,13372920,TREATS,C1533685,Injection procedure,topp,1,C0019270,Hernia,anab,1
+669,1997,5971456,LOCATION_OF,C0037922,Spinal Canal,bsoj,1,C0027651,Neoplasm,neop,1
+670,1922,13026602,PART_OF,C0003842,Arteries,bpoc,1,C0006104,Brain,bpoc,1
+671,1957,5914355,DISRUPTS,C0024467,Magnesium,bacs,1,C0023794,Lipoidosis,dsyn,1
+672,1776,13670517,PROCESS_OF,C0012634,Disease,dsyn,0,C0016163,Fishes,fish,1
+673,1952,5748939,STIMULATES,C0019878,homocysteine,aapp,1,C0015525,Factor XII,gngm,1
+674,1928,16691660,PART_OF,C0282607,Neoplasms in Vascular Tissue,neop,1,C1278891,Entire iris,bpoc,1
+675,1922,13026602,PART_OF,C0003842,Arteries,bpoc,1,C0037925,Spinal Cord,bpoc,1
+676,1962,13347214,TREATS,C0028222,Nivaquine,phsu,1,C0011608,Dermatitis Herpetiformis,dsyn,1
+677,1917,14770462,PROCESS_OF,C0008925,Cleft Palate,dsyn,1,C0030705,Patients,humn,0
+678,1982,13638660,ISA,C0025029,Mecamylamine,orch,1,C0087111,Therapeutic procedure,topp,0
+679,1980,14386685,LOCATION_OF,C0025474,Mesentery,blor,1,C0010709,Cyst,anab,1
+680,1922,13026602,LOCATION_OF,C0003842,Arteries,bpoc,1,C0039082,Syndrome,dsyn,0
+681,1991,18856427,PART_OF,C0024296,Lymphoid Tissue,tisu,1,C0020114,Human,humn,1
+682,2000,14772461,TREATS,C0033218,Procaine,orch,1,C0018790,Heart Arrest,patf,1
+683,1941,12264095,ADMINISTERED_TO,C0720298,Estrogenic,horm,1,C0001792,Elderly,humn,1
+684,1857,12312852,TREATS,C0014939,Estrogens,horm,1,C0027651,Neoplasm,neop,1
+685,1949,12338137,PROCESS_OF,C0346156,Benign neoplasm of breast,neop,1,C0034693,Rattus norvegicus,mamm,1
+686,2006,5233232,PART_OF,C0015392,Eye,bpoc,1,C0031831,Physicians,humn,1
+687,1995,13737762,USES,C0087111,Therapeutic procedure,topp,0,C0018242,Griseofulvin,antb,1
+688,1982,13638660,USES,C0087111,Therapeutic procedure,topp,0,C0025029,Mecamylamine,phsu,1
+689,1983,13502783,PROCESS_OF,C0007125,"Carcinoma, Ehrlich Tumor",neop,1,C0026809,Mus,mamm,1
+690,1911,14087177,PRECEDES,C0038902,Gynecologic Surgical Procedures,topp,1,C0524865,Reconstructive Surgical Procedures,topp,1
+691,1941,12264095,PART_OF,C0014609,Epithelium,tisu,1,C0042232,Vagina,bpoc,1
+692,1937,11526827,LOCATION_OF,C0175996,Protoplasm,celc,1,C1185625,Compartments,bsoj,1
+693,1968,13605279,CAUSES,C0322496,Caterpillar,invt,1,C0011603,Dermatitis,dsyn,1
+694,1857,12312852,PROCESS_OF,C0027651,Neoplasm,neop,1,C0026809,Mus,mamm,1
+695,1931,13219296,LOCATION_OF,C0037949,Vertebral column,bpoc,1,C0000768,Congenital Abnormality,cgab,1
+696,2016,16691896,PART_OF,C1516384,Central Artery,bpoc,1,C0035298,Retina,bpoc,1
+697,1960,4968961,PROCESS_OF,C0042401,Vasodilation,phsf,1,C0006104,Brain,bpoc,1
+698,1991,18856427,PART_OF,C1333198,Cytoplasmic Protein,aapp,1,C0024296,Lymphoid Tissue,tisu,1
+699,2015,5323600,LOCATION_OF,C0229671,Serum,bdsu,1,C0023823,Low-Density Lipoproteins,aapp,1
+700,1985,5839810,TREATS,C0184661,Procedures,hlca,1,C0026266,Mitral Valve Insufficiency,dsyn,1
+701,1993,5729816,PROCESS_OF,C0000849,Absenteeism,inbe,1,C1527116,Workers,humn,1
+702,1931,13219296,LOCATION_OF,C0037949,Vertebral column,bpoc,1,C0265883,Double aortic arch,cgab,1
+703,2040,14268264,PART_OF,C0014609,Epithelium,tisu,1,C0014533,Epididymis,bpoc,1
+704,1901,5988843,AFFECTS,C0948575,Diuretic therapy,topp,1,C0001117,Acid-Base Equilibrium,ortf,1
+705,1959,15394676,LOCATION_OF,C1279075,Entire humerus,bpoc,1,C0027530,Neck,blor,1
+706,1857,12312852,TREATS,C0014939,Estrogens,horm,1,C0026809,Mus,mamm,1
+707,1951,13384321,USES,C0087111,Therapeutic procedure,topp,0,C0008286,Chlorpromazine,phsu,1
+708,2061,13372921,PART_OF,C0007095,Carcinoid Tumor,neop,1,C0034896,Rectum,bpoc,1
+709,2019,14055645,LOCATION_OF,C1279038,Entire diaphragm,bpoc,1,C0267195,Chronic gastric volvulus,dsyn,1
+710,1927,13100916,COEXISTS_WITH,C0035435,Rheumatism,dsyn,1,C0006826,Malignant Neoplasms,neop,0
+711,1942,13685041,TREATS,C0441587,Clinical act of insertion,hlca,1,C0008059,Child,humn,1
+712,2047,13680863,ISA,C0543467,Operative Surgical Procedures,topp,1,C0087111,Therapeutic procedure,topp,0
+713,2040,14268264,PART_OF,C0014609,Epithelium,tisu,1,C0012984,Canis familiaris,mamm,1
+714,2022,4965133,INTERACTS_WITH,C0178627,Ethylenediamine tetra-acetate,irda,1,C0033684,Proteins,aapp,1
+715,1994,13997718,PART_OF,C1516384,Central Artery,bpoc,1,C0035298,Retina,bpoc,1
+716,2079,20285401,PART_OF,C0007097,Carcinoma,neop,1,C0038351,Stomach,bpoc,1
+717,1959,15394676,LOCATION_OF,C0027530,Neck,blor,1,C0016658,Fracture,inpo,1
+718,2045,14457945,PART_OF,C0018920,"Hemangioma, Cavernous",neop,1,C0225317,soft tissue,tisu,1
+719,2047,13680863,LOCATION_OF,C0037004,Shoulder,bpoc,1,C0012691,Dislocations,inpo,1
+720,1822,13551193,PROCESS_OF,C0232478,Ingestion,biof,1,C0030705,Patients,humn,0
+721,2030,5601124,COEXISTS_WITH,C0022346,Icterus,patf,1,C0012634,Disease,dsyn,0
+722,2027,5187616,TREATS,C0013227,Pharmaceutical Preparations,phsu,0,C0022658,Kidney Diseases,dsyn,1
+723,1992,14812429,PART_OF,C0001418,Adenocarcinoma,neop,1,C0006141,Breast,bpoc,1
+724,2003,13467022,PART_OF,C0227391,Sigmoid colon,bpoc,1,C0005682,Bladder,bpoc,1
+725,2099,13155045,LOCATION_OF,C0024204,lymph nodes,bpoc,1,C0041296,Tuberculosis,dsyn,1
+726,2028,4179108,PROCESS_OF,C0025260,Memory,menp,1,C0026809,Mus,mamm,1
+727,1959,15394676,LOCATION_OF,C0027530,Neck,blor,1,C0221198,Lesion,fndg,1
+728,1994,13997718,LOCATION_OF,C1516384,Central Artery,bpoc,1,C0022116,Ischemia,dsyn,1
+729,2102,14772462,USES,C0087111,Therapeutic procedure,topp,0,C0145330,Tetraethylammonium Chloride,phsu,1
+730,2027,5187616,TREATS,C0035064,Renal Agents,phsu,1,C0022658,Kidney Diseases,dsyn,1
+731,2119,14782746,CAUSES,C0010137,Cortisone,horm,1,C0854110,Insulin resistant diabetes,dsyn,1
+732,2033,13738581,INTERACTS_WITH,C0074568,sinomenine,orch,1,C0030350,Papaverine,orch,1
+733,2103,5776121,TREATS,C0037995,Splenectomy,topp,1,C0018939,Hematological Disease,dsyn,1
+734,2101,13974576,LOCATION_OF,C0029939,Ovary,bpoc,1,C0010709,Cyst,anab,1
+735,2103,5776121,PROCESS_OF,C0018939,Hematological Disease,dsyn,1,C0008059,Child,humn,1
+736,2116,14439979,PART_OF,C0007097,Carcinoma,neop,1,C0009368,Colon,bpoc,1
+737,2107,12338106,LOCATION_OF,C0042149,Uterus,bpoc,1,C0720298,Estrogenic,orch,1
+738,2121,13605280,ASSOCIATED_WITH,C0443640,Specific antibody,aapp,1,C0019348,Herpes Simplex Infections,dsyn,1
+739,2143,14880793,LOCATION_OF,C0225565,Structure of ventricle of larynx,bsoj,1,C0010709,Cyst,anab,1
+740,2107,12338106,PART_OF,C0042149,Uterus,bpoc,1,C0025914,House mice,mamm,1
+741,2124,14087178,LOCATION_OF,C1280344,Entire vas deferens,bpoc,1,C0447577,Ureteric orifice,bsoj,1
+742,2189,14268266,LOCATION_OF,C0042149,Uterus,bpoc,1,C0232939,Primary physiologic amenorrhea,dsyn,1
+743,2195,14772463,PRECEDES,C0149781,Spontaneous pneumothorax NOS,dsyn,1,C0011071,"Death, Sudden",patf,1
+744,2167,13372922,CAUSES,C0025424,Mercury,elii,1,C0034884,Rectal Fistula,anab,1
+745,2136,13219297,LOCATION_OF,C0016976,Gallbladder,bpoc,1,C0267892,Aschoff-Rokitansky sinuses,dsyn,1
+746,1956,12279177,PROCESS_OF,C1458155,Mammary Neoplasms,neop,1,C0003062,Animals,anim,0
+747,2136,13219297,LOCATION_OF,C0016976,Gallbladder,bpoc,1,C0012813,Diverticulitis,dsyn,0
+748,2086,5748939,PROCESS_OF,C0019880,Homocystinuria,dsyn,1,C0030705,Patients,humn,0
+749,1956,12279177,ADMINISTERED_TO,C0014912,Estradiol,horm,1,C0003062,Animals,anim,0
+750,2086,5748939,PROCESS_OF,C0040053,Thrombosis,patf,1,C0030705,Patients,humn,0
+751,2146,5327093,AFFECTS,C0037995,Splenectomy,topp,1,C0020964,Immunity,phsf,1
+752,2187,5245632,TREATS,C0031705,Phosphorus,phsu,1,C0032463,Polycythemia Vera,neop,1
+753,1956,12279177,CAUSES,C0025732,Methylcholanthrene,hops,1,C1458155,Mammary Neoplasms,neop,1
+754,2133,13347216,LOCATION_OF,C0024204,lymph nodes,bpoc,1,C0333311,Sequestrum,anab,1
+755,2083,14251374,PROCESS_OF,C0870921,Motor Performance,orgf,1,C0021270,Infant,humn,1
+756,2214,5867996,ASSOCIATED_WITH,C0015667,"Fat Emulsions, Intravenous",lipd,1,C0043065,Water-Electrolyte Imbalance,patf,1
+757,1956,12279177,PROCESS_OF,C0032019,Pituitary Neoplasms,neop,1,C0003062,Animals,anim,0
+758,2185,14812430,PART_OF,C0003964,Peritoneal Fluid,bpoc,1,C0025914,House mice,mamm,1
+759,2133,13347216,PROCESS_OF,C0948192,Primary infection NOS,dsyn,1,C0001675,Adult,humn,1
+760,2187,5245632,PROCESS_OF,C0032463,Polycythemia Vera,neop,1,C0030705,Patients,humn,0
+761,2163,13189576,LOCATION_OF,C0036563,Seeds,plnt,1,C0007158,Cardiac Glycosides,carb,1
+762,2241,13670520,PART_OF,C0301838,Soluble antigen,imft,1,C0034497,Rabies virus,virs,1
+763,2153,14055646,LOCATION_OF,C1184808,Plexus,bpoc,1,C0278134,Lack of sensation,sosy,1
+764,2187,5245632,TREATS,C0031705,Phosphorus,phsu,1,C0030705,Patients,podg,0
+765,2177,5877996,TREATS,C0001617,Adrenal Cortex Hormones,horm,1,C0019357,"Keratitis, Herpetic",dsyn,1
+766,2194,12336800,TREATS,C0392535,"Abortion, Induced",topp,1,C0555047,Married,fndg,1
+767,2163,13189576,LOCATION_OF,C0036563,Seeds,plnt,1,C0304518,Aglycone,orch,1
+768,1956,12279177,ADMINISTERED_TO,C0014912,Estradiol,horm,1,C0003062,Animals,anim,0
+769,2223,5955079,PROCESS_OF,C0003873,Rheumatoid Arthritis,dsyn,1,C0030705,Patients,humn,0
+770,2153,14055646,LOCATION_OF,C1140618,Upper Extremity,bpoc,1,C0278134,Lack of sensation,sosy,1
+771,2194,12336800,PROCESS_OF,C0555047,Married,fndg,1,C0043210,Woman,humn,1
+772,2177,5877996,ISA,C0001617,Adrenal Cortex Hormones,horm,1,C0087111,Therapeutic procedure,topp,0
+773,2221,13974577,DIAGNOSES,C0203039,Hysterogram,diap,1,C0032987,"Pregnancy, Ectopic",dsyn,1
+774,2187,5245632,LOCATION_OF,C0030705,Patients,humn,0,C0005832,Blood Proteins,aapp,1
+775,1956,12279177,ADMINISTERED_TO,C0025732,Methylcholanthrene,hops,1,C0003062,Animals,anim,0
+776,2257,13464048,TREATS,C0015506,Factor VIII,phsu,1,C0019069,Hemophilia A,dsyn,1
+777,2096,14386686,LOCATION_OF,C0031066,Anogenital region,blor,1,C0175677,Injury,inpo,1
+778,2194,12336800,TREATS,C0392535,"Abortion, Induced",topp,1,C0043210,Woman,popg,1
+779,2177,5877996,USES,C0087111,Therapeutic procedure,topp,0,C0001617,Adrenal Cortex Hormones,phsu,1
+780,2096,14386686,TREATS,C0193200,Repair of anus NOS,topp,1,C0175677,Injury,inpo,1
+781,2257,13464048,PROCESS_OF,C0019069,Hemophilia A,dsyn,1,C0030705,Patients,humn,0
+782,2268,13372923,LOCATION_OF,C0009368,Colon,bpoc,1,C0012634,Disease,dsyn,0
+783,2089,5876103,PROCESS_OF,C0234222,Baresthesia,ortf,1,C0034493,Oryctolagus cuniculus,mamm,1
+784,2177,5877996,TREATS,C0087111,Therapeutic procedure,topp,0,C0019357,"Keratitis, Herpetic",dsyn,1
+785,2237,5914357,PROCESS_OF,C0392673,Adaptation,biof,1,C0034693,Rattus norvegicus,mamm,1
+786,2226,14439982,PART_OF,C0027651,Neoplasm,neop,1,C0242726,Plant Roots,plnt,1
+787,2268,13372923,LOCATION_OF,C0034896,Rectum,bpoc,1,C0012634,Disease,dsyn,0
+788,2229,13100918,ISA,C0025646,Methionine,aapp,1,C0087111,Therapeutic procedure,topp,0
+789,2257,13464048,TREATS,C0015506,Factor VIII,phsu,1,C0030705,Patients,podg,0
+790,2096,14386686,PROCESS_OF,C0175677,Injury,inpo,1,C0870221,Boys,humn,1
+791,2229,13100918,USES,C0087111,Therapeutic procedure,topp,0,C0025646,Methionine,aapp,1
+792,2171,4966828,PART_OF,C0599104,mucopeptide,aapp,1,C0007623,Cell Wall,celc,1
+793,2296,14251375,PROCESS_OF,C0814024,skin conductance,ortf,1,C0021289,"Infant, Newborn",humn,1
+794,2290,5933804,LOCATION_OF,C0025066,Mediastinum,blor,1,C0010626,Embryonic cyst,cgab,1
+795,2229,13100918,TREATS,C0025646,Methionine,aapp,1,C0003873,Rheumatoid Arthritis,dsyn,1
+796,2265,6029551,LOCATION_OF,C0817096,Chest,blor,1,C0028797,Occupational Diseases,dsyn,1
+797,2301,13297278,CAUSES,C0005806,Blood Group Incompatibility,dsyn,1,C1263988,Hemolytic disorder,dsyn,1
+798,2314,12983077,PART_OF,C0458459,Dorsal column,bpoc,1,C0012984,Canis familiaris,mamm,1
+799,2168,14327670,PART_OF,C0034595,Radioisotopes,elii,1,C0175925,Dairy cattle,mamm,1
+800,2203,14420425,ISA,C0000677,"9,10-Dimethyl-1,2-benzanthracene",hops,1,C0005032,Benzanthracenes,hops,1
+801,2184,5707416,PART_OF,C0006104,Brain,bpoc,1,C0034693,Rattus norvegicus,mamm,1
+802,2215,14216922,ISA,C0591817,Moditen,orch,1,C0016368,Fluphenazine,orch,1
+803,2151,12312852,PROCESS_OF,C0042138,Uterine Neoplasms,neop,1,C0026809,Mus,mamm,1
+804,2350,13997723,PROCESS_OF,C0042386,"Vasculitis, Hemorrhagic",dsyn,1,C0008059,Child,humn,1
+805,2210,14934120,AFFECTS,C0014695,Vitamin D2,phsu,1,C0007097,Carcinoma,neop,1
+806,2199,14847757,COEXISTS_WITH,C1510420,Cavitation,anab,1,C0333292,Perforated ulcer,acab,1
+807,2260,14087179,PROCESS_OF,C0012634,Disease,dsyn,0,C0022566,Keratinization,ortf,1
+808,2330,14185266,PROCESS_OF,C1291706,Psychogenic factor,fndg,1,C0008059,Child,humn,1
+809,2252,5971457,ISA,C0751495,"Seizures, Focal",sosy,1,C0014544,Epilepsy,dsyn,1
+810,2286,16691900,ASSOCIATED_WITH,C0025424,Mercury,elii,1,C0008526,Choroiditis,dsyn,1
+811,2377,14806346,TREATS,C1517925,Local Therapy,topp,1,C0030100,Oxyuriasis,dsyn,1
+812,2322,13155048,DIAGNOSES,C0006290,Bronchoscopy,diap,1,C0041327,"Tuberculosis, Pulmonary",dsyn,1
+813,2203,14420425,ASSOCIATED_WITH,C0017973,Glycosaminoglycans,bacs,1,C0018188,Granuloma,patf,1
+814,2270,14268267,TREATS,C0033306,Progestins,horm,1,C0235873,Pelvic inflammation,patf,1
+815,2367,20285409,METHOD_OF,C0441509,Coagulation procedure,topp,1,C0728940,Excision,topp,1
+816,2313,13670521,LOCATION_OF,C0026927,Atypical Mycobacteria,bact,1,C0001962,Ethanol,orch,1
+817,2210,14934120,PART_OF,C0007097,Carcinoma,neop,1,C0026809,Mus,mamm,1
+818,2269,12338142,PART_OF,C0014609,Epithelium,tisu,1,C0042149,Uterus,bpoc,1
+819,2366,5914358,AFFECTS,C0032120,Plasma Proteins,aapp,1,C0302113,Fragility,comd,1
+820,2251,13737765,PART_OF,C0005962,Bone Matrix,tisu,1,C0015811,Femur,bpoc,1
+821,2302,13789602,LOCATION_OF,C0026447,Monkeys,mamm,1,C0028215,Nitrous Oxide,inch,1
+822,2370,5839813,PART_OF,C0006826,Malignant Neoplasms,neop,0,C0009368,Colon,bpoc,1
+823,2199,14847757,LOCATION_OF,C0028977,Omentum,bpoc,1,C1510420,Cavitation,anab,1
+824,2360,13480921,USES,C0039593,Testing,resa,1,C0005971,Bone plates,medd,1
+825,2374,13738588,TREATS,C0543467,Operative Surgical Procedures,topp,1,C0001675,Adult,aggp,1
+826,2269,12338142,PROCESS_OF,C0025568,Metaplasia,comd,1,C0034693,Rattus norvegicus,mamm,1
+827,2398,13605283,TREATS,C0087111,Therapeutic procedure,topp,0,C0023048,Larva Migrans,dsyn,1
+828,2260,14087179,PROCESS_OF,C0012634,Disease,dsyn,0,C0030705,Patients,humn,0
+829,2322,13155048,PROCESS_OF,C0041327,"Tuberculosis, Pulmonary",dsyn,1,C0008059,Child,humn,1
+830,2368,13372924,PROCESS_OF,C0039082,Syndrome,dsyn,0,C0021270,Infant,humn,1
+831,2260,14087179,PART_OF,C0005767,Blood,tisu,1,C0030705,Patients,humn,0
+832,2216,13502785,ISA,C0024398,Macaca,mamm,1,C0026447,Monkeys,mamm,1
+833,2384,13384325,USES,C0087111,Therapeutic procedure,topp,0,C0600062,Largactil,phsu,1
+834,2351,12279177,PROCESS_OF,C0006142,Malignant neoplasm of breast,neop,1,C0034693,Rattus norvegicus,mamm,1
+835,2347,5187619,PROCESS_OF,C0022658,Kidney Diseases,dsyn,1,C0008059,Child,humn,1
+836,2389,13026607,CAUSES,C0017601,Glaucoma,dsyn,1,C0456909,Blind Vision,dsyn,1
+837,2260,14087179,AFFECTS,C0042839,Vitamin A,orch,1,C0005767,Blood,tisu,1
+838,2216,13502785,PART_OF,C0032005,Pituitary Gland,bpoc,1,C0024398,Macaca,mamm,1
+839,2400,13100919,PROCESS_OF,C0028754,Obesity,dsyn,1,C0026591,Mothers,humn,1
+840,2365,5876104,PROCESS_OF,C0009348,Collateral Circulation,phsf,1,C0006104,Brain,bpoc,1
+841,2442,5339452,TREATS,C0700087,Tegretol,phsu,1,C0040997,Trigeminal Neuralgia,dsyn,1
+842,2435,16691901,LOCATION_OF,C0029127,Optic Disk,bpoc,1,C0010709,Cyst,anab,1
+843,2216,13502785,PART_OF,C0032005,Pituitary Gland,bpoc,1,C0026447,Monkeys,mamm,1
+844,2336,5955080,PROCESS_OF,C0035436,Rheumatic Fever,dsyn,1,C0008059,Child,humn,1
+845,2365,5876104,PROCESS_OF,C0009348,Collateral Circulation,phsf,1,C0034493,Oryctolagus cuniculus,mamm,1
+846,2385,13347218,COEXISTS_WITH,C0006902,Capillaritis,dsyn,1,C0041327,"Tuberculosis, Pulmonary",dsyn,1
+847,2417,5707417,COEXISTS_WITH,C0014544,Epilepsy,dsyn,1,C0009951,Convulsions,dsyn,1
+848,2426,4967409,PART_OF,C0037303,Bone structure of cranium,bpoc,1,C0026447,Monkeys,mamm,1
+849,2395,5933805,TREATS,C0396565,Lung excision,topp,1,C1306038,Pulmonary histoplasmosis,dsyn,1
+850,2454,13974579,METHOD_OF,C0031006,In situ perfusion,topp,1,C0920425,Cancer Treatment,topp,1
+851,2423,14457951,CAUSES,C0023355,Leptomeningitis,dsyn,1,C0041296,Tuberculosis,dsyn,1
+852,2495,5187620,PROCESS_OF,C0022658,Kidney Diseases,dsyn,1,C0008059,Child,humn,1
+853,2481,5867998,PART_OF,C0027149,Myxoma,neop,1,C0225860,Left atrial structure,bpoc,1
+854,2403,5877998,ISA,C0185026,Plication,topp,1,C0543467,Operative Surgical Procedures,topp,1
+855,2471,5839814,PROCESS_OF,C0028778,Obstruction,patf,1,C0021289,"Infant, Newborn",humn,1
+856,2492,14772469,PART_OF,C0007097,Carcinoma,neop,1,C0024109,Lung,bpoc,1
+857,2466,12264118,PART_OF,C0024659,"Mammary Glands, Animal",bpoc,1,C0007097,Carcinoma,neop,1
+858,2403,5877998,TREATS,C0185026,Plication,topp,1,C0035305,Retinal Detachment,dsyn,1
+859,2491,5182923,PROCESS_OF,C0476273,Respiratory distress,sosy,1,C0008059,Child,humn,1
+860,2502,14087180,PROCESS_OF,C0042998,Vulvovaginitis,dsyn,1,C0008059,Child,humn,1
+861,2319,11850911,ISA,C0022594,Keratosis Blennorrhagica,dsyn,1,C0037284,Skin lesion,acab,1
+862,2488,13297280,TREATS,C0012002,Diathermy,topp,1,C0269062,Chronic cervicitis,dsyn,1
+863,2474,13605284,LOCATION_OF,C0005847,Blood Vessels,bpoc,1,C0019080,Hemorrhage,fndg,1
+864,2471,5839814,CAUSES,C0021828,Intestinal Atresia,dsyn,1,C0028778,Obstruction,patf,1
+865,2553,14771475,COEXISTS_WITH,C0020517,Hypersensitivity,patf,1,C0026946,Mycoses,dsyn,1
+866,2477,14150930,TREATS,C1293107,Expulsion,topp,1,C0426686,Liver finding,fndg,1
+867,2502,14087180,PROCESS_OF,C0276683,Candidiasis of vulva,dsyn,1,C0008059,Child,humn,1
+868,2483,13997727,COEXISTS_WITH,C0023530,Leukopenia,dsyn,1,C0036974,Shock,patf,1
+869,2530,14185268,TREATS,C0020699,Hysterectomy,topp,1,C0006826,Malignant Neoplasms,neop,0
+870,2496,6029553,LOCATION_OF,C0027361,Persons,humn,0,C0003818,Arsenic,elii,1
+871,2469,5914359,INTERACTS_WITH,C0002006,Aldosterone,horm,1,C0037494,Sodium Chloride,bacs,1
+872,2519,12259174,LOCATION_OF,C0026140,"Milk, Human",bdsu,1,C0028040,Nicotine,orch,1
+873,2520,13551199,PROCESS_OF,C0021400,Influenza,dsyn,1,C0008059,Child,humn,1
+874,2475,13155049,COEXISTS_WITH,C0699748,Pathogenesis,patf,0,C0041327,"Tuberculosis, Pulmonary",dsyn,1
+875,2547,13372926,LOCATION_OF,C1275631,Perianal region structure,blor,1,C0006826,Malignant Neoplasms,neop,0
+876,2530,14185268,PART_OF,C0006826,Malignant Neoplasms,neop,0,C1521714,Uterus - Cervix (MMHCC),tisu,1
+877,2551,13347219,TREATS,C0351302,Sodium salts,phsu,1,C0023348,"Leprosy, Lepromatous",dsyn,1
+878,2516,4301646,USES,C0087111,Therapeutic procedure,topp,0,C0086123,Deoxycholate,phsu,1
+879,2450,5729819,LOCATION_OF,C0030274,Pancreas,bpoc,1,C0011847,Diabetes,dsyn,1
+880,2528,11712290,PROCESS_OF,C0012634,Disease,dsyn,0,C0080309,Ventricular Function,ortf,1
+881,2546,14439993,PART_OF,C0206674,"Adenoma, Villous",neop,1,C0034896,Rectum,bpoc,1
+882,2469,5914359,INTERACTS_WITH,C0003779,Argipressin,horm,1,C0037494,Sodium Chloride,bacs,1
+883,2519,12259174,LOCATION_OF,C0042036,Urine,bdsu,1,C0028040,Nicotine,orch,1
+884,2582,13974580,TREATS,C0031006,In situ perfusion,topp,1,C1261473,sarcoma,neop,1
+885,2575,13680870,TREATS,C0279025,Endocrine therapy,topp,1,C0334897,Obstetrician,humn,1
+886,2547,13372926,LOCATION_OF,C1275631,Perianal region structure,blor,1,C0877510,Precancerous skin lesion,dsyn,1
+887,2450,5729819,PROCESS_OF,C0011847,Diabetes,dsyn,1,C0001675,Adult,humn,1
+888,2443,12312852,PROCESS_OF,C0178554,cocarcinogen,patf,1,C0026809,Mus,mamm,1
+889,2536,13502786,PART_OF,C0006104,Brain,bpoc,1,C0024398,Macaca,mamm,1
+890,2557,5776126,COEXISTS_WITH,C1510428,Cerebral Abscess,dsyn,1,C0036117,Salmonella infections,dsyn,1
+891,2469,5914359,INTERACTS_WITH,C0010124,Corticosterone,horm,1,C0037494,Sodium Chloride,bacs,1
+892,2570,5707418,LOCATION_OF,C0006104,Brain,bpoc,1,C0017911,Glycogen,bacs,1
+893,2543,14847759,PART_OF,C0006826,Malignant Neoplasms,neop,0,C1305392,Entire common bile duct,bpoc,1
+894,2571,13685052,PART_OF,C0023779,Lipids,lipd,1,C0040934,Trichophyton mentagrophytes,fngs,1
+895,2594,5955083,LOCATION_OF,C0262950,Skeletal bone,bpoc,1,C0036202,Sarcoidosis,dsyn,1
+896,2450,5729819,PROCESS_OF,C0011847,Diabetes,dsyn,1,C0030705,Patients,humn,0
+897,2475,13155049,PROCESS_OF,C0041327,"Tuberculosis, Pulmonary",dsyn,1,C0008059,Child,humn,1
+898,2515,4966829,PART_OF,C0017526,Giant Cells,cell,1,C0004595,Bacillus subtilis,bact,1
+899,2443,12312852,CAUSES,C0025732,Methylcholanthrene,hops,1,C0042138,Uterine Neoplasms,neop,1
+900,2612,14877306,PART_OF,C0007097,Carcinoma,neop,1,C1280388,Entire upper lip,bpoc,1
+901,2554,14812432,PART_OF,C0023884,Liver,bpoc,1,C0025914,House mice,mamm,1
+902,2524,13103847,ISA,C0699935,Terramycin,antb,1,C0030092,Oxytetracycline,antb,1
+903,2622,13464053,PROCESS_OF,C0027819,Neuroblastoma,neop,1,C0021270,Infant,humn,1
+904,2579,14268271,TREATS,C0034618,Radiation therapy,topp,1,C0036631,Seminoma,neop,1
+905,2430,13582820,TREATS,C0009574,Compound 48-80,phsu,1,C0034693,Rattus norvegicus,mamm,1
+906,2557,5776126,PROCESS_OF,C0036117,Salmonella infections,dsyn,1,C0021270,Infant,humn,1
+907,2536,13502786,LOCATION_OF,C0006104,Brain,bpoc,1,C0002059,Alkaline Phosphatase,aapp,1
+908,2443,12312852,STIMULATES,C0857127,Induction,topp,1,C0018270,Growth,orgf,1
+909,2524,13103847,ISA,C0728748,Aureomycin,antb,1,C0008293,Chlortetracycline,antb,1
+910,2633,13384327,TREATS,C0008286,Chlorpromazine,phsu,1,C0030705,Patients,podg,0
+911,2636,20241554,PART_OF,C1267211,Entire duct,bpoc,1,C1550312,Submaxillary,bpoc,1
+912,2569,13789604,PART_OF,C0334294,Multiple adenomatous polyps,neop,1,C0038351,Stomach,bpoc,1
+913,2681,16016739,LOCATION_OF,C0023625,"Libraries, Medical",hcro,1,C0007371,Cataloging,ocac,1
+914,2569,13789604,COEXISTS_WITH,C0153188,"[X]Late syphilis, unspecified",dsyn,1,C0334294,Multiple adenomatous polyps,neop,1
+915,2476,4878919,TREATS,C0013227,Pharmaceutical Preparations,phsu,0,C0019829,Hodgkin Disease,neop,1
+916,2576,4286772,PART_OF,C1368019,Paget's Disease,neop,1,C0006141,Breast,bpoc,1
+917,2690,14782769,PROCESS_OF,C0036341,Schizophrenia,mobd,1,C0205653,Adolescent,humn,1
+918,2703,13605286,TREATS,C0001712,Aerosols,chvs,1,C0037274,skin disorder,dsyn,0
+919,2626,14055650,ISA,C0036861,Sewage,eehu,1,C0392355,Pollution,eehu,1
+920,2644,14386691,TREATS,C0728940,Excision,topp,1,C0014009,Empyema,dsyn,1
+921,2588,10976199,PART_OF,C1167331,outer membrane,celc,1,C0037851,Sperm Tail,celc,1
+922,2645,4300082,LOCATION_OF,C0022646,Kidney,bpoc,1,C0151864,Disorder of pregnancy,dsyn,1
+923,2671,14185269,PART_OF,C0006826,Malignant Neoplasms,neop,0,C0029939,Ovary,bpoc,1
+924,2599,5867999,ISA,C0027627,Neoplasm Metastasis,neop,1,C0006826,Malignant Neoplasms,neop,0
+925,2690,14782769,TREATS,C0009953,Convulsive therapy,topp,1,C0036341,Schizophrenia,mobd,1
+926,2576,4286772,ISA,C1368019,Paget's Disease,neop,1,C0006826,Malignant Neoplasms,neop,0
+927,2476,4878919,TREATS,C0013227,Pharmaceutical Preparations,phsu,0,C0162460,Reticulosis,neop,1
+928,2576,4286772,PART_OF,C0006826,Malignant Neoplasms,neop,0,C0006141,Breast,bpoc,1
+929,2476,4878919,PROCESS_OF,C0019829,Hodgkin Disease,neop,1,C0030705,Patients,humn,0
+930,2706,16691905,METHOD_OF,C0038288,Sexual sterilization,topp,1,C0007389,Cataract Extraction,topp,1
+931,2739,12259050,PROCESS_OF,C0678108,Sterility,patf,1,C0025266,Male population group,humn,0
+932,2476,4878919,PROCESS_OF,C0162460,Reticulosis,neop,1,C0030705,Patients,humn,0
+933,2640,14150931,PART_OF,C0061241,germin,aapp,1,C0018067,Gonadal structure,bpoc,1
+934,2668,12308048,LOCATION_OF,C0036378,"Schools, Medical",hcro,1,C0039401,Educational process of instructing,edac,1
+935,2698,13431683,PART_OF,C0006826,Malignant Neoplasms,neop,0,C0040132,Thyroid Gland,bpoc,1
+936,2685,13738592,PART_OF,C0005682,Bladder,bpoc,1,C0521377,Rectum and sigmoid colon,bpoc,1
+937,2718,13070195,PART_OF,C0006736,Calculi,bdsu,1,C0018494,hair,bpoc,1
+938,2676,13480924,TREATS,C0442936,Hemilaminectomy,topp,1,C0012984,Canis familiaris,mamm,1
+939,2728,13464054,COEXISTS_WITH,C0019066,Nontraumatic hemoperitoneum,patf,1,C0878751,Late pregnancy,dsyn,1
+940,2476,4878919,TREATS,C0013227,Pharmaceutical Preparations,phsu,0,C0030705,Patients,podg,0
+941,2689,12275493,PROCESS_OF,C0027497,Nausea,sosy,1,C0043210,Woman,humn,1
+942,2727,14877307,TREATS,C0020197,Hyaluronidase,aapp,1,C0027145,Myxedema,dsyn,1
+943,2747,13103848,USES,C0087111,Therapeutic procedure,topp,0,C1136254,Microbicides,phsu,1
+945,2649,13211298,TREATS,C0087111,Therapeutic procedure,topp,0,C0002962,Angina Pectoris,sosy,1
+946,2733,5839816,TREATS,C0543467,Operative Surgical Procedures,topp,1,C0522224,Paralysed,fndg,1
+947,2727,14877307,LOCATION_OF,C1280388,Entire upper lip,bpoc,1,C0027145,Myxedema,dsyn,1
+948,2748,14880803,TREATS,C0010137,Cortisone,horm,1,C0003873,Rheumatoid Arthritis,dsyn,1
+949,2743,13384328,USES,C0087111,Therapeutic procedure,topp,0,C0008286,Chlorpromazine,phsu,1
+950,2738,5776127,PROCESS_OF,C0546959,Atrial tachycardia,patf,1,C0870604,Girls,humn,1
+951,2649,13211298,PROCESS_OF,C0002962,Angina Pectoris,sosy,1,C0030705,Patients,humn,0
+952,2803,14772473,COEXISTS_WITH,C0871745,Family Crises,fndg,1,C0241953,Jaundice acholuric,dsyn,1
+953,2711,13026610,CAUSES,C0016470,Food Allergy,dsyn,1,C0013595,Eczema,dsyn,1
+954,2749,20241555,LOCATION_OF,C0027530,Neck,blor,1,C0017105,Gas Gangrene,dsyn,1
+955,2704,15394682,LOCATION_OF,C1305781,Supraspinatus tendon,bpoc,1,C0043246,Laceration,inpo,1
+956,2733,5839816,LOCATION_OF,C1278841,Entire brachial plexus,bpoc,1,C0522224,Paralysed,fndg,1
+957,2641,13997729,PART_OF,C0032005,Pituitary Gland,bpoc,1,C0003459,Anura,amph,1
+958,2743,13384328,TREATS,C0008286,Chlorpromazine,orch,1,C0033975,Psychotic Disorders,mobd,1
+959,2649,13211298,TREATS,C0087111,Therapeutic procedure,topp,0,C0030705,Patients,podg,0
+961,2746,14087182,PART_OF,C0178784,Organ,bpoc,1,C0230278,Minor pelvis,bpoc,1
+962,2711,13026610,LOCATION_OF,C0018563,Hand,bpoc,1,C0013595,Eczema,dsyn,1
+963,2641,13997729,PART_OF,C0796494,Lobe,bpoc,1,C0032005,Pituitary Gland,bpoc,1
+964,2649,13211298,TREATS,C1441129,Radioactive Iodine,phsu,1,C0741926,CARDIAC PATIENT,podg,1
+965,2790,13297282,PROCESS_OF,C0037864,Spermatogenesis,celf,1,C0020114,Human,humn,1
+966,2710,5914360,INTERACTS_WITH,C0002006,Aldosterone,horm,1,C0037494,Sodium Chloride,bacs,1
+967,2746,14087182,LOCATION_OF,C0178784,Organ,bpoc,1,C0042345,Varicosity,acab,1
+968,2693,13680883,PART_OF,C0035286,Reticulocytes,cell,1,C0034493,Oryctolagus cuniculus,mamm,1
+969,2819,14457955,CAUSES,C0034618,Radiation therapy,topp,1,C0022408,Arthropathies NOS,dsyn,1
+970,2833,5868001,PART_OF,C0006826,Malignant Neoplasms,neop,0,C0029939,Ovary,bpoc,1
+971,2842,13551202,LOCATION_OF,C1278872,Entire sympathetic nerve,bpoc,1,C0270788,Paralytic syndrome,dsyn,1
+972,2860,5776128,COEXISTS_WITH,C0267956,Acute necrosis of pancreas,dsyn,1,C0027720,Nephrosis,dsyn,1
+973,2770,13789605,LOCATION_OF,C0024109,Lung,bpoc,1,C0038172,Staphylococcus aureus,bact,1
+974,2849,5878002,LOCATION_OF,C0015392,Eye,bpoc,1,C0221198,Lesion,fndg,1
+975,2725,14812433,PROCESS_OF,C0038356,Stomach Neoplasms,neop,1,C0026809,Mus,mamm,1
+976,2710,5914360,INTERACTS_WITH,C0003779,Argipressin,horm,1,C0037494,Sodium Chloride,bacs,1
+977,2856,14880804,USES,C0087111,Therapeutic procedure,topp,0,C0728748,Aureomycin,antb,1
+978,2825,13100924,ISA,C0022209,isoniazid,orch,1,C0087111,Therapeutic procedure,topp,0
+979,2693,13680883,INTERACTS_WITH,C0051395,alpha-ketoglutaric acid,orch,1,C0017797,Glutamine,aapp,1
+980,2726,13189580,PART_OF,C0023884,Liver,bpoc,1,C0003043,Animalia,anim,0
+982,2819,14457955,CAUSES,C0087111,Therapeutic procedure,topp,0,C0022408,Arthropathies NOS,dsyn,1
+983,2746,14087182,LOCATION_OF,C0042345,Varicosity,acab,1,C0236178,Intraabdominal hemorrhage,dsyn,1
+984,2875,14772474,COEXISTS_WITH,C1370824,Interstitial emphysema,dsyn,1,C0025007,Measles,dsyn,1
+985,2825,13100924,USES,C0087111,Therapeutic procedure,topp,0,C0022209,isoniazid,phsu,1
+986,2753,12264172,PROCESS_OF,C0024623,Malignant neoplasm of stomach,neop,1,C0034693,Rattus norvegicus,mamm,1
+987,2770,13789605,PART_OF,C0024109,Lung,bpoc,1,C0030705,Patients,humn,0
+988,2693,13680883,INTERACTS_WITH,C0061472,Glutamic Acid,aapp,1,C0017797,Glutamine,aapp,1
+989,2710,5914360,INTERACTS_WITH,C0010124,Corticosterone,horm,1,C0037494,Sodium Chloride,bacs,1
+990,2726,13189580,LOCATION_OF,C0023884,Liver,bpoc,1,C0042845,Vitamin B 12,orch,1
+991,2827,13431684,TREATS,C0010137,Cortisone,horm,1,C0264552,Serofibrinous pleurisy,dsyn,1
+992,2850,5955085,TREATS,C0040071,Thymectomy,topp,1,C0026896,Myasthenia Gravis,dsyn,1
+993,2815,13292704,PROCESS_OF,C0041296,Tuberculosis,dsyn,1,C0030705,Patients,humn,0
+994,2834,13347223,CAUSES,C0600062,Largactil,orch,1,C0022346,Icterus,patf,1
+995,2753,12264172,PROCESS_OF,C0153567,Uterine Cancer,neop,1,C0034693,Rattus norvegicus,mamm,1
+996,2825,13100924,TREATS,C0022209,isoniazid,phsu,1,C0041327,"Tuberculosis, Pulmonary",dsyn,1
+997,2799,13685065,PART_OF,C0229671,Serum,bdsu,1,C0020114,Human,humn,1
+998,2824,5707419,PART_OF,C0023779,Lipids,lipd,1,C0027836,Neuroglia,cell,1
+999,2899,13070197,PART_OF,C0015801,Structure of femoral artery,bpoc,1,C0012984,Canis familiaris,mamm,1
+1000,2737,13582821,TREATS,C0019590,Histamine Antagonists,phsu,1,C0085979,Cavia,mamm,1
+1001,2912,13997730,PART_OF,C0796494,Lobe,bpoc,1,C0032005,Pituitary Gland,bpoc,1
+1002,2931,13551203,TREATS,C0025386,Meprobamate,phsu,1,C0700061,Obstetric Patient,podg,1
+1003,2824,5707419,PART_OF,C0682708,White Matter,tisu,1,C0007452,Cattle,mamm,1
+1004,2891,13219342,USES,C0087111,Therapeutic procedure,topp,0,C0012155,Diet,food,1
+1005,2899,13070197,PART_OF,C0741968,CAROTID,bpoc,1,C0012984,Canis familiaris,mamm,1
+1006,2949,16691908,LOCATION_OF,C0035298,Retina,bpoc,1,C0002982,Angioid Streaks,dsyn,1
+1007,2941,18856429,COEXISTS_WITH,C0238621,Aminoaciduria,dsyn,1,C0026850,Muscular Dystrophies,cgab,1
+1008,2824,5707419,LOCATION_OF,C0682708,White Matter,tisu,1,C0023779,Lipids,lipd,1
+1009,2944,13155053,PROCESS_OF,C0041327,"Tuberculosis, Pulmonary",dsyn,1,C0008059,Child,humn,1
+1010,2917,15394684,LOCATION_OF,C0003086,Ankle,blor,1,C0016658,Fracture,inpo,1
+1011,2906,14216928,PROCESS_OF,C0241856,Occupational deafness,dsyn,1,C0376706,Mechanics,npop,1
+1012,2963,16016747,METHOD_OF,C0220931,Training,edac,1,C0023620,Librarianship,ocdi,1
+1014,2873,14440000,LOCATION_OF,C0032105,Plasma,bdsu,1,C0040018,Thrombin,aapp,1
+1015,2942,13026612,PART_OF,C0018283,Epiphysial cartilage,tisu,1,C1279083,Entire radius,bpoc,1
+1016,2932,14934126,DIAGNOSES,C0037296,Hypersensitivity skin testing,diap,1,C0002994,Angioneurotic Edema,patf,1
+1017,2868,14386693,METHOD_OF,C0022100,Irrigation,topp,1,C0087111,Therapeutic procedure,topp,0
+1018,2855,4301646,NEG_INHIBITS,C0034145,Puromycin,antb,1,C0001480,Adenosine Triphosphate,bacs,1
+1019,2935,4300799,PROCESS_OF,C0023418,leukemia,neop,1,C0026809,Mus,mamm,1
+1020,2907,4892267,TREATS,C0040732,Transplantation,topp,1,C0020114,Human,humn,1
+1021,2870,20241556,COMPLICATES,C0017086,Gangrene,dsyn,1,C0864638,Cerebrospinal fever,dsyn,1
+1022,2979,13638675,TREATS,C0450442,Agent,chvf,1,C0027726,Nephrotic Syndrome,dsyn,1
+1023,2986,13930418,ASSOCIATED_WITH,C0232262,Diastolic murmur,sosy,1,C0003504,Aortic Valve Insufficiency,dsyn,1
+1024,2863,13372929,METHOD_OF,C0040597,Traction,topp,1,C0556666,Lumbar traction,topp,1
+1025,2966,14268284,DIAGNOSES,C0013798,Electrocardiogram,diap,1,C0023119,Lathyrism,inpo,1
+1026,2913,13502788,ISA,C0024398,Macaca,mamm,1,C0026447,Monkeys,mamm,1
+1027,2964,13431685,LOCATION_OF,C0038351,Stomach,bpoc,1,C0019291,"Hernia, Hiatal",anab,1
+1028,2965,12983088,METHOD_OF,C0042196,Vaccination,topp,1,C0199176,Prophylactic treatment,topp,1
+1029,2868,14386693,USES,C0087111,Therapeutic procedure,topp,0,C0030842,Penicillins,antb,1
+1030,2985,14847763,CAUSES,C0005036,Benzene,hops,1,C0023473,"Myeloid Leukemia, Chronic",neop,1
+1031,2980,13103850,TREATS,C0022678,"Kidney, Artificial",medd,1,C0022661,"Kidney Failure, Chronic",dsyn,1
+1032,2928,5878003,LOCATION_OF,C0016823,Structure of fundus of eye,blor,1,C0012634,Disease,dsyn,0
+1033,2970,12264172,PROCESS_OF,C0006826,Malignant Neoplasms,neop,0,C0034693,Rattus norvegicus,mamm,1
+1034,2932,14934126,DIAGNOSES,C0037296,Hypersensitivity skin testing,diap,1,C0042109,Urticaria,dsyn,1
+1035,3019,16691671,PART_OF,C0015392,Eye,bpoc,1,C0020114,Human,humn,1
+1036,2999,5585345,AFFECTS,C0040165,Thyroxine,aapp,1,C1149888,alkaline phosphatase activity,moft,1
+1037,2868,14386693,USES,C0087111,Therapeutic procedure,topp,0,C0771312,SULFATHIAZOLE SODIUM,phsu,1
+1038,2913,13502788,LOCATION_OF,C0927232,Neuraxis,bdsy,1,C0857127,Induction,topp,1
+1039,2863,13372929,ISA,C0040597,Traction,topp,1,C0087111,Therapeutic procedure,topp,0
+1040,2992,14782773,TREATS,C0185125,Application procedure,hlca,1,C0030193,Pain,sosy,1
+1041,3012,13384331,compared_with,C0008286,Chlorpromazine,orch,1,C0195775,Operation on brain,topp,1
+1042,2928,5878003,TREATS,C0023694,Light Coagulation,topp,1,C0012634,Disease,dsyn,0
+1043,2981,6065079,PART_OF,C0033679,Transglutaminases,aapp,1,C0023884,Liver,bpoc,1
+1044,2950,13867951,PART_OF,C0006826,Malignant Neoplasms,neop,0,C0032005,Pituitary Gland,bpoc,1
+1045,2952,11526828,compared_with,C0597277,Potassium Ions,bacs,1,C0022023,Ions,elii,1
+1047,2951,13280157,LOCATION_OF,C0038351,Stomach,bpoc,1,C0031746,Photofluorography,diap,1
+1048,2863,13372929,METHOD_OF,C0087111,Therapeutic procedure,topp,0,C0556666,Lumbar traction,topp,1
+1049,2952,11526828,higher_than,C0597277,Potassium Ions,bacs,1,C0022023,Ions,elii,1
+1051,2909,12275493,ADMINISTERED_TO,C0003297,Antiemetics,phsu,1,C0030705,Patients,humn,0
+1052,2919,12996023,PROCESS_OF,C0231178,Chronic failure,patf,1,C0008059,Child,humn,1
+1053,2967,5914361,TREATS,C0051066,alanosine,phsu,1,C0034693,Rattus norvegicus,mamm,1
+1054,3028,4236753,PART_OF,C0026237,Mitochondria,celc,1,C0006104,Brain,bpoc,1
+1055,2990,14770468,PROCESS_OF,C0027726,Nephrotic Syndrome,dsyn,1,C0008059,Child,humn,1
+1056,3038,15394685,CAUSES,C0034074,Pulmonary Infarction,dsyn,1,C0032326,Pneumothorax,dsyn,1
+1057,3030,13997734,PART_OF,C1519221,Secretory Cell,cell,1,C0796494,Lobe,bpoc,1
+1058,3020,14880806,METHOD_OF,C0011900,Diagnosis,hlca,1,C0543467,Operative Surgical Procedures,topp,1
+1059,3103,13867952,PROCESS_OF,C0017181,Gastrointestinal Hemorrhage,patf,1,C0021270,Infant,humn,1
+1060,3041,4960769,LOCATION_OF,C0003064,"Animals, Laboratory",anim,1,C0018062,Chorionic Gonadotropin,aapp,1
+1061,3077,13789614,TREATS,C0543467,Operative Surgical Procedures,topp,1,C0032994,"Pregnancy, Tubal",dsyn,1
+1062,3028,4236753,AFFECTS,C0005437,Bilirubin,bacs,1,C0014272,Energy Metabolism,phsf,1
+1063,2990,14770468,PROCESS_OF,C0221102,Excretory function,phsf,1,C0008059,Child,humn,1
+1064,3020,14880806,TREATS,C0543467,Operative Surgical Procedures,topp,1,C0747086,OTOMASTOIDITIS,dsyn,1
+1065,3030,13997734,PART_OF,C0796494,Lobe,bpoc,1,C0032005,Pituitary Gland,bpoc,1
+1066,2990,14770468,INTERACTS_WITH,C0001655,Corticotropin,aapp,1,C0037494,Sodium Chloride,bacs,1
+1067,2968,14327675,PROCESS_OF,C0006147,Breast Feeding,orgf,1,C0034715,"Rats, Sprague-Dawley",mamm,1
+1068,3081,4175348,COEXISTS_WITH,C0557034,Assisting,hlca,1,C0195775,Operation on brain,topp,1
+1069,3005,13582822,ISA,C0020268,Hydrocortisone,horm,1,C0087111,Therapeutic procedure,topp,0
