@@ -31,6 +31,8 @@ racket csv-semmed-simplify.rkt semmed.csv semmed
 racket semmed-index-predicate.rkt semmed
 ```
 
+Depending on the size of the CSV you're using, these commands could take up to a few hours to process all records.
+
 
 ## Run queries
 
