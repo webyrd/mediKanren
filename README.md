@@ -18,7 +18,9 @@ https://download.racket-lang.org/
 
 ### Obtain a CSV dump of SemMed DB
 
-TODO
+You'll need to obtain the full data from: https://skr3.nlm.nih.gov/SemMedDB/
+
+A small sample, `code/sample_semmed.csv`, is provided to demonstrate the format expected for processing.
 
 
 ### Index the data for consumption by mediKanren
