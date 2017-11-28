@@ -7,3 +7,49 @@ Proof-of-concept for reasoning over the SemMedDB knowledge base, using miniKanre
 TODO: add SemMedDB files, along with terms of use information for SemMedDB.
 
 TODO: add simple instructions for running the queries.
+
+
+## Setup
+
+### Download and install Racket
+
+https://download.racket-lang.org/
+
+
+### Obtain a CSV dump of SemMed DB
+
+TODO
+
+
+### Index the data for consumption by mediKanren
+
+Given `semmed.csv`, Run these commands from the `code` directory:
+
+```
+racket csv-semmed-simplify.rkt semmed.csv semmed
+
+racket semmed-index-predicate.rkt semmed
+```
+
+
+## Run queries
+
+Take a look at the various `study-*.rkt` files in the `code` directory for examples.  You can run these from the command line, e.g., `racket study-imatinib.rkt`.
+
+To write your own queries, either as a new `*.rkt` file or interactively, start with:
+
+```
+(require "mk-db.rkt")
+```
+
+to load the database and its indices (this will take several seconds, so be patient).  Once loaded, you will have access to the full underlying miniKanren language, plus the new semmed-specific relations:
+
+```
+(concepto c)
+(fuzzy-concepto name c)
+(cuio c cui)
+(cui*o c cui*)
+(edgeo `(,subject-concept ,object-concept ,predicate ,subject-type ,object-type ,pubref))
+```
+
+which you can compose freely in queries.  Being that mediKanren is an embedded DSL, you also have access to Racket for metaprogramming.
