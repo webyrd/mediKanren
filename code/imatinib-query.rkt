@@ -257,6 +257,10 @@
          (not-membero x rest))])))
 
 
+(displayln
+  "Finished loading helpers")
+
+
 ;; THE CANDIDATE DISEASES
 ;;
 ;; Working backwards, here we calculate the final 111 candidate
@@ -1016,33 +1020,45 @@
   (4096 "Asthma" ("dsyn")))
 |#
 
+(displayln
+  "Finished loading final disease cnadidates")
+
+
 ;; Combine two of the queries: which of the Diseases or Syndromes or
 ;; Neoplastic Processes or Pathologic Functions directly treated by
 ;; imatinib synonyms are *directly* caused by the genes directly
 ;; inhibited by the imatinib synonyms?
-(map
- (lambda (drug)
-   (let ((diseases (run* (q)
-                     (fresh (disease e-drug/disease p-st-drug/disease p-ob-drug/disease e-drug/disease-rest
-                             gene e-drug/gene p-st-drug/gene e-drug/gene-rest
-                             e-gene/disease st-gene/disease ot-gene/disease e-gene/disease-rest)
-                       (== disease q)
-                       (conde
-                         [(== "dsyn" p-ob-drug/disease)]
-                         [(== "neop" p-ob-drug/disease)]
-                         [(== "patf" p-ob-drug/disease)])
-                       (== `(,drug ,disease "TREATS" ,p-st-drug/disease ,p-ob-drug/disease . ,e-drug/disease-rest) e-drug/disease)
-                       (== `(,drug ,gene "INHIBITS" ,p-st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
-                       (== `(,gene ,disease "CAUSES" ,st-gene/disease ,ot-gene/disease . ,e-gene/disease-rest) e-gene/disease)
-                       (edgeo e-drug/disease)
-                       (edgeo e-drug/gene)
-                       (edgeo e-gene/disease)))))
-     (list (length (rem-dups diseases)) drug)))
- '((935989 "imatinib" ("phsu" "orch"))
-   (939537 "Imatinib mesylate" ("orch" "phsu"))
-   (385728 "CGP 57148" ("phsu" "orch"))
-   (906802 "STI571" ("phsu" "orch"))
-   (935987 "Gleevec" ("orch" "phsu"))))
+;;
+;; Run this by calling (combine-two-query)
+;;
+(define (combine-two-query)
+  (map
+   (lambda (drug)
+     (let ((diseases (run* (q)
+                       (fresh (disease e-drug/disease p-st-drug/disease p-ob-drug/disease e-drug/disease-rest
+                                       gene e-drug/gene p-st-drug/gene e-drug/gene-rest
+                                       e-gene/disease st-gene/disease ot-gene/disease e-gene/disease-rest)
+                         (== disease q)
+                         (conde
+                           [(== "dsyn" p-ob-drug/disease)]
+                           [(== "neop" p-ob-drug/disease)]
+                           [(== "patf" p-ob-drug/disease)])
+                         (== `(,drug ,disease "TREATS" ,p-st-drug/disease ,p-ob-drug/disease . ,e-drug/disease-rest) e-drug/disease)
+                         (== `(,drug ,gene "INHIBITS" ,p-st-drug/gene "gngm" . ,e-drug/gene-rest) e-drug/gene)
+                         (== `(,gene ,disease "CAUSES" ,st-gene/disease ,ot-gene/disease . ,e-gene/disease-rest) e-gene/disease)
+                         (edgeo e-drug/disease)
+                         (edgeo e-drug/gene)
+                         (edgeo e-gene/disease)))))
+       (list (length (rem-dups diseases)) drug)))
+   '((935989 "imatinib" ("phsu" "orch"))
+     (939537 "Imatinib mesylate" ("orch" "phsu"))
+     (385728 "CGP 57148" ("phsu" "orch"))
+     (906802 "STI571" ("phsu" "orch"))
+     (935987 "Gleevec" ("orch" "phsu")))))
+
+(displayln
+  "Finished loading combine-two-queries")
+
 
 ;; 286 genes are directly inhibited by some synonym for imitinib
 (let ((all-genes
@@ -1106,78 +1122,82 @@
 ;; We can then focus on KIT to get the full chain from Gleevec/imatinib
 ;; and asthma.  Obviously thi can be automated, and composing the queries
 ;; (or the cached answers from sub-queries) is straight-forward.
-(map
- (lambda (gene)
-   (let ((disorders
-          (run* (q)
-            (fresh (e1 e2 e3 celf disorder disorder-type rest1 rest2 rest3)
-              (== (list e1 e2 e3) q)
-              (fuzzy-concepto "asthma" disorder)
-              (conde
-                [(== "dsyn" disorder-type)]
-                [(== "neop" disorder-type)]
-                [(== "patf" disorder-type)])
-              (== `(,gene ,celf "CAUSES" "gngm" "celf" . ,rest1) e1)
-              (== `(,celf ,disorder "AFFECTS" "celf" ,disorder-type . ,rest2) e2)
-              (== `(,disorder ,celf "MANIFESTATION_OF" ,disorder-type "celf" . ,rest3) e3)
-              (edgeo e1)
-              (edgeo e3)
-              (edgeo e2)))))
-     (let ((disorders (rem-dups disorders)))
-       disorders)))
- '((1428985 "PDGFD gene" ("aapp" "gngm"))
-   (919477 "LCK gene" ("aapp" "enzy" "gngm"))
-   (1136340 "Semaphorins" ("bacs" "gngm" "aapp"))
-   (1366876 "MAPK14 gene" ("gngm" "aapp" "enzy"))
-   (1364818 "APP gene" ("enzy" "gngm" "bacs" "aapp" "imft"))
-   (1333568 "FLT3 gene" ("gngm" "phsu" "bacs" "aapp"))
-   (79050 "c-abl Proto-Oncogenes" ("aapp" "gngm"))
-   (79413 "Genes, abl" ("gngm" "aapp"))
-   (812253 "CRKL gene" ("bacs" "aapp" "gngm"))
-   (915156 "Ephrin Receptor EphA8" ("gngm" "enzy" "aapp"))
-   (2716 "Amyloid" ("bacs" "aapp" "gngm"))
-   (3241 "Antibodies" ("gngm" "aapp" "imft"))
-   (33640 "PROTEIN KINASE" ("gngm" "enzy" "aapp"))
-   (33681 "Protein Tyrosine Kinase" ("enzy" "gngm" "aapp"))
-   (164786 "Proto-Oncogene Proteins c-akt" ("gngm" "aapp" "enzy"))
-   (33684 "Proteins" ("bacs" "gngm" "aapp"))
-   (246681 "platelet-derived growth factor BB" ("gngm" "phsu" "aapp"))
-   (290068
-    "Platelet-Derived Growth Factor beta Receptor"
-    ("aapp" "gngm" "rcpt" "enzy"))
-   (812228 "AKT1 gene" ("aapp" "phsu" "enzy" "gngm" "bacs"))
-   (812375 "ELK3 gene" ("enzy" "gngm" "bacs" "aapp"))
-   (1335239 "PPBP gene" ("bacs" "aapp" "gngm"))
-   (1419240 "RAD51 gene" ("enzy" "gngm" "aapp"))
-   (1421416 "UVRAG gene" ("gngm" "phsu" "aapp"))
-   (1422009 "TP63 gene" ("rcpt" "phsu" "imft" "aapp" "gngm"))
-   (1424677 "CKAP4 gene" ("gngm" "aapp" "bacs" "phsu"))
-   (1425835 "KCNH8 gene" ("gngm" "aapp" "bacs"))
-   (1439347 "BTG1 gene" ("gngm" "aapp"))
-   (4891 "Fusion Proteins, bcr-abl" ("aapp" "gngm" "bacs"))
-   (1439337 "tyrosine kinase ABL1" ("aapp" "gngm" "enzy"))
-   (80092
-    "Macrophage Colony-Stimulating Factor Receptor"
-    ("enzy" "aapp" "imft" "gngm"))
-   (879468 "CSF1R gene" ("aapp" "imft" "rcpt" "gngm" "enzy"))
-   (32200 "Platelet-Derived Growth Factor" ("gngm" "aapp" "bacs"))
-   (72470 "Proto-Oncogene Protein c-kit" ("aapp" "gngm" "rcpt" "imft"))
-   (206364 "Receptor Protein-Tyrosine Kinases" ("enzy" "rcpt" "gngm" "aapp"))
-   (290067
-    "Platelet-Derived Growth Factor alpha Receptor"
-    ("rcpt" "aapp" "gngm" "enzy"))
-   (174680 "Cyclin D1" ("gngm" "bacs" "aapp"))
-   (812385 "BCR gene" ("gngm" "bacs" "enzy" "aapp"))
-   (1335202 "PDGFRB gene" ("bacs" "gngm" "rcpt" "enzy" "aapp"))
-   (597357 "receptor" ("aapp" "gngm" "rcpt"))
-   (31727 "Phosphotransferases" ("aapp" "gngm" "enzy"))
-   (1412097 "ABL1 gene" ("imft" "enzy" "gngm" "aapp" "bacs" "phsu"))
-   (71253 "Platelet-Derived Growth Factor Receptor" ("aapp" "gngm" "enzy"))
-   (1826328 "MTTP gene" ("aapp" "lipd" "gngm" "imft" "phsu" "bacs"))
-   (79427 "Tumor Suppressor Genes" ("gngm" "aapp"))
-   (105770 "beta catenin" ("aapp" "gngm" "bacs"))
-   (920288 "C-KIT Gene" ("gngm" "aapp"))
-   (1416655 "KIT gene" ("bacs" "imft" "gngm" "aapp"))))
+;;
+;; Run this by calling (paths-of-interest)
+;;
+(define (paths-of-interest)
+  (map
+   (lambda (gene)
+     (let ((disorders
+            (run* (q)
+              (fresh (e1 e2 e3 celf disorder disorder-type rest1 rest2 rest3)
+                (== (list e1 e2 e3) q)
+                (fuzzy-concepto "asthma" disorder)
+                (conde
+                  [(== "dsyn" disorder-type)]
+                  [(== "neop" disorder-type)]
+                  [(== "patf" disorder-type)])
+                (== `(,gene ,celf "CAUSES" "gngm" "celf" . ,rest1) e1)
+                (== `(,celf ,disorder "AFFECTS" "celf" ,disorder-type . ,rest2) e2)
+                (== `(,disorder ,celf "MANIFESTATION_OF" ,disorder-type "celf" . ,rest3) e3)
+                (edgeo e1)
+                (edgeo e3)
+                (edgeo e2)))))
+       (let ((disorders (rem-dups disorders)))
+         disorders)))
+   '((1428985 "PDGFD gene" ("aapp" "gngm"))
+     (919477 "LCK gene" ("aapp" "enzy" "gngm"))
+     (1136340 "Semaphorins" ("bacs" "gngm" "aapp"))
+     (1366876 "MAPK14 gene" ("gngm" "aapp" "enzy"))
+     (1364818 "APP gene" ("enzy" "gngm" "bacs" "aapp" "imft"))
+     (1333568 "FLT3 gene" ("gngm" "phsu" "bacs" "aapp"))
+     (79050 "c-abl Proto-Oncogenes" ("aapp" "gngm"))
+     (79413 "Genes, abl" ("gngm" "aapp"))
+     (812253 "CRKL gene" ("bacs" "aapp" "gngm"))
+     (915156 "Ephrin Receptor EphA8" ("gngm" "enzy" "aapp"))
+     (2716 "Amyloid" ("bacs" "aapp" "gngm"))
+     (3241 "Antibodies" ("gngm" "aapp" "imft"))
+     (33640 "PROTEIN KINASE" ("gngm" "enzy" "aapp"))
+     (33681 "Protein Tyrosine Kinase" ("enzy" "gngm" "aapp"))
+     (164786 "Proto-Oncogene Proteins c-akt" ("gngm" "aapp" "enzy"))
+     (33684 "Proteins" ("bacs" "gngm" "aapp"))
+     (246681 "platelet-derived growth factor BB" ("gngm" "phsu" "aapp"))
+     (290068
+      "Platelet-Derived Growth Factor beta Receptor"
+      ("aapp" "gngm" "rcpt" "enzy"))
+     (812228 "AKT1 gene" ("aapp" "phsu" "enzy" "gngm" "bacs"))
+     (812375 "ELK3 gene" ("enzy" "gngm" "bacs" "aapp"))
+     (1335239 "PPBP gene" ("bacs" "aapp" "gngm"))
+     (1419240 "RAD51 gene" ("enzy" "gngm" "aapp"))
+     (1421416 "UVRAG gene" ("gngm" "phsu" "aapp"))
+     (1422009 "TP63 gene" ("rcpt" "phsu" "imft" "aapp" "gngm"))
+     (1424677 "CKAP4 gene" ("gngm" "aapp" "bacs" "phsu"))
+     (1425835 "KCNH8 gene" ("gngm" "aapp" "bacs"))
+     (1439347 "BTG1 gene" ("gngm" "aapp"))
+     (4891 "Fusion Proteins, bcr-abl" ("aapp" "gngm" "bacs"))
+     (1439337 "tyrosine kinase ABL1" ("aapp" "gngm" "enzy"))
+     (80092
+      "Macrophage Colony-Stimulating Factor Receptor"
+      ("enzy" "aapp" "imft" "gngm"))
+     (879468 "CSF1R gene" ("aapp" "imft" "rcpt" "gngm" "enzy"))
+     (32200 "Platelet-Derived Growth Factor" ("gngm" "aapp" "bacs"))
+     (72470 "Proto-Oncogene Protein c-kit" ("aapp" "gngm" "rcpt" "imft"))
+     (206364 "Receptor Protein-Tyrosine Kinases" ("enzy" "rcpt" "gngm" "aapp"))
+     (290067
+      "Platelet-Derived Growth Factor alpha Receptor"
+      ("rcpt" "aapp" "gngm" "enzy"))
+     (174680 "Cyclin D1" ("gngm" "bacs" "aapp"))
+     (812385 "BCR gene" ("gngm" "bacs" "enzy" "aapp"))
+     (1335202 "PDGFRB gene" ("bacs" "gngm" "rcpt" "enzy" "aapp"))
+     (597357 "receptor" ("aapp" "gngm" "rcpt"))
+     (31727 "Phosphotransferases" ("aapp" "gngm" "enzy"))
+     (1412097 "ABL1 gene" ("imft" "enzy" "gngm" "aapp" "bacs" "phsu"))
+     (71253 "Platelet-Derived Growth Factor Receptor" ("aapp" "gngm" "enzy"))
+     (1826328 "MTTP gene" ("aapp" "lipd" "gngm" "imft" "phsu" "bacs"))
+     (79427 "Tumor Suppressor Genes" ("gngm" "aapp"))
+     (105770 "beta catenin" ("aapp" "gngm" "bacs"))
+     (920288 "C-KIT Gene" ("gngm" "aapp"))
+     (1416655 "KIT gene" ("bacs" "imft" "gngm" "aapp")))))
 ;; =>
 ;; cpu time: 127629 real time: 128505 gc time: 1446
 #|
@@ -1851,6 +1871,8 @@
      (2741114)))))
 |#
 
+(displayln
+  "Finished loading paths-of-interest")
 
 
 ;; Genes inhibited by Gleevec
@@ -1992,6 +2014,8 @@
   ())
 |#
 
+(displayln
+  "Finished loading no causal relationship")
 
 
 ;; Here is a first attempt at pruning down the number of candidate
@@ -2448,80 +2472,84 @@
 ;; 93 answers
 ;;
 ;; includes (4096 "Asthma" ("dsyn")) and (11847 "Diabetes" ("dsyn"))
-(apply
- union*
- (map
-  (lambda (gene)
-    (let ((disorders
-           (run* (q)
-             (fresh (e0 e1 e2 e3 celf disorder disorder-type rest0 rest1 rest2 rest3)
-               (== disorder q)
-               (conde
-                 [(== "dsyn" disorder-type)]
-                 ; [(== "neop" disorder-type)]
-                 [(== "patf" disorder-type)])
-               (== `(,gene ,disorder "CAUSES" "gngm" ,disorder-type . ,rest0) e0)
-               (== `(,gene ,celf "CAUSES" "gngm" "celf" . ,rest1) e1)
-               (== `(,celf ,disorder "AFFECTS" "celf" ,disorder-type . ,rest2) e2)
-               (== `(,disorder ,celf "MANIFESTATION_OF" ,disorder-type "celf" . ,rest3) e3)
-               (edgeo e0)
-               (edgeo e3)
-               (edgeo e1)
-               (edgeo e2)))))
-      (rem-dups disorders)))
-  '((1428985 "PDGFD gene" ("aapp" "gngm"))
-    (919477 "LCK gene" ("aapp" "enzy" "gngm"))
-    (1136340 "Semaphorins" ("bacs" "gngm" "aapp"))
-    (1366876 "MAPK14 gene" ("gngm" "aapp" "enzy"))
-    (1364818 "APP gene" ("enzy" "gngm" "bacs" "aapp" "imft"))
-    (1333568 "FLT3 gene" ("gngm" "phsu" "bacs" "aapp"))
-    (79050 "c-abl Proto-Oncogenes" ("aapp" "gngm"))
-    (79413 "Genes, abl" ("gngm" "aapp"))
-    (812253 "CRKL gene" ("bacs" "aapp" "gngm"))
-    (915156 "Ephrin Receptor EphA8" ("gngm" "enzy" "aapp"))
-    (2716 "Amyloid" ("bacs" "aapp" "gngm"))
-    (3241 "Antibodies" ("gngm" "aapp" "imft"))
-    (33640 "PROTEIN KINASE" ("gngm" "enzy" "aapp"))
-    (33681 "Protein Tyrosine Kinase" ("enzy" "gngm" "aapp"))
-    (164786 "Proto-Oncogene Proteins c-akt" ("gngm" "aapp" "enzy"))
-    (33684 "Proteins" ("bacs" "gngm" "aapp"))
-    (246681 "platelet-derived growth factor BB" ("gngm" "phsu" "aapp"))
-    (290068
-     "Platelet-Derived Growth Factor beta Receptor"
-     ("aapp" "gngm" "rcpt" "enzy"))
-    (812228 "AKT1 gene" ("aapp" "phsu" "enzy" "gngm" "bacs"))
-    (812375 "ELK3 gene" ("enzy" "gngm" "bacs" "aapp"))
-    (1335239 "PPBP gene" ("bacs" "aapp" "gngm"))
-    (1419240 "RAD51 gene" ("enzy" "gngm" "aapp"))
-    (1421416 "UVRAG gene" ("gngm" "phsu" "aapp"))
-    (1422009 "TP63 gene" ("rcpt" "phsu" "imft" "aapp" "gngm"))
-    (1424677 "CKAP4 gene" ("gngm" "aapp" "bacs" "phsu"))
-    (1425835 "KCNH8 gene" ("gngm" "aapp" "bacs"))
-    (1439347 "BTG1 gene" ("gngm" "aapp"))
-    (4891 "Fusion Proteins, bcr-abl" ("aapp" "gngm" "bacs"))
-    (1439337 "tyrosine kinase ABL1" ("aapp" "gngm" "enzy"))
-    (80092
-     "Macrophage Colony-Stimulating Factor Receptor"
-     ("enzy" "aapp" "imft" "gngm"))
-    (879468 "CSF1R gene" ("aapp" "imft" "rcpt" "gngm" "enzy"))
-    (32200 "Platelet-Derived Growth Factor" ("gngm" "aapp" "bacs"))
-    (72470 "Proto-Oncogene Protein c-kit" ("aapp" "gngm" "rcpt" "imft"))
-    (206364 "Receptor Protein-Tyrosine Kinases" ("enzy" "rcpt" "gngm" "aapp"))
-    (290067
-     "Platelet-Derived Growth Factor alpha Receptor"
-     ("rcpt" "aapp" "gngm" "enzy"))
-    (174680 "Cyclin D1" ("gngm" "bacs" "aapp"))
-    (812385 "BCR gene" ("gngm" "bacs" "enzy" "aapp"))
-    (1335202 "PDGFRB gene" ("bacs" "gngm" "rcpt" "enzy" "aapp"))
-    (597357 "receptor" ("aapp" "gngm" "rcpt"))
-    (31727 "Phosphotransferases" ("aapp" "gngm" "enzy"))
-    (1412097 "ABL1 gene" ("imft" "enzy" "gngm" "aapp" "bacs" "phsu"))
-    (71253 "Platelet-Derived Growth Factor Receptor" ("aapp" "gngm" "enzy"))
-    (1826328 "MTTP gene" ("aapp" "lipd" "gngm" "imft" "phsu" "bacs"))
-    (79427 "Tumor Suppressor Genes" ("gngm" "aapp"))
-    (105770 "beta catenin" ("aapp" "gngm" "bacs"))
-    (920288 "C-KIT Gene" ("gngm" "aapp"))
-    (1416655 "KIT gene" ("bacs" "imft" "gngm" "aapp")))))
+;;
+;; run by typing (gene-cases-celf-affects-disorder)
+;;
+(define (gene-cases-celf-affects-disorder)
+  (apply
+   union*
+   (map
+    (lambda (gene)
+      (let ((disorders
+             (run* (q)
+               (fresh (e0 e1 e2 e3 celf disorder disorder-type rest0 rest1 rest2 rest3)
+                 (== disorder q)
+                 (conde
+                   [(== "dsyn" disorder-type)]
+                                        ; [(== "neop" disorder-type)]
+                   [(== "patf" disorder-type)])
+                 (== `(,gene ,disorder "CAUSES" "gngm" ,disorder-type . ,rest0) e0)
+                 (== `(,gene ,celf "CAUSES" "gngm" "celf" . ,rest1) e1)
+                 (== `(,celf ,disorder "AFFECTS" "celf" ,disorder-type . ,rest2) e2)
+                 (== `(,disorder ,celf "MANIFESTATION_OF" ,disorder-type "celf" . ,rest3) e3)
+                 (edgeo e0)
+                 (edgeo e3)
+                 (edgeo e1)
+                 (edgeo e2)))))
+        (rem-dups disorders)))
+    '((1428985 "PDGFD gene" ("aapp" "gngm"))
+      (919477 "LCK gene" ("aapp" "enzy" "gngm"))
+      (1136340 "Semaphorins" ("bacs" "gngm" "aapp"))
+      (1366876 "MAPK14 gene" ("gngm" "aapp" "enzy"))
+      (1364818 "APP gene" ("enzy" "gngm" "bacs" "aapp" "imft"))
+      (1333568 "FLT3 gene" ("gngm" "phsu" "bacs" "aapp"))
+      (79050 "c-abl Proto-Oncogenes" ("aapp" "gngm"))
+      (79413 "Genes, abl" ("gngm" "aapp"))
+      (812253 "CRKL gene" ("bacs" "aapp" "gngm"))
+      (915156 "Ephrin Receptor EphA8" ("gngm" "enzy" "aapp"))
+      (2716 "Amyloid" ("bacs" "aapp" "gngm"))
+      (3241 "Antibodies" ("gngm" "aapp" "imft"))
+      (33640 "PROTEIN KINASE" ("gngm" "enzy" "aapp"))
+      (33681 "Protein Tyrosine Kinase" ("enzy" "gngm" "aapp"))
+      (164786 "Proto-Oncogene Proteins c-akt" ("gngm" "aapp" "enzy"))
+      (33684 "Proteins" ("bacs" "gngm" "aapp"))
+      (246681 "platelet-derived growth factor BB" ("gngm" "phsu" "aapp"))
+      (290068
+       "Platelet-Derived Growth Factor beta Receptor"
+       ("aapp" "gngm" "rcpt" "enzy"))
+      (812228 "AKT1 gene" ("aapp" "phsu" "enzy" "gngm" "bacs"))
+      (812375 "ELK3 gene" ("enzy" "gngm" "bacs" "aapp"))
+      (1335239 "PPBP gene" ("bacs" "aapp" "gngm"))
+      (1419240 "RAD51 gene" ("enzy" "gngm" "aapp"))
+      (1421416 "UVRAG gene" ("gngm" "phsu" "aapp"))
+      (1422009 "TP63 gene" ("rcpt" "phsu" "imft" "aapp" "gngm"))
+      (1424677 "CKAP4 gene" ("gngm" "aapp" "bacs" "phsu"))
+      (1425835 "KCNH8 gene" ("gngm" "aapp" "bacs"))
+      (1439347 "BTG1 gene" ("gngm" "aapp"))
+      (4891 "Fusion Proteins, bcr-abl" ("aapp" "gngm" "bacs"))
+      (1439337 "tyrosine kinase ABL1" ("aapp" "gngm" "enzy"))
+      (80092
+       "Macrophage Colony-Stimulating Factor Receptor"
+       ("enzy" "aapp" "imft" "gngm"))
+      (879468 "CSF1R gene" ("aapp" "imft" "rcpt" "gngm" "enzy"))
+      (32200 "Platelet-Derived Growth Factor" ("gngm" "aapp" "bacs"))
+      (72470 "Proto-Oncogene Protein c-kit" ("aapp" "gngm" "rcpt" "imft"))
+      (206364 "Receptor Protein-Tyrosine Kinases" ("enzy" "rcpt" "gngm" "aapp"))
+      (290067
+       "Platelet-Derived Growth Factor alpha Receptor"
+       ("rcpt" "aapp" "gngm" "enzy"))
+      (174680 "Cyclin D1" ("gngm" "bacs" "aapp"))
+      (812385 "BCR gene" ("gngm" "bacs" "enzy" "aapp"))
+      (1335202 "PDGFRB gene" ("bacs" "gngm" "rcpt" "enzy" "aapp"))
+      (597357 "receptor" ("aapp" "gngm" "rcpt"))
+      (31727 "Phosphotransferases" ("aapp" "gngm" "enzy"))
+      (1412097 "ABL1 gene" ("imft" "enzy" "gngm" "aapp" "bacs" "phsu"))
+      (71253 "Platelet-Derived Growth Factor Receptor" ("aapp" "gngm" "enzy"))
+      (1826328 "MTTP gene" ("aapp" "lipd" "gngm" "imft" "phsu" "bacs"))
+      (79427 "Tumor Suppressor Genes" ("gngm" "aapp"))
+      (105770 "beta catenin" ("aapp" "gngm" "bacs"))
+      (920288 "C-KIT Gene" ("gngm" "aapp"))
+      (1416655 "KIT gene" ("bacs" "imft" "gngm" "aapp"))))))
 ;; =>
 #|
 '((7193 "Cardiomyopathy, Dilated" ("dsyn"))
@@ -3292,7 +3320,8 @@
         (== `(,drug ,what-is-it "ISA" ,st-drug/what ,ot-drug/what . ,e-drug/what-rest) e-drug/what)
         (edgeo e-drug/what))))
 
-
+(displayln
+  "Finished loading 'playing with ISA'")
 
 
 ;; let's test the individual parts of the query
@@ -3370,6 +3399,10 @@
            genes-inhibited-by-imatinib)
       (lambda (l1 l2) (< (car l1) (car l2))))))
 
+(displayln
+  "Finished loading 'lets test the individual parts of the query'")
+
+
 ;; how many genes are inhibited by imatinib?
 ;;
 ;; cpu time: 10 real time: 10 gc time: 0
@@ -3397,3 +3430,6 @@
         (edgeo e-drug/gene)
 
         ))))
+
+(displayln
+  "done")
