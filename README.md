@@ -38,7 +38,10 @@ Depending on the size of the CSV you're using, these commands could take up to a
 
 ## Run queries
 
+Start with `code/imatinib-query.rkt`, which includes queries taken from `code/study-imatinib.rkt`, and also includes a high-level description of the queries.
+
 Take a look at the various `study-*.rkt` files in the `code` directory for examples.  You can run these from the command line, e.g., `racket study-imatinib.rkt`.
+
 
 To write your own queries, either as a new `*.rkt` file or interactively, start with:
 
