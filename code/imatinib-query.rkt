@@ -2558,9 +2558,9 @@
 ;;
 ;; includes (4096 "Asthma" ("dsyn")) and (11847 "Diabetes" ("dsyn"))
 ;;
-;; run by typing (gene-cases-celf-affects-disorder)
+;; run by typing (gene-causes-celf-affects-disorder)
 ;;
-(define (gene-cases-celf-affects-disorder)
+(define (gene-causes-celf-affects-disorder)
   (apply
    union*
    (map
