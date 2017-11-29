@@ -261,6 +261,91 @@
   "Finished loading helpers")
 
 
+
+;;; First bit of reasoning:
+;;
+;; We want to find candidate "unknown" diseases that might be treated by imatinib.
+;; SemMedDB has multiple concepts related to imatinib, some very specific (Gleevec),
+;; some less specific (the class of imatinib-related drugs).
+;;
+;; One simple bit of reasoning we can do is try to find the types of
+;; imatinib-related compounds, and thir relationships.  An ontology
+;; would be helpful here--we can get much of the way using the ISA
+;; predicate in SemMedDB.  We can also look at branchiong factors for
+;; the different drug/gene inhibition connections, for example.  Using
+;; external sources as well, we can determine Gleevec is a trade name,
+;; and is theremore more specific than the class of imatinib-related
+;; compounds.  We can therefor use the heuristic that we are going to
+;; start by searching for connections from Gleevec, rather than all
+;; imatinib compounds, to try to reduce the branching factor.
+
+
+;; Here are the relevant ISA queries:
+
+;; ??? ISA imatinib
+;;
+;; Gleevec makes sense (brand name), and probably Imatinib mesylate.
+;; STI571 is okay, probably. http://chemocare.com/chemotherapy/drug-info/STI-571.aspx
+;; And CGP 57148.  https://www.biovision.com/imatinib-mesylate-cgp-57148b-sti-571.html
+;;
+;; The others seem...less good. 'Therapeutic procedure ISA imatinib' seems non-sensical.
+;; 'Protein-tyrosine kinase inhibitor ISA imatinib' seems backwards.
+;; '((3392 "Antineoplastic Agents" ("phsu"))
+;;   (13216 "Pharmacotherapy" ("topp"))
+;;   (13227 "Pharmaceutical Preparations" ("phsu"))
+;;   (87111 "Therapeutic procedure" ("topp"))
+;;   (385728 "CGP 57148" ("phsu" "orch"))
+;;   (543467 "Operative Surgical Procedures" ("topp"))
+;;   (906802 "STI571" ("phsu" "orch"))
+;;   (935987 "Gleevec" ("orch" "phsu"))
+;;   (939537 "Imatinib mesylate" ("orch" "phsu"))
+;;   (1268567 "Protein-tyrosine kinase inhibitor" ("phsu"))
+;;   (1268567 "Protein-tyrosine kinase inhibitor" ("phsu")))
+(time
+  (run* (q)
+      (fresh (what-is-it drug e-what/drug st-what/drug ot-what/drug e-what/drug-rest)        
+        (== what-is-it q)
+        (== '(935989 "imatinib" ("phsu" "orch")) drug)
+        (== `(,what-is-it ,drug "ISA" ,st-what/drug ,ot-what/drug . ,e-what/drug-rest) e-what/drug)
+        (edgeo e-what/drug))))
+
+
+;; imatinib ISA ???
+;; '((3392 "Antineoplastic Agents" ("phsu"))
+;;   (13216 "Pharmacotherapy" ("topp"))
+;;   (13227 "Pharmaceutical Preparations" ("phsu"))
+;;   (13227 "Pharmaceutical Preparations" ("phsu"))
+;;   (39796 "The science and art of healing" ("topp"))
+;;   (87111 "Therapeutic procedure" ("topp"))
+;;   (87111 "Therapeutic procedure" ("topp"))
+;;   (243076 "antagonists" ("chvf"))
+;;   (418981 "Medical therapy" ("topp"))
+;;   (543467 "Operative Surgical Procedures" ("topp"))
+;;   (679607 "treatment method" ("topp"))
+;;   (920425 "Cancer Treatment" ("topp"))
+;;   (935451 "neoplasm/cancer chemotherapy" ("topp"))
+;;   (939537 "Imatinib mesylate" ("orch" "phsu"))
+;;   (1254351 "Pharmacologic Substance" ("phsu"))
+;;   (1268567 "Protein-tyrosine kinase inhibitor" ("phsu"))
+;;   (1372955 "Active Ingredients" ("phsu"))
+;;   (1449702 "Protein Kinase Inhibitors" ("phsu"))
+;;   (1519313 "Signal Transduction Inhibitor" ("phsu"))
+;;   (1533685 "Injection procedure" ("topp"))
+;;   (1579409 "Molecular Target Inhibitors" ("phsu"))
+;;   (1611640 "Therapeutic agent (substance)" ("phsu")))
+(time
+  (run* (q)
+      (fresh (drug what-is-it e-drug/what st-drug/what ot-drug/what e-drug/what-rest)        
+        (== what-is-it q)
+        (== '(935989 "imatinib" ("phsu" "orch")) drug)
+        (== `(,drug ,what-is-it "ISA" ,st-drug/what ,ot-drug/what . ,e-drug/what-rest) e-drug/what)
+        (edgeo e-drug/what))))
+
+(displayln
+  "Finished loading 'playing with ISA'")
+
+
+
 ;; THE CANDIDATE DISEASES
 ;;
 ;; Working backwards, here we calculate the final 111 candidate
@@ -3259,69 +3344,6 @@
   (1510411 "metaplastic cell transformation" ("patf"))
   (1140999 "Contraction" ("patf")))
 |#
-
-;; playing with ISA
-;; ??? ISA imatinib
-;;
-;; Gleevec makes sense (brand name), and probably Imatinib mesylate.
-;; STI571 is okay, probably. http://chemocare.com/chemotherapy/drug-info/STI-571.aspx
-;; And CGP 57148.  https://www.biovision.com/imatinib-mesylate-cgp-57148b-sti-571.html
-;;
-;; The others seem...less good. 'Therapeutic procedure ISA imatinib' seems non-sensical.
-;; 'Protein-tyrosine kinase inhibitor ISA imatinib' seems backwards.
-;; '((3392 "Antineoplastic Agents" ("phsu"))
-;;   (13216 "Pharmacotherapy" ("topp"))
-;;   (13227 "Pharmaceutical Preparations" ("phsu"))
-;;   (87111 "Therapeutic procedure" ("topp"))
-;;   (385728 "CGP 57148" ("phsu" "orch"))
-;;   (543467 "Operative Surgical Procedures" ("topp"))
-;;   (906802 "STI571" ("phsu" "orch"))
-;;   (935987 "Gleevec" ("orch" "phsu"))
-;;   (939537 "Imatinib mesylate" ("orch" "phsu"))
-;;   (1268567 "Protein-tyrosine kinase inhibitor" ("phsu"))
-;;   (1268567 "Protein-tyrosine kinase inhibitor" ("phsu")))
-(time
-  (run* (q)
-      (fresh (what-is-it drug e-what/drug st-what/drug ot-what/drug e-what/drug-rest)        
-        (== what-is-it q)
-        (== '(935989 "imatinib" ("phsu" "orch")) drug)
-        (== `(,what-is-it ,drug "ISA" ,st-what/drug ,ot-what/drug . ,e-what/drug-rest) e-what/drug)
-        (edgeo e-what/drug))))
-
-;; playing with ISA
-;; imatinib ISA ???
-;; '((3392 "Antineoplastic Agents" ("phsu"))
-;;   (13216 "Pharmacotherapy" ("topp"))
-;;   (13227 "Pharmaceutical Preparations" ("phsu"))
-;;   (13227 "Pharmaceutical Preparations" ("phsu"))
-;;   (39796 "The science and art of healing" ("topp"))
-;;   (87111 "Therapeutic procedure" ("topp"))
-;;   (87111 "Therapeutic procedure" ("topp"))
-;;   (243076 "antagonists" ("chvf"))
-;;   (418981 "Medical therapy" ("topp"))
-;;   (543467 "Operative Surgical Procedures" ("topp"))
-;;   (679607 "treatment method" ("topp"))
-;;   (920425 "Cancer Treatment" ("topp"))
-;;   (935451 "neoplasm/cancer chemotherapy" ("topp"))
-;;   (939537 "Imatinib mesylate" ("orch" "phsu"))
-;;   (1254351 "Pharmacologic Substance" ("phsu"))
-;;   (1268567 "Protein-tyrosine kinase inhibitor" ("phsu"))
-;;   (1372955 "Active Ingredients" ("phsu"))
-;;   (1449702 "Protein Kinase Inhibitors" ("phsu"))
-;;   (1519313 "Signal Transduction Inhibitor" ("phsu"))
-;;   (1533685 "Injection procedure" ("topp"))
-;;   (1579409 "Molecular Target Inhibitors" ("phsu"))
-;;   (1611640 "Therapeutic agent (substance)" ("phsu")))
-(time
-  (run* (q)
-      (fresh (drug what-is-it e-drug/what st-drug/what ot-drug/what e-drug/what-rest)        
-        (== what-is-it q)
-        (== '(935989 "imatinib" ("phsu" "orch")) drug)
-        (== `(,drug ,what-is-it "ISA" ,st-drug/what ,ot-drug/what . ,e-drug/what-rest) e-drug/what)
-        (edgeo e-drug/what))))
-
-(displayln
-  "Finished loading 'playing with ISA'")
 
 
 ;; let's test the individual parts of the query
