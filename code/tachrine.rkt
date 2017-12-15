@@ -9,6 +9,7 @@
   "mk-db.rkt"
   "concept.rkt"
   "edge.rkt"
+  "helpers.rkt"
   )
 
 (displayln
@@ -34,6 +35,20 @@
   (771182 "Tacrine Hydrochloride" ("phsu" "orch"))
   (1435294 "N-butyramide-tacrine" ("orch")))
 
+;; Same query as above, but restrict to pharmacologic substances
+;; ("phsu").
+(run* (q)
+  (fuzzy-concepto "tacrine" q)
+  (fresh (cui name concept-type*)
+    (== `(,cui ,name ,concept-type*) q)
+    (membero "phsu" concept-type*)))
+;; =>
+'((39245 "Tacrine" ("orch" "phsu"))
+  (99894 "7-methoxytacrine" ("orch" "phsu"))
+  (295379 "4-hydroxytacrine" ("orch" "phsu"))
+  (295380 "2-hydroxytacrine" ("phsu" "orch"))
+  (771182 "Tacrine Hydrochloride" ("phsu" "orch")))
+
 
 ;; alzheimer
 ;;
@@ -53,7 +68,7 @@
   (1456623 "Alzheimer's Caregivers" ("humn" "popg")))
 
 
-;; What are the connections between Tacrine (a Pharmacologic Substance, or "phsu")
+;; What are the direct connections between Tacrine (a Pharmacologic Substance, or "phsu")
 ;; and Alzheimer's Disease (a Disease or Syndrome, or "dsyn")?
 ;;
 ;; We are using the semantic types for the edges to improve
@@ -66,6 +81,15 @@
   (fresh (s o predicate pubref)
     (== e `(,s ,o ,predicate "phsu" "dsyn" ,pubref))
     (cuio s 39245) (cuio o 2395) (edgeo e)))
+;;
+;; which is equivalent to the slightly more verbose
+;;
+(run* (e)
+  (fresh (s o predicate pubref)
+    (== e `(,s ,o ,predicate "phsu" "dsyn" ,pubref))
+    (== '(39245 "Tacrine" ("orch" "phsu")) s)
+    (== '(2395 "Alzheimer's Disease" ("dsyn")) o)
+    (edgeo e)))
 ;; =>
 '(((39245 "Tacrine" ("orch" "phsu"))
    (2395 "Alzheimer's Disease" ("dsyn"))
@@ -409,7 +433,10 @@
     1981736
     1438050)))
 
-;; Tacrine ->INHIBITS -> X -> CAUSES -> Alzheimer's 
+;; Indirect connections between Tacrine and Alzheimer's, of the form
+;;
+;; Tacrine ->INHIBITS -> X -> CAUSES -> Alzheimer's
+;;
 (run* (e1 e2)
   (fresh (s
           m ;; unknown gene
@@ -421,3 +448,84 @@
     (edgeo e1)
     (edgeo e2)
     ))
+;; => 47 answers, 215 ms
+
+
+;; variants of the above query
+
+
+;; Use full concept entries, rather than CUIs, for Tacrine and Alzheimer's Disease.
+;; This is equivalent to using the CUIs, but is more verbose and easier for humans to read.
+(run* (e1 e2)
+  (fresh (s
+          m ;; unknown gene
+          o p1 p2 ts t1 t2 r1 r2)
+    (== e1 `(,s ,m "INHIBITS" ,ts ,t1 ,r1))
+    (== e2 `(,m ,o "CAUSES" ,t2 "dsyn" ,r2))
+    (== '(39245 "Tacrine" ("orch" "phsu")) s)
+    (== '(2395 "Alzheimer's Disease" ("dsyn")) o)
+    (edgeo e1)
+    (edgeo e2)
+    ))
+;; => 47 answers, 215 ms
+
+
+;; Instead of using one specific concept each for tacrine and for
+;; alzheimer's, do fuzzy concept searches.
+;;
+;; This query is a bit sloppy, since we are not removing duplicate
+;; answers, and are also not using concept types to ensure tacrine is
+;; a pharmacologic substance.
+;;
+;; As a result, the query may produce duplicate answers, and answers
+;; in which tacrine is not restricted to pharmacologic substances.
+(run* (e1 e2)
+  (fresh (s
+          m ;; unknown gene
+          o p1 p2 ts t1 t2 r1 r2)
+    (== e1 `(,s ,m "INHIBITS" ,ts ,t1 ,r1))
+    (== e2 `(,m ,o "CAUSES" ,t2 "dsyn" ,r2))
+    (fuzzy-concepto "tacrine" s)
+    (fuzzy-concepto "alzheimer" o)
+    (edgeo e1)
+    (edgeo e2)
+    ))
+;; => 57 answers, 2 seconds
+
+
+;; As above, but remove duplicate answers.
+;;
+;; Turns out there aren't duplicates for this query.
+(remove-duplicates
+  (run* (e1 e2)
+    (fresh (s
+            m ;; unknown gene
+            o p1 p2 ts t1 t2 r1 r2)
+      (== e1 `(,s ,m "INHIBITS" ,ts ,t1 ,r1))
+      (== e2 `(,m ,o "CAUSES" ,t2 "dsyn" ,r2))
+      (fuzzy-concepto "tacrine" s)
+      (fuzzy-concepto "alzheimer" o)
+      (edgeo e1)
+      (edgeo e2)
+      )))
+;; => 57 answers, 2 seconds
+
+
+;; As above, but remove duplicate answers, and also restrict tacrine
+;; to pharmacologic substances.
+(remove-duplicates
+  (run* (e1 e2)
+    (fresh (s
+            m ;; unknown gene
+            o p1 p2 ts t1 t2 r1 r2)
+      (== e1 `(,s ,m "INHIBITS" ,ts ,t1 ,r1))
+      (== e2 `(,m ,o "CAUSES" ,t2 "dsyn" ,r2))
+      (fuzzy-concepto "tacrine" s)
+      (fresh (cui name concept-type*)
+        (== `(,cui ,name ,concept-type*) s)
+        (membero "phsu" concept-type*))
+      (fuzzy-concepto "alzheimer" o)      
+      (edgeo e1)
+      (edgeo e2)
+      )))
+;; => 55 answers, 2 seconds
