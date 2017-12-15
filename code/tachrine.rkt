@@ -24,7 +24,7 @@
 ;; (39245 "Tacrine" ("orch" "phsu"))
 ;; seems like the winner
 (run* (q) (fuzzy-concepto "tacrine" q))
-=>
+;; =>
 '((39245 "Tacrine" ("orch" "phsu"))
   (99894 "7-methoxytacrine" ("orch" "phsu"))
   (295379 "4-hydroxytacrine" ("orch" "phsu"))
@@ -420,4 +420,4 @@
     (cuio o 2395)  ;; Alzheimer's
     (edgeo e1)
     (edgeo e2)
-    )))
+    ))
