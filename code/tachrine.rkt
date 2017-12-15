@@ -19,7 +19,7 @@
 ;; What concepts related to tacrine and alzheimer's disease does
 ;; SemMedDB know about?
 
-;;tacrine
+;; tacrine
 ;;
 ;; (39245 "Tacrine" ("orch" "phsu"))
 ;; seems like the winner
@@ -53,8 +53,8 @@
   (1456623 "Alzheimer's Caregivers" ("humn" "popg")))
 
 
-;; What are the connections between Tacrine (a Pharmacologic Substance or "phsu")
-;; and Alzheimer's Disease (a Disease or Syndrome or "dsyn")?
+;; What are the connections between Tacrine (a Pharmacologic Substance, or "phsu")
+;; and Alzheimer's Disease (a Disease or Syndrome, or "dsyn")?
 ;;
 ;; We are using the semantic types for the edges to improve
 ;; performance, and the CUI's from the "Tacrine" and "Alzheimer's
