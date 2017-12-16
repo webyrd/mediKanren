@@ -435,11 +435,11 @@
 
 ;; Indirect connections between Tacrine and Alzheimer's, of the form
 ;;
-;; Tacrine ->INHIBITS -> X -> CAUSES -> Alzheimer's
+;; Tacrine -> INHIBITS -> X -> CAUSES -> Alzheimer's
 ;;
 (run* (e1 e2)
   (fresh (s
-          m ;; unknown gene
+          m ;; unknown gene or other entity being inhibited
           o p1 p2 ts t1 t2 r1 r2)
     (== e1 `(,s ,m "INHIBITS" ,ts ,t1 ,r1))
     (== e2 `(,m ,o "CAUSES" ,t2 "dsyn" ,r2))
@@ -449,16 +449,265 @@
     (edgeo e2)
     ))
 ;; => 47 answers, 215 ms
+;;
+;; Not all of these answers involve inhibiting genes.
+;; For example, Acetylcholine (a neurotransmitter) is inhibited by
+;; Tacrine, and causes Alzheimer's (according to SemMedDB)
+;;
+;; We have duplicate answers, in that we have multiple answers for the same X for which
+;;
+;; Tacrine -> INHIBITS -> X -> CAUSES -> Alzheimer's
+;;
+;; This is because the INHIBITS edge Tacrine -> INHIBITS -> X can have multiple
+;; semantic types for the same X, provided X is associated with more than one semantic
+;; type.  Similarly for the X -> CAUSES -> Alzheimer's edge.
+;;
+;; For example, consider these two answers:
+;;
+'(((39245 "Tacrine" ("orch" "phsu"))
+   (1041 "Acetylcholine" ("phsu" "nsba" "orch"))
+   "INHIBITS"
+   "orch"
+   "nsba"
+   (27876467 9881590 9374189 8842691 8336816))
+  ((1041 "Acetylcholine" ("phsu" "nsba" "orch"))
+   (2395 "Alzheimer's Disease" ("dsyn"))
+   "CAUSES"
+   "nsba"
+   "dsyn"
+   (12770689)))
+;;
+;; and
+;;
+'(((39245 "Tacrine" ("orch" "phsu"))
+   (1041 "Acetylcholine" ("phsu" "nsba" "orch"))
+   "INHIBITS"
+   "orch"
+   "nsba"
+   (27876467 9881590 9374189 8842691 8336816))
+  ((1041 "Acetylcholine" ("phsu" "nsba" "orch"))
+   (2395 "Alzheimer's Disease" ("dsyn"))
+   "CAUSES"
+   "phsu"
+   "dsyn"
+   (16863459)))
+;;
+;; In both cases X is (1041 "Acetylcholine" ("phsu" "nsba" "orch")), but
+;; the semantic types for the X -> CAUSES -> Alzheimer's edges differ:
+;;
+;; nsba|T124|Neuroreactive Substance or Biogenic Amine
+;;
+;; vs.
+;;
+;; phsu|T121|Pharmacologic Substance
+
+;; Here is a variant of the query that just returns the entities X
+;; being inhibited in the X -> CAUSES -> Alzheimer's path:
+;;
+(remove-duplicates
+  (run* (m)
+    (fresh (e1 e2
+               s
+               o p1 p2 ts t1 t2 r1 r2)
+      (== e1 `(,s ,m "INHIBITS" ,ts ,t1 ,r1))
+      (== e2 `(,m ,o "CAUSES" ,t2 "dsyn" ,r2))
+      (cuio s 39245) ;; Tacrine
+      (cuio o 2395)  ;; Alzheimer's
+      (edgeo e1)
+      (edgeo e2)
+      )))
+;; => 30 answers, 205 ms
+'((1041 "Acetylcholine" ("phsu" "nsba" "orch"))
+  (1044 "Acetylcholinesterase" ("gngm" "enzy" "aapp"))
+  (2716 "Amyloid" ("bacs" "aapp" "gngm"))
+  (6675 "Calcium" ("bacs" "elii"))
+  (6685 "Calcium Channel" ("bacs" "gngm" "aapp"))
+  (8377 "Cholesterol" ("strd" "bacs"))
+  (8425 "Cholinesterase Inhibitors" ("phsu" "orch"))
+  (8429 "Cholinesterases" ("enzy" "gngm" "aapp"))
+  (17817 "Glutathione" ("bacs" "aapp" "gngm"))
+  (21753 "Interleukin-1 beta" ("gngm" "imft" "aapp"))
+  (22023 "Ions" ("elii"))
+  (26455 "Monoamine Oxidase A" ("aapp" "gngm" "enzy"))
+  (28040 "Nicotine" ("phsu" "hops" "orch"))
+  (33634 "Protein Kinase C" ("aapp" "enzy" "gngm"))
+  (34826 "Muscarinic Acetylcholine Receptor" ("aapp" "gngm" "rcpt"))
+  (34830 "Nicotinic Receptors" ("rcpt" "gngm" "aapp"))
+  (36442 "Scopolamine" ("orch" "phsu"))
+  (36751 "Serotonin" ("nsba" "orch"))
+  (72132 "prolyl oligopeptidase" ("enzy" "aapp" "gngm"))
+  (79883 "N-Methylaspartate" ("aapp" "phsu" "gngm"))
+  (220839 "Glutamate" ("gngm" "bacs" "aapp"))
+  (243192 "agonists" ("phsu"))
+  (728810 "Butyrylcholinesterase" ("enzy" "aapp" "gngm"))
+  (812281 "ROS1 gene" ("bacs" "aapp" "gngm"))
+  (965087 "beta-site APP cleaving enzyme 1" ("gngm" "enzy" "aapp"))
+  (1364818 "APP gene" ("enzy" "gngm" "bacs" "aapp" "imft"))
+  (1412727 "BACE1 gene" ("aapp" "gngm" "enzy"))
+  (1412756 "BCHE gene" ("enzy" "gngm" "aapp"))
+  (1413043 "CA2 gene" ("gngm" "enzy" "bacs" "aapp" "rcpt" "phsu"))
+  (1422569
+   "SPANXC gene"
+   ("gngm" "aapp" "enzy" "imft" "phsu" "horm" "bacs" "antb")))
 
 
-;; variants of the above query
+;; Just return the entities X being inhibited in the
+;; Tacrine -> INHIBITS -> X -> CAUSES -> Alzheimer's path,
+;; where X has the concept type "gngm" (gngm|T028|Gene or Genome)
+;; 
+(remove-duplicates
+  (run* (m)
+    (fresh (e1 e2
+            s
+            o p1 p2 ts t1 t2 r1 r2)
+      (== e1 `(,s ,m "INHIBITS" ,ts ,t1 ,r1))
+      (== e2 `(,m ,o "CAUSES" ,t2 "dsyn" ,r2))
+      (cuio s 39245)  ;; Tacrine
+      (cuio o 2395)   ;; Alzheimer's
+      (edgeo e1)
+      (edgeo e2)
+      (fresh (cui name concept-type*)
+        (== `(,cui ,name ,concept-type*) m)
+        (membero "gngm" concept-type*))
+      )))
+;; => 21 answers, 200 ms
+'((1044 "Acetylcholinesterase" ("gngm" "enzy" "aapp"))
+  (2716 "Amyloid" ("bacs" "aapp" "gngm"))
+  (6685 "Calcium Channel" ("bacs" "gngm" "aapp"))
+  (8429 "Cholinesterases" ("enzy" "gngm" "aapp"))
+  (17817 "Glutathione" ("bacs" "aapp" "gngm"))
+  (21753 "Interleukin-1 beta" ("gngm" "imft" "aapp"))
+  (26455 "Monoamine Oxidase A" ("aapp" "gngm" "enzy"))
+  (33634 "Protein Kinase C" ("aapp" "enzy" "gngm"))
+  (34826 "Muscarinic Acetylcholine Receptor" ("aapp" "gngm" "rcpt"))
+  (34830 "Nicotinic Receptors" ("rcpt" "gngm" "aapp"))
+  (72132 "prolyl oligopeptidase" ("enzy" "aapp" "gngm"))
+  (79883 "N-Methylaspartate" ("aapp" "phsu" "gngm"))
+  (220839 "Glutamate" ("gngm" "bacs" "aapp"))
+  (728810 "Butyrylcholinesterase" ("enzy" "aapp" "gngm"))
+  (812281 "ROS1 gene" ("bacs" "aapp" "gngm"))
+  (965087 "beta-site APP cleaving enzyme 1" ("gngm" "enzy" "aapp"))
+  (1364818 "APP gene" ("enzy" "gngm" "bacs" "aapp" "imft"))
+  (1412727 "BACE1 gene" ("aapp" "gngm" "enzy"))
+  (1412756 "BCHE gene" ("enzy" "gngm" "aapp"))
+  (1413043 "CA2 gene" ("gngm" "enzy" "bacs" "aapp" "rcpt" "phsu"))
+  (1422569
+   "SPANXC gene"
+   ("gngm" "aapp" "enzy" "imft" "phsu" "horm" "bacs" "antb")))
+
+;; Just return the entities X being inhibited in the
+;; <fuzzy 'tacrine'> -> INHIBITS -> X -> CAUSES -> <fuzzy 'alzheimer'>
+;; path, where X has the concept type "gngm"
+;; (gngm|T028|Gene or Genome)
+;; and where <fuzzy 'tacrine'> concepts must have the "phsu" concept type
+;; associated with them,
+;; and where <fuzzy 'alzheimer'> concepts must have the "dsyn" concept type
+;; associated with them.
+;;
+;; Interestingly, the same 21 answers are returned as when we use
+;; the specific CUIs
+;;
+;;      (cuio s 39245)  ;; Tacrine
+;;      (cuio o 2395)   ;; Alzheimer's
+;;
+;; Keep in mind that there are only 21 X's, but more than 21 paths from
+;; <fuzzy 'tacrine'> -> INHIBITS -> X -> CAUSES -> <fuzzy 'alzheimer'>
+;; since sometimes there are multiple direct edges between the same concepts,
+;; with different semantic types (and PubMed Ids).
+;;
+;; Note that requiring a concept has a concept type associated with it is *less*
+;; specific than requiring an edge of the path have that type.
+(remove-duplicates
+  (run* (m)
+    (fresh (e1 e2
+            s
+            o p1 p2 ts t1 t2 t3 r1 r2)
+      (== e1 `(,s ,m "INHIBITS" ,ts ,t1 ,r1))
+      (== e2 `(,m ,o "CAUSES" ,t2 ,t3 ,r2))
+      (fuzzy-concepto "tacrine" s)
+      (fresh (cui name concept-type*)
+        (== `(,cui ,name ,concept-type*) s)
+        (membero "phsu" concept-type*))
+      (fuzzy-concepto "alzheimer" o)
+      (fresh (cui name concept-type*)
+        (== `(,cui ,name ,concept-type*) o)
+        (membero "dsyn" concept-type*))
+      (edgeo e1)
+      (edgeo e2)
+      (fresh (cui name concept-type*)
+        (== `(,cui ,name ,concept-type*) m)
+        (membero "gngm" concept-type*))
+      )))
+;; => 21 answers, 935 ms
+'((1044 "Acetylcholinesterase" ("gngm" "enzy" "aapp"))
+  (2716 "Amyloid" ("bacs" "aapp" "gngm"))
+  (6685 "Calcium Channel" ("bacs" "gngm" "aapp"))
+  (8429 "Cholinesterases" ("enzy" "gngm" "aapp"))
+  (17817 "Glutathione" ("bacs" "aapp" "gngm"))
+  (21753 "Interleukin-1 beta" ("gngm" "imft" "aapp"))
+  (26455 "Monoamine Oxidase A" ("aapp" "gngm" "enzy"))
+  (33634 "Protein Kinase C" ("aapp" "enzy" "gngm"))
+  (34826 "Muscarinic Acetylcholine Receptor" ("aapp" "gngm" "rcpt"))
+  (34830 "Nicotinic Receptors" ("rcpt" "gngm" "aapp"))
+  (72132 "prolyl oligopeptidase" ("enzy" "aapp" "gngm"))
+  (79883 "N-Methylaspartate" ("aapp" "phsu" "gngm"))
+  (220839 "Glutamate" ("gngm" "bacs" "aapp"))
+  (728810 "Butyrylcholinesterase" ("enzy" "aapp" "gngm"))
+  (812281 "ROS1 gene" ("bacs" "aapp" "gngm"))
+  (965087 "beta-site APP cleaving enzyme 1" ("gngm" "enzy" "aapp"))
+  (1364818 "APP gene" ("enzy" "gngm" "bacs" "aapp" "imft"))
+  (1412727 "BACE1 gene" ("aapp" "gngm" "enzy"))
+  (1412756 "BCHE gene" ("enzy" "gngm" "aapp"))
+  (1413043 "CA2 gene" ("gngm" "enzy" "bacs" "aapp" "rcpt" "phsu"))
+  (1422569
+   "SPANXC gene"
+   ("gngm" "aapp" "enzy" "imft" "phsu" "horm" "bacs" "antb")))
+
+;; "Canned" query schema.
+;;
+;; Return the entities X being inhibited in the
+;; <fuzzy-drug-name> -> INHIBITS -> X -> CAUSES -> <fuzzy-disease-name>
+;; path, where X has the concept type "gngm"
+;; (gngm|T028|Gene or Genome)
+;; and where <fuzzy-drug-name> concepts must have the "phsu" concept type
+;; associated with them,
+;; and where <fuzzy-disease-name> concepts must have the "dsyn" concept type
+;; associated with them.
+(define (find-inhibited-genes fuzzy-drug-name fuzzy-disease-name)
+  (remove-duplicates
+   (run* (m)
+     (fresh (e1 e2
+             s
+             o p1 p2 ts t1 t2 t3 r1 r2)
+       (== e1 `(,s ,m "INHIBITS" ,ts ,t1 ,r1))
+       (== e2 `(,m ,o "CAUSES" ,t2 ,t3 ,r2))
+       (fuzzy-concepto fuzzy-drug-name s)
+       (fresh (cui name concept-type*)
+         (== `(,cui ,name ,concept-type*) s)
+         (membero "phsu" concept-type*))
+       (fuzzy-concepto fuzzy-disease-name o)
+       (fresh (cui name concept-type*)
+         (== `(,cui ,name ,concept-type*) o)
+         (membero "dsyn" concept-type*))
+       (edgeo e1)
+       (edgeo e2)
+       (fresh (cui name concept-type*)
+         (== `(,cui ,name ,concept-type*) m)
+         (membero "gngm" concept-type*))
+       ))))
+
+(find-inhibited-genes "tacrine" "alzheimer")
+;; => 21 answers, 900 ms
+
+
+;; variants of the basic query above
 
 
 ;; Use full concept entries, rather than CUIs, for Tacrine and Alzheimer's Disease.
 ;; This is equivalent to using the CUIs, but is more verbose and easier for humans to read.
 (run* (e1 e2)
   (fresh (s
-          m ;; unknown gene
+          m ;; unknown gene or other entity being inhibited
           o p1 p2 ts t1 t2 r1 r2)
     (== e1 `(,s ,m "INHIBITS" ,ts ,t1 ,r1))
     (== e2 `(,m ,o "CAUSES" ,t2 "dsyn" ,r2))
@@ -481,7 +730,7 @@
 ;; in which tacrine is not restricted to pharmacologic substances.
 (run* (e1 e2)
   (fresh (s
-          m ;; unknown gene
+          m ;; unknown gene or other entity being inhibited
           o p1 p2 ts t1 t2 r1 r2)
     (== e1 `(,s ,m "INHIBITS" ,ts ,t1 ,r1))
     (== e2 `(,m ,o "CAUSES" ,t2 "dsyn" ,r2))
@@ -499,7 +748,7 @@
 (remove-duplicates
   (run* (e1 e2)
     (fresh (s
-            m ;; unknown gene
+            m ;; unknown gene or other entity being inhibited
             o p1 p2 ts t1 t2 r1 r2)
       (== e1 `(,s ,m "INHIBITS" ,ts ,t1 ,r1))
       (== e2 `(,m ,o "CAUSES" ,t2 "dsyn" ,r2))
@@ -516,7 +765,7 @@
 (remove-duplicates
   (run* (e1 e2)
     (fresh (s
-            m ;; unknown gene
+            m ;; unknown gene or other entity being inhibited
             o p1 p2 ts t1 t2 r1 r2)
       (== e1 `(,s ,m "INHIBITS" ,ts ,t1 ,r1))
       (== e2 `(,m ,o "CAUSES" ,t2 "dsyn" ,r2))
@@ -529,3 +778,45 @@
       (edgeo e2)
       )))
 ;; => 55 answers, 2 seconds
+
+;; Same query as above, but with the fuzzy alzheimer's goal moved last
+;; to improve performance.
+(remove-duplicates
+  (run* (e1 e2)
+    (fresh (s
+            m ;; unknown gene or other entity being inhibited
+            o p1 p2 ts t1 t2 r1 r2)
+      (== e1 `(,s ,m "INHIBITS" ,ts ,t1 ,r1))
+      (== e2 `(,m ,o "CAUSES" ,t2 "dsyn" ,r2))
+      (fuzzy-concepto "tacrine" s)
+      (fresh (cui name concept-type*)
+        (== `(,cui ,name ,concept-type*) s)
+        (membero "phsu" concept-type*))      
+      (edgeo e1)      
+      (edgeo e2)
+      (fuzzy-concepto "alzheimer" o)
+      )))
+;; => 55 answers, 425 ms
+
+;; Slightly different query: here we allow any fuzzy variant of
+;; alzheimer's that has semantic type "dsyn" associated with it (as
+;; opposed to requiring the CAUSES edge have type "dsyn").
+(remove-duplicates
+  (run* (e1 e2)
+    (fresh (s
+            m ;; unknown gene or other entity being inhibited
+            o p1 p2 ts t1 t2 t3 r1 r2)
+      (== e1 `(,s ,m "INHIBITS" ,ts ,t1 ,r1))
+      (== e2 `(,m ,o "CAUSES" ,t2 ,t3 ,r2))
+      (fuzzy-concepto "tacrine" s)
+      (fresh (cui name concept-type*)
+        (== `(,cui ,name ,concept-type*) s)
+        (membero "phsu" concept-type*))
+      (fuzzy-concepto "alzheimer" o)
+      (fresh (cui name concept-type*)
+        (== `(,cui ,name ,concept-type*) o)
+        (membero "dsyn" concept-type*))
+      (edgeo e1)
+      (edgeo e2)
+      )))
+;; => 55 answers, 915 ms
