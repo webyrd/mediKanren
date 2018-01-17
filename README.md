@@ -36,7 +36,21 @@ racket semmed-index-predicate.rkt semmed
 Depending on the size of the CSV you're using, these commands could take up to a few hours to process all records.
 
 
-## Run queries
+## Use
+
+### Interact with the GUI
+
+The GUI is a convenient way to express some forms of simple queries.  For more power, see the section on running queries programmatically.
+
+From the `code` directory, run `racket gui-simple.rkt` to start the GUI.
+
+As you interact, the console will display additional information in some cases.
+
+* When clicking on results, the corresponding PubMed URLs will be printed for your convenience.  If you're running on OSX within iTerm2, you can CMD+click a URL to open it in the browser.
+* When querying with synthetic predicates such as `increases[*]/decreases[*]`, the results will not be displayed in the GUI, but will instead be continuously streamed to the console.
+
+
+### Run queries programmatically
 
 Start with `code/tacrine.rkt` `code/imatinib-query.rkt`, which includes queries taken from `code/study-imatinib.rkt`, and also includes a high-level description of the queries.
 
