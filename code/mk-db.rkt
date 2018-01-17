@@ -3,9 +3,17 @@
   (all-from-out "mk.rkt")
   concepto
   fuzzy-concepto
+  concept-semtypeo
   cuio
   cui*o
   edgeo
+  membero
+  not-membero
+  edge-subjecto
+  edge-objecto
+  concept-not-too-generalo
+  edge-not-too-generalo
+  path-not-too-generalo
   )
 
 (require
@@ -14,6 +22,25 @@
   "mk.rkt"
   racket/stream
   )
+
+;; list membership
+(define membero
+  (lambda (x ls)
+    (fresh (y rest)
+      (== `(,y . ,rest) ls)
+      (conde
+        [(== x y)]
+        [(=/= x y) (membero x rest)]))))
+
+;; list non-membership
+(define not-membero
+  (lambda (x ls)
+    (conde
+      [(== '() ls)]
+      [(fresh (y rest)
+         (== `(,y . ,rest) ls)
+         (=/= x y)
+         (not-membero x rest))])))
 
 (define (ground-cui c) (and (pair? c) (number? (car c)) (car c)))
 
@@ -36,12 +63,17 @@
 
 (define (concepto c)
   (project (c)
-    (if (and (pair? c) (number? (car c)))
+    (if (ground-cui c)
       (== (concept->list (hash-ref cui=>concept (car c))) c)
       (mapo concept->list concept* c))))
 
 (define (fuzzy-concepto name c)
   (mapo concept->list (fuzzy-name->concept* concept* name #t) c))
+
+(define (concept-semtypeo c semtype)
+  (fresh (cui name semtype*)
+    (== `(,cui ,name ,semtype*) c)
+    (membero semtype semtype*)))
 
 (define (cuio c cui) (fresh (c-rest) (== `(,cui . ,c-rest) c)))
 
@@ -109,3 +141,33 @@
                 (conde
                   ((== (edge->list (stream-first e*)) edge))
                   ((loop (stream-rest e*))))))))))))
+
+(define (edge-subjecto e s)
+  (fresh (o p sty oty rs)
+    (== `(,s ,o ,p ,sty ,oty ,rs) e)))
+
+(define (edge-objecto e o)
+  (fresh (s p sty oty rs)
+    (== `(,s ,o ,p ,sty ,oty ,rs) e)))
+
+(define (concept-not-too-generalo c)
+  (project (c)
+    (if (<= 1000 (count-ISA (ground-cui c)))
+      fail
+      succeed)))
+
+(define (edge-not-too-generalo e)
+  (fresh (s o p sty oty rs)
+    (== `(,s ,o ,p ,sty ,oty ,rs) e)
+    (project (s o)
+      (fresh ()
+        (concept-not-too-generalo s)
+        (concept-not-too-generalo o)))))
+
+(define (path-not-too-generalo p)
+  (conde
+    ((== '() p))
+    ((fresh (a d)
+       (== `(,a . ,d) p)
+       (edge-not-too-generalo a)
+       (path-not-too-generalo d)))))
