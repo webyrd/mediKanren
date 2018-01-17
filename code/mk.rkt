@@ -1,10 +1,12 @@
 #lang racket/base
 
 (require racket/list
-         racket/include)
+         racket/include
+         racket/stream
+         )
 
 (provide
-  run run*
+  run run* run-stream
   == =/=
   fresh
   conde
@@ -23,7 +25,7 @@
   mplus*
   bind
   bind*
-  take
+  take take-stream
   reify
   )
 
@@ -423,6 +425,14 @@
          ((c f) (cons c
                   (take (and n (- n 1)) f))))))))
 
+(define take-stream
+  (lambda (f)
+    (case-inf (f)
+              (() '())
+              ((f) (take-stream f))
+              ((c) (stream-cons c '()))
+              ((c f) (stream-cons c (take-stream f))))))
+
 ; -> SearchStream
 (define-syntax bind*
   (syntax-rules ()
@@ -478,6 +488,19 @@
   (syntax-rules ()
     ((_ (q0 q ...) g0 g ...) (run #f (q0 q ...) g0 g ...))))
 
+(define-syntax run-stream
+  (syntax-rules ()
+    ((_ (q) g0 g ...)
+     (take-stream
+       (inc
+         ((fresh (q) g0 g ...
+            (lambdag@ (st)
+              (let ((st (state-with-scope st nonlocal-scope)))
+                (let ((z ((reify q) st)))
+                  (choice z (lambda () (lambda () #f)))))))
+          empty-state))))
+    ((_ (q0 q1 q ...) g0 g ...)
+     (run-stream (x) (fresh (q0 q1 q ...) g0 g ... (== `(,q0 ,q1 ,q ...) x))))))
 
 ; Constraints
 ; C refers to the constraint store map
