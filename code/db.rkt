@@ -22,6 +22,7 @@
   concept-pretty
   edge-pretty
   direct-edge*
+  count-ISA
   )
 
 (require
@@ -168,3 +169,9 @@
   (map edge-pretty (subject*&object*->edge* (map concept-cui c*1)
                                             (map concept-cui c*2)
                                             (lambda (e) #t))))
+
+(define predicate-id-ISA (hash-ref predicate=>id "ISA"))
+
+(define (count-ISA cui)
+  (define (edge-ISA? e) (= predicate-id-ISA (edge-predicate e)))
+  (length (cui->edge* object=>pos in-detail-ebo cui edge-ISA?)))
