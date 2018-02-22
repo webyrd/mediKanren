@@ -63,6 +63,8 @@
 
 (define *concept-1-name-string* (box ""))
 (define *concept-2-name-string* (box ""))
+(define *concept-1-isa-flag* (box #f))
+(define *concept-2-isa-flag* (box #f))
 (define *concept-1-choices* (box '()))
 (define *concept-2-choices* (box '()))
 (define *concept-X-choices* (box '()))
@@ -74,13 +76,15 @@
 ;; paths when clicking on a concept in the X list box.
 (define *solution-concept-1-name-string* (box ""))
 (define *solution-concept-2-name-string* (box ""))
+(define *solution-concept-1-isa-flag* (box #f))
+(define *solution-concept-2-isa-flag* (box #f))
 (define *solution-concept-1-choices* (box '()))
 (define *solution-concept-2-choices* (box '()))
 (define *solution-predicate-1-choices* (box '()))
 (define *solution-predicate-2-choices* (box '()))
 
 
-(define (concept-list parent parent-search/isa-panel parent-list-boxes-panel label name-string choices predicate-list-box-thunk predicate-choices edge-type)
+(define (concept-list parent parent-search/isa-panel parent-list-boxes-panel label name-string isa-flag choices predicate-list-box-thunk predicate-choices edge-type)
   (define name-field (new text-field%
                           (label label)
                           (parent parent-search/isa-panel)
@@ -185,6 +189,7 @@
                     (equal? current-isa new-isa)))
       (set! current-name new-name)
       (set! current-isa new-isa)
+      (set-box! isa-flag current-isa)
       (and mk-thread (begin (kill-thread mk-thread) (set! mk-thread #f)))
       (send timer stop)
       (send timer start input-response-latency #t)))
@@ -202,7 +207,7 @@
     (define concept-1-list-boxes-panel (new horizontal-panel%
                                             (parent frame)
                                             (alignment '(left center))))
-    (define concept-1-list-box (concept-list frame concept-1-search/isa-panel concept-1-list-boxes-panel "Concept 1" *concept-1-name-string* *concept-1-choices* (lambda () predicate-1-list-box) *predicate-1-choices* 'out-edge))
+    (define concept-1-list-box (concept-list frame concept-1-search/isa-panel concept-1-list-boxes-panel "Concept 1" *concept-1-name-string* *concept-1-isa-flag* *concept-1-choices* (lambda () predicate-1-list-box) *predicate-1-choices* 'out-edge))
     (define predicate-1-list-box (new list-box%
                                       (label "Predicate 1")
                                       (choices (unbox *predicate-1-choices*))
@@ -229,7 +234,7 @@
                                       (style '(extended))
                                       (callback (lambda (button event)
                                                   (void)))))
-    (define concept-2-list-box (concept-list frame concept-2-search/isa-panel concept-2-list-boxes-panel "Concept 2" *concept-2-name-string* *concept-2-choices* (lambda () predicate-2-list-box) *predicate-2-choices* 'in-edge))
+    (define concept-2-list-box (concept-list frame concept-2-search/isa-panel concept-2-list-boxes-panel "Concept 2" *concept-2-name-string* *concept-2-isa-flag* *concept-2-choices* (lambda () predicate-2-list-box) *predicate-2-choices* 'in-edge))
 
     (define go-button (new button%
                            (parent frame)
@@ -705,18 +710,51 @@
 
   (set! all-X-concepts (map car all-X-concepts))
 
-  (send running-status-description set-label (format "Found ~s X's after ~s seconds" (length all-X-concepts) (/ elapsed-time 1000.0)))
+  (printf "==========================\n")
 
+  (define number-Xs-found (length all-X-concepts))
+  (define query-seconds (/ elapsed-time 1000.0))
+  (define query-time-format-string "Found ~s X's after ~s seconds")
+  (send running-status-description set-label (format query-time-format-string number-Xs-found query-seconds))
+  (printf query-time-format-string number-Xs-found query-seconds)
+  (newline)
+  (newline)
+  
   (set-box! *concept-X-choices* all-X-concepts)
 
   (set-box! *solution-concept-1-name-string* (unbox *concept-1-name-string*))
   (set-box! *solution-concept-2-name-string* (unbox *concept-2-name-string*))
 
+  (set-box! *solution-concept-1-isa-flag* (unbox *concept-1-isa-flag*))
+  (set-box! *solution-concept-2-isa-flag* (unbox *concept-2-isa-flag*))
+  
   (set-box! *solution-concept-1-choices* concept-1*)
   (set-box! *solution-concept-2-choices* concept-2*)
   (set-box! *solution-predicate-1-choices* predicate-1*)
   (set-box! *solution-predicate-2-choices* predicate-2*)
 
+  (printf "*solution-concept-1-name-string*:\n~s\n" (unbox *solution-concept-1-name-string*))
+  (printf "*solution-concept-1-isa-flag*:\n~s\n" (unbox *solution-concept-1-isa-flag*))
+  (printf "*solution-concept-1-choices*:\n")
+  (pretty-print (unbox *solution-concept-1-choices*))
+  (printf "*solution-predicate-1-choices*:\n")
+  (pretty-print (unbox *solution-predicate-1-choices*))
+  (newline)
+  
+  (printf "*solution-concept-2-name-string*:\n~s\n" (unbox *solution-concept-2-name-string*))
+  (printf "*solution-concept-2-isa-flag*:\n~s\n" (unbox *solution-concept-2-isa-flag*))
+  (printf "*solution-concept-2-choices*:\n")
+  (pretty-print (unbox *solution-concept-2-choices*))
+  (printf "*solution-predicate-2-choices*:\n")
+  (pretty-print (unbox *solution-predicate-2-choices*))
+  (newline)
+  
+  (printf "*concept-X-choices*:\n")
+  (pretty-print all-X-concepts)
+  (newline)
+
+  (printf "==========================\n")
+  
   (send concept-X-list-box
         set
         (map (lambda (x)
