@@ -4,6 +4,7 @@
   racket/sandbox
   racket/gui/base
   racket/engine
+  racket/date
   "db.rkt"
   "mk-db.rkt"
   "concept.rkt"
@@ -570,7 +571,7 @@
   (define synthetic-predicate-1* (cadr atomic/synthetic-predicate-1*))
   (define synthetic-predicate-2* (cadr atomic/synthetic-predicate-2*))
 
-  (define all-X-concepts '())
+  (define all-X-concepts-with-edges '())
 
   (define (stream-query/predicate/trust predicate&nedges&ntrusted->ss)
     (start-streaming
@@ -609,9 +610,9 @@
   (cond
     [(and (equal? (unbox *concept-1-name-string*) "")
           (equal? (unbox *concept-2-name-string*) ""))
-     (set! all-X-concepts '())]
+     (set! all-X-concepts-with-edges '())]
     [(equal? (unbox *concept-1-name-string*) "")
-     (set! all-X-concepts '())
+     (set! all-X-concepts-with-edges '())
      ;; run synthetic queries here
      (stream-query/predicate/trust
        (lambda (predicate nedges ntrusted)
@@ -624,48 +625,48 @@
              (path/urlo path path-url)
              ;(== path path-url)
              ))))
-     (set! all-X-concepts
+     (set! all-X-concepts-with-edges
            (remove-duplicates
-            (append all-X-concepts
+            (append all-X-concepts-with-edges
                     (run* (q)
                       (fresh (m
                               e2
                               o p2 t2 t3 r2)
-                        (== (list m (list r2)) q)
+                        (== (list m (list r2) (list e2)) q)
                         (== e2 `(,m ,o ,p2 ,t2 ,t3 ,r2))
                         (membero o concept-2*)
                         (membero p2 atomic-predicate-2*)
                         (edgeo e2)
                         )))))]
     [(equal? (unbox *concept-2-name-string*) "")
-     (set! all-X-concepts '())
+     (set! all-X-concepts-with-edges '())
      ;; run synthetic queries here
-     (set! all-X-concepts
+     (set! all-X-concepts-with-edges
            (remove-duplicates
-            (append all-X-concepts
+            (append all-X-concepts-with-edges
                     (run* (q)
                       (fresh (m
                               e1 e2
                               s
                               p1 ts t1 r1)
-                        (== (list m (list r1)) q)
+                        (== (list m (list r1) (list e1)) q)
                         (== e1 `(,s ,m ,p1 ,ts ,t1 ,r1))
                         (membero s concept-1*)
                         (membero p1 atomic-predicate-1*)
                         (edgeo e1)
                         )))))]
     [else
-     (set! all-X-concepts '())
+     (set! all-X-concepts-with-edges '())
      ;; run synthetic queries here
-     (set! all-X-concepts
+     (set! all-X-concepts-with-edges
            (remove-duplicates
-            (append all-X-concepts
+            (append all-X-concepts-with-edges
                     (run* (q)
                       (fresh (m
                               e1 e2
                               s
                               o p1 p2 ts t1 t2 t3 r1 r2)
-                        (== (list m (list r1 r2)) q)
+                        (== (list m (list r1 r2) (list e1 e2)) q)
                         (== e1 `(,s ,m ,p1 ,ts ,t1 ,r1))
                         (== e2 `(,m ,o ,p2 ,t2 ,t3 ,r2))
                         (membero s concept-1*)
@@ -682,36 +683,42 @@
 
   ;;(printf "elapsed query time: ~s seconds\n" (/ elapsed-time 1000.0))
   ;;(printf "=============================\n")
-
-  (set! all-X-concepts
+  
+  (set! all-X-concepts-with-edges
         (sort
-         all-X-concepts
+         all-X-concepts-with-edges
          (lambda (c1 c2)
            (> (match c1
-                [`((,cui ,name ,concept-type*) ,pubmed**)
+                [`((,cui ,name ,concept-type*) ,pubmed** ,edge*)
                  (apply + (map length pubmed**))])
               (match c2
-                [`((,cui ,name ,concept-type*) ,pubmed**)
+                [`((,cui ,name ,concept-type*) ,pubmed** ,edge*)
                  (apply + (map length pubmed**))])))))
-
+  
+  (define all-X-concepts '())  
   (set! all-X-concepts
-        (let loop ([ls all-X-concepts])
+        (let loop ([ls all-X-concepts-with-edges])
           (cond
             [(null? ls) '()]
             [else
              (match (car ls)
-               [`((,cui ,name ,concept-type*) ,pubmed**)
+               [`((,cui ,name ,concept-type*) ,pubmed** ,edge*)
                 (cons (car ls)
                       (loop (remf* (lambda (x)
                                      (match x
-                                       [`((,cui-x ,name-x ,concept-type*-x) ,pubmed**-x)
+                                       [`((,cui-x ,name-x ,concept-type*-x) ,pubmed**-x ,edge*-x)
                                         (equal? cui-x cui)]))
                                    (cdr ls))))])])))
-
+  
   (set! all-X-concepts (map car all-X-concepts))
+  
+  (newline)
+  (printf "========== begin query results =============\n")
+  (newline)
 
-  (printf "==========================\n")
-
+  (printf "Query end date/time:\n~a\n" (date->string (seconds->date (current-seconds)) #t))
+  (newline)
+  
   (define number-Xs-found (length all-X-concepts))
   (define query-seconds (/ elapsed-time 1000.0))
   (define query-time-format-string "Found ~s X's after ~s seconds")
@@ -748,12 +755,32 @@
   (printf "*solution-predicate-2-choices*:\n")
   (pretty-print (unbox *solution-predicate-2-choices*))
   (newline)
-  
-  (printf "*concept-X-choices*:\n")
-  (pretty-print all-X-concepts)
-  (newline)
 
-  (printf "==========================\n")
+  (define pretty-print-X-concepts-with-edges
+    (lambda (X-concepts-with-edges)
+      (let loop ([ls X-concepts-with-edges])
+        (cond
+          [(null? ls) (newline)]
+          [else
+           (match (car ls)
+             [`((,cui ,name ,concept-type*) ,pubmed** ,edge*)
+              (printf "-----------------------------------------------\n")
+              (for-each
+                (lambda (x)
+                  (match x
+                    [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
+                     (let ((pubmed* (if (list? pubmed*)
+                                        (map (lambda (pubmed-id) (string-append "https://www.ncbi.nlm.nih.gov/pubmed/" (~a pubmed-id)))
+                                             pubmed*)
+                                        pubmed*)))
+                       (pretty-print `(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)))]))
+                edge*)
+              (loop (cdr ls))])]))))
+  
+  (printf "all-X-concepts-with-edges:\n")
+  (pretty-print-X-concepts-with-edges all-X-concepts-with-edges)
+
+  (printf "========== end query results =============\n")
   
   (send concept-X-list-box
         set
