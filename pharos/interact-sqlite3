@@ -1,0 +1,8 @@
+#!/bin/bash
+set -eufo pipefail
+
+here="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+sqlite_db="file:$here/data/pharos-sqlite3.db?mode=ro"
+
+sqlite3 -bail -header -csv -echo "$sqlite_db"

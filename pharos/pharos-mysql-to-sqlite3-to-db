@@ -1,0 +1,16 @@
+#!/bin/bash
+set -eufo pipefail
+
+here="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+mysql_dump="$1"
+
+mkdir -p "$here/data"
+sqlite_dump="$here/data/pharos-sqlite3.sql"
+sqlite_db="$here/data/pharos-sqlite3.db"
+
+"$here/mysql2sqlite/mysql2sqlite" "$mysql_dump" > "$sqlite_dump"
+
+sqlite3 "$sqlite_db" < "$sqlite_dump"
+
+rm "$sqlite_dump"
