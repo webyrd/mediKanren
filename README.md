@@ -28,6 +28,10 @@ A small sample, `code/sample_semmed.csv`, is provided to demonstrate the format 
 Given `semmed.csv`, Run these commands from the `code` directory:
 
 ```
+mkdir semmed
+
+racket csv-semmed-ordered-unique-enum.rkt semmed.csv semmed
+
 racket csv-semmed-simplify.rkt semmed.csv semmed
 
 racket semmed-index-predicate.rkt semmed
