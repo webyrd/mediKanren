@@ -40,17 +40,38 @@
   ((field-type)
    (or "timestamp" "integer" (seq "decimal" (paren _)) "text" (seq "varchar" (paren _))))
 
-  ((primary-key fname) "PRIMARY" "KEY" (paren (bq fname)))
+  ((primary-key fname)
+   (fresh (bqfname)
+     (seq "PRIMARY" "KEY" (paren (list bqfname)))
+     (parse (bq fname) bqfname "")))
 
   ((unique field-names) "UNIQUE" (paren field-names))
 
   ((foreign-key name local-field table foreign-field)
-   "CONSTRAINT" name "FOREIGN" "KEY" (paren local-field)
-   "REFERENCES" table (paren foreign-field) ignore-up-to-comma-or-paren)
+   (seq "CONSTRAINT" (bq name) "FOREIGN" "KEY" (paren (list local-field))
+        "REFERENCES" (bq table) (paren (list foreign-field)) ignore-up-to-comma-or-paren))
 
-  ;; TODO: comma-separated content
-  ((paren content) "(" ,@content ")")
+  ((paren content) (seq "(" (comma-separated content) ")"))
 
-  ((dq name) "\"" name "\"")
+  ((comma-separated items)
+   (fresh (first rest)
+     (== `(,first . ,rest) items)
+     (seq (alphanumeric first) (many* (seq "," (comma-separated rest))))))
 
-  ((bq name) "`" name "`"))
+  ((dq name) (seq "\"" (alphanumeric name) "\""))
+
+  ((bq name) (seq "`" (alphanumeric name) "`")))
+
+
+;; alphanumeric
+;; numeric
+;; skip until comma/paren
+
+;; tokenizer:
+;; parens
+;; comma
+;; semicolon
+;; singlequote
+;; doublequote
+;; backquote
+
