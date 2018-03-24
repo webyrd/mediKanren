@@ -1,5 +1,7 @@
 #lang racket/base
 (provide
+  fresh/p
+
   fail/p
   unit/p
   end
@@ -35,6 +37,14 @@
   )
 
 ;; Common parser combinators
+(define-syntax fresh/p
+  (syntax-rules ()
+    ((_ (vname ...) g ... p)
+     (lambda (in out)
+       (fresh (vname ...)
+         g ...
+         (p in out))))))
+
 (define (fail/p in out) (== #t #f))
 (define (unit/p in out) (== in out))
 (define (end in out) (fresh () (== '() in) (== in out)))
@@ -77,7 +87,7 @@
 
 (define (forget p) (and/p p unit/p))
 (define (remember p) (lambda (result) (and/p p (single result))))
-(define (ignore p) (lambda (in out) (fresh (_) ((p _) in out))))
+(define (ignore p) (fresh/p (_) (p _)))
 (define (ignored p) (lambda (result) p))
 
 (define (skip* pattern) (ignore (many* (ignored pattern))))
