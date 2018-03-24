@@ -92,10 +92,9 @@
   (define chars-ws&symbolic (append chars-symbolic chars-ws))
   (define (token t)
     (seq skip-ws
-         (or/p (lambda (in out)
-                 (fresh (c)
-                   (== (list c) t)
-                   (((remember (one-of chars-symbolic)) c) in out)))
+         (or/p (fresh/p (c)
+                 (== (list c) t)
+                 ((remember (one-of chars-symbolic)) c))
                ((many+-until chars-ws&symbolic) t))))
   (seq ((many* token) ts) skip-ws end))
 
