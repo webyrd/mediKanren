@@ -19,7 +19,7 @@
     (seq "(" (p first) ((many* comma-prefixed) rest) ")")))
 
 (define (field-type type)
-  (or/p ((remember (one-of '("integer" "text" "timestamp" "date"))) type)
+  (or/p ((remember1 (one-of '("integer" "text" "timestamp" "date"))) type)
         (fresh/p (m n)
           (== "decimal" type)
           (seq "decimal" "(" (single m) "," (single n) ")"))

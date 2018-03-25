@@ -27,7 +27,8 @@
   or/p
 
   peek
-  remember
+  remember1
+  remember*
   ignore
   ignored
   )
@@ -35,6 +36,18 @@
 (require
   "mk.rkt"
   )
+
+(define (k/last&initial xs k)
+  (define rxs (reverse xs))
+  (k (car rxs) (reverse (cdr rxs))))
+
+(define (appendo l s ls)
+  (conde
+    ((== '() l) (== s ls))
+    ((fresh (a d ms)
+       (== `(,a . ,d) l)
+       (== `(,a . ,ms) ls)
+       (appendo d s ms)))))
 
 ;; Common parser combinators
 (define-syntax fresh/p
@@ -57,10 +70,6 @@
 (define (seq2 pa pb) (lambda (in out) (fresh (mid) (pa in mid) (pb mid out))))
 (define (seq . ds) (foldr seq2 unit/p (map single-lift ds)))
 
-(define (k/last&initial xs k)
-  (define rxs (reverse xs))
-  (k (car rxs) (reverse (cdr rxs))))
-
 ;; NOTE: and/p only commits with the last parser given.
 (define (and2/p pa pb) (lambda (in out) (fresh (_) (pa in _) (pb in out))))
 (define (and/p . ps)
@@ -73,7 +82,11 @@
 (define (none-of ds) (apply and/p (map single-not ds)))
 
 (define (peek p) (and/p p unit/p))
-(define (remember p) (lambda (result) (and/p p (single result))))
+(define (remember1 p) (lambda (result) (and/p p (single result))))
+(define (remember* p)
+  (lambda (result)
+    (lambda (in out)
+      (fresh () (p in out) (appendo result out in)))))
 (define (ignore p) (fresh/p (_) (p _)))
 (define (ignored p) (lambda (result) p))
 
@@ -95,9 +108,7 @@
   (seq (skip* (none-of ds)) (or/p end (peek (one-of ds)))))
 (define (many*-until ds)
   (lambda (result)
-    (seq ((many* (remember (none-of ds))) result)
+    (seq ((many* (remember1 (none-of ds))) result)
          (or/p end (peek (one-of ds))))))
 (define (many+-until ds)
   (lambda (result) (seq (peek (none-of ds)) ((many*-until ds) result))))
-
-;(define (putback item) (lambda (in out) (== `(,item . ,in) out)))

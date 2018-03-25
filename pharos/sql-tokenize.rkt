@@ -23,7 +23,7 @@
     (seq skip-ws
          (or/p (fresh/p (c)
                  (== (list c) t)
-                 ((remember (one-of chars-symbolic)) c))
+                 ((remember1 (one-of chars-symbolic)) c))
                ((many+-until chars-ws&symbolic) t))))
   (seq ((many* token) ts) skip-ws end))
 
@@ -40,7 +40,7 @@
 ;(define (split-ws* blocks)
   ;(define (non-ws* block)
     ;(seq skip-ws
-         ;((many+ (remember (none-of chars-ws))) block)
+         ;((many+ (remember1 (none-of chars-ws))) block)
          ;(or/p end (peek (one-of chars-ws)))))
   ;(seq ((many* non-ws*) blocks) skip-ws end))
 
@@ -49,7 +49,7 @@
     ;(or/p (lambda (in out)
             ;(fresh (c)
               ;(== (list c) s)
-              ;(((remember (one-of chars-symbolic)) c) in out)))
+              ;(((remember1 (one-of chars-symbolic)) c) in out)))
           ;((many+-until chars-symbolic) s)))
   ;(seq ((many* block) bs) end))
 
