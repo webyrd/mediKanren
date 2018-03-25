@@ -6,6 +6,7 @@
 (require
   "mk.rkt"
   "mk-parse.rkt"
+  racket/file
   )
 
 ;; Goals:
@@ -15,66 +16,76 @@
 ;; later: incorporate indices
 
 ;; parse SQL creation statements:
-'((many* (or create-table create-index)))
+(define delimiters '("," ")") )
+(define delimiter (one-of delimiters))
 
-'(((create-table table-name fields uniques foreign-keys)
-   "CREATE" "TABLE" (bq table-name)
-   ;; TODO: comma separation
-   (paren (seq (and fields (seq (maybe field-primary-key)
-                                (many* field)))
-               (maybe primary-key)
-               (and uniques (many* unique))
-               (and foreign-keys (many* foreign-key))))
-   ";")
+(define (sq name) (seq "\'" (single name) "\'"))
+(define (dq name) (seq "\"" (single name) "\""))
+(define (bq name) (seq "`" (single name) "`"))
 
-  ((create-index index-name table-name field-name)
-   "CREATE" "INDEX" (dq index-name) "ON"
-   (dq table-name) (paren ((bq field-name)))
-   ";")
+(define (paren p items)
+  (define (comma-prefixed item) (seq "," (p item)))
+  (fresh/p (first rest)
+    (== `(,first . ,rest) items)
+    (seq "(" (p first) ((many* comma-prefixed) rest) ")")))
 
-  ((field-primary-key name ftype)
-   (bq name) (field-type ftype) (many* _) "PRIMARY" "KEY" ignore-up-to-comma-or-paren)
+(define (field-type type)
+  (or/p ((remember (one-of '("timestamp" "integer" "text"))) type)
+        (fresh/p (_) (== "decimal" type) (seq "decimal" (paren single _)))
+        (fresh/p (_) (== "text" type) (seq "varchar" (paren single _)))))
 
-  ((field name ftype)
-   (bq name) (field-type ftype) ignore-up-to-comma-or-paren)
+(define (field/primary-key name type)
+  (seq (bq name) (field-type type)
+       (skip-until (append '("PRIMARY") delimiters))
+       "PRIMARY" "KEY" (skip-until delimiters)))
 
-  ((field-type)
-   (or "timestamp" "integer" (seq "decimal" (paren _)) "text" (seq "varchar" (paren _))))
+(define (field/non-primary-key name type)
+  (seq (bq name) (field-type type)
+       (skip* (none-of (append '("PRIMARY" "KEY") delimiters)))
+       (forget delimiter)))
 
-  ((primary-key fname)
-   (fresh (bqfname)
-     (seq "PRIMARY" "KEY" (paren (list bqfname)))
-     (parse (bq fname) bqfname "")))
+(define (primary-key names)
+  (seq "PRIMARY" "KEY" (paren bq names) (forget delimiter)))
 
-  ((unique field-names) "UNIQUE" (paren field-names))
+(define (unique names) (seq "UNIQUE" (paren bq names) (forget delimiter)))
 
-  ((foreign-key name local-field table foreign-field)
-   (seq "CONSTRAINT" (bq name) "FOREIGN" "KEY" (paren (list local-field))
-        "REFERENCES" (bq table) (paren (list foreign-field)) ignore-up-to-comma-or-paren))
+(define (foreign-key fk-name local-names table foreign-names)
+  (seq "CONSTRAINT" (bq fk-name) "FOREIGN" "KEY" (paren bq local-names)
+       "REFERENCES" (bq table) (paren bq foreign-names)
+       (skip-until delimiters)))
 
-  ((paren content) (seq "(" (comma-separated content) ")"))
+(define (create-table table-name body*)
+  (define (field-or-cx datum)
+    (or/p (fresh/p (name type)
+            (== `(field/primary-key ,name ,type) datum)
+            (field/primary-key name type))
+          (fresh/p (name type)
+            (== `(field/non-primary-key ,name ,type) datum)
+            (field/non-primary-key name type))
+          (fresh/p (names)
+            (== `(primary-key ,names) datum)
+            (primary-key names))
+          (fresh/p (names)
+            (== `(unique ,names) datum)
+            (unique names))
+          (fresh/p (fk-name locals table foreigns)
+            (== `(foreign-key ,fk-name ,locals ,table ,foreigns) datum)
+            (foreign-key fk-name locals table foreigns))))
+  (seq "CREATE" "TABLE" (bq table-name) (paren field-or-cx body*) ";"))
 
-  ((comma-separated items)
-   (fresh (first rest)
-     (== `(,first . ,rest) items)
-     (seq (alphanumeric first) (many* (seq "," (comma-separated rest))))))
+(define (create-index index-name table-name field-names)
+  (seq "CREATE" "INDEX" (dq index-name) "ON"
+       (dq table-name) (paren bq field-names) ";"))
 
-  ((dq name) (seq "\"" (alphanumeric name) "\""))
-
-  ((bq name) (seq "`" (alphanumeric name) "`")))
-
-
-;; alphanumeric
-;; numeric
-;; skip until comma/paren
-
-;; tokenizer:
-;; parens
-;; comma
-;; semicolon
-;; singlequote
-;; doublequote
-;; backquote
+(define (schema body*)
+  (define (table-or-index datum)
+    (or/p (fresh/p (name tbody)
+            (== `(table ,name ,tbody) datum)
+            (create-table name tbody))
+          (fresh/p (name tname fnames)
+            (== `(index ,name ,tname ,fnames) datum)
+            (create-index name tname fnames))))
+  (seq ((many* table-or-index) body*) end))
 
 ;; Tokenization
 (define chars-ws '(#\space #\tab #\newline #\return #\vtab #\page))
