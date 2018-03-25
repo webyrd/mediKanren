@@ -38,12 +38,12 @@
 (define (field/non-primary-key name type)
   (seq (bq name) (field-type type)
        (skip* (none-of (append '("PRIMARY" "KEY") delimiters)))
-       (forget delimiter)))
+       (peek delimiter)))
 
 (define (primary-key names)
-  (seq "PRIMARY" "KEY" (paren bq names) (forget delimiter)))
+  (seq "PRIMARY" "KEY" (paren bq names) (peek delimiter)))
 
-(define (unique names) (seq "UNIQUE" (paren bq names) (forget delimiter)))
+(define (unique names) (seq "UNIQUE" (paren bq names) (peek delimiter)))
 
 (define (foreign-key fk-name local-names table foreign-names)
   (seq "CONSTRAINT" (bq fk-name) "FOREIGN" "KEY" (paren bq local-names)

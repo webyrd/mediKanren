@@ -41,7 +41,7 @@
   ;(define (non-ws* block)
     ;(seq skip-ws
          ;((many+ (remember (none-of chars-ws))) block)
-         ;(or/p end (forget (one-of chars-ws)))))
+         ;(or/p end (peek (one-of chars-ws)))))
   ;(seq ((many* non-ws*) blocks) skip-ws end))
 
 ;(define (split-symbolic* bs)

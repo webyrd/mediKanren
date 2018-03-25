@@ -26,7 +26,7 @@
   and/p
   or/p
 
-  forget
+  peek
   remember
   ignore
   ignored
@@ -85,7 +85,7 @@
 (define (one-of ds) (apply or/p (map single ds)))
 (define (none-of ds) (apply and/p (map single-not ds)))
 
-(define (forget p) (and/p p unit/p))
+(define (peek p) (and/p p unit/p))
 (define (remember p) (lambda (result) (and/p p (single result))))
 (define (ignore p) (fresh/p (_) (p _)))
 (define (ignored p) (lambda (result) p))
@@ -93,14 +93,14 @@
 (define (skip* pattern) (ignore (many* (ignored pattern))))
 (define (skip+ pattern) (ignore (many+ (ignored pattern))))
 (define (skip-while ds)
-  (seq (skip* (one-of ds)) (or/p end (forget (none-of ds)))))
+  (seq (skip* (one-of ds)) (or/p end (peek (none-of ds)))))
 (define (skip-until ds)
-  (seq (skip* (none-of ds)) (or/p end (forget (one-of ds)))))
+  (seq (skip* (none-of ds)) (or/p end (peek (one-of ds)))))
 (define (many*-until ds)
   (lambda (result)
     (seq ((many* (remember (none-of ds))) result)
-         (or/p end (forget (one-of ds))))))
+         (or/p end (peek (one-of ds))))))
 (define (many+-until ds)
-  (lambda (result) (seq (forget (none-of ds)) ((many*-until ds) result))))
+  (lambda (result) (seq (peek (none-of ds)) ((many*-until ds) result))))
 
 ;(define (putback item) (lambda (in out) (== `(,item . ,in) out)))
