@@ -57,19 +57,6 @@
 (define (seq2 pa pb) (lambda (in out) (fresh (mid) (pa in mid) (pb mid out))))
 (define (seq . ds) (foldr seq2 unit/p (map single-lift ds)))
 
-(define (many* pattern)
-  (lambda (result)
-    (lambda (in out)
-      (conde
-        ((== '() result) (unit/p in out))
-        ((((many+ pattern) result) in out))))))
-(define (many+ pattern)
-  (lambda (result)
-    (lambda (in out)
-      (fresh (first rest)
-        (== `(,first . ,rest) result)
-        ((seq2 (pattern first) ((many* pattern) rest)) in out)))))
-
 (define (k/last&initial xs k)
   (define rxs (reverse xs))
   (k (car rxs) (reverse (cdr rxs))))
@@ -89,6 +76,16 @@
 (define (remember p) (lambda (result) (and/p p (single result))))
 (define (ignore p) (fresh/p (_) (p _)))
 (define (ignored p) (lambda (result) p))
+
+(define (many* pattern)
+  (lambda (result)
+    (or/p (fresh/p () (== '() result) unit/p)
+          ((many+ pattern) result))))
+(define (many+ pattern)
+  (lambda (result)
+    (fresh/p (first rest)
+      (== `(,first . ,rest) result)
+      (seq2 (pattern first) ((many* pattern) rest)))))
 
 (define (skip* pattern) (ignore (many* (ignored pattern))))
 (define (skip+ pattern) (ignore (many+ (ignored pattern))))
