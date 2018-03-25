@@ -41,3 +41,28 @@ Interact using SQL and dot-commands.
 By default, output is in CSV format with headers and command echoing.
 
 To write output to a file instead of stdout, issue the dot-command: `.output your-file-name.csv`
+
+
+## Process SQLite Schema
+
+This section is still incomplete.
+
+### Output schema.sql
+
+Run: `./interact-sqlite3`
+
+Then use the following commands to output the `schema.sql` file.
+
+```
+.output schema.sql
+.schema
+.exit
+```
+
+### Tokenize schema.sql -> schema-tokens.scm
+
+`racket sql-tokenize.rkt < schema.sql > schema-tokens.scm `
+
+### Parse schema-tokens.scm -> schema.scm
+
+`racket sql-schema-parse.rkt < schema-tokens.scm > schema.scm`
