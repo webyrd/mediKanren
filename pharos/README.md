@@ -1,6 +1,8 @@
 # mediKanren Pharos Interface
 
-This is a work in progress.  Currently, we only provide tools for converting the Pharos DB to SQLite3 for interactive use.
+This is a mediKanren interface into the data provided by Pharos: https://pharos.nih.gov/idg/about
+
+Currently, we only provide tools for converting the Pharos DB to SQLite3 for interactive use.
 
 
 ## Setup
