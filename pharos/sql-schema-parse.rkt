@@ -32,8 +32,8 @@
 
 (define (field/primary-key name type)
   (seq (bq name) (field-type type)
-       (skip-until (append '("PRIMARY") delimiters))
-       "PRIMARY" "KEY" (skip-until delimiters)))
+       (skip*-until (append '("PRIMARY") delimiters))
+       "PRIMARY" "KEY" (skip*-until delimiters)))
 
 (define (field/non-primary-key name type)
   (seq (bq name) (field-type type)
@@ -48,7 +48,7 @@
 (define (foreign-key fk-name local-names table foreign-names)
   (seq "CONSTRAINT" (bq fk-name) "FOREIGN" "KEY" (paren bq local-names)
        "REFERENCES" (bq table) (paren bq foreign-names)
-       (skip-until delimiters)))
+       (skip*-until delimiters)))
 
 (define (create-table table-name body*)
   (define (field-or-cx datum)

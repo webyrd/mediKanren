@@ -13,13 +13,17 @@
 
   many*
   many+
+  many*-while
+  many+-while
   many*-until
   many+-until
 
   skip*
   skip+
-  skip-while
-  skip-until
+  skip*-while
+  skip+-while
+  skip*-until
+  skip+-until
 
   seq
 
@@ -99,16 +103,24 @@
     (fresh/p (first rest)
       (== `(,first . ,rest) result)
       (seq2 (pattern first) ((many* pattern) rest)))))
-
-(define (skip* pattern) (ignore (many* (ignored pattern))))
-(define (skip+ pattern) (ignore (many+ (ignored pattern))))
-(define (skip-while ds)
-  (seq (skip* (one-of ds)) (or/p end (peek (none-of ds)))))
-(define (skip-until ds)
-  (seq (skip* (none-of ds)) (or/p end (peek (one-of ds)))))
+(define (many*-while ds)
+  (lambda (result)
+    (seq ((many* (remember1 (one-of ds))) result)
+         (or/p end (peek (none-of ds))))))
+(define (many+-while ds)
+  (lambda (result) (seq (peek (one-of ds)) ((many*-while ds) result))))
 (define (many*-until ds)
   (lambda (result)
     (seq ((many* (remember1 (none-of ds))) result)
          (or/p end (peek (one-of ds))))))
 (define (many+-until ds)
   (lambda (result) (seq (peek (none-of ds)) ((many*-until ds) result))))
+
+(define (skip* pattern) (ignore (many* (ignored pattern))))
+(define (skip+ pattern) (ignore (many+ (ignored pattern))))
+(define (skip*-while ds)
+  (seq (skip* (one-of ds)) (or/p end (peek (none-of ds)))))
+(define (skip+-while ds) (seq (peek (one-of ds)) (skip* (one-of ds))))
+(define (skip*-until ds)
+  (seq (skip* (none-of ds)) (or/p end (peek (one-of ds)))))
+(define (skip+-until ds) (seq (peek (none-of ds)) (skip*-until ds)))

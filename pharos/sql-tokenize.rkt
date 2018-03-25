@@ -14,8 +14,8 @@
 (define chars-separator '(#\, #\; #\: #\.))
 (define chars-symbolic (append chars-quote chars-bracket chars-separator))
 
-(define skip-ws (skip-while chars-ws))
-(define skip-hws (skip-while chars-hws))
+(define skip-ws (skip*-while chars-ws))
+(define skip-hws (skip*-while chars-hws))
 
 (define (token* ts)
   (define chars-ws&symbolic (append chars-symbolic chars-ws))
