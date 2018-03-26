@@ -107,7 +107,7 @@
         (else (string->repr str))))
 
 ;; TODO: replace with a more compact format.
-(define (csv->scm table-name field-types out)
+(define (csv->scm table-name field-types detail-out offset-out)
   (lambda (in)
     (define (record->datum record)
       (when (not (= (length field-types) (length record)))
@@ -115,9 +115,11 @@
                           ,table-name ,(length field-types) ,(length record)
                           ,field-types ,record)))
       (data->repr (map string->datum field-types record)))
-    (define (yield-record! record) (write-repr (record->datum record) out))
+    (define (yield-record! record)
+      (detail-write detail-out offset-out (record->datum record)))
     ((csv-records yield-record!) in)
-    (flush-output out)))
+    (flush-output detail-out)
+    (flush-output offset-out)))
 
 (define (run-sql consume sql)
   (define proc
@@ -165,7 +167,15 @@
      (call-with-output-file
        fkpath (lambda (out) (write (table-foreigns t) out)))
      (for ((ix indexes) (i (range (length indexes))))
-          (define dpath (build-path tpath (number->string i)))
+          (define sorting-dir (build-path tpath (number->string i)))
+          (define detail-path (build-path sorting-dir "detail.scm"))
+          (define offset-path (build-path sorting-dir "offset.bin"))
+          (make-directory* (expand-user-path sorting-dir))
           (call-with-output-file
-            dpath (lambda (out)
-                    (run-sql (csv->scm name field-types out) (cadr ix))))))
+            detail-path
+            (lambda (detail-out)
+              (call-with-output-file
+                offset-path
+                (lambda (offset-out)
+                  (run-sql (csv->scm name field-types detail-out offset-out)
+                           (cadr ix))))))))
