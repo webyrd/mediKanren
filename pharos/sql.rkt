@@ -155,12 +155,15 @@
      (define field-types (map cadr (table-fields t)))
      (define indexes (cadr tinfo))
      (define tpath (build-path tables-dir name))
-     (define cpath (build-path tpath "columns"))
-     (define ipath (build-path tpath "indexes"))
+     (define cpath (build-path tpath "columns.scm"))
+     (define ipath (build-path tpath "indexes.scm"))
+     (define fkpath (build-path tpath "foreign-keys.scm"))
      (make-directory* (expand-user-path tpath))
      (call-with-output-file cpath (lambda (out) (write (table-fields t) out)))
      (call-with-output-file
        ipath (lambda (out) (write (map car indexes) out)))
+     (call-with-output-file
+       fkpath (lambda (out) (write (table-foreigns t) out)))
      (for ((ix indexes) (i (range (length indexes))))
           (define dpath (build-path tpath (number->string i)))
           (call-with-output-file
