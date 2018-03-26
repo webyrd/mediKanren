@@ -72,3 +72,19 @@ Then use the following commands to output the `schema.sql` file.
 ### Translate SQLite DB to internal format
 
 From the `pharos` directory, run: `racket sqlite-to-db.rkt schema.scm data`
+
+
+## Interact using miniKanren
+
+`mk-db.rkt` provides the `pharos-metao` and `pharoso` relations.
+
+```
+(require "mk-db.rkt")
+
+(run 10 (table-name metadata)
+  (pharos-metao table-name metadata))
+
+(run 20 (tuple)
+  (fresh (p q) (== `(,p 19295 . ,q) tuple))
+  (pharoso "gene_attribute" tuple))
+```
