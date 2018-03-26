@@ -45,9 +45,9 @@ By default, output is in CSV format with headers and command echoing.
 To write output to a file instead of stdout, issue the dot-command: `.output your-file-name.csv`
 
 
-## Process SQLite Schema
+## Process SQLite DB
 
-This section is still incomplete.
+Convert SQLite DB to an internal form usable by mediKanren queries.
 
 ### Output schema.sql
 
@@ -68,3 +68,7 @@ Then use the following commands to output the `schema.sql` file.
 ### Parse schema-tokens.scm -> schema.scm
 
 `racket sql-schema-parse.rkt < schema-tokens.scm > schema.scm`
+
+### Translate SQLite DB to internal format
+
+From the `pharos` directory, run: `racket sqlite-to-db.rkt schema.scm data`
