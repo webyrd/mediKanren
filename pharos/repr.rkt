@@ -66,4 +66,4 @@
              ((-1) (loop (+ 1 n) end))
              ((0) detail)
              ((1) (loop start n))))
-          (else #f))))
+          (else eof))))
