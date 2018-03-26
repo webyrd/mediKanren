@@ -15,7 +15,7 @@
 
 (define (read-all/stream in)
   (define datum (read in))
-  (if (eof-object? datum) '() (stream-cons datum (read-all in))))
+  (if (eof-object? datum) '() (stream-cons datum (read-all/stream in))))
 
 (define (read-all-from-file path)
   (call-with-input-file (expand-user-path path) read-all))
