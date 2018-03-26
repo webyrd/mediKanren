@@ -90,7 +90,8 @@
       (string-join (map (lambda (col) (string-join (list col "ASC") " "))
                         sorting)
                    ", ")))
-  (define sortings (set->list (table-sortings t)))
+  (define sortings (append (map set->list (set->list (table-uniques t)))
+                           (set->list (table-sortings t))))
   (define orderings (map sorting->ordering sortings))
   (map list
        (if (null? sortings) (list #f) sortings)
