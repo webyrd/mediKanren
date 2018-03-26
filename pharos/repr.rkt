@@ -39,7 +39,7 @@
 ;(define (enc->data bs) bs)
 ;(define (write-repr repr out) (write-bytes repr out))
 
-(define offset-size 4)
+(define offset-size 8)
 (define (offset->repr o) (integer->integer-bytes o offset-size #f #f))
 (define (offset-write out offset) (write-bytes (offset->repr offset) out))
 (define (offset-count in)
