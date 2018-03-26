@@ -1,30 +1,13 @@
 #lang racket/base
-(provide
-
-  )
-
 (require
   "csv.rkt"
   "repr.rkt"
   racket/file
   racket/list
-  racket/port
   racket/set
   racket/string
   racket/system
   )
-
-;; TODO: Process SQL schema
-
-;; Goals:
-;; raw mappings for SQL tables
-;; foreign key cross-references
-;; mk relations that resolve foreign keys
-;; later: incorporate indices
-
-;; indexed fields may or may not be unique
-;; unique: hash => row (no extra sorting necessary)
-;; non-unique: hash => sorted row buckets
 
 (define set-empty (set))
 (define hash-empty (hash))
@@ -82,7 +65,6 @@
   (define (select ordering)
     (string-join (list "SELECT" (string-join field-names ",")
                        "FROM" (table-name t)
-                       ;; TODO: remove LIMIT after testing.
                        ordering) " "))
   (define (sorting->ordering sorting)
     (string-append
@@ -100,13 +82,9 @@
 (define (string->datum type str)
   (cond ((string=? "integer" type) (integer->repr (string->number str)))
         ((string=? "decimal" type) (decimal->repr (string->number str)))
-        ;((or (string=? "text" type)
-             ;(string=? "timestamp" type)
-             ;(string=? "date" type)) (string->repr str))
-        ;(else (error "invalid field type:" type str))
+        ;; "text" "timestamp" "date"
         (else (string->repr str))))
 
-;; TODO: replace with a more compact format.
 (define (csv->scm table-name field-types detail-out offset-out)
   (lambda (in)
     (define (record->datum record)
@@ -134,7 +112,7 @@
   (close-input-port pout)
   (close-input-port perr))
 
-;(define argv '#("schema.scm" "data"))
+
 (define argv (current-command-line-arguments))
 (define argv-expected '#(SCHEMA_FILE DATA_DIR))
 (when (not (= (vector-length argv-expected) (vector-length argv)))
