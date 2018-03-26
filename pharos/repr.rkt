@@ -9,6 +9,10 @@
   data->repr
   repr->data
   write-repr
+
+  detail-find
+  detail-next
+  detail-write
   )
 
 (define (integer->repr i) i)
@@ -34,3 +38,32 @@
 ;(define (data->enc d) (bytes-append* d))
 ;(define (enc->data bs) bs)
 ;(define (write-repr repr out) (write-bytes repr out))
+
+(define offset-size 4)
+(define (offset->repr o) (integer->integer-bytes o offset-size #f #f))
+(define (offset-write out offset) (write-bytes (offset->repr offset) out))
+(define (offset-count in)
+  (file-position in eof)
+  (/ (file-position in) offset-size))
+(define (offset-ref in n)
+  (file-position in (* n offset-size))
+  (integer-bytes->integer (read-bytes offset-size in) #f #f 0 offset-size))
+
+(define (detail-write detail-out offset-out detail)
+  (offset-write offset-out (file-position detail-out))
+  (write-repr detail detail-out))
+(define (detail-ref detail-in offset-in n)
+  (file-position detail-in (offset-ref offset-in n))
+  (read detail-in))
+(define (detail-next detail-in) (read detail-in))
+
+(define (detail-find detail-in offset-in compare)
+  (let loop ((start 0) (end (offset-count offset-in)))
+    (cond ((< start end)
+           (define n (+ start (quotient (- end start) 2)))
+           (define detail (detail-ref detail-in offset-in n))
+           (case (compare detail)
+             ((-1) (loop (+ 1 n) end))
+             ((0) detail)
+             ((1) (loop start n))))
+          (else #f))))
