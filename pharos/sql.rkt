@@ -5,6 +5,7 @@
 
 (require
   "csv.rkt"
+  "repr.rkt"
   racket/file
   racket/list
   racket/port
@@ -82,7 +83,7 @@
     (string-join (list "SELECT" (string-join field-names ",")
                        "FROM" (table-name t)
                        ;; TODO: remove LIMIT after testing.
-                       ordering "LIMIT 10") " "))
+                       ordering) " "))
   (define (sorting->ordering sorting)
     (string-append
       "ORDER BY "
@@ -96,13 +97,13 @@
        (map select (if (null? orderings) (list "") orderings))))
 
 (define (string->datum type str)
-  (cond ((or (string=? "integer" type) (string=? "decimal" type))
-         (string->number str))
+  (cond ((string=? "integer" type) (integer->repr (string->number str)))
+        ((string=? "decimal" type) (decimal->repr (string->number str)))
         ;((or (string=? "text" type)
              ;(string=? "timestamp" type)
-             ;(string=? "date" type)) str)
+             ;(string=? "date" type)) (string->repr str))
         ;(else (error "invalid field type:" type str))
-        (else str)))
+        (else (string->repr str))))
 
 ;; TODO: replace with a more compact format.
 (define (csv->scm table-name field-types out)
@@ -112,11 +113,9 @@
         (printf "~s\n" `(record->datum
                           ,table-name ,(length field-types) ,(length record)
                           ,field-types ,record)))
-      (list->vector (map string->datum field-types record)))
-    (define (yield-record! record) (fprintf out "~s\n" (record->datum record)))
-    (fprintf out "(")
+      (data->repr (map string->datum field-types record)))
+    (define (yield-record! record) (write-repr (record->datum record) out))
     ((csv-records yield-record!) in)
-    (fprintf out ")")
     (flush-output out)))
 
 (define (run-sql consume sql)
