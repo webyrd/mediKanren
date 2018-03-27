@@ -78,11 +78,13 @@
      ))
 
 (define (compare2-number key candidate)
-  (cond ((< candidate key) -1)
+  (cond ((not candidate) -1)
+        ((< candidate key) -1)
         ((> candidate key) 1)
         (else 0)))
 (define (compare2-text key candidate)
-  (cond ((string<? candidate key) -1)
+  (cond ((not candidate) -1)
+        ((string<? candidate key) -1)
         ((string>? candidate key) 1)
         (else 0)))
 
