@@ -779,7 +779,7 @@
                                               (map (lambda (pubmed-id) (string-append "https://www.ncbi.nlm.nih.gov/pubmed/" (~a pubmed-id)))
                                                    pubmed*)
                                               pubmed*)))
-                             (pretty-display `(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)))]))
+                             (pretty-print `(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*) (current-output-port) 1))]))
                       edge*)
                     (loop (cdr ls))])])))
           #:mode 'text
