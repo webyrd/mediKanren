@@ -758,29 +758,34 @@
 
   (define pretty-print-X-concepts-with-edges
     (lambda (X-concepts-with-edges)
-      (printf "'(\n")
-      (let loop ([ls X-concepts-with-edges])
-        (cond
-          [(null? ls)
-	  (printf ")\n")
-	  (newline)]
-          [else
-           (match (car ls)
-             [`((,cui ,name ,concept-type*) ,pubmed** ,edge*)
-              ;; (printf "-----------------------------------------------\n")
-              (for-each
-                (lambda (x)
-                  (match x
-                    [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
-                     (let ((pubmed* (if (list? pubmed*)
-                                        (map (lambda (pubmed-id) (string-append "https://www.ncbi.nlm.nih.gov/pubmed/" (~a pubmed-id)))
-                                             pubmed*)
-                                        pubmed*)))
-                       (pretty-display `(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)))]))
-                edge*)
-              (loop (cdr ls))])]))))
+      (with-output-to-file
+          "a.out"
+          (lambda ()
+            (printf "'(\n")
+            (let loop ([ls X-concepts-with-edges])
+              (cond
+                [(null? ls)
+                 (printf ")\n")
+                 (newline)]
+                [else
+                 (match (car ls)
+                   [`((,cui ,name ,concept-type*) ,pubmed** ,edge*)
+                    ;; (printf "-----------------------------------------------\n")
+                    (for-each
+                      (lambda (x)
+                        (match x
+                          [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
+                           (let ((pubmed* (if (list? pubmed*)
+                                              (map (lambda (pubmed-id) (string-append "https://www.ncbi.nlm.nih.gov/pubmed/" (~a pubmed-id)))
+                                                   pubmed*)
+                                              pubmed*)))
+                             (pretty-display `(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)))]))
+                      edge*)
+                    (loop (cdr ls))])])))
+          #:mode 'text
+          #:exists 'append)))
   
-  (printf "all-X-concepts-with-edges:\n")
+  ;; (printf "all-X-concepts-with-edges:\n")
   (pretty-print-X-concepts-with-edges all-X-concepts-with-edges)
 
   (printf "========== end query results =============\n")
