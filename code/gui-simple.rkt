@@ -758,13 +758,16 @@
 
   (define pretty-print-X-concepts-with-edges
     (lambda (X-concepts-with-edges)
+      (printf "'(\n")
       (let loop ([ls X-concepts-with-edges])
         (cond
-          [(null? ls) (newline)]
+          [(null? ls)
+	  (printf ")\n")
+	  (newline)]
           [else
            (match (car ls)
              [`((,cui ,name ,concept-type*) ,pubmed** ,edge*)
-              (printf "-----------------------------------------------\n")
+              ;; (printf "-----------------------------------------------\n")
               (for-each
                 (lambda (x)
                   (match x
@@ -773,7 +776,7 @@
                                         (map (lambda (pubmed-id) (string-append "https://www.ncbi.nlm.nih.gov/pubmed/" (~a pubmed-id)))
                                              pubmed*)
                                         pubmed*)))
-                       (pretty-print `(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)))]))
+                       (pretty-display `(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)))]))
                 edge*)
               (loop (cdr ls))])]))))
   
