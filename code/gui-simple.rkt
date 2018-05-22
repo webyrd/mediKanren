@@ -84,6 +84,28 @@
 (define *solution-predicate-1-choices* (box '()))
 (define *solution-predicate-2-choices* (box '()))
 
+(define (sort-paths paths)
+  (sort
+    paths
+    (lambda (p1 p2)
+      ;; (printf "-----------------\n")
+      ;; (printf "p1: ~s\n" p1)
+      ;; (printf "p2: ~s\n" p2)
+      (< (apply min (map
+                      (lambda (x)
+                        (match x
+                          [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
+                            ;; (printf "p1 x: ~s  unique pubmed length: ~s\n" x (remove-duplicates pubmed*))
+                            (length (remove-duplicates pubmed*))]))
+                      p1))
+         (apply min (map
+                      (lambda (x)
+                        (match x
+                          [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
+                            ;; (printf "p2 x: ~s  unique pubmed length: ~s\n" x (remove-duplicates pubmed*))
+                            (length (remove-duplicates pubmed*))]))
+                      p2))))))
+
 
 (define (concept-list parent parent-search/isa-panel parent-list-boxes-panel label name-string isa-flag choices predicate-list-box-thunk predicate-choices edge-type)
   (define name-field (new text-field%
@@ -375,31 +397,6 @@
                                                                             (edgeo e1)
                                                                             (edgeo e2)
                                                                             )))))])
-
-
-                                                      (define (sort-paths paths)
-                                                        (sort
-                                                          paths
-                                                          (lambda (p1 p2)
-                                                            ;; (printf "-----------------\n")
-                                                            ;; (printf "p1: ~s\n" p1)
-                                                            ;; (printf "p2: ~s\n" p2)
-                                                            (< (apply min (map
-                                                                           (lambda (x)
-                                                                             (match x
-                                                                               [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
-                                                                                ;; (printf "p1 x: ~s  unique pubmed length: ~s\n" x (remove-duplicates pubmed*))
-                                                                                (length (remove-duplicates pubmed*))]))
-                                                                           p1))
-                                                               (apply min (map
-                                                                           (lambda (x)
-                                                                             (match x
-                                                                               [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
-                                                                                ;; (printf "p2 x: ~s  unique pubmed length: ~s\n" x (remove-duplicates pubmed*))
-                                                                                (length (remove-duplicates pubmed*))]))
-                                                                           p2))))))
-
-
 
                                                       ;; (printf "sorting paths: ~s\n" paths)
 
