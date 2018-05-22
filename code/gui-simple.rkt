@@ -85,14 +85,12 @@
 (define *solution-predicate-2-choices* (box '()))
 
 (define (sort-paths paths)
-  (define (confidence p)
-    (apply min (map
-                 (lambda (x)
-                   (match x
-                     [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
-                       ;; (printf "p1 x: ~s  unique pubmed length: ~s\n" x (remove-duplicates pubmed*))
-                       (length (remove-duplicates pubmed*))]))
-                 p)))
+  (define (pubmed-count e)
+    (match e
+      [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
+        ;; (printf "p1 x: ~s  unique pubmed length: ~s\n" x (remove-duplicates pubmed*))
+        (length (remove-duplicates pubmed*))]))
+  (define (confidence p) (apply min (map pubmed-count p)))
   (sort
     paths
     (lambda (p1 p2)
