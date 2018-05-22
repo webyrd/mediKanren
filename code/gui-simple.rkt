@@ -679,7 +679,7 @@
 
   ;;(printf "elapsed query time: ~s seconds\n" (/ elapsed-time 1000.0))
   ;;(printf "=============================\n")
-  
+
   (set! all-X-concepts-with-edges
         (sort
          all-X-concepts-with-edges
@@ -690,8 +690,8 @@
               (match c2
                 [`((,cui ,name ,concept-type*) ,pubmed** ,edge*)
                  (apply + (map length pubmed**))])))))
-  
-  (define all-X-concepts '())  
+
+  (define all-X-concepts '())
   (set! all-X-concepts
         (let loop ([ls all-X-concepts-with-edges])
           (cond
@@ -705,16 +705,16 @@
                                        [`((,cui-x ,name-x ,concept-type*-x) ,pubmed**-x ,edge*-x)
                                         (equal? cui-x cui)]))
                                    (cdr ls))))])])))
-  
+
   (set! all-X-concepts (map car all-X-concepts))
-  
+
   (newline)
   (printf "========== begin query results =============\n")
   (newline)
 
   (printf "Query end date/time:\n~a\n" (date->string (seconds->date (current-seconds)) #t))
   (newline)
-  
+
   (define number-Xs-found (length all-X-concepts))
   (define query-seconds (/ elapsed-time 1000.0))
   (define query-time-format-string "Found ~s X's after ~s seconds")
@@ -722,7 +722,7 @@
   (printf query-time-format-string number-Xs-found query-seconds)
   (newline)
   (newline)
-  
+
   (set-box! *concept-X-choices* all-X-concepts)
 
   (set-box! *solution-concept-1-name-string* (unbox *concept-1-name-string*))
@@ -730,7 +730,7 @@
 
   (set-box! *solution-concept-1-isa-flag* (unbox *concept-1-isa-flag*))
   (set-box! *solution-concept-2-isa-flag* (unbox *concept-2-isa-flag*))
-  
+
   (set-box! *solution-concept-1-choices* concept-1*)
   (set-box! *solution-concept-2-choices* concept-2*)
   (set-box! *solution-predicate-1-choices* predicate-1*)
@@ -743,7 +743,7 @@
   (printf "*solution-predicate-1-choices*:\n")
   (pretty-print (unbox *solution-predicate-1-choices*))
   (newline)
-  
+
   (printf "*solution-concept-2-name-string*:\n~s\n" (unbox *solution-concept-2-name-string*))
   (printf "*solution-concept-2-isa-flag*:\n~s\n" (unbox *solution-concept-2-isa-flag*))
   (printf "*solution-concept-2-choices*:\n")
@@ -780,12 +780,12 @@
                     (loop (cdr ls))])])))
           #:mode 'text
           #:exists 'append)))
-  
+
   ;; (printf "all-X-concepts-with-edges:\n")
   (pretty-print-X-concepts-with-edges all-X-concepts-with-edges)
 
   (printf "========== end query results =============\n")
-  
+
   (send concept-X-list-box
         set
         (map (lambda (x)
