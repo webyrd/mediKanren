@@ -85,12 +85,18 @@
 (define *solution-predicate-2-choices* (box '()))
 
 (define (sort-paths paths)
+  (define (weight-linear+1 n) (+ 1 n))
+  (define (weight-exponential n) (expt 2 n))
+  ;; To experiment with sorting, try to only change the weight calculation
+  ;; being used.  Leave everything else the same.
+  (define weight weight-exponential)
   (define (pubmed-count e)
     (match e
       [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
         ;; (printf "p1 x: ~s  unique pubmed length: ~s\n" x (remove-duplicates pubmed*))
         (length (remove-duplicates pubmed*))]))
-  (define (confidence p) (apply min (map pubmed-count p)))
+  (define (confidence/edge e) (- 1 (/ 1.0 (weight (pubmed-count e)))))
+  (define (confidence p) (foldl * 1 (map confidence/edge p)))
   (sort
     paths
     (lambda (p1 p2)
