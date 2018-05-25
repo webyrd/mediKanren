@@ -84,7 +84,7 @@
 (define *solution-predicate-1-choices* (box '()))
 (define *solution-predicate-2-choices* (box '()))
 
-(define (sort-paths paths)
+(define (path-confidence p)
   (define (weight-linear+1 n) (+ 1 n))
   (define (weight-exponential n) (expt 2 n))
   ;; To experiment with sorting, try to only change the weight calculation
@@ -96,14 +96,10 @@
         ;; (printf "p1 x: ~s  unique pubmed length: ~s\n" x (remove-duplicates pubmed*))
         (length (remove-duplicates pubmed*))]))
   (define (confidence/edge e) (- 1 (/ 1.0 (weight (pubmed-count e)))))
-  (define (confidence p) (foldl * 1 (map confidence/edge p)))
-  (sort
-    paths
-    (lambda (p1 p2)
-      ;; (printf "-----------------\n")
-      ;; (printf "p1: ~s\n" p1)
-      ;; (printf "p2: ~s\n" p2)
-      (< (confidence p1) (confidence p2)))))
+  (foldl * 1 (map confidence/edge p)))
+(define (path-confidence<? p1 p2)
+  (< (path-confidence p1) (path-confidence p2)))
+(define (sort-paths paths) (sort paths path-confidence<?))
 
 
 (define (concept-list parent parent-search/isa-panel parent-list-boxes-panel label name-string isa-flag choices predicate-list-box-thunk predicate-choices edge-type)
