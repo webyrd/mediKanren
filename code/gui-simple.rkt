@@ -101,6 +101,14 @@
   (< (path-confidence p1) (path-confidence p2)))
 (define (sort-paths paths) (sort paths path-confidence<?))
 
+(define (remove-duplicate-pubrefs/edge e)
+  (match e
+    (`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
+      `(,subj ,obj ,pred ,subj-type ,obj-type ,(remove-duplicates pubmed*)))))
+
+(define (remove-duplicate-pubrefs/path p)
+  (map remove-duplicate-pubrefs/edge p))
+
 
 (define (concept-list parent parent-search/isa-panel parent-list-boxes-panel label name-string isa-flag choices predicate-list-box-thunk predicate-choices edge-type)
   (define name-field (new text-field%
@@ -395,7 +403,7 @@
 
                                                       ;; (printf "sorting paths: ~s\n" paths)
 
-                                                      (set! paths (sort-paths paths))
+                                                      (set! paths (map remove-duplicate-pubrefs/path (sort-paths paths)))
 
                                                       ;; (printf "sorted paths: ~s\n" paths)
 
