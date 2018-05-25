@@ -677,15 +677,12 @@
   ;;(printf "=============================\n")
 
   (set! all-X-concepts-with-edges
-        (sort
-         all-X-concepts-with-edges
-         (lambda (c1 c2)
-           (> (match c1
-                [`((,cui ,name ,concept-type*) ,pubmed** ,edge*)
-                 (apply + (map length pubmed**))])
-              (match c2
-                [`((,cui ,name ,concept-type*) ,pubmed** ,edge*)
-                 (apply + (map length pubmed**))])))))
+    (sort
+      all-X-concepts-with-edges
+      (lambda (c1 c2)
+        (match (list c1 c2)
+          [`((,_ ,_ ,e1*) (,_ ,_ ,e2*))
+            (not (path-confidence<? e1* e2*))]))))
 
   (define all-X-concepts '())
   (set! all-X-concepts
