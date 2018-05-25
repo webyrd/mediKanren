@@ -403,6 +403,7 @@
 
                                                       ;; (printf "sorting paths: ~s\n" paths)
 
+                                                      ;; This sorting affects the order of the "Path" list for the selected concept.
                                                       (set! paths (map remove-duplicate-pubrefs/path (sort-paths paths)))
 
                                                       ;; (printf "sorted paths: ~s\n" paths)
@@ -684,6 +685,7 @@
   ;;(printf "elapsed query time: ~s seconds\n" (/ elapsed-time 1000.0))
   ;;(printf "=============================\n")
 
+  ;; This sorting affects order of appearance in the "X" concept list
   (set! all-X-concepts-with-edges
     (sort
       all-X-concepts-with-edges
