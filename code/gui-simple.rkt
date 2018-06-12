@@ -84,7 +84,7 @@
 (define *solution-predicate-1-choices* (box '()))
 (define *solution-predicate-2-choices* (box '()))
 
-(define (sort-paths paths)
+(define (path-confidence p)
   (define (weight-linear+1 n) (+ 1 n))
   (define (weight-exponential n) (expt 2 n))
   ;; To experiment with sorting, try to only change the weight calculation
@@ -96,14 +96,18 @@
         ;; (printf "p1 x: ~s  unique pubmed length: ~s\n" x (remove-duplicates pubmed*))
         (length (remove-duplicates pubmed*))]))
   (define (confidence/edge e) (- 1 (/ 1.0 (weight (pubmed-count e)))))
-  (define (confidence p) (foldl * 1 (map confidence/edge p)))
-  (sort
-    paths
-    (lambda (p1 p2)
-      ;; (printf "-----------------\n")
-      ;; (printf "p1: ~s\n" p1)
-      ;; (printf "p2: ~s\n" p2)
-      (< (confidence p1) (confidence p2)))))
+  (foldl * 1 (map confidence/edge p)))
+(define (path-confidence<? p1 p2)
+  (< (path-confidence p1) (path-confidence p2)))
+(define (sort-paths paths) (sort paths path-confidence<?))
+
+(define (remove-duplicate-pubrefs/edge e)
+  (match e
+    (`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
+      `(,subj ,obj ,pred ,subj-type ,obj-type ,(remove-duplicates pubmed*)))))
+
+(define (remove-duplicate-pubrefs/path p)
+  (map remove-duplicate-pubrefs/edge p))
 
 
 (define (concept-list parent parent-search/isa-panel parent-list-boxes-panel label name-string isa-flag choices predicate-list-box-thunk predicate-choices edge-type)
@@ -399,7 +403,8 @@
 
                                                       ;; (printf "sorting paths: ~s\n" paths)
 
-                                                      (set! paths (sort-paths paths))
+                                                      ;; This sorting affects the order of the "Path" list for the selected concept.
+                                                      (set! paths (map remove-duplicate-pubrefs/path (sort-paths paths)))
 
                                                       ;; (printf "sorted paths: ~s\n" paths)
 
@@ -680,16 +685,14 @@
   ;;(printf "elapsed query time: ~s seconds\n" (/ elapsed-time 1000.0))
   ;;(printf "=============================\n")
 
+  ;; This sorting affects order of appearance in the "X" concept list
   (set! all-X-concepts-with-edges
-        (sort
-         all-X-concepts-with-edges
-         (lambda (c1 c2)
-           (> (match c1
-                [`((,cui ,name ,concept-type*) ,pubmed** ,edge*)
-                 (apply + (map length pubmed**))])
-              (match c2
-                [`((,cui ,name ,concept-type*) ,pubmed** ,edge*)
-                 (apply + (map length pubmed**))])))))
+    (sort
+      all-X-concepts-with-edges
+      (lambda (c1 c2)
+        (match (list c1 c2)
+          [`((,_ ,_ ,e1*) (,_ ,_ ,e2*))
+            (not (path-confidence<? e1* e2*))]))))
 
   (define all-X-concepts '())
   (set! all-X-concepts
