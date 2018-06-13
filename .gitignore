@@ -1,3 +1,6 @@
 .DS_Store
-/code/semmed
+/code/semmed/publication-reference.scm
+/code/semmed/edge-by-object
+/code/semmed/edge-by-predicate
+/code/semmed/edge-by-subject
 /code/a.out
