@@ -63,7 +63,7 @@
       (lambda (cui props)
         (define (required-prop props key)
           (define kv (assoc key props))
-          (if kv (cdr kv) (error "missing required property:" cui key)))
+          (and kv (cdr kv)))
         (define category (required-prop props "category"))
         (define name (required-prop props "name"))
         (define category-id (add-category category))
