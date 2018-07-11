@@ -6,6 +6,7 @@
   edge-eid
   edge->bytes
   bytes->edge
+  stream-edges-by-X
 
   offset-write
   offset-count
@@ -14,15 +15,6 @@
   detail-next
   detail-write
   )
-
-;; TODO: stream edges-by-X by mask for a particular source concept, e.g.,
-;;   #(#f  #f         #f):     get all.
-;;   #(#f  dst-cat-id #f):     get all with some destination category, any pid.
-;;   #(#f  _          dst-id): get all with some destination, any pid.
-;;   #(pid #f         #f):     get all with some pid and any destination.
-;;   #(pid dst-cat-id #f):     get all with some pid and destination category.
-;;   #(pid _          dst-id): get all with some pid and destination.
-;; TODO: stream edges-by-X by pid set, equivalent to a union of pid-only masks.
 
 ;; This is the edge representation for edges-by-X.detail, not for edges.scm.
 (define (edge-predicate e)    (vector-ref e 0))
@@ -48,6 +40,35 @@
   (vector (bref 0) (bref 1)
           (+ (bref-to 2 16) (bref-to 3 8) (bref-to 4 0))
           (+ (bref-to 5 24) (bref-to 6 16) (bref-to 7 8) (bref-to 8 0))))
+
+(define (read-edge-bytes in) (read-bytes edge-byte-size in))
+
+;; Stream edges-by-X by mask for a particular source concept, e.g.,
+;;   #(#f  #f         #f):     get all.
+;;   #(#f  dst-cat-id #f):     get all with some destination category, any pid.
+;;   #(#f  _          dst-id): get all with some destination, any pid.
+;;   #(pid #f         #f):     get all with some pid and any destination.
+;;   #(pid dst-cat-id #f):     get all with some pid and destination category.
+;;   #(pid _          dst-id): get all with some pid and destination.
+(define (stream-edges-by-X in in-offset src pid? cat? dst?)
+  ;; TODO: binary search for start of non-#f mask prefix.
+  (define end (offset-ref in-offset (+ src 1)))
+  (let loop ((pos (offset-ref in-offset src)) (set-pos? #t))
+    (cond ((= pos end) '())
+          (else (when set-pos? (file-position in pos))
+                (define bs (read-edge-bytes in))
+                (if (eof-object? bs) '()
+                  (let* ((edge (bytes->edge bs))
+                         (pos-next (+ pos edge-byte-size))
+                         (pid (edge-predicate edge)))
+                    (cond ((and pid? (> pid pid?)) '())
+                          ((and pid? (< pid pid?)) (loop pos-next #f))
+                          ((and cat? (not (= cat? (edge-dst-category edge))))
+                           (loop pos-next #f))
+                          ((and dst? (not (= dst? (edge-dst edge))))
+                           (loop pos-next #f))
+                          (else (stream-cons edge (loop pos-next #t))))))))))
+;; TODO: stream edges-by-X by pid set, equivalent to a union of pid-only masks.
 
 (define (write-scm out scm) (fprintf out "~s\n" scm))
 
