@@ -16,12 +16,15 @@
   edge-eid
   edge->bytes
   bytes->edge
+
   stream-edges-by-X
+  stream-offset&values
 
   offset-write
   offset-count
   offset-ref
   detail-find
+  detail-ref
   detail-next
   detail-write
   )
@@ -90,6 +93,13 @@
                            (loop pos-next #f))
                           (else (stream-cons edge (loop pos-next #t))))))))))
 ;; TODO: stream edges-by-X by pid set, equivalent to a union of pid-only masks.
+
+(define (stream-offset&values in)
+  (file-position in 0)
+  (let loop ((offset 0))
+    (define v (read in))
+    (if (eof-object? v) '()
+      (stream-cons (cons offset v) (loop (+ offset 1))))))
 
 (define (write-scm out scm) (fprintf out "~s\n" scm))
 
