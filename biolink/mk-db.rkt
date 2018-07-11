@@ -30,22 +30,33 @@
   (vector-refo (db:category* db) catid category))
 
 (define (db:concepto db cid concept)
-  (fresh (cat concept-details)
+  (fresh (cat concept-details cui catid rest)
     (== `(,concept-details ,cat) concept)
-    (project (cid)
-      (if (not (var? cid))
-        (let ((c (db:cid->concept db cid)))
-          (== (vector->list c) concept-details)
-          (== (db:catid->category db (concept-category c)) cat))
-        (let loop ((c&c* (db:cid&concept-stream db)))
-          (if (stream-empty? c&c*) fail
-            (let* ((c&c (stream-first c&c*))
-                   (c (cdr c&c)))
-              (conde
-                ((== (car c&c) cid)
-                 (== (vector->list c) concept-details)
-                 (== (db:catid->category db (concept-category c)) cat))
-                ((loop (stream-rest c&c*)))))))))))
+    (== `(,cui ,catid . ,rest) concept-details)
+    (project (cid catid)
+      (let ((ground
+              (lambda (cid)
+                (let ((c (db:cid->concept db cid)))
+                  (fresh ()
+                    (== (vector->list c) concept-details)
+                    (== (db:catid->category db (concept-category c)) cat))))))
+        (cond ((not (var? cid)) (ground cid))
+              ((not (var? catid))
+               (let loop ((cid* (vector->list (db:catid->cid* db catid))))
+                 (if (null? cid*) fail
+                   (conde
+                     ((== (car cid*) cid) (ground (car cid*)))
+                     ((loop (cdr cid*)))))))
+              (else
+                (let loop ((c&c* (db:cid&concept-stream db)))
+                  (if (stream-empty? c&c*) fail
+                    (let* ((c&c (stream-first c&c*))
+                           (c (cdr c&c)))
+                      (conde
+                        ((== (car c&c) cid)
+                         (== (vector->list c) concept-details)
+                         (== (db:catid->category db (concept-category c)) cat))
+                        ((loop (stream-rest c&c*)))))))))))))
 
 (define (db:edgeo db edge)
   (fresh (predicate subject-cid object-cid subject-cat object-cat details)
