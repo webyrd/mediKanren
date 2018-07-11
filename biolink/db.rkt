@@ -15,10 +15,10 @@
   db:subject->edge-stream
   db:object->edge-stream
 
-  db:~category->catid*
-  db:~predicate->pid*
-  db:~name->cid*
-  db:~cui->cid*
+  db:~category->catid&category*
+  db:~predicate->pid&predicate*
+  db:~name->cid&concept*
+  db:~cui->cid&concept*
   )
 
 (require
@@ -98,19 +98,20 @@
   (define (p? v) (string-contains? (string-downcase v) needle))
   (let loop ((i (- (vector-length value*) 1)) (o* '()))
     (if (< i 0) o*
-      (loop (- i 1) (if (p? (vector-ref value* i)) (cons i o*) o*)))))
+      (let ((v (vector-ref value* i)))
+        (loop (- i 1) (if (p? v) (cons (cons i v) o*) o*))))))
 
-(define (db:~category->catid* db ~category)
+(define (db:~category->catid&category* db ~category)
   (~string->offset* (db:category* db) ~category))
-(define (db:~predicate->pid* db ~predicate)
+(define (db:~predicate->pid&predicate* db ~predicate)
   (~string->offset* (db:predicate* db) ~predicate))
 
-(define (~string->cid* cid&concept* value c->str)
+(define (~string->cid&concept* cid&concept* value c->str)
   (define needle (string-downcase value))
   (define (p? c) (string-contains? (string-downcase (c->str (cdr c))) needle))
-  (stream-map car (stream-filter p? cid&concept*)))
+  (stream-filter p? cid&concept*))
 
-(define (db:~name->cid* db ~name)
-  (~string->cid* (db:cid&concept-stream db) ~name concept-name))
-(define (db:~cui->cid* db ~cui)
-  (~string->cid* (db:cid&concept-stream db) ~cui concept-cui) )
+(define (db:~name->cid&concept* db ~name)
+  (~string->cid&concept* (db:cid&concept-stream db) ~name concept-name))
+(define (db:~cui->cid&concept* db ~cui)
+  (~string->cid&concept* (db:cid&concept-stream db) ~cui concept-cui))
