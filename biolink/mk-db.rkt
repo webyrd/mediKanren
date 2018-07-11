@@ -1,5 +1,8 @@
 #lang racket/base
 (provide
+  (all-from-out "mk.rkt")
+  make-db
+
   db:edgeo
   db:concepto
   db:categoryo
