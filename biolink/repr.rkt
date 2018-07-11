@@ -1,5 +1,15 @@
 #lang racket
 (provide
+  concept-cui
+  concept-category
+  concept-name
+  concept-props
+
+  edge/props-subject
+  edge/props-pid
+  edge/props-object
+  edge/props-props
+
   edge-predicate
   edge-dst-category
   edge-dst
@@ -15,6 +25,17 @@
   detail-next
   detail-write
   )
+
+(define (concept-cui c)      (vector-ref c 0))
+(define (concept-category c) (vector-ref c 1))
+(define (concept-name c)     (vector-ref c 2))
+(define (concept-props c)    (vector-ref c 3))
+
+;; This is the edge representation for edges.scm, not for edges-by-X.detail.
+(define (edge/props-subject e) (vector-ref e 0))
+(define (edge/props-pid e)     (vector-ref e 1))
+(define (edge/props-object e)  (vector-ref e 2))
+(define (edge/props-props e)   (vector-ref e 3))
 
 ;; This is the edge representation for edges-by-X.detail, not for edges.scm.
 (define (edge-predicate e)    (vector-ref e 0))
