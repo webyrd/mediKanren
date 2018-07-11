@@ -2,6 +2,9 @@
 (provide
   make-db
 
+  db:category*
+  db:predicate*
+
   db:catid->category
   db:pid->predicate
   db:catid->cid*
