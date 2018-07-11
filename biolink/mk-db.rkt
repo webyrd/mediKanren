@@ -4,6 +4,11 @@
   db:concepto
   db:categoryo
   db:predicateo
+
+  db:~cui-concepto
+  db:~name-concepto
+  db:~predicateo
+  db:~categoryo
   )
 
 (require
@@ -13,7 +18,30 @@
   racket/stream
   )
 
-;; TODO: fuzzy name search.
+(define (db:~string-valueo db:~string->id* db:id->value db ~string id value)
+  (project (db:~string->id* db:id->value ~string)
+    ;(when (or (var? db:~string->id*) (var? db:id->value) (var? ~string))
+      ;(error "fuzzy search string must be ground:" ~string))
+    (let loop ((id* (db:~string->id* db ~string)))
+      (if (stream-empty? id*) fail
+        (let* ((i (stream-first id*)) (v (db:id->value db i)))
+          (conde
+            ((== i id) (== v value))
+            ((loop (stream-rest id*)))))))))
+
+(define (db:cid->concept-list db cid) (vector->list (db:cid->concept db cid)))
+
+;; TODO: concepts with their categories
+(define (db:~cui-concepto db ~cui cid concept)
+  (db:~string-valueo db:~cui->cid* db:cid->concept-list db ~cui cid concept))
+(define (db:~name-concepto db ~name cid concept)
+  (db:~string-valueo db:~name->cid* db:cid->concept-list db ~name cid concept))
+(define (db:~predicateo db ~predicate pid predicate)
+  (db:~string-valueo
+    db:~predicate->pid* db:pid->predicate db ~predicate pid predicate))
+(define (db:~categoryo db ~category catid category)
+  (db:~string-valueo
+    db:~category->catid* db:catid->category db ~category catid category))
 
 (define (vector-refo v* ix value)
   (define len (vector-length v*))
