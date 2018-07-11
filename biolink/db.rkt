@@ -1,4 +1,4 @@
-#lang racket
+#lang racket/base
 (provide
   make-db
 
@@ -20,6 +20,8 @@
 
 (require
   "repr.rkt"
+  racket/stream
+  racket/string
   )
 
 (define fnin-concepts             "concepts.scm")

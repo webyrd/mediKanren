@@ -1,4 +1,4 @@
-#lang racket
+#lang racket/base
 (provide
   concept-cui
   concept-category
@@ -28,6 +28,8 @@
   detail-next
   detail-write
   )
+
+(require racket/stream)
 
 (define (concept-cui c)      (vector-ref c 0))
 (define (concept-category c) (vector-ref c 1))
