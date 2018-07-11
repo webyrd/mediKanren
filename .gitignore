@@ -1,4 +1,5 @@
 .DS_Store
+/biolink/data
 /code/semmed/publication-reference.scm
 /code/semmed/edge-by-object
 /code/semmed/edge-by-predicate
