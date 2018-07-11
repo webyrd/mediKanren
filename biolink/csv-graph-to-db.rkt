@@ -26,8 +26,8 @@
 (define fnout-concepts-by-category "concepts-by-category.scm")
 (define fnout-edges                "edges.scm")
 (define fnout-predicates           "predicates.scm")
-(define fnout-edges-by-subject     "edges-by-subject.detail")
-(define fnout-edges-by-object      "edges-by-object.detail")
+(define fnout-edges-by-subject     "edges-by-subject.bytes")
+(define fnout-edges-by-object      "edges-by-object.bytes")
 (define (fname-offset fname) (string-append fname ".offset"))
 
 (define nodeprop-header-expected ":ID,propname,value")
@@ -145,12 +145,12 @@
         (set! subject=>edges
           (hash-set subject=>edges subject
                     (cons (edge->bytes
-                            (vector subject pid object-category object id))
+                            (vector pid object-category object id))
                           (hash-ref subject=>edges subject '()))))
         (set! object=>edges
           (hash-set object=>edges object
                     (cons (edge->bytes
-                            (vector object pid subject-category subject id))
+                            (vector pid subject-category subject id))
                           (hash-ref object=>edges object '()))))
         (detail-write out-edges out-offset-edges
                       (vector subject pid object (filter other-key? props)))
@@ -187,7 +187,7 @@
                (- count 1) predicate-count)
        (flush)
        (define max-edges/src 0)
-       (for ((src-id (in-range 0 (hash-count cui=>id&cat))))
+       (for ((src-id (in-range 0 (+ 1 (hash-count cui=>id&cat)))))
             (when (= 0 (remainder src-id 10000))
               (printf "Processed edges for ~s concepts\n" src-id)
               (flush-output out-edges-by-subject)
@@ -196,10 +196,10 @@
               (flush-output out-offset-edges-by-object))
             (define (write-edges-by-X X=>edges out out-offset)
               (define edges/src 0)
+              (offset-write out-offset (file-position out))
               (for ((edge (sort (hash-ref X=>edges src-id '()) bytes<?)))
                    (set! edges/src (+ edges/src 1))
-                   (detail-write out #f edge)
-                   (offset-write out-offset (file-position out)))
+                   (write-bytes edge out))
               (when (< max-edges/src edges/src)
                 (printf "Max edges per source concept seen for ~s: ~s\n"
                         src-id edges/src)
