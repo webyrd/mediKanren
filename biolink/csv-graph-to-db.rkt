@@ -43,6 +43,10 @@
 (define (process-nodes in-nodeprop out-concepts out-offset-concepts
                        out-categories out-concepts-by-category
                        out-offset-concepts-by-category)
+  (define (flush)
+    (flush-output out-categories)
+    (flush-output out-concepts)
+    (flush-output out-offset-concepts))
   (define category-count 0)
   (define category=>id (hash))
   (define cat-id=>concept-id* (hash))
@@ -89,14 +93,13 @@
     (add-concept current-cui props)
     (when (= 0 (remainder count 10000))
       (printf "Processed ~s nodes/concepts\n" count)
-      (flush-output out-categories)
-      (flush-output out-concepts)
-      (flush-output out-offset-concepts))
+      (flush))
 
     (match (nodeprops 'current)
       ((list cui _ _) (loop (+ 1 count) cui))
       (#f (printf "Found ~s concepts in ~s categories\n"
                   (- count 1) category-count)
+       (flush)
        (for ((cat-id (in-range 0 category-count)))
             (define cids (sort (hash-ref cat-id=>concept-id* cat-id '()) <=))
             (define vcids (list->vector cids))
