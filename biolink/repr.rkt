@@ -97,11 +97,12 @@
 ;; TODO: stream edges-by-X by pid set, equivalent to a union of pid-only masks.
 
 (define (stream-offset&values in)
-  (file-position in 0)
-  (let loop ((offset 0))
+  (let loop ((offset 0) (pos 0))
+    (file-position in pos)
     (define v (read in))
+    (define pos-next (file-position in))
     (if (eof-object? v) '()
-      (stream-cons (cons offset v) (loop (+ offset 1))))))
+      (stream-cons (cons offset v) (loop (+ offset 1) pos-next)))))
 
 (define (write-scm out scm) (fprintf out "~s\n" scm))
 
