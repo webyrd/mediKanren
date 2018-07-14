@@ -67,8 +67,8 @@
     (detail-ref in-concepts-by-category in-offset-concepts-by-category catid))
   (define (cid->concept cid) (detail-ref in-concepts in-offset-concepts cid))
   (define (eid->edge eid)    (detail-ref in-edges in-offset-edges eid))
-  (define (cid&concept-stream)    (stream-offset&values in-concepts))
-  (define (eid&edge/props-stream) (stream-offset&values in-edges))
+  (define (cid&concept-stream)    (port->stream-offset&values in-concepts))
+  (define (eid&edge/props-stream) (port->stream-offset&values in-edges))
   (define (subject->edge-stream cid pid? cat? dst?)
     (stream-edges-by-X in-edges-by-subject in-offset-edges-by-subject
                        cid pid? cat? dst?))
@@ -93,19 +93,6 @@
 (define (db:catid->category db catid) (vector-ref (db:category* db) catid))
 (define (db:pid->predicate db pid)    (vector-ref (db:predicate* db) pid))
 
-(define (~string->offset* value* value)
-  (define needle (string-downcase value))
-  (define (p? v) (string-contains? (string-downcase v) needle))
-  (let loop ((i (- (vector-length value*) 1)) (o* '()))
-    (if (< i 0) o*
-      (let ((v (vector-ref value* i)))
-        (loop (- i 1) (if (p? v) (cons (cons i v) o*) o*))))))
-
-(define (db:~category->catid&category* db ~category)
-  (~string->offset* (db:category* db) ~category))
-(define (db:~predicate->pid&predicate* db ~predicate)
-  (~string->offset* (db:predicate* db) ~predicate))
-
 (define (~string->offset&value* offset&value* value v->str)
   (define needle (string-downcase value))
   (define (p? v)
@@ -113,6 +100,12 @@
     (and haystack (string-contains? (string-downcase haystack) needle)))
   (stream-filter p? offset&value*))
 
+(define (db:~category->catid&category* db ~category)
+  (~string->offset&value* (vector->stream-offset&values (db:category* db))
+                          ~category (lambda (v) v)))
+(define (db:~predicate->pid&predicate* db ~predicate)
+  (~string->offset&value* (vector->stream-offset&values (db:predicate* db))
+                          ~predicate (lambda (v) v)))
 (define (db:~name->cid&concept* db ~name)
   (~string->offset&value* (db:cid&concept-stream db) ~name concept-name))
 (define (db:~cui->cid&concept* db ~cui)

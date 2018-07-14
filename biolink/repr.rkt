@@ -18,7 +18,8 @@
   bytes->edge
 
   stream-edges-by-X
-  stream-offset&values
+  port->stream-offset&values
+  vector->stream-offset&values
 
   offset-write
   offset-count
@@ -96,13 +97,19 @@
                           (else (stream-cons edge (loop pos-next #t))))))))))
 ;; TODO: stream edges-by-X by pid set, equivalent to a union of pid-only masks.
 
-(define (stream-offset&values in)
+(define (port->stream-offset&values in)
   (let loop ((offset 0) (pos 0))
     (file-position in pos)
     (define v (read in))
     (define pos-next (file-position in))
     (if (eof-object? v) '()
       (stream-cons (cons offset v) (loop (+ offset 1) pos-next)))))
+
+(define (vector->stream-offset&values v*)
+  (define len (vector-length v*))
+  (let loop ((offset 0))
+    (if (<= len offset) '()
+      (stream-cons (cons offset (vector-ref v* offset)) (loop (+ offset 1))))))
 
 (define (write-scm out scm) (fprintf out "~s\n" scm))
 
