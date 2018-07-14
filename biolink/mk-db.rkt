@@ -34,28 +34,17 @@
               ((== i id) (== v value))
               ((loop (stream-rest id&value*))))))))))
 
+(define ((i&c->i&c-list db) i&c)
+  (define c (cdr i&c))
+  (cons (car i&c) (list (vector->list c)
+                        (db:catid->category db (concept-category c)))))
+
 (define (db:~name->cid&concept-list* db ~name)
-  (stream-map
-    (lambda (i&c)
-      (define c (cdr i&c))
-      (cons (car i&c)
-            (list (vector->list c)
-                  (db:catid->category db (concept-category c)))))
-    (db:~name->cid&concept* db ~name)))
+  (stream-map (i&c->i&c-list db) (db:~name->cid&concept* db ~name)))
 
 (define (db:~cui->cid&concept-list* db ~cui)
-  (stream-map
-    (lambda (i&c)
-      (define c (cdr i&c))
-      (cons (car i&c)
-            (list (vector->list c)
-                  (db:catid->category db (concept-category c)))))
-    (db:~cui->cid&concept* db ~cui)))
+  (stream-map (i&c->i&c-list db) (db:~cui->cid&concept* db ~cui)))
 
-(define (db:cid->concept-list db cid)
-  (vector->list (db:cid->concept db cid)))
-
-;; TODO: concepts with their categories
 (define (db:~cui-concepto db ~cui cid concept)
   (db:~string-valueo db:~cui->cid&concept-list* db ~cui cid concept))
 (define (db:~name-concepto db ~name cid concept)
