@@ -13,7 +13,7 @@
 (time (pretty-print (run* (i v) (db:~name-concepto semmed "tacrine" i v))))
 
 (newline)
-(displayln "fuzzy search for tacrine, displayed with old format:")
+(displayln "fuzzy search for tacrine, displayed with something similar to the old format:")
 (time (pretty-print (map
                       (lambda (e)
                         (match e
