@@ -41,7 +41,20 @@
   (if (eof-object? datum) '() (cons datum (read-all in))))
 (define (read-all-from-file path) (call-with-input-file path read-all))
 
-(define (make-db db-dir)
+;; TODO: incorporate a time/space tradeoff parameter.
+;; memory usage ranking:
+;;   3:
+;;     edges
+;;   2:
+;;     edge-by-X * 2
+;;   1:
+;;     concepts
+;;     cat->concepts
+;;   0:
+;;     category*, predicate*
+
+;; memory-usage: 0 1 2 3
+(define (make-db db-dir (memory-usage #f))
   (define (db-path fname) (expand-user-path (build-path db-dir fname)))
   (define (open-db-path fname) (open-input-file (db-path fname)))
   (define in-concepts-by-category
