@@ -13,6 +13,21 @@
 (time (pretty-print (run* (i v) (db:~name-concepto semmed "tacrine" i v))))
 
 (newline)
+(displayln "second response for fuzzy search for tacrine:")
+(time (pretty-print (cadr (run 2 (i v) (db:~name-concepto semmed "tacrine" i v)))))
+;; =>
+'(70919
+  (("UMLS:C0295380"
+    5
+    "2-hydroxytacrine"
+    (("umls_type_label" . "['Pharmacologic Substance', 'Organic Chemical']")
+     ("xrefs" . "['MESH:C092548']")
+     ("id" . "UMLS:C0295380")
+     ("umls_type" . "['T121', 'T109']")
+     ("labels" . "['chemical_substance']")))
+   "chemical_substance"))
+
+(newline)
 (displayln "fuzzy search for tacrine, displayed with something similar to the old format:")
 (time (pretty-print (map
                       (lambda (e)
