@@ -54,7 +54,7 @@
 ;;     category*, predicate*
 
 ;; memory-usage: 0 1 2 3
-(define (make-db db-dir (memory-usage #f))
+(define (make-db db-dir)
   (define (db-path fname) (expand-user-path (build-path db-dir fname)))
   (define (open-db-path fname) (open-input-file (db-path fname)))
   (define in-concepts-by-category

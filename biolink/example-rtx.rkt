@@ -3,7 +3,7 @@
   "mk-db.rkt"
   )
 
-(define rtx (make-db "data/rtx"))
+(define rtx (time (make-db "data/rtx")))
 
 (displayln "categories:")
 (pretty-print (run* (i v) (db:categoryo rtx i v)))

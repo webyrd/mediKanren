@@ -3,7 +3,7 @@
   "mk-db.rkt"
   )
 
-(define semmed (make-db "data/semmed"))
+(define semmed (time (make-db "data/semmed")))
 
 (displayln "categories:")
 (pretty-print (run* (i v) (db:categoryo semmed i v)))

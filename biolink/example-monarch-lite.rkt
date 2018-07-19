@@ -3,7 +3,7 @@
   "mk-db.rkt"
   )
 
-(define monarch-lite (make-db "data/monarch-lite"))
+(define monarch-lite (time (make-db "data/monarch-lite")))
 
 (displayln "categories:")
 (pretty-print (run* (i v) (db:categoryo monarch-lite i v)))

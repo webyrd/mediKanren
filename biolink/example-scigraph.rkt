@@ -3,7 +3,7 @@
   "mk-db.rkt"
   )
 
-(define scigraph (make-db "data/scigraph"))
+(define scigraph (time (make-db "data/scigraph")))
 
 (displayln "categories:")
 (pretty-print (run* (i v) (db:categoryo scigraph i v)))
