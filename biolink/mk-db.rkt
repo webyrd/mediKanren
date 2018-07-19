@@ -22,40 +22,32 @@
   racket/stream
   )
 
-(define (db:~string-valueo db:~string->id&value* db ~string id value)
-  (project (db:~string->id&value* ~string)
-    (if (or (var? db:~string->id&value*) (var? ~string))
-      (error "fuzzy search string must be ground:" ~string)
-      (let loop ((id&value* (db:~string->id&value* db ~string)))
-        (if (stream-empty? id&value*) fail
-          (let* ((i&v (stream-first id&value*))
-                 (i (car i&v))
-                 (v (cdr i&v)))
-            (conde
-              ((== i id) (== v value))
-              ((loop (stream-rest id&value*))))))))))
+(define (vconcept->details db v)
+  (define catid (concept-category v))
+  (list (concept-cui v)
+        (concept-name v)
+        (cons catid (vector-ref (db:category* db) catid))
+        (concept-props v)))
+(define ((i&v->i&d db) i&v) (cons (car i&v) (vconcept->details db (cdr i&v))))
 
-(define ((i&c->i&c-list db) i&c)
-  (define c (cdr i&c))
-  (cons (car i&c) (list (vector->list c)
-                        (db:catid->category db (concept-category c)))))
+(define (stream-refo i&v* iv)
+  (let loop ((i&v* i&v*))
+    (if (stream-empty? i&v*) fail
+      (let* ((i&v (stream-first i&v*)))
+        (conde
+          ((== `(,(car i&v) . ,(cdr i&v)) iv))
+          ((loop (stream-rest i&v*))))))))
 
-(define (db:~name->cid&concept-list* db ~name)
-  (stream-map (i&c->i&c-list db) (db:~name->cid&concept* db ~name)))
-
-(define (db:~cui->cid&concept-list* db ~cui)
-  (stream-map (i&c->i&c-list db) (db:~cui->cid&concept* db ~cui)))
-
-(define (db:~cui-concepto db ~cui cid concept)
-  (db:~string-valueo db:~cui->cid&concept-list* db ~cui cid concept))
-(define (db:~name-concepto db ~name cid concept)
-  (db:~string-valueo db:~name->cid&concept-list* db ~name cid concept))
-(define (db:~predicateo db ~predicate pid predicate)
-  (db:~string-valueo
-    db:~predicate->pid&predicate* db ~predicate pid predicate))
-(define (db:~categoryo db ~category catid category)
-  (db:~string-valueo
-    db:~category->catid&category* db ~category catid category))
+(define (db:~cui-concepto db ~cui concept)
+  (stream-refo
+    (stream-map (i&v->i&d db) (db:~cui->cid&concept* db ~cui)) concept))
+(define (db:~name-concepto db ~name concept)
+  (stream-refo
+    (stream-map (i&v->i&d db) (db:~name->cid&concept* db ~name)) concept))
+(define (db:~predicateo db ~predicate predicate)
+  (stream-refo (db:~predicate->pid&predicate* db ~predicate) predicate))
+(define (db:~categoryo db ~category category)
+  (stream-refo (db:~category->catid&category* db ~category) category))
 
 (define (vector-refo e->v v* iv)
   (when (not (vector? v*)) (error "vector-refo vector must be ground:" v* iv))
@@ -77,12 +69,7 @@
   (vector-refo (lambda (x) x) (db:category* db) category))
 
 (define (db:concepto db concept)
-  (define (v->concept v)
-    (define catid (concept-category v))
-    (list (concept-cui v)
-          (concept-name v)
-          (cons catid (vector-ref (db:category* db) catid))
-          (concept-props v)))
+  (define (v->concept v) (vconcept->details db v))
   (project (concept)
     (match concept
       (`(,(? var?) ,_ ,_ (,(and catid (? integer?)) . ,_) . ,_)

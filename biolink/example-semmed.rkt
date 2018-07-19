@@ -21,5 +21,5 @@
 (pretty-print (run 10 (e) (db:edgeo semmed e)))
 
 (newline)
-(displayln "fuzzy search (still a little slow, will improve):")
-(time (pretty-print (run* (i v) (db:~name-concepto semmed "imatin" i v))))
+(displayln "fuzzy search:")
+(time (pretty-print (run* (c) (db:~name-concepto semmed "imatin" c))))

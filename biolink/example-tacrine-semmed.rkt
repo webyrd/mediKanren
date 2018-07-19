@@ -10,11 +10,11 @@
 
 (newline)
 (displayln "fuzzy search for tacrine:")
-(time (pretty-print (run* (i v) (db:~name-concepto semmed "tacrine" i v))))
+(time (pretty-print (run* (c) (db:~name-concepto semmed "tacrine" c))))
 
 (newline)
 (displayln "first two responses for fuzzy search for tacrine:")
-(time (pretty-print (run 2 (i v) (db:~name-concepto semmed "tacrine" i v))))
+(time (pretty-print (run 2 (c) (db:~name-concepto semmed "tacrine" c))))
 ;; =>
 '((35887
    (("UMLS:C0386973"
@@ -42,18 +42,13 @@
 (time (pretty-print (map
                       (lambda (e)
                         (match e
-                          [`(,ignore1
-                             ((,id
-                               ,ignore2
-                               ,name
-                               ,props)
-                              ,ignore3))
+                          [`(,ignore1 ,cui ,name ,ignore2 ,props)
                            (let ((type-p (assoc "umls_type_label" props)))
                              (let ((type (if type-p
                                              (cdr type-p)
                                              'no-type-found)))
-                               (list id name type)))]))
-                      (run* (i v) (db:~name-concepto semmed "tacrine" i v)))))
+                               (list cui name type)))]))
+                      (run* (c) (db:~name-concepto semmed "tacrine" c)))))
 ;; =>
 '(("UMLS:C0386973" "6-chlorotacrine" "['Organic Chemical']")
   ("UMLS:C0295380" "2-hydroxytacrine" "['Pharmacologic Substance', 'Organic Chemical']")
