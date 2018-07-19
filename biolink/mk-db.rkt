@@ -18,6 +18,7 @@
   "db.rkt"
   "mk.rkt"
   "repr.rkt"
+  (except-in racket/match ==)
   racket/stream
   )
 
@@ -75,34 +76,27 @@
 (define (db:categoryo db category)
   (vector-refo (lambda (x) x) (db:category* db) category))
 
-(define (db:concepto db cid concept)
-  (fresh (cat concept-details cui catid rest)
-    (== `(,concept-details ,cat) concept)
-    (== `(,cui ,catid . ,rest) concept-details)
-    (project (cid catid)
-      (let ((ground
-              (lambda (cid)
-                (let ((c (db:cid->concept db cid)))
-                  (fresh ()
-                    (== (vector->list c) concept-details)
-                    (== (db:catid->category db (concept-category c)) cat))))))
-        (cond ((not (var? cid)) (ground cid))
-              ((not (var? catid))
-               (let loop ((cid* (vector->list (db:catid->cid* db catid))))
-                 (if (null? cid*) fail
-                   (conde
-                     ((== (car cid*) cid) (ground (car cid*)))
-                     ((loop (cdr cid*)))))))
-              (else
-                (let loop ((c&c* (db:cid&concept-stream db)))
-                  (if (stream-empty? c&c*) fail
-                    (let* ((c&c (stream-first c&c*))
-                           (c (cdr c&c)))
-                      (conde
-                        ((== (car c&c) cid)
-                         (== (vector->list c) concept-details)
-                         (== (db:catid->category db (concept-category c)) cat))
-                        ((loop (stream-rest c&c*)))))))))))))
+(define (db:concepto db concept)
+  (define (v->concept v)
+    (define catid (concept-category v))
+    (list (concept-cui v)
+          (concept-name v)
+          (cons catid (vector-ref (db:category* db) catid))
+          (concept-props v)))
+  (project (concept)
+    (match concept
+      (`(,(? var?) ,_ ,_ (,(and catid (? integer?)) . ,_) . ,_)
+        (displayln `(concept by category: ,catid))
+        (define cid* (db:catid->cid* db catid))
+        (define len (vector-length cid*))
+        (let loop ((i 0))
+          (if (<= len i) fail
+            (let ((cid (vector-ref cid* i)))
+              (conde
+                ((== (cons cid (v->concept (vector-ref (db:concept* db) cid)))
+                     concept))
+                ((loop (+ i 1))))))))
+      (_ (vector-refo v->concept (db:concept* db) concept)))))
 
 (define (db:edgeo db edge)
   (fresh (predicate subject-cid object-cid subject-cat object-cat details)

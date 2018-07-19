@@ -14,7 +14,7 @@
 
 (newline)
 (displayln "some concepts:")
-(pretty-print (run 10 (i v) (db:concepto monarch-lite i v)))
+(pretty-print (run 10 (c) (db:concepto monarch-lite c)))
 
 (newline)
 (displayln "some edges:")

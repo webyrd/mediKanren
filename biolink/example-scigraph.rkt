@@ -14,7 +14,7 @@
 
 (newline)
 (displayln "some concepts:")
-(pretty-print (run 10 (i v) (db:concepto scigraph i v)))
+(pretty-print (run 10 (c) (db:concepto scigraph c)))
 
 (newline)
 (displayln "some edges:")
