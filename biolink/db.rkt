@@ -43,14 +43,13 @@
 
 ;; TODO: incorporate a time/space tradeoff parameter.
 ;; memory usage ranking:
-;;   3:
-;;     edges
 ;;   2:
-;;     edge-by-X * 2
+;;     edges
 ;;   1:
+;;     edge-by-X * 2
+;;   0:
 ;;     concepts
 ;;     cat->concepts
-;;   0:
 ;;     category*, predicate*
 
 ;; memory-usage: 0 1 2 3
@@ -76,11 +75,17 @@
     (list->vector (read-all-from-file (db-path fnin-categories))))
   (define predicate*
     (list->vector (read-all-from-file (db-path fnin-predicates))))
-  (define (catid->cid* catid)
-    (detail-ref in-concepts-by-category in-offset-concepts-by-category catid))
-  (define (cid->concept cid) (detail-ref in-concepts in-offset-concepts cid))
-  (define (eid->edge eid)    (detail-ref in-edges in-offset-edges eid))
-  (define (cid&concept-stream)    (port->stream-offset&values in-concepts))
+  (define concept* (list->vector (stream->list (stream-map cdr (port->stream-offset&values in-concepts)))))
+  (define catid=>cid* (make-vector (vector-length category*) #f))
+  (for ((catid (in-range 0 (vector-length category*))))
+       (define cid* (detail-ref in-concepts-by-category
+                                in-offset-concepts-by-category catid))
+       (vector-set! catid=>cid* catid cid*))
+
+  (define (catid->cid* catid) (vector-ref catid=>cid* catid))
+  (define (cid->concept cid)  (vector-ref concept* cid))
+  (define (eid->edge eid)     (detail-ref in-edges in-offset-edges eid))
+  (define (cid&concept-stream)    (vector->stream-offset&values concept*))
   (define (eid&edge/props-stream) (port->stream-offset&values in-edges))
   (define (subject->edge-stream cid pid? cat? dst?)
     (stream-edges-by-X in-edges-by-subject in-offset-edges-by-subject
@@ -89,19 +94,20 @@
     (stream-edges-by-X in-edges-by-object in-offset-edges-by-object
                        cid pid? cat? dst?))
 
-  (vector category* predicate* catid->cid* cid->concept eid->edge
+  (vector category* predicate* concept* catid->cid* cid->concept eid->edge
           cid&concept-stream eid&edge/props-stream
           subject->edge-stream object->edge-stream))
 
 (define (db:category*             db)        (vector-ref db 0))
 (define (db:predicate*            db)        (vector-ref db 1))
-(define (db:catid->cid*           db . args) (apply (vector-ref db 2) args))
-(define (db:cid->concept          db . args) (apply (vector-ref db 3) args))
-(define (db:eid->edge             db . args) (apply (vector-ref db 4) args))
-(define (db:cid&concept-stream    db)        ((vector-ref db 5)))
-(define (db:eid&edge/props-stream db)        ((vector-ref db 6)))
-(define (db:subject->edge-stream  db . args) (apply (vector-ref db 7) args))
-(define (db:object->edge-stream   db . args) (apply (vector-ref db 8) args))
+(define (db:concept*              db)        (vector-ref db 2))
+(define (db:catid->cid*           db . args) (apply (vector-ref db 3) args))
+(define (db:cid->concept          db . args) (apply (vector-ref db 4) args))
+(define (db:eid->edge             db . args) (apply (vector-ref db 5) args))
+(define (db:cid&concept-stream    db)        ((vector-ref db 6)))
+(define (db:eid&edge/props-stream db)        ((vector-ref db 7)))
+(define (db:subject->edge-stream  db . args) (apply (vector-ref db 8) args))
+(define (db:object->edge-stream   db . args) (apply (vector-ref db 9) args))
 
 (define (db:catid->category db catid) (vector-ref (db:category* db) catid))
 (define (db:pid->predicate db pid)    (vector-ref (db:predicate* db) pid))
@@ -120,6 +126,8 @@
   (~string->offset&value* (vector->stream-offset&values (db:predicate* db))
                           ~predicate (lambda (v) v)))
 (define (db:~name->cid&concept* db ~name)
-  (~string->offset&value* (db:cid&concept-stream db) ~name concept-name))
+  (~string->offset&value* (vector->stream-offset&values (db:concept* db))
+                          ~name concept-name))
 (define (db:~cui->cid&concept* db ~cui)
-  (~string->offset&value* (db:cid&concept-stream db) ~cui concept-cui))
+  (~string->offset&value* (vector->stream-offset&values (db:concept* db))
+                          ~cui concept-cui))
