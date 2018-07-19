@@ -6,11 +6,11 @@
 (define rtx (time (make-db "data/rtx")))
 
 (displayln "categories:")
-(pretty-print (run* (i v) (db:categoryo rtx i v)))
+(pretty-print (run* (c) (db:categoryo rtx c)))
 
 (newline)
 (displayln "predicates:")
-(pretty-print (run* (i v) (db:predicateo rtx i v)))
+(pretty-print (run* (p) (db:predicateo rtx p)))
 
 (newline)
 (displayln "some concepts:")

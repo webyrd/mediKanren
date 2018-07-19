@@ -56,19 +56,24 @@
   (db:~string-valueo
     db:~category->catid&category* db ~category catid category))
 
-(define (vector-refo v* ix value)
-  (define len (vector-length v*))
-  (let loop ((i 0))
-    (if (<= len i) fail
-      (conde
-        ((== i ix) (== (vector-ref v* i) value))
-        ((loop (+ i 1)))))))
+(define (vector-refo v* iv)
+  (when (not (vector? v*)) (error "vector-refo vector must be ground:" v* iv))
+  (project (iv)
+    (cond ((and (pair? iv) (integer? (car iv)))
+           (== (cons (car iv) (vector-ref v* (car iv))) iv))
+          (else
+            (define len (vector-length v*))
+            (let loop ((i 0))
+              (if (<= len i) fail
+                (conde
+                  ((== (cons i (vector-ref v* i)) iv))
+                  ((loop (+ i 1))))))))))
 
-(define (db:predicateo db pid predicate)
-  (vector-refo (db:predicate* db) pid predicate))
+(define (db:predicateo db predicate)
+  (vector-refo (db:predicate* db) predicate))
 
-(define (db:categoryo db catid category)
-  (vector-refo (db:category* db) catid category))
+(define (db:categoryo db category)
+  (vector-refo (db:category* db) category))
 
 (define (db:concepto db cid concept)
   (fresh (cat concept-details cui catid rest)

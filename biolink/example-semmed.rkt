@@ -6,11 +6,11 @@
 (define semmed (time (make-db "data/semmed")))
 
 (displayln "categories:")
-(pretty-print (run* (i v) (db:categoryo semmed i v)))
+(pretty-print (run* (c) (db:categoryo semmed c)))
 
 (newline)
 (displayln "predicates:")
-(pretty-print (run* (i v) (db:predicateo semmed i v)))
+(pretty-print (run* (p) (db:predicateo semmed p)))
 
 (newline)
 (displayln "some concepts:")

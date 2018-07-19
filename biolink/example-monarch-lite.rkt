@@ -6,11 +6,11 @@
 (define monarch-lite (time (make-db "data/monarch-lite")))
 
 (displayln "categories:")
-(pretty-print (run* (i v) (db:categoryo monarch-lite i v)))
+(pretty-print (run* (c) (db:categoryo monarch-lite c)))
 
 (newline)
 (displayln "predicates:")
-(pretty-print (run* (i v) (db:predicateo monarch-lite i v)))
+(pretty-print (run* (p) (db:predicateo monarch-lite p)))
 
 (newline)
 (displayln "some concepts:")

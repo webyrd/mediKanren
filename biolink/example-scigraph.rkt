@@ -6,11 +6,11 @@
 (define scigraph (time (make-db "data/scigraph")))
 
 (displayln "categories:")
-(pretty-print (run* (i v) (db:categoryo scigraph i v)))
+(pretty-print (run* (c) (db:categoryo scigraph c)))
 
 (newline)
 (displayln "predicates:")
-(pretty-print (run* (i v) (db:predicateo scigraph i v)))
+(pretty-print (run* (p) (db:predicateo scigraph p)))
 
 (newline)
 (displayln "some concepts:")
