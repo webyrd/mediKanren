@@ -4,6 +4,7 @@
 
   db:category*
   db:predicate*
+  db:concept*
 
   db:catid->category
   db:pid->predicate
