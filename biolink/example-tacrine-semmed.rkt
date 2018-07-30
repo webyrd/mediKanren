@@ -17,25 +17,24 @@
 (time (pretty-print (run 2 (c) (db:~name-concepto semmed "tacrine" c))))
 ;; =>
 '((35887
-   (("UMLS:C0386973"
-     5
-     "6-chlorotacrine"
-     (("umls_type_label" . "['Organic Chemical']")
-      ("xrefs" . "['MESH:C098212']")
-      ("id" . "UMLS:C0386973")
-      ("umls_type" . "['T109']")
-      ("labels" . "['chemical_substance']")))
-    "chemical_substance"))
+   "UMLS:C0386973"
+   "6-chlorotacrine"
+   (5 . "chemical_substance")
+   (("umls_type_label" . "['Organic Chemical']")
+    ("xrefs" . "['MESH:C098212']")
+    ("id" . "UMLS:C0386973")
+    ("umls_type" . "['T109']")
+    ("labels" . "['chemical_substance']")))
   (70919
-   (("UMLS:C0295380"
-     5
-     "2-hydroxytacrine"
-     (("umls_type_label" . "['Pharmacologic Substance', 'Organic Chemical']")
-      ("xrefs" . "['MESH:C092548']")
-      ("id" . "UMLS:C0295380")
-      ("umls_type" . "['T121', 'T109']")
-      ("labels" . "['chemical_substance']")))
-    "chemical_substance")))
+   "UMLS:C0295380"
+   "2-hydroxytacrine"
+   (5 . "chemical_substance")
+   (("umls_type_label" . "['Pharmacologic Substance', 'Organic Chemical']")
+    ("xrefs" . "['MESH:C092548']")
+    ("id" . "UMLS:C0295380")
+    ("umls_type" . "['T121', 'T109']")
+    ("labels" . "['chemical_substance']"))))
+
 
 (newline)
 (displayln "fuzzy search for tacrine, displayed with something similar to the old format:")
