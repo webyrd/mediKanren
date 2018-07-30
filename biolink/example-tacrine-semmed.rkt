@@ -106,7 +106,7 @@
 
 (newline)
 (displayln "tacrine treats X:")
-(time (length (run* (edge)
+(time (pretty-print (run* (edge)
                       (fresh (scid scui sname scatid scat sprops
                                    ocid ocui oname ocatid ocat oprops eid pid pred eprops)
                         (== `(,eid (,scid . (,scui ,sname (,scatid . ,scat) . ,sprops))
@@ -126,3 +126,30 @@
                             `(,scid . (,scui ,sname (,scatid . ,scat) . ,sprops)))
                         (== `(1 . "treats") `(,pid . ,pred))
                         (db:edgeo semmed edge)))))
+
+(newline)
+(displayln "tacrine DECREASES X:")
+(time (pretty-print (let ((DECREASES (lambda (pred-info)
+                                       (conde
+                                         [(== `(1 . "treats") pred-info)]
+                                         [(== `(14 . "prevents") pred-info)]))))
+                      (run* (edge)
+                        (fresh (scid scui sname scatid scat sprops
+                                     ocid ocui oname ocatid ocat oprops eid pid pred eprops)
+                          (== `(,eid (,scid . (,scui ,sname (,scatid . ,scat) . ,sprops))
+                                     (,ocid . (,ocui ,oname (,ocatid . ,ocat) . ,oprops))
+                                     (,pid . ,pred) ,eprops) edge)
+                          (== `(75842
+                                "UMLS:C0039245"
+                                "Tacrine"
+                                (5 . "chemical_substance")
+                                (("umls_type_label" . "['Pharmacologic Substance', 'Organic Chemical']")
+                                 ("xrefs"
+                                  .
+                                  "['MESH:D013619', 'CHV:0000012013', 'VANDF:4023896', 'LNC:MTHU024717', 'LNC:LP17860-5', 'NDFRT:N0000007004', 'RXNORM:10318', 'DRUGBANK:DB00382', 'SNOMEDCT_US:108494008', 'MTH:NOCODE', 'NDFRT:N0000021901', 'UNII:4VX7YNB537', 'ATC:N06DA01', 'NDDF:004378', 'MMSL:d03176', 'SNOMEDCT_US:373727000', 'INCHIKEY:YLJREFDVOIBQDA-UHFFFAOYSA-N', 'CHEMBL:CHEMBL95', 'CSP:0033-0786', 'NCI:C61961', 'MEDCIN:45792']")
+                                 ("id" . "UMLS:C0039245")
+                                 ("umls_type" . "['T121', 'T109']")
+                                 ("labels" . "['chemical_substance']")))
+                              `(,scid . (,scui ,sname (,scatid . ,scat) . ,sprops)))
+                          (DECREASES `(,pid . ,pred))
+                          (db:edgeo semmed edge))))))
