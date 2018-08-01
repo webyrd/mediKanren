@@ -39,15 +39,19 @@
           ((loop (stream-rest i&v*))))))))
 
 (define (db:~cui-concepto db ~cui concept)
-  (stream-refo
-    (stream-map (i&v->i&d db) (db:~cui->cid&concept* db ~cui)) concept))
+  (project (~cui)
+    (stream-refo
+      (stream-map (i&v->i&d db) (db:~cui->cid&concept* db ~cui)) concept)))
 (define (db:~name-concepto db ~name concept)
-  (stream-refo
-    (stream-map (i&v->i&d db) (db:~name->cid&concept* db ~name)) concept))
+  (project (~name)
+    (stream-refo
+      (stream-map (i&v->i&d db) (db:~name->cid&concept* db ~name)) concept)))
 (define (db:~predicateo db ~predicate predicate)
-  (stream-refo (db:~predicate->pid&predicate* db ~predicate) predicate))
+  (project (~predicate)
+    (stream-refo (db:~predicate->pid&predicate* db ~predicate) predicate)))
 (define (db:~categoryo db ~category category)
-  (stream-refo (db:~category->catid&category* db ~category) category))
+  (project (~category)
+    (stream-refo (db:~category->catid&category* db ~category) category)))
 
 (define (vector-refo e->v v* iv)
   (when (not (vector? v*)) (error "vector-refo vector must be ground:" v* iv))
