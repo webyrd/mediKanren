@@ -24,10 +24,10 @@
 
 (define (vconcept->details db v)
   (define catid (concept-category v))
-  (list (concept-cui v)
-        (concept-name v)
-        (cons catid (vector-ref (db:category* db) catid))
-        (concept-props v)))
+  (list* (concept-cui v)
+         (concept-name v)
+         (cons catid (vector-ref (db:category* db) catid))
+         (concept-props v)))
 (define ((i&v->i&d db) i&v) (cons (car i&v) (vconcept->details db (cdr i&v))))
 
 (define (stream-refo i&v* iv)
@@ -117,10 +117,10 @@
                (edges-by-Xo db:subject->edge-stream scid pid ocatid ocid eid))
              (edges-by-object
                (edges-by-Xo db:object->edge-stream ocid pid scatid scid eid))
-             (subject (db:concepto db `(,scid . (,scui ,sname (,scatid . ,scat)
-                                                       . ,sprops))))
-             (object (db:concepto db `(,ocid . (,ocui ,oname (,ocatid . ,ocat)
-                                                      . ,oprops))))
+             (subject (db:concepto
+                        db `(,scid ,scui ,sname (,scatid . ,scat) . ,sprops)))
+             (object (db:concepto
+                       db `(,ocid ,ocui ,oname (,ocatid . ,ocat) . ,oprops)))
              (subject-edges (fresh () subject edges-by-subject))
              (object-edges (fresh () object edges-by-object)))
         (cond ((not (var? eid)) succeed)
@@ -137,5 +137,5 @@
               (else subject-edges))))
     (project (eid) (edge-propso eid scid ocid pid eprops))
     (db:predicateo db `(,pid . ,pred))
-    (db:concepto db `(,scid . (,scui ,sname (,scatid . ,scat) . ,sprops)))
-    (db:concepto db `(,ocid . (,ocui ,oname (,ocatid . ,ocat) . ,oprops)))))
+    (db:concepto db `(,scid ,scui ,sname (,scatid . ,scat) . ,sprops))
+    (db:concepto db `(,ocid ,ocui ,oname (,ocatid . ,ocat) . ,oprops))))
