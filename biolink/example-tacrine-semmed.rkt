@@ -88,7 +88,7 @@
                                    ocid ocui oname ocatid ocat oprops eid pid pred eprops)
                         (== `(,eid (,scid . (,scui ,sname (,scatid . ,scat) . ,sprops))
                                    (,ocid . (,ocui ,oname (,ocatid . ,ocat) . ,oprops))
-                                   (,pid . ,pred) ,eprops) edge)
+                                   (,pid . ,pred) . ,eprops) edge)
                         (== `(75842
                               "UMLS:C0039245"
                               "Tacrine"
@@ -111,7 +111,7 @@
                                    ocid ocui oname ocatid ocat oprops eid pid pred eprops)
                         (== `(,eid (,scid . (,scui ,sname (,scatid . ,scat) . ,sprops))
                                    (,ocid . (,ocui ,oname (,ocatid . ,ocat) . ,oprops))
-                                   (,pid . ,pred) ,eprops) edge)
+                                   (,pid . ,pred) . ,eprops) edge)
                         (== `(75842
                               "UMLS:C0039245"
                               "Tacrine"
@@ -138,7 +138,7 @@
                                      ocid ocui oname ocatid ocat oprops eid pid pred eprops)
                           (== `(,eid (,scid . (,scui ,sname (,scatid . ,scat) . ,sprops))
                                      (,ocid . (,ocui ,oname (,ocatid . ,ocat) . ,oprops))
-                                     (,pid . ,pred) ,eprops) edge)
+                                     (,pid . ,pred) . ,eprops) edge)
                           (== `(75842
                                 "UMLS:C0039245"
                                 "Tacrine"

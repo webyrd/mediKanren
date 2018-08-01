@@ -18,20 +18,21 @@
     (define db (time (make-db db-name)))
     (newline)
     (displayln "X ANY-PRED ANY-BRCA1-SYNONYM:")
-    (time (pretty-print (run* (q)
-                          (fresh (edge name)
-                            (fresh (scid scui sname scatid scat sprops
-                                         ocid ocui oname ocatid ocat oprops eid pid pred eprops)
-                              (== `(,eid (,scid . (,scui ,sname (,scatid . ,scat) . ,sprops))
-                                         (,ocid . (,ocui ,oname (,ocatid . ,ocat) . ,oprops))
-                                         (,pid . ,pred) ,eprops) edge)
-                              (membero name '("BRCA1"
-                                              "RING Finger Protein 53"
-                                              "RNF53"))
-                              (project (name)
-                                (db:~name-concepto db name `(,ocid . (,ocui ,oname (,ocatid . ,ocat) . ,oprops))))
-                              (== `(,sname ,pred ,oname) q)
-                              (db:edgeo db edge))))))))
+    (time (pretty-print
+            (run* (q)
+              (fresh (edge name)
+                (fresh (subject scid scui sname sdetails
+                        object ocid ocui oname odetails
+                        eid pid pred eprops)
+                  (== `(,scid ,scui ,sname . ,sdetails) subject)
+                  (== `(,ocid ,ocui ,oname . ,odetails) object)
+                  (== `(,eid ,subject ,object (,pid . ,pred) . ,eprops) edge)
+                  (membero name '("BRCA1"
+                                  "RING Finger Protein 53"
+                                  "RNF53"))
+                  (db:~name-concepto db name object)
+                  (== `(,sname ,pred ,oname) q)
+                  (db:edgeo db edge))))))))
 
 
 ;(define db-name "data/monarch-lite")

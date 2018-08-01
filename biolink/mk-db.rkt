@@ -108,9 +108,9 @@
             ((loop (stream-rest e*))))))))
   (fresh (scid scui sname scatid scat sprops
                ocid ocui oname ocatid ocat oprops eid pid pred eprops)
-    (== `(,eid (,scid . (,scui ,sname (,scatid . ,scat) . ,sprops))
-               (,ocid . (,ocui ,oname (,ocatid . ,ocat) . ,oprops))
-               (,pid . ,pred) ,eprops) edge)
+    (== `(,eid (,scid ,scui ,sname (,scatid . ,scat) . ,sprops)
+               (,ocid ,ocui ,oname (,ocatid . ,ocat) . ,oprops)
+               (,pid . ,pred) . ,eprops) edge)
     (project (scid scui sname scatid scat sprops
                    ocid ocui oname ocatid ocat oprops eid pid pred eprops)
       (let* ((edges-by-subject
