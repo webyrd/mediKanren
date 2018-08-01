@@ -81,33 +81,34 @@
   (16 . "location_of")
   (17 . "precedes"))
 
+(newline)
+(displayln "X interacts with tacrine:")
+(time (pretty-print
+        (run* (edge)
+          (fresh (eid subject tacrine-details pred eprops)
+            (== `(,eid ,subject (75842 . ,tacrine-details) ,pred . ,eprops) edge)
+            (== `(0 . "interacts_with") pred)
+            (db:edgeo semmed edge)))))
+
+(newline)
+(displayln "tacrine treats X:")
+(time (pretty-print
+        (run* (edge)
+          (fresh (eid tacrine-details object pred eprops)
+            (== `(,eid (75842 . ,tacrine-details) ,object ,pred . ,eprops) edge)
+            (== `(1 . "treats") pred)
+            (db:edgeo semmed edge)))))
+
 (define (DECREASES pred)
   (conde
     [(== `(1 . "treats") pred)]
     [(== `(14 . "prevents") pred)]))
 
-(define (tacrine-object/pred predicateo)
-  (run* (edge)
-    (fresh (eid subject tacrine-details pred eprops)
-      (== `(,eid ,subject (75842 . ,tacrine-details) ,pred . ,eprops) edge)
-      (predicateo pred)
-      (db:edgeo semmed edge))))
-
-(define (tacrine-subject/pred predicateo)
-  (run* (edge)
-    (fresh (eid tacrine-details object pred eprops)
-      (== `(,eid (75842 . ,tacrine-details) ,object ,pred . ,eprops) edge)
-      (predicateo pred)
-      (db:edgeo semmed edge))))
-
-(newline)
-(displayln "X interacts with tacrine:")
-(time (pretty-print (tacrine-object/pred (lambda (pred) (== `(0 . "interacts_with") pred)))))
-
-(newline)
-(displayln "tacrine treats X:")
-(time (pretty-print (tacrine-subject/pred (lambda (pred) (== `(1 . "treats") pred)))))
-
 (newline)
 (displayln "tacrine DECREASES X:")
-(time (pretty-print (tacrine-subject/pred DECREASES)))
+(time (pretty-print
+        (run* (edge)
+          (fresh (eid tacrine-details object pred eprops)
+            (== `(,eid (75842 . ,tacrine-details) ,object ,pred . ,eprops) edge)
+            (DECREASES pred)
+            (db:edgeo semmed edge)))))
