@@ -20,20 +20,20 @@
    "UMLS:C0386973"
    "6-chlorotacrine"
    (5 . "chemical_substance")
-   (("umls_type_label" . "['Organic Chemical']")
-    ("xrefs" . "['MESH:C098212']")
-    ("id" . "UMLS:C0386973")
-    ("umls_type" . "['T109']")
-    ("labels" . "['chemical_substance']")))
+   ("umls_type_label" . "['Organic Chemical']")
+   ("xrefs" . "['MESH:C098212']")
+   ("id" . "UMLS:C0386973")
+   ("umls_type" . "['T109']")
+   ("labels" . "['chemical_substance']"))
   (70919
    "UMLS:C0295380"
    "2-hydroxytacrine"
    (5 . "chemical_substance")
-   (("umls_type_label" . "['Pharmacologic Substance', 'Organic Chemical']")
-    ("xrefs" . "['MESH:C092548']")
-    ("id" . "UMLS:C0295380")
-    ("umls_type" . "['T121', 'T109']")
-    ("labels" . "['chemical_substance']"))))
+   ("umls_type_label" . "['Pharmacologic Substance', 'Organic Chemical']")
+   ("xrefs" . "['MESH:C092548']")
+   ("id" . "UMLS:C0295380")
+   ("umls_type" . "['T121', 'T109']")
+   ("labels" . "['chemical_substance']")))
 
 
 (newline)
@@ -41,22 +41,22 @@
 (time (pretty-print (map
                       (lambda (e)
                         (match e
-                          [`(,ignore1 ,cui ,name ,ignore2 ,props)
+                          [`(,id ,cui ,name ,ignore2 . ,props)
                            (let ((type-p (assoc "umls_type_label" props)))
                              (let ((type (if type-p
                                              (cdr type-p)
                                              'no-type-found)))
-                               (list cui name type)))]))
+                               (list id cui name type)))]))
                       (run* (c) (db:~name-concepto semmed "tacrine" c)))))
 ;; =>
-'(("UMLS:C0386973" "6-chlorotacrine" "['Organic Chemical']")
-  ("UMLS:C0295380" "2-hydroxytacrine" "['Pharmacologic Substance', 'Organic Chemical']")
-  ("UMLS:C0039245" "Tacrine" "['Pharmacologic Substance', 'Organic Chemical']")
-  ("UMLS:C1435294" "N-butyramide-tacrine" "['Pharmacologic Substance', 'Organic Chemical']")
-  ("UMLS:C0771182" "Tacrine Hydrochloride" "['Pharmacologic Substance', 'Organic Chemical']")
-  ("UMLS:C0659809" "N-methyltacrine" "['Organic Chemical']")
-  ("UMLS:C0295379" "4-hydroxytacrine" "['Pharmacologic Substance', 'Organic Chemical']")
-  ("UMLS:C0099894" "7-methoxytacrine" "['Pharmacologic Substance', 'Organic Chemical']"))
+'((35887 "UMLS:C0386973" "6-chlorotacrine" "['Organic Chemical']")
+  (70919 "UMLS:C0295380" "2-hydroxytacrine" "['Pharmacologic Substance', 'Organic Chemical']")
+  (75842 "UMLS:C0039245" "Tacrine" "['Pharmacologic Substance', 'Organic Chemical']")
+  (98097 "UMLS:C1435294" "N-butyramide-tacrine" "['Pharmacologic Substance', 'Organic Chemical']")
+  (98688 "UMLS:C0771182" "Tacrine Hydrochloride" "['Pharmacologic Substance', 'Organic Chemical']")
+  (101040 "UMLS:C0659809" "N-methyltacrine" "['Organic Chemical']")
+  (123792 "UMLS:C0295379" "4-hydroxytacrine" "['Pharmacologic Substance', 'Organic Chemical']")
+  (154109 "UMLS:C0099894" "7-methoxytacrine" "['Pharmacologic Substance', 'Organic Chemical']"))
 
 (newline)
 (displayln "semmedb predicates:")
@@ -81,75 +81,35 @@
   (16 . "location_of")
   (17 . "precedes"))
 
+(define (DECREASES pred)
+  (conde
+    [(== `(1 . "treats") pred)]
+    [(== `(14 . "prevents") pred)]))
+
+(define (tacrine-object/pred predicateo)
+  (run* (edge)
+    (fresh (eid subject tacrine tacrine-details pred eprops)
+      (== `(75842 . ,tacrine-details) tacrine)
+      (== `(,eid ,subject ,tacrine ,pred . ,eprops) edge)
+      (predicateo pred)
+      (db:edgeo semmed edge))))
+
+(define (tacrine-subject/pred predicateo)
+  (run* (edge)
+    (fresh (eid tacrine tacrine-details object pred eprops)
+      (== `(75842 . ,tacrine-details) tacrine)
+      (== `(,eid ,tacrine ,object ,pred . ,eprops) edge)
+      (predicateo pred)
+      (db:edgeo semmed edge))))
+
 (newline)
 (displayln "X interacts with tacrine:")
-(time (pretty-print (run* (edge)
-                      (fresh (scid scui sname scatid scat sprops
-                                   ocid ocui oname ocatid ocat oprops eid pid pred eprops)
-                        (== `(,eid (,scid . (,scui ,sname (,scatid . ,scat) . ,sprops))
-                                   (,ocid . (,ocui ,oname (,ocatid . ,ocat) . ,oprops))
-                                   (,pid . ,pred) . ,eprops) edge)
-                        (== `(75842
-                              "UMLS:C0039245"
-                              "Tacrine"
-                              (5 . "chemical_substance")
-                              (("umls_type_label" . "['Pharmacologic Substance', 'Organic Chemical']")
-                               ("xrefs"
-                                .
-                                "['MESH:D013619', 'CHV:0000012013', 'VANDF:4023896', 'LNC:MTHU024717', 'LNC:LP17860-5', 'NDFRT:N0000007004', 'RXNORM:10318', 'DRUGBANK:DB00382', 'SNOMEDCT_US:108494008', 'MTH:NOCODE', 'NDFRT:N0000021901', 'UNII:4VX7YNB537', 'ATC:N06DA01', 'NDDF:004378', 'MMSL:d03176', 'SNOMEDCT_US:373727000', 'INCHIKEY:YLJREFDVOIBQDA-UHFFFAOYSA-N', 'CHEMBL:CHEMBL95', 'CSP:0033-0786', 'NCI:C61961', 'MEDCIN:45792']")
-                               ("id" . "UMLS:C0039245")
-                               ("umls_type" . "['T121', 'T109']")
-                               ("labels" . "['chemical_substance']")))
-                            `(,ocid . (,ocui ,oname (,ocatid . ,ocat) . ,oprops)))
-                        (== `(0 . "interacts_with") `(,pid . ,pred))
-                        (db:edgeo semmed edge)))))
+(time (pretty-print (tacrine-object/pred (lambda (pred) (== `(0 . "interacts_with") pred)))))
 
 (newline)
 (displayln "tacrine treats X:")
-(time (pretty-print (run* (edge)
-                      (fresh (scid scui sname scatid scat sprops
-                                   ocid ocui oname ocatid ocat oprops eid pid pred eprops)
-                        (== `(,eid (,scid . (,scui ,sname (,scatid . ,scat) . ,sprops))
-                                   (,ocid . (,ocui ,oname (,ocatid . ,ocat) . ,oprops))
-                                   (,pid . ,pred) . ,eprops) edge)
-                        (== `(75842
-                              "UMLS:C0039245"
-                              "Tacrine"
-                              (5 . "chemical_substance")
-                              (("umls_type_label" . "['Pharmacologic Substance', 'Organic Chemical']")
-                               ("xrefs"
-                                .
-                                "['MESH:D013619', 'CHV:0000012013', 'VANDF:4023896', 'LNC:MTHU024717', 'LNC:LP17860-5', 'NDFRT:N0000007004', 'RXNORM:10318', 'DRUGBANK:DB00382', 'SNOMEDCT_US:108494008', 'MTH:NOCODE', 'NDFRT:N0000021901', 'UNII:4VX7YNB537', 'ATC:N06DA01', 'NDDF:004378', 'MMSL:d03176', 'SNOMEDCT_US:373727000', 'INCHIKEY:YLJREFDVOIBQDA-UHFFFAOYSA-N', 'CHEMBL:CHEMBL95', 'CSP:0033-0786', 'NCI:C61961', 'MEDCIN:45792']")
-                               ("id" . "UMLS:C0039245")
-                               ("umls_type" . "['T121', 'T109']")
-                               ("labels" . "['chemical_substance']")))
-                            `(,scid . (,scui ,sname (,scatid . ,scat) . ,sprops)))
-                        (== `(1 . "treats") `(,pid . ,pred))
-                        (db:edgeo semmed edge)))))
+(time (pretty-print (tacrine-subject/pred (lambda (pred) (== `(1 . "treats") pred)))))
 
 (newline)
 (displayln "tacrine DECREASES X:")
-(time (pretty-print (let ((DECREASES (lambda (pred-info)
-                                       (conde
-                                         [(== `(1 . "treats") pred-info)]
-                                         [(== `(14 . "prevents") pred-info)]))))
-                      (run* (edge)
-                        (fresh (scid scui sname scatid scat sprops
-                                     ocid ocui oname ocatid ocat oprops eid pid pred eprops)
-                          (== `(,eid (,scid . (,scui ,sname (,scatid . ,scat) . ,sprops))
-                                     (,ocid . (,ocui ,oname (,ocatid . ,ocat) . ,oprops))
-                                     (,pid . ,pred) . ,eprops) edge)
-                          (== `(75842
-                                "UMLS:C0039245"
-                                "Tacrine"
-                                (5 . "chemical_substance")
-                                (("umls_type_label" . "['Pharmacologic Substance', 'Organic Chemical']")
-                                 ("xrefs"
-                                  .
-                                  "['MESH:D013619', 'CHV:0000012013', 'VANDF:4023896', 'LNC:MTHU024717', 'LNC:LP17860-5', 'NDFRT:N0000007004', 'RXNORM:10318', 'DRUGBANK:DB00382', 'SNOMEDCT_US:108494008', 'MTH:NOCODE', 'NDFRT:N0000021901', 'UNII:4VX7YNB537', 'ATC:N06DA01', 'NDDF:004378', 'MMSL:d03176', 'SNOMEDCT_US:373727000', 'INCHIKEY:YLJREFDVOIBQDA-UHFFFAOYSA-N', 'CHEMBL:CHEMBL95', 'CSP:0033-0786', 'NCI:C61961', 'MEDCIN:45792']")
-                                 ("id" . "UMLS:C0039245")
-                                 ("umls_type" . "['T121', 'T109']")
-                                 ("labels" . "['chemical_substance']")))
-                              `(,scid . (,scui ,sname (,scatid . ,scat) . ,sprops)))
-                          (DECREASES `(,pid . ,pred))
-                          (db:edgeo semmed edge))))))
+(time (pretty-print (tacrine-subject/pred DECREASES)))
