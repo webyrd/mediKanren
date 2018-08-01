@@ -88,17 +88,15 @@
 
 (define (tacrine-object/pred predicateo)
   (run* (edge)
-    (fresh (eid subject tacrine tacrine-details pred eprops)
-      (== `(75842 . ,tacrine-details) tacrine)
-      (== `(,eid ,subject ,tacrine ,pred . ,eprops) edge)
+    (fresh (eid subject tacrine-details pred eprops)
+      (== `(,eid ,subject (75842 . ,tacrine-details) ,pred . ,eprops) edge)
       (predicateo pred)
       (db:edgeo semmed edge))))
 
 (define (tacrine-subject/pred predicateo)
   (run* (edge)
-    (fresh (eid tacrine tacrine-details object pred eprops)
-      (== `(75842 . ,tacrine-details) tacrine)
-      (== `(,eid ,tacrine ,object ,pred . ,eprops) edge)
+    (fresh (eid tacrine-details object pred eprops)
+      (== `(,eid (75842 . ,tacrine-details) ,object ,pred . ,eprops) edge)
       (predicateo pred)
       (db:edgeo semmed edge))))
 
