@@ -7,6 +7,8 @@
   edgeo
   ~name-concepto
 
+  remdups
+
   semmed
   monarch
   rtx
@@ -63,8 +65,6 @@
        (run* (concept)
          (~name-concepto "sialic acid" concept))))
 
-
-;;; Error 1
 (time (rem-dups
         (run* (q)
           (fresh (edge name dbid)
@@ -77,14 +77,7 @@
               (== (list pid pred) q)
               (~name-concepto "sialic acid" `(,dbid . ,object))
               (edgeo edge))))))
-; integer-bytes->integer: contract violation
-;   expected: bytes?
-;   given: #<eof>
-;   argument position: 1st
-; [,bt for context]
 
-
-;;; Error 2
 (displayln "X ANY-PRED sialic acid:")
 (time (pretty-print
        (run* (q)
@@ -98,12 +91,6 @@
              (== `(,sname ,pred ,oname) q)
              (~name-concepto "sialic acid" `(,dbid . ,object))
              (edgeo edge))))))
-; *: contract violation
-;   expected: number?
-;   given: '(#((unbound) (scope) 6270) #((unbound) (scope) 6271) #((unbound)
-;     (scope) 6272) . #((unbound) (scope) 6273))
-;   argument position: 1st
-; [,bt for context]
 
 #|
 (run 1 (q)
