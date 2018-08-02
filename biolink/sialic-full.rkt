@@ -97,13 +97,13 @@
 (displayln "X ANY-PRED sialic acid:")
 (time (pretty-print
        (run* (q)
-         (fresh (edge name)
+         (fresh (edge name dbid)
            (fresh (subject sdb scid scui sname sdetails
                            object odb ocid ocui oname odetails
                            eid pid pred eprops)
              (== `(,scid ,scui ,sname . ,sdetails) subject)
              (== `(,ocid ,ocui ,oname . ,odetails) object)
-             (== `(,eid ,subject ,object (,pid . ,pred) . ,eprops) edge)
+             (== `(,dbid ,eid ,subject ,object (,pid . ,pred) . ,eprops) edge)
              (~name-concepto "sialic acid" `(,odb . ,object))
              (== `(,sname ,pred ,oname) q)
              (edgeo edge))))))
