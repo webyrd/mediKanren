@@ -67,25 +67,16 @@
 ;;; Error 1
 (time (rem-dups
         (run* (q)
-          (fresh (edge name)
+          (fresh (edge name dbid)
             (fresh (subject sdb scid scui sname sdetails
                             object ocid ocui oname odetails
                             eid pid pred eprops)
               (== `(,scid ,scui ,sname . ,sdetails) subject)
               (== `(,ocid ,ocui ,oname . ,odetails) object)
-              (== `(,eid ,subject ,object (,pid . ,pred) . ,eprops) edge)
-              (conde
-                [(db:~name-concepto semmed "sialic acid" object)]
-                [(db:~name-concepto monarch "sialic acid" object)]
-                [(db:~name-concepto rtx "sialic acid" object)]
-                [(db:~name-concepto scigraph "sialic acid" object)])      
+              (== `(,dbid ,eid ,subject ,object (,pid . ,pred) . ,eprops) edge)
               (== (list pid pred) q)
-              (conde
-                [(db:edgeo semmed edge)]
-                [(db:edgeo monarch edge)]
-                [(db:edgeo rtx edge)]
-                [(db:edgeo scigraph edge)]
-                ))))))
+              (~name-concepto "sialic acid" `(,dbid . ,object))
+              (edgeo edge))))))
 ; integer-bytes->integer: contract violation
 ;   expected: bytes?
 ;   given: #<eof>
@@ -99,13 +90,13 @@
        (run* (q)
          (fresh (edge name dbid)
            (fresh (subject sdb scid scui sname sdetails
-                           object odb ocid ocui oname odetails
+                           object ocid ocui oname odetails
                            eid pid pred eprops)
              (== `(,scid ,scui ,sname . ,sdetails) subject)
              (== `(,ocid ,ocui ,oname . ,odetails) object)
              (== `(,dbid ,eid ,subject ,object (,pid . ,pred) . ,eprops) edge)
-             (~name-concepto "sialic acid" `(,odb . ,object))
              (== `(,sname ,pred ,oname) q)
+             (~name-concepto "sialic acid" `(,dbid . ,object))
              (edgeo edge))))))
 ; *: contract violation
 ;   expected: number?
