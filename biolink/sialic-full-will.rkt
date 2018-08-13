@@ -7,8 +7,6 @@
   edgeo
   ~name-concepto
 
-  remdups
-
   semmed
   monarch
   rtx
@@ -61,82 +59,108 @@
     ((fresh (cc) (== `(rtx . ,cc) c) (db:~name-concepto rtx n cc)))
     ((fresh (cc) (== `(scigraph . ,cc) c) (db:~name-concepto scigraph n cc)))))
 
+#|
 (time (pretty-print
        (run* (concept)
          (~name-concepto "sialic acid" concept))))
+|#
 
 (time (rem-dups
         (run* (q)
-          (fresh (edge name dbid)
+          (fresh (edge name db)
             (fresh (subject sdb scid scui sname sdetails
                             object ocid ocui oname odetails
                             eid pid pred eprops)
               (== `(,scid ,scui ,sname . ,sdetails) subject)
               (== `(,ocid ,ocui ,oname . ,odetails) object)
-              (== `(,dbid ,eid ,subject ,object (,pid . ,pred) . ,eprops) edge)
-              (== (list pid pred) q)
-              (~name-concepto "sialic acid" `(,dbid . ,object))
-              (edgeo edge))))))
+              (== `(,eid ,subject ,object (,pid . ,pred) . ,eprops) edge)
+              (== "negatively_regulates" pred)
+              (conde
+                [(db:~name-concepto semmed "sialic acid" object)
+                 (db:edgeo semmed edge)
+                 (== 'semmed db)]
+                [(db:~name-concepto monarch "sialic acid" object)
+                 (db:edgeo monarch edge)
+                 (== 'monarch db)]
+                [(db:~name-concepto rtx "sialic acid" object)
+                 (db:edgeo rtx edge)
+                 (== 'rtx db)]
+                [(db:~name-concepto scigraph "sialic acid" object)
+                 (db:edgeo scigraph edge)
+                 (== 'scigraph db)])      
+              (== (list db edge) q))))))
 
+(time (rem-dups
+        (run* (q)
+          (fresh (edge name)
+            (fresh (subject sdb scid scui sname sdetails
+                            object ocid ocui oname odetails
+                            eid pid pred eprops)
+              (== `(,scid ,scui ,sname . ,sdetails) subject)
+              (== `(,ocid ,ocui ,oname . ,odetails) object)
+              (== `(,eid ,subject ,object (,pid . ,pred) . ,eprops) edge)
+              (conde
+                [(db:~name-concepto semmed "sialic acid" object)
+                 (db:edgeo semmed edge)]
+                [(db:~name-concepto monarch "sialic acid" object)
+                 (db:edgeo monarch edge)]
+                [(db:~name-concepto rtx "sialic acid" object)
+                 (db:edgeo rtx edge)]
+                [(db:~name-concepto scigraph "sialic acid" object)
+                 (db:edgeo scigraph edge)])      
+              (== (list pid pred) q))))))
+
+#|
+;;; Error 1
+(time (rem-dups
+        (run* (q)
+          (fresh (edge name)
+            (fresh (subject sdb scid scui sname sdetails
+                            object ocid ocui oname odetails
+                            eid pid pred eprops)
+              (== `(,scid ,scui ,sname . ,sdetails) subject)
+              (== `(,ocid ,ocui ,oname . ,odetails) object)
+              (== `(,eid ,subject ,object (,pid . ,pred) . ,eprops) edge)
+              (conde
+                [(db:~name-concepto semmed "sialic acid" object)]
+                [(db:~name-concepto monarch "sialic acid" object)]
+                [(db:~name-concepto rtx "sialic acid" object)]
+                [(db:~name-concepto scigraph "sialic acid" object)])      
+              (== (list pid pred) q)
+              (conde
+                [(db:edgeo semmed edge)]
+                [(db:edgeo monarch edge)]
+                [(db:edgeo rtx edge)]
+                [(db:edgeo scigraph edge)]
+                ))))))
+; integer-bytes->integer: contract violation
+;   expected: bytes?
+;   given: #<eof>
+;   argument position: 1st
+; [,bt for context]
+
+
+;;; Error 2
 (displayln "X ANY-PRED sialic acid:")
 (time (pretty-print
        (run* (q)
          (fresh (edge name dbid)
            (fresh (subject sdb scid scui sname sdetails
-                           object ocid ocui oname odetails
+                           object odb ocid ocui oname odetails
                            eid pid pred eprops)
              (== `(,scid ,scui ,sname . ,sdetails) subject)
              (== `(,ocid ,ocui ,oname . ,odetails) object)
              (== `(,dbid ,eid ,subject ,object (,pid . ,pred) . ,eprops) edge)
+             (~name-concepto "sialic acid" `(,odb . ,object))
              (== `(,sname ,pred ,oname) q)
-             (~name-concepto "sialic acid" `(,dbid . ,object))
              (edgeo edge))))))
-
-(displayln "X produces sialic acid:")
-(time (pretty-print
-       (run* (q)
-         (fresh (edge name dbid)
-           (fresh (subject sdb scid scui sname sdetails
-                           object ocid ocui oname odetails
-                           eid pid pred eprops)
-             (== `(,scid ,scui ,sname . ,sdetails) subject)
-             (== `(,ocid ,ocui ,oname . ,odetails) object)
-             (== `(,dbid ,eid ,subject ,object (,pid . ,pred) . ,eprops) edge)
-             (== (list dbid edge) q)
-             (== "produces" pred)
-             (~name-concepto "sialic acid" `(,dbid . ,object))
-             (edgeo edge))))))
-
-(displayln "X produces sialic acid (defined by):")
-(time (pretty-print
-       (run* (q)
-         (fresh (edge name dbid)
-           (fresh (subject sdb scid scui sname sdetails
-                           object ocid ocui oname odetails
-                           eid pid pred eprops)
-             (== `(,scid ,scui ,sname . ,sdetails) subject)
-             (== `(,ocid ,ocui ,oname . ,odetails) object)
-             (== `() eprops)
-             (== `(,dbid ,eid ,subject ,object (,pid . ,pred) . ,eprops) edge)
-             (== (list dbid edge) q)
-             (== "produces" pred)
-             (~name-concepto "sialic acid" `(,dbid . ,object))
-             (edgeo edge))))))
-
-
-(displayln "sialic acid ANY-PRED X:")
-(time (pretty-print
-       (run* (q)
-         (fresh (edge name dbid)
-           (fresh (subject sdb scid scui sname sdetails
-                           object ocid ocui oname odetails
-                           eid pid pred eprops)
-             (== `(,scid ,scui ,sname . ,sdetails) subject)
-             (== `(,ocid ,ocui ,oname . ,odetails) object)
-             (== `(,dbid ,eid ,subject ,object (,pid . ,pred) . ,eprops) edge)
-             (== `(,sname ,pred ,oname) q)
-             (~name-concepto "sialic acid" `(,dbid . ,subject))
-             (edgeo edge))))))
+; *: contract violation
+;   expected: number?
+;   given: '(#((unbound) (scope) 6270) #((unbound) (scope) 6271) #((unbound)
+;     (scope) 6272) . #((unbound) (scope) 6273))
+;   argument position: 1st
+; [,bt for context]
+|#
 
 #|
 (run 1 (q)
