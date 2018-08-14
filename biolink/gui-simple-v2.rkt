@@ -41,7 +41,25 @@
 ;;;
 ;;; add ability to include only some of the data sources
 ;;;
-;;; add ability to show and hide concept columns 
+;;; add ability to show and hide concept columns
+;;;
+;;; add ability to show date of data sources, and date/provenance for results
+
+
+;;; ISSUES
+;;;
+;;; Seem to be missing '<gene> has_phenotype alacrima' entries for
+;;; HEXA and GBA, even though these seem to be in the Monarch website.
+;;; Why?
+;;;
+;;; Different data sources have what are effectively duplicate entries,
+;;; but it isn't always easy to tell.
+;;;
+;;; Different data sources have different category numbers for the
+;;; same CUI/entity.  For example, 'Imatinib mesylate' has the 'UMLS:C0939537'
+;;; CUI in both Semmed and Scigraph, yet the category is (5 . "chemical_substance")
+;;; for Semmed and (21 . "chemical_substance") for Scigraph.  Why?
+;;; (The concept IDs are different in this case)
 
 
 ;; list membership
@@ -129,7 +147,7 @@
   (define concept-listbox (new list-box%
                                (label label)
                                (choices '())
-                               (columns '("DB" "CUI" "Category" "Name"))
+                               (columns '("DB" "CID" "CUI" "Category" "Name"))
                                (parent parent-list-boxes-panel)
                                (style '(column-headers extended))
                                (callback (lambda (self event)
@@ -173,6 +191,11 @@
                      (match x
                        [`(,db-name ,cid ,cui ,name (,catid . ,cat) . ,props)
                         (~a db-name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                   ans)
+              (map (lambda (x)
+                     (match x
+                       [`(,db-name ,cid ,cui ,name (,catid . ,cat) . ,props)
+                        (format "~a" cid)]))
                    ans)              
               (map (lambda (x)
                      (match x
