@@ -30,6 +30,20 @@
 (displayln "Finished loading data sources")
 
 
+
+;;; TODO
+;;;
+;;; recognize concept name containing only whitespace as being empty
+;;;
+;;; add ability to sort concept columns by clicking on column titles
+;;;
+;;; speed up concept search--seems much slower than in the old mediKanren
+;;;
+;;; add ability to include only some of the data sources
+;;;
+;;; add ability to show and hide concept columns 
+
+
 ;; list membership
 (define membero
   (lambda (x ls)
