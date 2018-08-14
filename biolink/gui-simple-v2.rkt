@@ -47,6 +47,8 @@
 ;;; add ability to show and hide concept columns
 ;;;
 ;;; add ability to show date of data sources, and date/provenance for results
+;;;
+;;; add ability to specify/filter by data source or category
 
 
 ;;; ISSUES
