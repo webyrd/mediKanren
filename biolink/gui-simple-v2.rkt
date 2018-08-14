@@ -35,9 +35,12 @@
 ;;;
 ;;; recognize concept name containing only whitespace as being empty
 ;;;
+;;; use a reasonable default sorting for the concepts
+;;;
 ;;; add ability to sort concept columns by clicking on column titles
 ;;;
 ;;; speed up concept search--seems much slower than in the old mediKanren
+;;; (perhaps consider searching one DB exhaustively before moving to the next one)
 ;;;
 ;;; add ability to include only some of the data sources
 ;;;
