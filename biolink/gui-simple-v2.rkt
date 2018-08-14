@@ -115,7 +115,7 @@
   (define concept-listbox (new list-box%
                                (label label)
                                (choices '())
-                               (columns '("DB" "CUI" "Name"))
+                               (columns '("DB" "CUI" "Category" "Name"))
                                (parent parent-list-boxes-panel)
                                (style '(column-headers extended))
                                (callback (lambda (self event)
@@ -159,12 +159,17 @@
                      (match x
                        [`(,db-name ,cid ,cui ,name (,catid . ,cat) . ,props)
                         (~a db-name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                   ans)
+                   ans)              
               (map (lambda (x)
                      (match x
                        [`(,db-name ,cid ,cui ,name (,catid . ,cat) . ,props)
                         (format "~a" cui)]))
                    ans)
+              (map (lambda (x)
+                     (match x
+                       [`(,db-name ,cid ,cui ,name (,catid . ,cat) . ,props)
+                        (~a `(,catid . ,cat) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                   ans)              
               (map (lambda (x)
                      (match x
                        [`(,db-name ,cid ,cui ,name (,catid . ,cat) . ,props)
