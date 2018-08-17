@@ -52,3 +52,19 @@
                                      (sort (set->list (set-intersect concept-set1 concept-set2)) string<?))]))
                           rest)
                      intersections))])))
+
+;; calculate differences between data sources
+(define concept-tag-set-symmetric-difference 
+  (let loop ((alist-of-concept-sets alist-of-concept-sets)
+             (symmetric-differences '()))
+    (match alist-of-concept-sets
+      ['() symmetric-differences]
+      [`((,db1 . ,concept-set1) . ,rest)
+       (loop (cdr alist-of-concept-sets)
+             (append (map (lambda (e)
+                            (match e
+                              [`(,db2 . ,concept-set2)
+                               (list (list db1 db2)
+                                     (set-symmetric-difference concept-set1 concept-set2))]))
+                          rest)
+                     symmetric-differences))])))
