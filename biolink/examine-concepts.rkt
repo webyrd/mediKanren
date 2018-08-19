@@ -42,6 +42,19 @@
            (cons db c)))
        '("monarch-lite" "rtx" "scigraph" "semmed")))
 
+;;; scigraph is just monarch-lite + semmeddb
+(let ((monarch-lite-concept-counts (hash->list (caddr (assoc "monarch-lite" concept-info))))
+      (scigraph-concept-counts (hash->list (caddr (assoc "scigraph" concept-info)))))
+  (let ((scigraph-concept-counts-minus-semmed (remove (assoc "UMLS" scigraph-concept-counts) scigraph-concept-counts)))
+    (equal? monarch-lite-concept-counts
+            scigraph-concept-counts-minus-semmed)))
+
+;; how many concepts are there in the scigraph version of semmeddb, versus the cleaned up semmeddb?
+(let ((scigraph-semmed-UMLS-concept-coount (hash-ref (caddr (assoc "scigraph" concept-info)) "UMLS"))
+      (cleand-up-esemmed-UMLS-concept-coount (hash-ref (caddr (assoc "semmed" concept-info)) "UMLS")))
+  (list scigraph-semmed-UMLS-concept-coount
+        cleand-up-esemmed-UMLS-concept-coount))
+
 (define alist-of-concept-lists
   (map (lambda (info)
          (cons (car info) (cadr info)))
