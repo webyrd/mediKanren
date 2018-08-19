@@ -3,6 +3,8 @@
 (provide
 
  concept-info
+ concept-count-alist-sorted-by-tag-name
+ concept-count-alist-sorted-by-tag-count
  alist-of-concept-lists
  alist-of-concept-sets
  concept-tag-intersections
@@ -60,6 +62,22 @@
   (printf "** semmed UMLS concepts in cleaned up semmeddb: ~s\n" cleand-up-esemmed-UMLS-concept-coount)
   (list scigraph-semmed-UMLS-concept-coount
         cleand-up-esemmed-UMLS-concept-coount))
+
+(define concept-count-alist-sorted-by-tag-name
+  (map (lambda (c)
+         (list (car c)
+               (sort (hash->list (caddr c))
+                     (lambda (e1 e2)
+                       (string<? (car e1) (car e2))))))
+       concept-info))
+
+(define concept-count-alist-sorted-by-tag-count
+  (map (lambda (c)
+       (list (car c)
+             (sort (hash->list (caddr c))
+                   (lambda (e1 e2)
+                     (> (cdr e1) (cdr e2))))))
+     concept-info))
 
 (define alist-of-concept-lists
   (map (lambda (info)
