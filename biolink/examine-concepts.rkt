@@ -5,6 +5,7 @@
  alist-of-concept-lists
  alist-of-concept-sets
  concept-tag-intersections
+ concept-tag-set-symmetric-difference
  )
 
 
