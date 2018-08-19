@@ -1,37 +1,51 @@
 #lang racket
 
 (provide
- 
+
+ concept-info
  alist-of-concept-lists
  alist-of-concept-sets
  concept-tag-intersections
  concept-tag-set-symmetric-difference
  )
 
-
 (define get-concepts-in-db
   (lambda (db)
     (printf "reading ~s concept tags...\n" db)
     (let ((p (open-input-file (string-append "data/" db "/concepts.scm"))))
       (let loop ((concept (read p))
-                 (concept-sources '()))
+                 (concept-sources '())
+                 (concept-count-ht (hash)))
         (cond
-          [(eof-object? concept)       
+          [(eof-object? concept)
            (close-input-port p)
            (printf "read ~s ~s concept tags\n" (length concept-sources) db)
-           (sort concept-sources string<?)]
+           (list (sort concept-sources string<?)
+                 concept-count-ht)]
           [else (let* ((concept-tag (vector-ref concept 0))
                        (tag-parts (regexp-split #rx":" concept-tag))
                        (tag-source (car tag-parts))
                        (concept-sources (if (member tag-source concept-sources)
                                             concept-sources
-                                            (cons tag-source concept-sources))))
-                  (loop (read p) concept-sources))])))))
+                                            (cons tag-source concept-sources)))
+                       (concept-count-ht (hash-set concept-count-ht
+                                                   tag-source
+                                                   (add1 (hash-ref concept-count-ht tag-source 0)))))
+                  (loop (read p)                 
+                        concept-sources
+                        concept-count-ht))])))))
+
+
+(define concept-info
+  (map (lambda (db)
+         (let ((c (get-concepts-in-db db)))
+           (cons db c)))
+       '("monarch-lite" "rtx" "scigraph" "semmed")))
 
 (define alist-of-concept-lists
-  (map (lambda (db)
-         (cons db (get-concepts-in-db db)))
-       '("monarch-lite" "rtx" "scigraph" "semmed")))
+  (map (lambda (info)
+         (cons (car info) (cadr info)))
+       concept-info))
 
 (define alist-of-concept-sets
   (map (lambda (e)
