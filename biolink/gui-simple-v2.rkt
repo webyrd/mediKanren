@@ -24,8 +24,8 @@
 (define monarch (time (make-db "data/monarch-lite")))
 (displayln "loading rtx")
 (define rtx (time (make-db "data/rtx")))
-(displayln "loading scigraph")
-(define scigraph (time (make-db "data/scigraph")))
+;(displayln "loading scigraph")
+;(define scigraph (time (make-db "data/scigraph")))
 
 (displayln "Finished loading data sources")
 
@@ -90,14 +90,16 @@
     ((fresh (ee) (== `(semmed . ,ee) e) (db:edgeo semmed ee)))
     ((fresh (ee) (== `(monarch . ,ee) e) (db:edgeo monarch ee)))
     ((fresh (ee) (== `(rtx . ,ee) e) (db:edgeo rtx ee)))
-    ((fresh (ee) (== `(scigraph . ,ee) e) (db:edgeo scigraph ee)))))
+    ;;((fresh (ee) (== `(scigraph . ,ee) e) (db:edgeo scigraph ee)))
+    ))
 
 (define (fuzzy-concepto n c)
   (conde
     ((fresh (cc) (== `(semmed . ,cc) c) (db:~name-concepto semmed n cc)))
     ((fresh (cc) (== `(monarch . ,cc) c) (db:~name-concepto monarch n cc)))
     ((fresh (cc) (== `(rtx . ,cc) c) (db:~name-concepto rtx n cc)))
-    ((fresh (cc) (== `(scigraph . ,cc) c) (db:~name-concepto scigraph n cc)))))
+    ;;((fresh (cc) (== `(scigraph . ,cc) c) (db:~name-concepto scigraph n cc)))
+    ))
 
 
 
