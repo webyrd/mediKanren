@@ -590,7 +590,7 @@ edge format, with dbname at front (as used in edgeo):
         (define full-path-list-box (new list-box%
                                         (label "Paths")
                                         (choices (unbox *full-path-choices*))
-                                        (columns '("DB" "Subject" "Object" "Predicate" "Subj Cat" "Obj Cat" "PubMed IDs"))
+                                        (columns '("DB" "Subject" "Predicate" "Object" "Subj Cat" "Obj Cat" "PubMed IDs"))
                                         (parent frame)
                                         (style '(column-headers extended))
                                         (callback (lambda (self event)
