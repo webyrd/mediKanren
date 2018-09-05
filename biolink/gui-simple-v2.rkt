@@ -134,21 +134,6 @@ edge format, with dbname at front (as used in edgeo):
 
 
 
-(define (DECREASES pred)
-  (fresh (_)
-    (conde
-      [(== `(,_ . "treats") pred)]
-      [(== `(,_ . "prevents") pred)]
-      [(== `(,_ . "negatively_regulates") pred)])))
-
-(define (INCREASES pred)
-  (fresh (_)
-    (conde
-      [(== `(,_ . "produces") pred)]
-      [(== `(,_ . "positively_regulates") pred)])))
-
-
-
 (define *verbose* #t)
 
 ;;; window size
@@ -164,6 +149,10 @@ edge format, with dbname at front (as used in edgeo):
 (define DECREASES_STAR_PREDICATE_STRING "decreases* [synthetic]")
 (define INCREASES_STAR_PREDICATE_STRING "increases* [synthetic]")
 
+(define SYNTHETIC_PREDICATE_STRINGS (list DECREASES_PREDICATE_STRING
+                                          INCREASES_PREDICATE_STRING
+                                          DECREASES_STAR_PREDICATE_STRING
+                                          INCREASES_STAR_PREDICATE_STRING))
 
 
 (define *concept-1-name-string* (box ""))
@@ -618,6 +607,41 @@ edge format, with dbname at front (as used in edgeo):
     (send frame show #t)
     ))
 
+
+(define (split-atomic/synthetic-predicates predicate*)
+
+  (define atomic-predicate* predicate*)
+  (define synthetic-predicate* '())
+
+  (set! synthetic-predicate* (filter (lambda (pred) (member pred SYNTHETIC_PREDICATE_STRINGS))
+                                     atomic-predicate*))
+
+  ;;; TODO FIXME -- are these the ideal predicates?
+  ;;; Need to place this code in a single place
+  (when (member DECREASES_PREDICATE_STRING atomic-predicate*)
+    ;; v0.1 predicates: (set! atomic-predicate* (cons "INHIBITS" (cons "PREVENTS" (cons "TREATS" atomic-predicate*))))
+    (set! atomic-predicate* (cons "negatively_regulates" (cons "prevents" (cons "treats" atomic-predicate*))))
+    (set! synthetic-predicate* (remove DECREASES_PREDICATE_STRING synthetic-predicate*)))
+
+  ;;; TODO FIXME -- are these the ideal predicates?
+  ;;; Need to place this code in a single place
+  (when (member INCREASES_PREDICATE_STRING atomic-predicate*)    
+    ;; v0.1 predicates: (set! atomic-predicate* (cons "STIMULATES" (cons "AUGMENTS" (cons "CAUSES" atomic-predicate*))))
+    (set! atomic-predicate* (cons "positively_regulates" (cons "produces" atomic-predicate*)))
+    (set! synthetic-predicate* (remove INCREASES_PREDICATE_STRING synthetic-predicate*)))
+
+  (set! atomic-predicate* (filter (lambda (pred) (not (member pred SYNTHETIC_PREDICATE_STRINGS)))
+                                  atomic-predicate*))
+
+  (set! atomic-predicate* (remove-duplicates atomic-predicate*))
+
+  (printf "atomic-predicate*: ~s\n" atomic-predicate*)
+  (printf "synthetic-predicate*: ~s\n" synthetic-predicate*)
+
+  (list atomic-predicate* synthetic-predicate*)
+  )
+
+
 (define (find-X-concepts concept-1* concept-2* predicate-1* predicate-2* concept-X-list-box running-status-description full-path-list-box)
 
   (define start-time (current-milliseconds))
@@ -625,7 +649,6 @@ edge format, with dbname at front (as used in edgeo):
   (printf "\nfinding concepts X for which\n[C1] -> P1 -> [X] -> P2 -> [C2]\n")
   (printf "=============================\n")
 
-  #|
   (define atomic/synthetic-predicate-1* (split-atomic/synthetic-predicates predicate-1*))
   (define atomic/synthetic-predicate-2* (split-atomic/synthetic-predicates predicate-2*))
 
@@ -637,6 +660,17 @@ edge format, with dbname at front (as used in edgeo):
 
   (define all-X-concepts-with-edges '())
 
+  (printf "atomic/synthetic-predicate-1*: ~s\n" atomic/synthetic-predicate-1*)
+  (printf "atomic/synthetic-predicate-2*: ~s\n" atomic/synthetic-predicate-2*)
+  (newline)
+  (printf "atomic-predicate-1*: ~s\n" atomic-predicate-1*)
+  (printf "atomic-predicate-2*: ~s\n" atomic-predicate-2*)
+  (newline)
+  (printf "synthetic-predicate-1*: ~s\n" synthetic-predicate-1*)
+  (printf "synthetic-predicate-2*: ~s\n" synthetic-predicate-2*)
+  (newline)
+  
+  #|
   (define (stream-query/predicate/trust predicate&nedges&ntrusted->ss)
     (start-streaming
       (foldr
