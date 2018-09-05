@@ -177,6 +177,7 @@ edge format, with dbname at front (as used in edgeo):
 (define *predicate-2-choices* (box '()))
 
 (define *concept-X-choices* (box '()))
+(define *full-path-choices* (box '()))
 
 ;; saved choices used to generate
 ;; paths when clicking on a concept in the X list box.
@@ -585,7 +586,37 @@ edge format, with dbname at front (as used in edgeo):
 
                                                           ))
                                                       (void))))))
-    
+
+        (define full-path-list-box (new list-box%
+                                        (label "Paths")
+                                        (choices (unbox *full-path-choices*))
+                                        (columns '("DB" "Subject" "Object" "Predicate" "Subj Cat" "Obj Cat" "PubMed IDs"))
+                                        (parent frame)
+                                        (style '(column-headers extended))
+                                        (callback (lambda (self event)
+                                                    (when *verbose*
+                                                      (printf "(unbox *full-path-choices*):\n~s\n" (unbox *full-path-choices*)))
+                                                    (define selections (send self get-selections))
+                                                    (when *verbose*
+                                                      (printf "selection for full path:\n~s\n" selections))
+                                                    (define selected-full-paths
+                                                      (foldr (lambda (i l) (cons (list-ref (unbox *full-path-choices*) i) l))
+                                                             '()
+                                                             selections))
+                                                    (when *verbose*
+                                                      (printf "selected full path:\n")
+                                                      (for-each
+                                                        (lambda (x)
+                                                          (match x
+                                                            [`(,dbname ,subj ,obj ,pred ,subj-category ,obj-category ,pubmed*)
+                                                             (let ((pubmed* (if (list? pubmed*)
+                                                                                (map (lambda (pubmed-id) (string-append "https://www.ncbi.nlm.nih.gov/pubmed/" (~a pubmed-id)))
+                                                                                     pubmed*)
+                                                                                pubmed*)))
+                                                               (pretty-print `(,dbname ,subj ,obj ,pred ,subj-category ,obj-category ,pubmed*)))]))
+                                                        selected-full-paths))
+                                                    ))))
+        
     (send frame show #t)
     ))
 
