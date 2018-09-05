@@ -397,7 +397,6 @@ edge format, with dbname at front (as used in edgeo):
                                        (printf "---------------------------------\n")
 
                                        
-                                       #|
                                        (find-X-concepts concept-1-selected-concepts
                                                         concept-2-selected-concepts
                                                         predicate-1-selected-predicates
@@ -405,8 +404,7 @@ edge format, with dbname at front (as used in edgeo):
                                                         concept-X-list-box
                                                         running-status-description
                                                         full-path-list-box)
-                                       |#
-
+                                       
                                        ))))
 
         (define running-status-description (new message%
@@ -619,6 +617,275 @@ edge format, with dbname at front (as used in edgeo):
         
     (send frame show #t)
     ))
+
+(define (find-X-concepts concept-1* concept-2* predicate-1* predicate-2* concept-X-list-box running-status-description full-path-list-box)
+
+  (define start-time (current-milliseconds))
+
+  (printf "\nfinding concepts X for which\n[C1] -> P1 -> [X] -> P2 -> [C2]\n")
+  (printf "=============================\n")
+
+  #|
+  (define atomic/synthetic-predicate-1* (split-atomic/synthetic-predicates predicate-1*))
+  (define atomic/synthetic-predicate-2* (split-atomic/synthetic-predicates predicate-2*))
+
+  (define atomic-predicate-1* (car atomic/synthetic-predicate-1*))
+  (define atomic-predicate-2* (car atomic/synthetic-predicate-2*))
+
+  (define synthetic-predicate-1* (cadr atomic/synthetic-predicate-1*))
+  (define synthetic-predicate-2* (cadr atomic/synthetic-predicate-2*))
+
+  (define all-X-concepts-with-edges '())
+
+  (define (stream-query/predicate/trust predicate&nedges&ntrusted->ss)
+    (start-streaming
+      (foldr
+        (lambda (pname ss)
+          (define predicate (cdr (assoc pname synthetic-relations)))
+          (define (run/ranked nedges ntrusted)
+            (stream-cons
+              (begin
+                (displayln "***************************************")
+                (printf "Path length: ~s, Trusted edge count: ~s\n" nedges ntrusted)
+                (displayln "***************************************")
+                (flush-output))
+              (predicate&nedges&ntrusted->ss predicate nedges ntrusted)))
+          (stream-append
+            (stream-cons
+              (printf "Streaming synthetic predicate ~s\n" pname)
+              (stream-append
+                (run/ranked 1 1)
+                (stream-append
+                  (run/ranked 1 0)
+                  (let loop ((nedges 2) (ntrusted 2))
+                    (if (< 4 nedges)
+                      '()
+                      (stream-append
+                        (run/ranked nedges ntrusted)
+                        (loop (+ nedges 1) (+ ntrusted 1))))))))
+            (stream-cons
+              (printf "Finished streaming synthetic predicate ~s\n" pname)
+              ss)))
+        (stream-cons (begin (displayln "Finished all streaming.")
+                            (flush-output))
+                     '())
+        synthetic-predicate-2*)))
+
+  (cond
+    [(and (equal? (unbox *concept-1-name-string*) "")
+          (equal? (unbox *concept-2-name-string*) ""))
+     (set! all-X-concepts-with-edges '())]
+    [(equal? (unbox *concept-1-name-string*) "")
+     (set! all-X-concepts-with-edges '())
+     ;; run synthetic queries here
+     (stream-query/predicate/trust
+       (lambda (predicate nedges ntrusted)
+         (run-stream
+           (path-url)
+           (fresh (m o path)
+             (path-length-trustedo path nedges ntrusted)
+             (membero o concept-2*)
+             (predicate m o path)
+             (path/urlo path path-url)
+             ;(== path path-url)
+             ))))
+     (set! all-X-concepts-with-edges
+           (remove-duplicates
+            (append all-X-concepts-with-edges
+                    (run* (q)
+                      (fresh (m
+                              e2
+                              o p2 t2 t3 r2)
+                        (== (list m (list r2) (list e2)) q)
+                        (== e2 `(,m ,o ,p2 ,t2 ,t3 ,r2))
+                        (membero o concept-2*)
+                        (membero p2 atomic-predicate-2*)
+                        (edgeo e2)
+                        )))))]
+    [(equal? (unbox *concept-2-name-string*) "")
+     (set! all-X-concepts-with-edges '())
+     ;; run synthetic queries here
+     (set! all-X-concepts-with-edges
+           (remove-duplicates
+            (append all-X-concepts-with-edges
+                    (run* (q)
+                      (fresh (m
+                              e1 e2
+                              s
+                              p1 ts t1 r1)
+                        (== (list m (list r1) (list e1)) q)
+                        (== e1 `(,s ,m ,p1 ,ts ,t1 ,r1))
+                        (membero s concept-1*)
+                        (membero p1 atomic-predicate-1*)
+                        (edgeo e1)
+                        )))))]
+    [else
+     (set! all-X-concepts-with-edges '())
+     ;; run synthetic queries here
+     (set! all-X-concepts-with-edges
+           (remove-duplicates
+            (append all-X-concepts-with-edges
+                    (run* (q)
+                      (fresh (m
+                              e1 e2
+                              s
+                              o p1 p2 ts t1 t2 t3 r1 r2)
+                        (== (list m (list r1 r2) (list e1 e2)) q)
+                        (== e1 `(,s ,m ,p1 ,ts ,t1 ,r1))
+                        (== e2 `(,m ,o ,p2 ,t2 ,t3 ,r2))
+                        (membero s concept-1*)
+                        (membero o concept-2*)
+                        (membero p1 atomic-predicate-1*)
+                        (membero p2 atomic-predicate-2*)
+                        (edgeo e1)
+                        (edgeo e2)
+                        )))))])
+  |#
+
+  (define end-time (current-milliseconds))
+
+  (define elapsed-time (- end-time start-time))
+
+  (printf "elapsed query time: ~s seconds\n" (/ elapsed-time 1000.0))
+  (printf "=============================\n")
+
+  #|
+  ;; This sorting affects order of appearance in the "X" concept list
+  (set! all-X-concepts-with-edges
+    (sort
+      all-X-concepts-with-edges
+      (lambda (c1 c2)
+        (match (list c1 c2)
+          [`((,_ ,_ ,e1*) (,_ ,_ ,e2*))
+            (not (path-confidence<? e1* e2*))]))))
+
+  (define all-X-concepts '())
+  (set! all-X-concepts
+        (let loop ([ls all-X-concepts-with-edges])
+          (cond
+            [(null? ls) '()]
+            [else
+             (match (car ls)
+               [`((,cui ,name ,concept-type*) ,pubmed** ,edge*)
+                (cons (car ls)
+                      (loop (remf* (lambda (x)
+                                     (match x
+                                       [`((,cui-x ,name-x ,concept-type*-x) ,pubmed**-x ,edge*-x)
+                                        (equal? cui-x cui)]))
+                                   (cdr ls))))])])))
+
+  (set! all-X-concepts (map car all-X-concepts))
+  |#
+
+  (newline)
+  (printf "========== begin query results =============\n")
+  (newline)
+
+  (printf "Query end date/time:\n~a\n" (date->string (seconds->date (current-seconds)) #t))
+  (newline)
+
+  #|
+  (define number-Xs-found (length all-X-concepts))
+  (define query-seconds (/ elapsed-time 1000.0))
+  (define query-time-format-string "Found ~s X's after ~s seconds")
+  (send running-status-description set-label (format query-time-format-string number-Xs-found query-seconds))
+  (printf query-time-format-string number-Xs-found query-seconds)
+  (newline)
+  (newline)
+
+  (set-box! *concept-X-choices* all-X-concepts)
+
+  (set-box! *solution-concept-1-name-string* (unbox *concept-1-name-string*))
+  (set-box! *solution-concept-2-name-string* (unbox *concept-2-name-string*))
+
+  (set-box! *solution-concept-1-isa-flag* (unbox *concept-1-isa-flag*))
+  (set-box! *solution-concept-2-isa-flag* (unbox *concept-2-isa-flag*))
+
+  (set-box! *solution-concept-1-choices* concept-1*)
+  (set-box! *solution-concept-2-choices* concept-2*)
+  (set-box! *solution-predicate-1-choices* predicate-1*)
+  (set-box! *solution-predicate-2-choices* predicate-2*)
+
+  (printf "*solution-concept-1-name-string*:\n~s\n" (unbox *solution-concept-1-name-string*))
+  (printf "*solution-concept-1-isa-flag*:\n~s\n" (unbox *solution-concept-1-isa-flag*))
+  (printf "*solution-concept-1-choices*:\n")
+  (pretty-print (unbox *solution-concept-1-choices*))
+  (printf "*solution-predicate-1-choices*:\n")
+  (pretty-print (unbox *solution-predicate-1-choices*))
+  (newline)
+
+  (printf "*solution-concept-2-name-string*:\n~s\n" (unbox *solution-concept-2-name-string*))
+  (printf "*solution-concept-2-isa-flag*:\n~s\n" (unbox *solution-concept-2-isa-flag*))
+  (printf "*solution-concept-2-choices*:\n")
+  (pretty-print (unbox *solution-concept-2-choices*))
+  (printf "*solution-predicate-2-choices*:\n")
+  (pretty-print (unbox *solution-predicate-2-choices*))
+  (newline)
+
+  (define pretty-print-X-concepts-with-edges
+    (lambda (X-concepts-with-edges)
+      (with-output-to-file
+          "a.out"
+          (lambda ()
+            (printf "'(\n")
+            (let loop ([ls X-concepts-with-edges])
+              (cond
+                [(null? ls)
+                 (printf ")\n")
+                 (newline)]
+                [else
+                 (match (car ls)
+                   [`((,cui ,name ,concept-type*) ,pubmed** ,edge*)
+                    ;; (printf "-----------------------------------------------\n")
+                    (for-each
+                      (lambda (x)
+                        (match x
+                          [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
+                           (let ((pubmed* (if (list? pubmed*)
+                                              (map (lambda (pubmed-id) (string-append "https://www.ncbi.nlm.nih.gov/pubmed/" (~a pubmed-id)))
+                                                   pubmed*)
+                                              pubmed*)))
+                             (pretty-print `(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*) (current-output-port) 1))]))
+                      edge*)
+                    (loop (cdr ls))])])))
+          #:mode 'text
+          #:exists 'append)))
+
+  ;; (printf "all-X-concepts-with-edges:\n")
+  (pretty-print-X-concepts-with-edges all-X-concepts-with-edges)
+  |#
+
+  (printf "========== end query results =============\n")
+
+  #|
+  (send concept-X-list-box
+        set
+        (map (lambda (x)
+               (match x
+                 [`(,cui ,name ,concept-type*)
+                  (format "~a" cui)]))
+             all-X-concepts)
+        (map (lambda (x)
+               (match x
+                 [`(,cui ,name ,concept-type*)
+                  (let ((concept-type*
+                         (sort concept-type* string<?)))
+                    (format "~a" concept-type*))]))
+             all-X-concepts)
+        (map (lambda (x)
+               (match x
+                 [`(,cui ,name ,concept-type*)
+                  (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+             all-X-concepts))
+  ;; unselect all items
+  (for ([i (length all-X-concepts)])
+       (send concept-X-list-box select i #f))
+
+  ;; empty the entries in the full-path-list-box
+  (send full-path-list-box set '() '() '() '() '() '())
+  |#
+  
+  )
 
 (displayln
   "Launching GUI")
