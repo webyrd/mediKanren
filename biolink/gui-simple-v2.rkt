@@ -203,13 +203,13 @@ edge format, with dbname at front (as used in edgeo):
                                              (sort
                                               (remove-duplicates
                                                (run* (predicate)
-                                                 (fresh (e s o st ot pubref)
-                                                   (== e `(,s ,o ,predicate ,st ,ot  ,pubref))
+                                                 (fresh (dbname e eid s o pid eprops)
+                                                   (== `(,dbname ,eid ,s ,o (,pid . ,predicate) . ,eprops) e)
                                                    (case edge-type
                                                      [(in-edge)
-                                                      (membero o selected-concepts)]
+                                                      (membero `(,dbname . ,o) selected-concepts)]
                                                      [(out-edge)
-                                                      (membero s selected-concepts)]
+                                                      (membero `(,dbname . ,s) selected-concepts)]
                                                      [else (error 'concept-listbox/predicates)])
                                                    (edgeo e))))
                                               string<?))
@@ -220,7 +220,7 @@ edge format, with dbname at front (as used in edgeo):
                                                               DECREASES_STAR_PREDICATE_STRING
                                                               INCREASES_STAR_PREDICATE_STRING)
                                                              predicates))
-                                        ;(printf "predicates: ~s\n" predicates)
+                                           (printf "predicates: ~s\n" predicates)
                                            (set-box! predicate-choices predicates)
                                            (send (predicate-list-box-thunk) set predicates)))))
   (define (mk-run)
