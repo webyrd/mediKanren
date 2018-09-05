@@ -171,6 +171,11 @@ edge format, with dbname at front (as used in edgeo):
 (define *concept-1-choices* (box '()))
 (define *predicate-1-choices* (box '()))
 
+(define *concept-2-name-string* (box ""))
+(define *concept-2-isa-flag* (box #f))
+(define *concept-2-choices* (box '()))
+(define *predicate-2-choices* (box '()))
+
 
 (define (concept-list parent parent-search/isa-panel parent-list-boxes-panel label name-string isa-flag choices predicate-list-box-thunk predicate-choices edge-type)
   (define name-field (new text-field%
@@ -313,7 +318,24 @@ edge format, with dbname at front (as used in edgeo):
                                                   (void)))))
     (define edge-description (new message%
                                   (parent frame)
-                                  (label "Concept 1 -> Predicate 1 -> [X] -> Predicate 2 -> Concept 2")))    
+                                  (label "Concept 1 -> Predicate 1 -> [X] -> Predicate 2 -> Concept 2")))
+    (define concept-2-search/isa-panel (new horizontal-panel%
+                                            (parent frame)
+                                            (alignment '(left center))
+                                            (stretchable-height #f)))
+    (define concept-2-list-boxes-panel (new horizontal-panel%
+                                            (parent frame)
+                                            (alignment '(left center))))
+    (define predicate-2-list-box (new list-box%
+                                      (label "Predicate 2")
+                                      (choices (unbox *predicate-2-choices*))
+                                      (columns '("Name"))
+                                      (parent concept-2-list-boxes-panel)
+                                      (style '(extended))
+                                      (callback (lambda (button event)
+                                                  (void)))))
+    (define concept-2-list-box (concept-list frame concept-2-search/isa-panel concept-2-list-boxes-panel "Concept 2" *concept-2-name-string* *concept-2-isa-flag* *concept-2-choices* (lambda () predicate-2-list-box) *predicate-2-choices* 'out-edge))
+    
     (send frame show #t)
     ))
 
