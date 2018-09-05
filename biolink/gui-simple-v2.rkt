@@ -335,6 +335,69 @@ edge format, with dbname at front (as used in edgeo):
                                       (callback (lambda (button event)
                                                   (void)))))
     (define concept-2-list-box (concept-list frame concept-2-search/isa-panel concept-2-list-boxes-panel "Concept 2" *concept-2-name-string* *concept-2-isa-flag* *concept-2-choices* (lambda () predicate-2-list-box) *predicate-2-choices* 'out-edge))
+
+    (define go-button (new button%
+                           (parent frame)
+                           (label "go!")
+                           (callback (lambda (button event)
+                                       (send running-status-description set-label "Running...")
+
+                                       (define concept-1-selections (send concept-1-list-box get-selections))
+                                       (define concept-2-selections (send concept-2-list-box get-selections))
+
+                                       (define concept-1-selected-concepts
+                                         (foldr (lambda (i l) (cons (list-ref (unbox *concept-1-choices*) i) l))
+                                                '()
+                                                concept-1-selections))
+                                       (define concept-2-selected-concepts
+                                         (foldr (lambda (i l) (cons (list-ref (unbox *concept-2-choices*) i) l))
+                                                '()
+                                                concept-2-selections))
+
+                                       (printf "concept-1-selections: ~s\n" concept-1-selections)
+                                       (displayln concept-1-selected-concepts)
+                                       (printf "---------------------------------\n")
+                                       (printf "concept-2-selections: ~s\n" concept-2-selections)
+                                       (displayln concept-2-selected-concepts)
+                                       (printf "---------------------------------\n")
+                                       
+
+                                       (define predicate-1-selections (send predicate-1-list-box get-selections))
+                                       (define predicate-2-selections (send predicate-2-list-box get-selections))
+
+                                       (define predicate-1-selected-predicates
+                                         (foldr (lambda (i l) (cons (list-ref (unbox *predicate-1-choices*) i) l))
+                                                '()
+                                                predicate-1-selections))
+                                       (define predicate-2-selected-predicates
+                                         (foldr (lambda (i l) (cons (list-ref (unbox *predicate-2-choices*) i) l))
+                                                '()
+                                                predicate-2-selections))
+
+                                       
+                                       (printf "predicate-1-selections: ~s\n" predicate-1-selections)
+                                       (displayln predicate-1-selected-predicates)
+                                       (printf "---------------------------------\n")
+                                       (printf "predicate-2-selections: ~s\n" predicate-2-selections)
+                                       (displayln predicate-2-selected-predicates)
+                                       (printf "---------------------------------\n")
+
+                                       
+                                       #|
+                                       (find-X-concepts concept-1-selected-concepts
+                                                        concept-2-selected-concepts
+                                                        predicate-1-selected-predicates
+                                                        predicate-2-selected-predicates
+                                                        concept-X-list-box
+                                                        running-status-description
+                                                        full-path-list-box)
+                                       |#
+
+                                       ))))
+
+        (define running-status-description (new message%
+                                            (parent frame)
+                                            (label "                                                                ")))
     
     (send frame show #t)
     ))
