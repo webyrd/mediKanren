@@ -12,6 +12,30 @@
 (provide
   launch-gui)
 
+#|
+concept format (subject or object), without dbname at front:
+
+`(,cid ,cui ,name (,catid . ,cat) . ,props)
+
+concept format (subject or object), with dbname at front (as used in fuzzy-concepto):
+
+`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
+
+
+edge format, without dbname at front:
+
+`(,eid (,scid ,scui ,sname (,scatid . ,scat) . ,sprops)
+       (,ocid ,ocui ,oname (,ocatid . ,ocat) . ,oprops)
+       (,pid . ,pred) . ,eprops)
+
+edge format, with dbname at front (as used in edgeo):
+
+`(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) . ,sprops)
+               (,ocid ,ocui ,oname (,ocatid . ,ocat) . ,oprops)
+               (,pid . ,pred) . ,eprops)
+|#
+
+
 
 (displayln "Starting mediKanren Explorer...")
 
@@ -84,7 +108,11 @@
       [(member (car ls) (cdr ls)) (rem-dups (cdr ls))]
       [else (cons (car ls) (rem-dups (cdr ls)))])))
 
-
+#|
+`(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) . ,sprops)
+               (,ocid ,ocui ,oname (,ocatid . ,ocat) . ,oprops)
+               (,pid . ,pred) . ,eprops)
+|#
 (define (edgeo e)
   (conde
     ((fresh (ee) (== `(semmed . ,ee) e) (db:edgeo semmed ee)))
@@ -93,6 +121,9 @@
     ;;((fresh (ee) (== `(scigraph . ,ee) e) (db:edgeo scigraph ee)))
     ))
 
+#|
+`(,db-name ,cid ,cui ,name (,catid . ,cat) . ,props)
+|#
 (define (fuzzy-concepto n c)
   (conde
     ((fresh (cc) (== `(semmed . ,cc) c) (db:~name-concepto semmed n cc)))
@@ -136,14 +167,15 @@
 
 
 (define *concept-1-name-string* (box ""))
+(define *concept-1-isa-flag* (box #f))
 (define *concept-1-choices* (box '()))
 (define *predicate-1-choices* (box '()))
 
 
-(define (concept-list parent parent-search-panel parent-list-boxes-panel label name-string choices predicate-list-box-thunk predicate-choices edge-type)
+(define (concept-list parent parent-search/isa-panel parent-list-boxes-panel label name-string isa-flag choices predicate-list-box-thunk predicate-choices edge-type)
   (define name-field (new text-field%
                           (label label)
-                          (parent parent-search-panel)
+                          (parent parent-search/isa-panel)
                           (init-value "")
                           (callback (lambda (self event)
                                       (define name (send self get-value))
@@ -151,6 +183,11 @@
                                       (set-box! predicate-choices '())
                                       (send (predicate-list-box-thunk) set '())
                                       (handle)))))
+  (define isa-field (new check-box%
+                         (parent parent-search/isa-panel)
+                         (label "Include ISA-related concepts")
+                         (value #f)
+                         (callback (lambda (self event) (handle)))))
   (define concept-listbox (new list-box%
                                (label label)
                                (choices '())
@@ -191,46 +228,63 @@
                    '()
                    (run* (q) (fuzzy-concepto current-name q)))))
       (let ((ans (remove-duplicates ans)))
-        (set-box! choices ans)
-        (send concept-listbox
-              set
-              (map (lambda (x)
-                     (match x
-                       [`(,db-name ,cid ,cui ,name (,catid . ,cat) . ,props)
-                        (~a db-name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                   ans)
-              (map (lambda (x)
-                     (match x
-                       [`(,db-name ,cid ,cui ,name (,catid . ,cat) . ,props)
-                        (format "~a" cid)]))
-                   ans)              
-              (map (lambda (x)
-                     (match x
-                       [`(,db-name ,cid ,cui ,name (,catid . ,cat) . ,props)
-                        (format "~a" cui)]))
-                   ans)
-              (map (lambda (x)
-                     (match x
-                       [`(,db-name ,cid ,cui ,name (,catid . ,cat) . ,props)
-                        (~a `(,catid . ,cat) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                   ans)              
-              (map (lambda (x)
-                     (match x
-                       [`(,db-name ,cid ,cui ,name (,catid . ,cat) . ,props)
-                        (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                   ans))
-        ;; unselect all items
-        (for ([i (length ans)])
-             (send concept-listbox select i #f)))))
+        (let ((isa-ans (if (and (not (equal? current-name "")) current-isa)  ;; FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
+                           ;; only grab the first 50
+                           (remove-duplicates
+                            (run 50 (s-with-dbname) ;; 50 should probably be a parameter
+                              (fresh (o-with-dbname dbname o s eid pid eprops e)
+                                (membero o-with-dbname ans)
+                                (== `(,dbname . ,o) o-with-dbname)
+                                (== `(,dbname ,eid ,s ,o (,pid . "subclass_of") . ,eprops) e)
+                                (== `(,dbname . ,s) s-with-dbname)
+                                (edgeo e))))
+                        '())))
+          (let ((ans (remove-duplicates (append ans isa-ans))))
+            (set-box! choices ans)
+            (send concept-listbox
+                  set
+                  (map (lambda (x)
+                         (match x
+                           [`(,db-name ,cid ,cui ,name (,catid . ,cat) . ,props)
+                            (~a db-name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                       ans)
+                  (map (lambda (x)
+                         (match x
+                           [`(,db-name ,cid ,cui ,name (,catid . ,cat) . ,props)
+                            (format "~a" cid)]))
+                       ans)              
+                  (map (lambda (x)
+                         (match x
+                           [`(,db-name ,cid ,cui ,name (,catid . ,cat) . ,props)
+                            (format "~a" cui)]))
+                       ans)
+                  (map (lambda (x)
+                         (match x
+                           [`(,db-name ,cid ,cui ,name (,catid . ,cat) . ,props)
+                            (~a `(,catid . ,cat) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                       ans)              
+                  (map (lambda (x)
+                         (match x
+                           [`(,db-name ,cid ,cui ,name (,catid . ,cat) . ,props)
+                            (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                       ans))
+            ;; unselect all items
+            (for ([i (length ans)])
+                 (send concept-listbox select i #f)))))))
   (define current-name "")
+  (define current-isa #f)
   (define pending-name current-name)
   (define mk-thread #f)
   (define timer (new timer% (notify-callback
                              (lambda () (set! mk-thread (thread mk-run))))))
   (define (handle)
     (define new-name (send name-field get-value))
-    (when (not (equal? current-name new-name))
+    (define new-isa (send isa-field get-value))
+    (when (not (and (equal? current-name new-name)
+                    (equal? current-isa new-isa)))
       (set! current-name new-name)
+      (set! current-isa new-isa)
+      (set-box! isa-flag current-isa)
       (and mk-thread (begin (kill-thread mk-thread) (set! mk-thread #f)))
       (send timer stop)
       (send timer start input-response-latency #t)))
@@ -241,14 +295,14 @@
                     (label "mediKanren Explorer v0.2")
                     (width HORIZ-SIZE)
                     (height VERT-SIZE))))
-    (define concept-1-search-panel (new horizontal-panel%
-                                        (parent frame)
-                                        (alignment '(left center))
-                                        (stretchable-height #f)))
+    (define concept-1-search/isa-panel (new horizontal-panel%
+                                            (parent frame)
+                                            (alignment '(left center))
+                                            (stretchable-height #f)))
     (define concept-1-list-boxes-panel (new horizontal-panel%
                                             (parent frame)
                                             (alignment '(left center))))
-    (define concept-1-list-box (concept-list frame concept-1-search-panel concept-1-list-boxes-panel "Concept 1" *concept-1-name-string* *concept-1-choices* (lambda () predicate-1-list-box) *predicate-1-choices* 'out-edge))
+    (define concept-1-list-box (concept-list frame concept-1-search/isa-panel concept-1-list-boxes-panel "Concept 1" *concept-1-name-string* *concept-1-isa-flag* *concept-1-choices* (lambda () predicate-1-list-box) *predicate-1-choices* 'out-edge))
     (define predicate-1-list-box (new list-box%
                                       (label "Predicate 1")
                                       (choices (unbox *predicate-1-choices*))
