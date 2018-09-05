@@ -232,11 +232,11 @@ edge format, with dbname at front (as used in edgeo):
                                            (set-box! predicate-choices predicates)
                                            (send (predicate-list-box-thunk) set predicates)))))
   (define (mk-run)
-    (let ((ans (if (equal? current-name "") ;; FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
+    (let ((ans (if (equal? current-name "") ;; TODO FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
                    '()
                    (run* (q) (fuzzy-concepto current-name q)))))
       (let ((ans (remove-duplicates ans)))
-        (let ((isa-ans (if (and (not (equal? current-name "")) current-isa)  ;; FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
+        (let ((isa-ans (if (and (not (equal? current-name "")) current-isa)  ;; TODO FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
                            ;; only grab the first 50
                            (remove-duplicates
                             (run 50 (s-with-dbname) ;; 50 should probably be a parameter
@@ -704,14 +704,16 @@ edge format, with dbname at front (as used in edgeo):
                             (flush-output))
                      '())
         synthetic-predicate-2*)))
+  |#
 
   (cond
-    [(and (equal? (unbox *concept-1-name-string*) "")
+    [(and (equal? (unbox *concept-1-name-string*) "")  ;; TODO FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
           (equal? (unbox *concept-2-name-string*) ""))
      (set! all-X-concepts-with-edges '())]
-    [(equal? (unbox *concept-1-name-string*) "")
+    [(equal? (unbox *concept-1-name-string*) "")  ;; TODO FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
      (set! all-X-concepts-with-edges '())
      ;; run synthetic queries here
+     #|
      (stream-query/predicate/trust
        (lambda (predicate nedges ntrusted)
          (run-stream
@@ -723,6 +725,7 @@ edge format, with dbname at front (as used in edgeo):
              (path/urlo path path-url)
              ;(== path path-url)
              ))))
+     |#
      (set! all-X-concepts-with-edges
            (remove-duplicates
             (append all-X-concepts-with-edges
@@ -736,7 +739,7 @@ edge format, with dbname at front (as used in edgeo):
                         (membero p2 atomic-predicate-2*)
                         (edgeo e2)
                         )))))]
-    [(equal? (unbox *concept-2-name-string*) "")
+    [(equal? (unbox *concept-2-name-string*) "")  ;; TODO FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
      (set! all-X-concepts-with-edges '())
      ;; run synthetic queries here
      (set! all-X-concepts-with-edges
@@ -774,7 +777,6 @@ edge format, with dbname at front (as used in edgeo):
                         (edgeo e1)
                         (edgeo e2)
                         )))))])
-  |#
 
   (define end-time (current-milliseconds))
 
