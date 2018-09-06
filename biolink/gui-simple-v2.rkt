@@ -12,6 +12,11 @@
 (provide
   launch-gui)
 
+;;; Synthetic predicates
+;;; TODO FIXME -- are these the ideal predicates?
+(define DECREASES_PREDICATE_NAMES '("negatively_regulates" "prevents" "treats"))
+(define INCREASES_PREDICATE_NAMES '("positively_regulates" "causes" "produces"))
+
 #|
 concept format (subject or object), without dbname at front:
 
@@ -616,18 +621,14 @@ edge format, with dbname at front (as used in edgeo):
   (set! synthetic-predicate* (filter (lambda (pred) (member pred SYNTHETIC_PREDICATE_STRINGS))
                                      atomic-predicate*))
 
-  ;;; TODO FIXME -- are these the ideal predicates?
-  ;;; Need to place this code in a single place
   (when (member DECREASES_PREDICATE_STRING atomic-predicate*)
     ;; v0.1 predicates: (set! atomic-predicate* (cons "INHIBITS" (cons "PREVENTS" (cons "TREATS" atomic-predicate*))))
-    (set! atomic-predicate* (cons "negatively_regulates" (cons "prevents" (cons "treats" atomic-predicate*))))
+    (set! atomic-predicate* (append DECREASES_PREDICATE_NAMES atomic-predicate*))
     (set! synthetic-predicate* (remove DECREASES_PREDICATE_STRING synthetic-predicate*)))
 
-  ;;; TODO FIXME -- are these the ideal predicates?
-  ;;; Need to place this code in a single place
   (when (member INCREASES_PREDICATE_STRING atomic-predicate*)
     ;; v0.1 predicates: (set! atomic-predicate* (cons "STIMULATES" (cons "AUGMENTS" (cons "CAUSES" atomic-predicate*))))
-    (set! atomic-predicate* (cons "positively_regulates" (cons "causes" (cons "produces" atomic-predicate*))))
+    (set! atomic-predicate* (append INCREASES_PREDICATE_NAMES atomic-predicate*))
     (set! synthetic-predicate* (remove INCREASES_PREDICATE_STRING synthetic-predicate*)))
 
   (set! atomic-predicate* (filter (lambda (pred) (not (member pred SYNTHETIC_PREDICATE_STRINGS)))
