@@ -425,7 +425,7 @@ edge format, with dbname at front (as used in edgeo):
                                                           (printf "predicate-1* ~s\n" predicate-1*)
                                                           (printf "predicate-2* ~s\n" predicate-2*)
                                                           
-                                                          #|
+                                                          
                                                           (define atomic/synthetic-predicate-1* (split-atomic/synthetic-predicates predicate-1*))
                                                           (define atomic/synthetic-predicate-2* (split-atomic/synthetic-predicates predicate-2*))
 
@@ -437,15 +437,29 @@ edge format, with dbname at front (as used in edgeo):
 
 
                                                           (define paths '())
-
+                                                          
+                                                          
                                                           (cond
                                                             [(and (equal? (unbox *solution-concept-1-name-string*) "")
                                                                   (equal? (unbox *solution-concept-2-name-string*) ""))
+                                                             ;; TODO FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
                                                              (set! paths '())]
                                                             [(equal? (unbox *solution-concept-1-name-string*) "")
+                                                             ;; TODO FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
                                                              (set! paths '())
                                                              ;; run synthetic queries here
                                                              (set! paths
+                                                                   (remove-duplicates
+                                                                    (append paths
+                                                                            (run* (q)
+                                                                              (fresh (e dbname eid x o pid pred eprops)
+                                                                                (== (list e) q)
+                                                                                (== `(,dbname . ,x) selected-X)
+                                                                                (== `(,dbname ,eid ,x ,o (,pid . ,pred) . ,eprops) e)
+                                                                                (membero `(,dbname . ,o) concept-2*)
+                                                                                (membero pred atomic-predicate-2*)
+                                                                                (edgeo e)))))
+                                                                   #| ;; v0.1 version
                                                                    (remove-duplicates
                                                                     (append paths
                                                                             (run* (q)
@@ -457,12 +471,25 @@ edge format, with dbname at front (as used in edgeo):
                                                                                 (== e2 `(,x ,o ,p2 ,t2 ,t3 ,r2))
                                                                                 (membero o concept-2*)
                                                                                 (membero p2 atomic-predicate-2*)
-                                                                                (edgeo e2)
-                                                                                )))))]
+                                                                                (edgeo e2)))))
+                                                                   |#
+                                                                   )]
                                                             [(equal? (unbox *solution-concept-2-name-string*) "")
+                                                             ;; TODO FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
                                                              (set! paths '())
                                                              ;; run synthetic queries here
                                                              (set! paths
+                                                                   (remove-duplicates
+                                                                    (append paths
+                                                                            (run* (q)
+                                                                              (fresh (e dbname eid s x pid pred eprops)
+                                                                                (== (list e) q)
+                                                                                (== `(,dbname . ,x) selected-X)
+                                                                                (== `(,dbname ,eid ,s ,x (,pid . ,pred) . ,eprops) e)
+                                                                                (membero `(,dbname . ,s) concept-1*)
+                                                                                (membero pred atomic-predicate-1*)
+                                                                                (edgeo e)))))
+                                                                   #| ;; v0.1 version
                                                                    (remove-duplicates
                                                                     (append paths
                                                                             (run* (q)
@@ -475,12 +502,27 @@ edge format, with dbname at front (as used in edgeo):
                                                                                 (== e1 `(,s ,x ,p1 ,ts ,t1 ,r1))
                                                                                 (membero s concept-1*)
                                                                                 (membero p1 atomic-predicate-1*)
-                                                                                (edgeo e1)
-                                                                                )))))]
+                                                                                (edgeo e1)))))
+                                                                   |#
+                                                                   )]
                                                             [else
                                                              (set! paths '())
                                                              ;; run synthetic queries here
-                                                             (set! paths
+                                                             (set! paths                                                                   
+                                                                   (remove-duplicates
+                                                                    (append paths
+                                                                            (run* (e1 e2)
+                                                                              (fresh (dbname eid1 eid2 s x o pid1 pid2 p1 p2 eprops1 eprops2)
+                                                                                (== `(,dbname . ,x) selected-X)
+                                                                                (== `(,dbname ,eid1 ,s ,x (,pid1 . ,p1) . ,eprops1) e1)
+                                                                                (== `(,dbname ,eid2 ,x ,o (,pid2 . ,p2) . ,eprops2) e2)
+                                                                                (membero `(,dbname . ,s) concept-1*)
+                                                                                (membero `(,dbname . ,o) concept-2*)
+                                                                                (membero p1 atomic-predicate-1*)
+                                                                                (membero p2 atomic-predicate-2*)
+                                                                                (edgeo e1)
+                                                                                (edgeo e2)))))
+                                                                   #| ;; v0.1 version
                                                                    (remove-duplicates
                                                                     (append paths
                                                                             (run* (e1 e2)
@@ -495,9 +537,14 @@ edge format, with dbname at front (as used in edgeo):
                                                                                 (membero p1 atomic-predicate-1*)
                                                                                 (membero p2 atomic-predicate-2*)
                                                                                 (edgeo e1)
-                                                                                (edgeo e2)
-                                                                                )))))])
+                                                                                (edgeo e2)))))
+                                                                   |#
+                                                                   )])
 
+                                                          (printf "paths: ~s\n" paths)
+                                                          (newline)
+                                                          
+                                                          #|
                                                           ;; (printf "sorting paths: ~s\n" paths)
 
                                                           ;; This sorting affects the order of the "Path" list for the selected concept.
