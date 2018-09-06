@@ -988,27 +988,27 @@ edge format, with dbname at front (as used in edgeo):
         set
         (map (lambda (x)
                (match x
-                 [`(,dbname . (,cid ,cui ,name (,catid . ,cat) . ,props))
+                 [`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
                   (format "~a" dbname)]))
              all-X-concepts)
         (map (lambda (x)
                (match x
-                 [`(,dbname . (,cid ,cui ,name (,catid . ,cat) . ,props))
+                 [`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
                   (format "~a" cid)]))
              all-X-concepts)
         (map (lambda (x)
                (match x
-                 [`(,dbname . (,cid ,cui ,name (,catid . ,cat) . ,props))
+                 [`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
                   (format "~a" cui)]))
              all-X-concepts)
         (map (lambda (x)
                (match x
-                 [`(,dbname . (,cid ,cui ,name (,catid . ,cat) . ,props))
+                 [`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
                   (format "~a" `(,catid . ,cat))]))
              all-X-concepts)    
         (map (lambda (x)
                (match x
-                 [`(,dbname . (,cid ,cui ,name (,catid . ,cat) . ,props))
+                 [`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
                   (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
              all-X-concepts))
   
