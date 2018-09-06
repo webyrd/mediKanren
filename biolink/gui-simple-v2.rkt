@@ -625,9 +625,9 @@ edge format, with dbname at front (as used in edgeo):
 
   ;;; TODO FIXME -- are these the ideal predicates?
   ;;; Need to place this code in a single place
-  (when (member INCREASES_PREDICATE_STRING atomic-predicate*)    
+  (when (member INCREASES_PREDICATE_STRING atomic-predicate*)
     ;; v0.1 predicates: (set! atomic-predicate* (cons "STIMULATES" (cons "AUGMENTS" (cons "CAUSES" atomic-predicate*))))
-    (set! atomic-predicate* (cons "positively_regulates" (cons "produces" atomic-predicate*)))
+    (set! atomic-predicate* (cons "positively_regulates" (cons "causes" (cons "produces" atomic-predicate*))))
     (set! synthetic-predicate* (remove INCREASES_PREDICATE_STRING synthetic-predicate*)))
 
   (set! atomic-predicate* (filter (lambda (pred) (not (member pred SYNTHETIC_PREDICATE_STRINGS)))
@@ -983,12 +983,13 @@ edge format, with dbname at front (as used in edgeo):
                (match x
                  [`(,cui ,name ,concept-type*)
                   (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-             all-X-concepts))  
+             all-X-concepts))
+  |#
+  
   ;; unselect all items
   (for ([i (length all-X-concepts)])
        (send concept-X-list-box select i #f))
-  |#
-  
+
   ;; empty the entries in the full-path-list-box
   (send full-path-list-box set '() '() '() '() '() '() '())
   
