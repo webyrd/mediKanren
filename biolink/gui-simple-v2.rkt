@@ -784,7 +784,7 @@ edge format, with dbname at front (as used in edgeo):
             (append all-X-concepts-with-edges
                     (run* (q)
                       (fresh (dbname eid1 eid2 s m o pid1 pid2 p1 p2 eprops1 eprops2 e1 e2)
-                        (== (list m (list eprops1 eprops2) (list e1 e2)) q)
+                        (== (list dbname m (list eprops1 eprops2) (list e1 e2)) q)
                         (== `(,dbname ,eid1 ,s ,m (,pid1 . ,p1) . ,eprops1) e1)
                         (== `(,dbname ,eid2 ,m ,o (,pid2 . ,p2) . ,eprops2) e2)
                         (membero `(,dbname . ,s) concept-1*)
@@ -818,8 +818,8 @@ edge format, with dbname at front (as used in edgeo):
   (printf "elapsed query time: ~s seconds\n" (/ elapsed-time 1000.0))
   (printf "=============================\n")
 
-  (printf "all-X-concepts-with-edges: ~s\n" all-X-concepts-with-edges)
-  (newline)
+  ;; (printf "all-X-concepts-with-edges: ~s\n" all-X-concepts-with-edges)
+  ;; (newline)
   
   #|
   ;; This sorting affects order of appearance in the "X" concept list
@@ -851,8 +851,8 @@ edge format, with dbname at front (as used in edgeo):
                                    (cdr ls))))])])))
   (set! all-X-concepts (map (lambda (e) (list (car e) (cadr e))) all-X-concepts))
 
-  (printf "all-X-concepts: ~s\n" all-X-concepts)
-  (newline)
+  ;;(printf "all-X-concepts: ~s\n" all-X-concepts)
+  ;;(newline)
   
   (newline)
   (printf "========== begin query results =============\n")
