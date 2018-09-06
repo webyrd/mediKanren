@@ -730,6 +730,15 @@ edge format, with dbname at front (as used in edgeo):
            (remove-duplicates
             (append all-X-concepts-with-edges
                     (run* (q)
+                      (fresh (dbname eid s o pid pred eprops e)
+                        ;; TODO FIXME -- epropos may contain pubmed ids--how to extract it, or other evidence?
+                        (== (list dbname s (list eprops) (list e)) q)
+                        (== `(,dbname ,eid ,s ,o (,pid . ,pred) . ,eprops) e)
+                        (membero `(,dbname . ,o) concept-2*)
+                        (membero pred atomic-predicate-2*)
+                        (edgeo e)))
+                    #| ;; v0.1 version
+                    (run* (q)
                       (fresh (m
                               e2
                               o p2 t2 t3 r2)
@@ -737,14 +746,24 @@ edge format, with dbname at front (as used in edgeo):
                         (== e2 `(,m ,o ,p2 ,t2 ,t3 ,r2))
                         (membero o concept-2*)
                         (membero p2 atomic-predicate-2*)
-                        (edgeo e2)
-                        )))))]
+                        (edgeo e2)))
+                    |#
+                    )))]
     [(equal? (unbox *concept-2-name-string*) "")  ;; TODO FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
      (set! all-X-concepts-with-edges '())
      ;; run synthetic queries here
      (set! all-X-concepts-with-edges
            (remove-duplicates
             (append all-X-concepts-with-edges
+                    (run* (q)
+                      (fresh (dbname eid s o pid pred eprops e)
+                        ;; TODO FIXME -- epropos may contain pubmed ids--how to extract it, or other evidence?
+                        (== (list dbname o (list eprops) (list e)) q)
+                        (== `(,dbname ,eid ,s ,o (,pid . ,pred) . ,eprops) e)
+                        (membero `(,dbname . ,s) concept-1*)
+                        (membero pred atomic-predicate-1*)
+                        (edgeo e)))
+                    #| ;; v0.1 version
                     (run* (q)
                       (fresh (m
                               e1 e2
@@ -754,14 +773,27 @@ edge format, with dbname at front (as used in edgeo):
                         (== e1 `(,s ,m ,p1 ,ts ,t1 ,r1))
                         (membero s concept-1*)
                         (membero p1 atomic-predicate-1*)
-                        (edgeo e1)
-                        )))))]
+                        (edgeo e1)))
+                    |#
+                    )))]
     [else
      (set! all-X-concepts-with-edges '())
      ;; run synthetic queries here
      (set! all-X-concepts-with-edges
            (remove-duplicates
             (append all-X-concepts-with-edges
+                    (run* (q)
+                      (fresh (dbname eid1 eid2 s m o pid1 pid2 p1 p2 eprops1 eprops2 e1 e2)
+                        (== (list m (list eprops1 eprops2) (list e1 e2)) q)
+                        (== `(,dbname ,eid1 ,s ,m (,pid1 . ,p1) . ,eprops1) e1)
+                        (== `(,dbname ,eid2 ,m ,o (,pid2 . ,p2) . ,eprops2) e2)
+                        (membero `(,dbname . ,s) concept-1*)
+                        (membero `(,dbname . ,o) concept-2*)
+                        (membero p1 atomic-predicate-1*)
+                        (membero p2 atomic-predicate-2*)
+                        (edgeo e1)
+                        (edgeo e2)))
+                    #| ;; v0.1 version
                     (run* (q)
                       (fresh (m
                               e1 e2
@@ -775,8 +807,9 @@ edge format, with dbname at front (as used in edgeo):
                         (membero p1 atomic-predicate-1*)
                         (membero p2 atomic-predicate-2*)
                         (edgeo e1)
-                        (edgeo e2)
-                        )))))])
+                        (edgeo e2)))
+                    |#
+                    )))])
 
   (define end-time (current-milliseconds))
 
@@ -785,6 +818,9 @@ edge format, with dbname at front (as used in edgeo):
   (printf "elapsed query time: ~s seconds\n" (/ elapsed-time 1000.0))
   (printf "=============================\n")
 
+  (printf "all-X-concepts-with-edges: ~s\n" all-X-concepts-with-edges)
+  (newline)
+  
   #|
   ;; This sorting affects order of appearance in the "X" concept list
   (set! all-X-concepts-with-edges
@@ -794,6 +830,8 @@ edge format, with dbname at front (as used in edgeo):
         (match (list c1 c2)
           [`((,_ ,_ ,e1*) (,_ ,_ ,e2*))
             (not (path-confidence<? e1* e2*))]))))
+  |#
+
 
   (define all-X-concepts '())
   (set! all-X-concepts
@@ -802,17 +840,20 @@ edge format, with dbname at front (as used in edgeo):
             [(null? ls) '()]
             [else
              (match (car ls)
-               [`((,cui ,name ,concept-type*) ,pubmed** ,edge*)
+               [`(,dbname (,cid ,cui ,name (,catid . ,cat) . ,props) . ,rest)
                 (cons (car ls)
                       (loop (remf* (lambda (x)
                                      (match x
-                                       [`((,cui-x ,name-x ,concept-type*-x) ,pubmed**-x ,edge*-x)
-                                        (equal? cui-x cui)]))
+                                       [`(,dbname-x (,cid-x ,cui-x ,name-x (,catid-x . ,cat-x) . ,props-x) . ,rest-x)
+                                        (and (equal? dbname dbname-x)
+                                             (equal? cid cid-x)
+                                             (equal? cui cui-x))]))
                                    (cdr ls))))])])))
+  (set! all-X-concepts (map (lambda (e) (list (car e) (cadr e))) all-X-concepts))
 
-  (set! all-X-concepts (map car all-X-concepts))
-  |#
-
+  (printf "all-X-concepts: ~s\n" all-X-concepts)
+  (newline)
+  
   (newline)
   (printf "========== begin query results =============\n")
   (newline)
@@ -820,7 +861,7 @@ edge format, with dbname at front (as used in edgeo):
   (printf "Query end date/time:\n~a\n" (date->string (seconds->date (current-seconds)) #t))
   (newline)
 
-  #|
+
   (define number-Xs-found (length all-X-concepts))
   (define query-seconds (/ elapsed-time 1000.0))
   (define query-time-format-string "Found ~s X's after ~s seconds")
@@ -828,6 +869,7 @@ edge format, with dbname at front (as used in edgeo):
   (printf query-time-format-string number-Xs-found query-seconds)
   (newline)
   (newline)
+
 
   (set-box! *concept-X-choices* all-X-concepts)
 
@@ -858,6 +900,7 @@ edge format, with dbname at front (as used in edgeo):
   (pretty-print (unbox *solution-predicate-2-choices*))
   (newline)
 
+  #|
   (define pretty-print-X-concepts-with-edges
     (lambda (X-concepts-with-edges)
       (with-output-to-file
@@ -893,7 +936,35 @@ edge format, with dbname at front (as used in edgeo):
 
   (printf "========== end query results =============\n")
 
-  #|
+  (send concept-X-list-box
+        set
+        (map (lambda (x)
+               (match x
+                 [`(,dbname (,cid ,cui ,name (,catid . ,cat) . ,props))
+                  (format "~a" dbname)]))
+             all-X-concepts)
+        (map (lambda (x)
+               (match x
+                 [`(,dbname (,cid ,cui ,name (,catid . ,cat) . ,props))
+                  (format "~a" cid)]))
+             all-X-concepts)
+        (map (lambda (x)
+               (match x
+                 [`(,dbname (,cid ,cui ,name (,catid . ,cat) . ,props))
+                  (format "~a" cui)]))
+             all-X-concepts)
+        (map (lambda (x)
+               (match x
+                 [`(,dbname (,cid ,cui ,name (,catid . ,cat) . ,props))
+                  (format "~a" `(,catid . ,cat))]))
+             all-X-concepts)    
+        (map (lambda (x)
+               (match x
+                 [`(,dbname (,cid ,cui ,name (,catid . ,cat) . ,props))
+                  (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+             all-X-concepts))
+  
+  #| ;; v 0.1 version
   (send concept-X-list-box
         set
         (map (lambda (x)
@@ -912,14 +983,14 @@ edge format, with dbname at front (as used in edgeo):
                (match x
                  [`(,cui ,name ,concept-type*)
                   (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-             all-X-concepts))
+             all-X-concepts))  
   ;; unselect all items
   (for ([i (length all-X-concepts)])
        (send concept-X-list-box select i #f))
-
-  ;; empty the entries in the full-path-list-box
-  (send full-path-list-box set '() '() '() '() '() '())
   |#
+  
+  ;; empty the entries in the full-path-list-box
+  (send full-path-list-box set '() '() '() '() '() '() '())
   
   )
 
