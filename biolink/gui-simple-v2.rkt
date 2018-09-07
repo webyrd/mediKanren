@@ -724,12 +724,8 @@ edge format, with dbname at front (as used in edgeo):
                                                       (for-each
                                                         (lambda (x)
                                                           (match x
-                                                            [`(,dbname ,subj ,pred ,obj ,subj-category ,obj-category ,pubmed*)
-                                                             (let ((pubmed* (if (list? pubmed*)
-                                                                                (map (lambda (pubmed-id) (string-append "https://www.ncbi.nlm.nih.gov/pubmed/" (~a pubmed-id)))
-                                                                                     pubmed*)
-                                                                                pubmed*)))
-                                                               (pretty-print `(,dbname ,subj ,pred ,obj ,subj-category ,obj-category ,pubmed*)))]))
+                                                            [`(,dbname ,eid ,subj (,cid ,cui ,name (,catid . ,cat) . ,props) (,pid . ,pred) ,eprops)
+                                                             (pretty-print `(,dbname ,eid ,subj (,cid ,cui ,name (,catid . ,cat) . ,props) (,pid . ,pred) ,eprops))]))
                                                         selected-full-paths))
                                                     ))))
         
