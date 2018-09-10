@@ -1,9 +1,8 @@
 #lang racket
 
 ;;; TODO FIXME
-;;;
+
 ;;; clicking on a new concept from the concept list should deselect any selection in the predicate box
-;;;
 
 ;;; concepts + predicates with apparently no results:
 ;;;
@@ -14,6 +13,8 @@
 ;;; is this a UI issue?  try running the same query in a notebook or at the command line
 ;;;
 ;;; hmm--I only see this behavior with concept 2, not concept 1, which makes me suspect this is a copy-and-paste error
+
+;;; extract Pubmed ids from the alist of properties in the full path
 
 ;;; TODO FEATURES
 ;;;
