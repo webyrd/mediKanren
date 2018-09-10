@@ -1,5 +1,24 @@
 #lang racket
 
+;;; TODO FIXME
+;;;
+;;; clicking on a new concept from the concept list should deselect any selection in the predicate box
+;;;
+
+;;; concepts + predicates with apparently no results:
+;;;
+;;; for 'GMPPB gene' semmeddb concept (for concept 2), the 'causes' predicate doesn't seem to have anything associated with it (at least when I click on 'go')
+;;;
+;;; for 'GMPPB' in Monarch (in concept 2), contributes_to and has_phenotype produces no answers, but interacts_with has answers
+;;;
+;;; is this a UI issue?  try running the same query in a notebook or at the command line
+;;;
+;;; hmm--I only see this behavior with concept 2, not concept 1, which makes me suspect this is a copy-and-paste error
+
+;;; TODO FEATURES
+;;;
+;;; hotkeys for 'go', moving between panes--should be able to do everything from the keyboard
+
 (require
   racket/sandbox
   racket/gui/base
