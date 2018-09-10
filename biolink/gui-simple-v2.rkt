@@ -1112,7 +1112,7 @@ edge format, with dbname at front (as used in edgeo):
        (send concept-X-list-box select i #f))
 
   ;; empty the entries in the full-path-list-box
-  (send full-path-list-box set '() '() '() '() '() '() '())
+  (send full-path-list-box set '() '() '() '() '() '() '() '())
   
   )
 
