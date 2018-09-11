@@ -4,16 +4,6 @@
 
 ;;; clicking on a new concept from the concept list should deselect any selection in the predicate box
 
-;;; concepts + predicates with apparently no results:
-;;;
-;;; for 'GMPPB gene' semmeddb concept (for concept 2), the 'causes' predicate doesn't seem to have anything associated with it (at least when I click on 'go')
-;;;
-;;; for 'GMPPB' in Monarch (in concept 2), contributes_to and has_phenotype produces no answers, but interacts_with has answers
-;;;
-;;; is this a UI issue?  try running the same query in a notebook or at the command line
-;;;
-;;; hmm--I only see this behavior with concept 2, not concept 1, which makes me suspect this is a copy-and-paste error
-
 ;;; extract Pubmed ids from the alist of properties in the full path
 
 ;;; TODO FEATURES
@@ -362,7 +352,7 @@ edge format, with dbname at front (as used in edgeo):
                                       (style '(extended))
                                       (callback (lambda (button event)
                                                   (void)))))
-    (define concept-2-list-box (concept-list frame concept-2-search/isa-panel concept-2-list-boxes-panel "Concept 2" *concept-2-name-string* *concept-2-isa-flag* *concept-2-choices* (lambda () predicate-2-list-box) *predicate-2-choices* 'out-edge))
+    (define concept-2-list-box (concept-list frame concept-2-search/isa-panel concept-2-list-boxes-panel "Concept 2" *concept-2-name-string* *concept-2-isa-flag* *concept-2-choices* (lambda () predicate-2-list-box) *predicate-2-choices* 'in-edge))
 
     (define go-button (new button%
                            (parent frame)
