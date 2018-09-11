@@ -2,8 +2,6 @@
 
 ;;; TODO FIXME
 
-;;; clicking on a new concept from the concept list should deselect any selection in the predicate box
-
 ;;; extract Pubmed ids from the alist of properties in the full path
 
 ;;; TODO FEATURES
@@ -245,7 +243,11 @@ edge format, with dbname at front (as used in edgeo):
                                                              predicates))
                                            (printf "predicates: ~s\n" predicates)
                                            (set-box! predicate-choices predicates)
-                                           (send (predicate-list-box-thunk) set predicates)))))
+                                           (send (predicate-list-box-thunk) set predicates)
+
+                                           ;; unselect all items
+                                           (for ([i (length predicates)])
+                                                (send (predicate-list-box-thunk) select i #f))))))
   (define (mk-run)
     (let ((ans (if (equal? current-name "") ;; TODO FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
                    '()
