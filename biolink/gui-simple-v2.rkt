@@ -299,37 +299,46 @@ edge format, with dbname at front (as used in edgeo):
                                                (edgeo e)))))
                                       (not (null? preds)))]))
                         ans)))
-              (set-box! choices ans)
-              (send concept-listbox
-                    set
-                    (map (lambda (x)
-                           (match x
-                             [`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
-                              (~a dbname #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                         ans)
-                    (map (lambda (x)
-                           (match x
-                             [`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
-                              (format "~a" cid)]))
-                         ans)              
-                    (map (lambda (x)
-                           (match x
-                             [`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
-                              (format "~a" cui)]))
-                         ans)
-                    (map (lambda (x)
-                           (match x
-                             [`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
-                              (~a `(,catid . ,cat) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                         ans)              
-                    (map (lambda (x)
-                           (match x
-                             [`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
-                              (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                         ans))
-              ;; unselect all items
-              (for ([i (length ans)])
-                   (send concept-listbox select i #f))))))))
+              (let ((ans (sort ans
+                               (lambda (a1 a2)
+                                 (let ((dbname1 (symbol->string (car a1)))
+                                       (cui1 (caddr a1))
+                                       (dbname2 (symbol->string (car a2)))
+                                       (cui2 (caddr a2)))
+                                   (or (string>? dbname1 dbname2)
+                                       (and (string=? dbname1 dbname2)
+                                            (string<? cui1 cui2))))))))
+                (set-box! choices ans)
+                (send concept-listbox
+                      set
+                      (map (lambda (x)
+                             (match x
+                               [`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
+                                (~a dbname #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                           ans)
+                      (map (lambda (x)
+                             (match x
+                               [`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
+                                (format "~a" cid)]))
+                           ans)              
+                      (map (lambda (x)
+                             (match x
+                               [`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
+                                (format "~a" cui)]))
+                           ans)
+                      (map (lambda (x)
+                             (match x
+                               [`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
+                                (~a `(,catid . ,cat) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                           ans)              
+                      (map (lambda (x)
+                             (match x
+                               [`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
+                                (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                           ans))
+                ;; unselect all items
+                (for ([i (length ans)])
+                     (send concept-listbox select i #f)))))))))
   (define current-name "")
   (define current-isa #f)
   (define pending-name current-name)
