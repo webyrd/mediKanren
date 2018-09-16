@@ -404,7 +404,8 @@ edge format, with dbname at front (as used in edgeo):
                          predicate-2-selected-predicates
                          concept-X-list-box
                          running-status-description
-                         full-path-list-box)
+                         full-path-list-box
+                         properties-list-box)
                                        
         ))
     
@@ -851,7 +852,7 @@ edge format, with dbname at front (as used in edgeo):
   )
 
 
-(define (find-X-concepts concept-1* concept-2* predicate-1* predicate-2* concept-X-list-box running-status-description full-path-list-box)
+(define (find-X-concepts concept-1* concept-2* predicate-1* predicate-2* concept-X-list-box running-status-description full-path-list-box properties-list-box)
 
   (define start-time (current-milliseconds))
 
@@ -1201,6 +1202,9 @@ edge format, with dbname at front (as used in edgeo):
 
   ;; empty the entries in the full-path-list-box
   (send full-path-list-box set '() '() '() '() '() '() '())
+
+  ;; empty the entries in the properties-list-box
+  (send properties-list-box set '() '())
   
   )
 
