@@ -447,6 +447,7 @@ edge format, with dbname at front (as used in edgeo):
                                     (parent frame)
                                     (style '(column-headers reorderable-headers single))
                                     (callback (lambda (button event)
+                                                (send properties-list-box set '() '())
                                                 (let ((sel* (send concept-X-list-box get-selections)))
                                                   (when (= (length sel*) 1)
                                                     (let ((selected-X (list-ref (unbox *concept-X-choices*) (car sel*))))
@@ -663,7 +664,8 @@ edge format, with dbname at front (as used in edgeo):
                                                                  [`(,dbname ,eid ,subj (,cid ,cui ,name (,catid . ,cat) . ,props) (,pid . ,pred) ,eprops)
                                                                   (~a `(,catid . ,cat) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
                                                              flattened-paths))
-                                                          
+
+                                                      #|
                                                       (define full-path-eprops-list
                                                         (map (lambda (x)
                                                                (match x
@@ -671,6 +673,7 @@ edge format, with dbname at front (as used in edgeo):
                                                                  [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
                                                                   (~a eprops #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
                                                              flattened-paths))
+                                                      |#
 
                                                       (send full-path-list-box
                                                             set
@@ -681,7 +684,8 @@ edge format, with dbname at front (as used in edgeo):
                                                             full-path-obj-list
                                                             full-path-subj-cat-list
                                                             full-path-obj-cat-list
-                                                            full-path-eprops-list)
+                                                            ;;full-path-eprops-list
+                                                            )
                                                           
                                                           
                                                       #| ;; v0.1 version
@@ -749,7 +753,7 @@ edge format, with dbname at front (as used in edgeo):
     (define full-path-list-box (new list-box%
                                     (label "Paths")
                                     (choices (unbox *full-path-choices*))
-                                    (columns '("DB" "EID" "Subject" "Predicate" "Object" "Subj Cat" "Obj Cat" "PubMed IDs"))
+                                    (columns '("DB" "EID" "Subject" "Predicate" "Object" "Subj Cat" "Obj Cat"))
                                     (parent frame)
                                     (style '(column-headers reorderable-headers extended))
                                     (callback (lambda (self event)
@@ -762,6 +766,23 @@ edge format, with dbname at front (as used in edgeo):
                                                   (foldr (lambda (i l) (cons (list-ref (unbox *full-path-choices*) i) l))
                                                          '()
                                                          selections))
+                                                (for-each
+                                                    (lambda (x)
+                                                      (match x
+                                                        ['path-separator
+                                                         (send properties-list-box set '() '())]
+                                                        [`(,dbname ,eid ,subj ,obj ,p ,eprops)
+                                                         (send properties-list-box
+                                                               set
+                                                               (map
+                                                                 (lambda (p)
+                                                                   (~a (car p) #:max-width MAX-CHAR-WIDTH #:limit-marker "..."))
+                                                                 eprops)
+                                                               (map
+                                                                 (lambda (p)
+                                                                   (~a (cdr p) #:max-width MAX-CHAR-WIDTH #:limit-marker "..."))
+                                                                 eprops))]))
+                                                    selected-full-paths)                                                
                                                 (when *verbose*
                                                   (printf "selected full path:\n")
                                                   (for-each
@@ -773,6 +794,15 @@ edge format, with dbname at front (as used in edgeo):
                                                          (pretty-print `(,dbname ,eid ,subj ,obj ,p ,eprops))]))
                                                     selected-full-paths))
                                                 ))))
+
+    (define properties-list-box (new list-box%
+                                     (label "Properties")
+                                     (choices (unbox *full-path-choices*))
+                                     (columns '("Property" "Value"))
+                                     (parent frame)
+                                     (style '(column-headers reorderable-headers extended))
+                                     (callback (lambda (self event)
+                                                 (void)))))
         
     (send frame show #t)
     ))
@@ -1157,7 +1187,7 @@ edge format, with dbname at front (as used in edgeo):
        (send concept-X-list-box select i #f))
 
   ;; empty the entries in the full-path-list-box
-  (send full-path-list-box set '() '() '() '() '() '() '() '())
+  (send full-path-list-box set '() '() '() '() '() '() '())
   
   )
 
