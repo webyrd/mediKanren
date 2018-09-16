@@ -33,6 +33,7 @@
   racket/gui/base
   racket/engine
   racket/date
+  net/sendurl
   "db.rkt"
   "mk-db.rkt"
   (except-in racket/match ==))
@@ -200,6 +201,7 @@ edge format, with dbname at front (as used in edgeo):
 
 (define *concept-X-choices* (box '()))
 (define *full-path-choices* (box '()))
+(define *pubmed-choices* (box '()))
 
 ;; saved choices used to generate
 ;; paths when clicking on a concept in the X list box.
@@ -467,7 +469,7 @@ edge format, with dbname at front (as used in edgeo):
                                                 (send properties-list-box set '() '())
                                                 
                                                 ;; empty the entries in the pubmed-list-box
-                                                (send pubmed-list-box set '())                                                
+                                                (send pubmed-list-box set '())
                                                 
                                                 (let ((sel* (send concept-X-list-box get-selections)))
                                                   (when (= (length sel*) 1)
@@ -805,23 +807,24 @@ edge format, with dbname at front (as used in edgeo):
                                                                  eprops))]))
                                                     selected-full-paths)
                                                 (for-each
-                                                    (lambda (x)
-                                                      (match x
-                                                        ['path-separator
-                                                         (send pubmed-list-box set '())]
-                                                        [`(,dbname ,eid ,subj ,obj ,p ,eprops)
-                                                         (cond
-                                                           [(assoc "pmids" eprops)
-                                                            =>
-                                                            (lambda (pr)
-                                                              (let ((pubmed* (regexp-split #rx";" (cdr pr))))
-                                                                (let ((URLs
-                                                                       (map (lambda (pubmed-id)
-                                                                              (string-append "https://www.ncbi.nlm.nih.gov/pubmed/" (~a pubmed-id)))
-                                                                            pubmed*)))
-                                                                  (send pubmed-list-box set URLs))))]
-                                                           [else (send pubmed-list-box set '())])]))
-                                                    selected-full-paths)
+                                                  (lambda (x)
+                                                    (match x
+                                                      ['path-separator
+                                                       (send pubmed-list-box set '())]
+                                                      [`(,dbname ,eid ,subj ,obj ,p ,eprops)
+                                                       (cond
+                                                         [(assoc "pmids" eprops)
+                                                          =>
+                                                          (lambda (pr)
+                                                            (let ((pubmed* (regexp-split #rx";" (cdr pr))))
+                                                              (let ((URLs
+                                                                     (map (lambda (pubmed-id)
+                                                                            (string-append "https://www.ncbi.nlm.nih.gov/pubmed/" (~a pubmed-id)))
+                                                                          pubmed*)))
+                                                                (set-box! *pubmed-choices* URLs)
+                                                                (send pubmed-list-box set URLs))))]
+                                                         [else (send pubmed-list-box set '())])]))
+                                                  selected-full-paths)
                                                 (when *verbose*
                                                   (printf "selected full path:\n")
                                                   (for-each
@@ -850,12 +853,28 @@ edge format, with dbname at front (as used in edgeo):
 
     (define pubmed-list-box (new list-box%
                                  (label "Pubmed")
-                                 (choices '())
+                                 (choices (unbox *pubmed-choices*))
                                  (columns '("URL"))
                                  (parent properties/pubmed-panel)
-                                 (style '(column-headers reorderable-headers extended))
+                                 (style '(column-headers reorderable-headers single))
                                  (callback (lambda (self event)
-                                             (void)))))
+                                             ;(printf "event: ~s\n" event)
+                                             (define event-type (send event get-event-type))
+                                             ;(printf "event-type: ~s\n" event-type)
+                                             (define selections (send self get-selections))
+                                             ;(printf "selections: ~s\n" selections)
+                                             (define selected-pubmeds
+                                               (foldr (lambda (i l) (cons (list-ref (unbox *pubmed-choices*) i) l))
+                                                      '()
+                                                      selections))
+                                             ;(printf "selected-pubmeds: ~s\n" selected-pubmeds)
+                                             (for-each
+                                               (lambda (url)
+                                                 (printf "url: ~s\n" url)                                                 
+                                                 (when (eqv? event-type 'list-box-dclick)
+                                                   ;; if the user double-clicked on the URL, open it in a web browser
+                                                   (send-url url)))
+                                               selected-pubmeds)))))
     
     (send frame show #t)
     ))
