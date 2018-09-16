@@ -2,11 +2,31 @@
 
 ;;; TODO FIXME
 
-;;; extract Pubmed ids from the alist of properties in the full path
+;;; NGLY1 in concept 2
+;;; semmed
+;;; interacts_with
+;;; FAF1 gene
+
+
+;;; Extract Pubmed ids from the alist of properties in the full path
+
+;;; semmed:
+;;; ("pmids" . "27748395")
+
+;;; rtx:
+;;;
+
+;;; monarch-lite:
+;;; 
 
 ;;; TODO FEATURES
 ;;;
 ;;; hotkeys for 'go', moving between panes--should be able to do everything from the keyboard
+
+;;; Consider removing the 'go' button entirely
+
+;;; Add default sorting, along with the ability to click on a column to sort by that column
+
 
 (require
   racket/sandbox
@@ -574,7 +594,7 @@ edge format, with dbname at front (as used in edgeo):
                                                             (let ((ls (foldr
                                                                        (lambda (p l)
                                                                          (cons
-                                                                          (list "----" "----" "----" "----" "----" "----" "----")
+                                                                          'path-separator
                                                                           (append (reverse p) l)))
                                                                        '()
                                                                        paths)))
@@ -588,6 +608,7 @@ edge format, with dbname at front (as used in edgeo):
                                                           (define full-path-dbname-list
                                                             (map (lambda (x)
                                                                    (match x
+                                                                     ['path-separator "----"]
                                                                      [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
                                                                       (~a dbname)]))
                                                                  flattened-paths))
@@ -595,6 +616,7 @@ edge format, with dbname at front (as used in edgeo):
                                                           (define full-path-eid-list
                                                             (map (lambda (x)
                                                                    (match x
+                                                                     ['path-separator "----"]
                                                                      [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
                                                                       (~a eid)]))
                                                                  flattened-paths))
@@ -602,6 +624,7 @@ edge format, with dbname at front (as used in edgeo):
                                                           (define full-path-subj-list
                                                             (map (lambda (x)
                                                                    (match x
+                                                                     ['path-separator "----"]
                                                                      [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
                                                                       (~a subj #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
                                                                  flattened-paths))
@@ -609,6 +632,7 @@ edge format, with dbname at front (as used in edgeo):
                                                           (define full-path-pred-list
                                                             (map (lambda (x)
                                                                    (match x
+                                                                     ['path-separator "----"]
                                                                      [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
                                                                       (~a `(,pid . ,pred) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
                                                                  flattened-paths))
@@ -616,6 +640,7 @@ edge format, with dbname at front (as used in edgeo):
                                                           (define full-path-obj-list
                                                             (map (lambda (x)
                                                                    (match x
+                                                                     ['path-separator "----"]
                                                                      [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
                                                                       (~a obj #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
                                                                  flattened-paths))
@@ -623,6 +648,7 @@ edge format, with dbname at front (as used in edgeo):
                                                           (define full-path-subj-cat-list
                                                             (map (lambda (x)
                                                                    (match x
+                                                                     ['path-separator "----"]
                                                                      [`(,dbname ,eid (,cid ,cui ,name (,catid . ,cat) . ,props) ,obj (,pid . ,pred) ,eprops)
                                                                       (~a `(,catid . ,cat) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
                                                                  flattened-paths))
@@ -630,6 +656,7 @@ edge format, with dbname at front (as used in edgeo):
                                                           (define full-path-obj-cat-list
                                                             (map (lambda (x)
                                                                    (match x
+                                                                     ['path-separator "----"]
                                                                      [`(,dbname ,eid ,subj (,cid ,cui ,name (,catid . ,cat) . ,props) (,pid . ,pred) ,eprops)
                                                                       (~a `(,catid . ,cat) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
                                                                  flattened-paths))
@@ -637,6 +664,7 @@ edge format, with dbname at front (as used in edgeo):
                                                           (define full-path-eprops-list
                                                             (map (lambda (x)
                                                                    (match x
+                                                                     ['path-separator "----"]
                                                                      [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
                                                                       (~a eprops #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
                                                                  flattened-paths))
@@ -736,8 +764,10 @@ edge format, with dbname at front (as used in edgeo):
                                                       (for-each
                                                         (lambda (x)
                                                           (match x
-                                                            [`(,dbname ,eid ,subj (,cid ,cui ,name (,catid . ,cat) . ,props) (,pid . ,pred) ,eprops)
-                                                             (pretty-print `(,dbname ,eid ,subj (,cid ,cui ,name (,catid . ,cat) . ,props) (,pid . ,pred) ,eprops))]))
+                                                            ['path-separator
+                                                             (printf "-----------------------\n")]
+                                                            [`(,dbname ,eid ,subj ,obj ,p ,eprops)
+                                                             (pretty-print `(,dbname ,eid ,subj ,obj ,p ,eprops))]))
                                                         selected-full-paths))
                                                     ))))
         
