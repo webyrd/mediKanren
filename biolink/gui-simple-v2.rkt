@@ -809,15 +809,29 @@ edge format, with dbname at front (as used in edgeo):
                                                     selected-full-paths))
                                                 ))))
 
+    (define properties/pubmed-panel (new horizontal-panel%
+                                         (parent frame)
+                                         (alignment '(left center))
+                                         (stretchable-height #t)))
+    
     (define properties-list-box (new list-box%
                                      (label "Properties")
-                                     (choices (unbox *full-path-choices*))
+                                     (choices '())
                                      (columns '("Property" "Value"))
-                                     (parent frame)
+                                     (parent properties/pubmed-panel)
                                      (style '(column-headers reorderable-headers extended))
                                      (callback (lambda (self event)
                                                  (void)))))
-        
+
+    (define pubmed-list-box (new list-box%
+                                 (label "Pubmed")
+                                 (choices '())
+                                 (columns '("URL"))
+                                 (parent properties/pubmed-panel)
+                                 (style '(column-headers reorderable-headers extended))
+                                 (callback (lambda (self event)
+                                             (void)))))
+    
     (send frame show #t)
     ))
 
