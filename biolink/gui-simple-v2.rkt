@@ -284,7 +284,7 @@ edge format, with dbname at front (as used in edgeo):
                                 (edgeo e))))
                         '())))
           (let ((ans (remove-duplicates (append ans isa-ans))))
-            (let ((ans (filter (lambda (x)
+            (let ((ans (filter (lambda (x) ;; only include concepts with at least one predicate
                                  (match x
                                    [`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
                                     (let ((preds
