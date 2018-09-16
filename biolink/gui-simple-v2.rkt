@@ -155,7 +155,7 @@ edge format, with dbname at front (as used in edgeo):
     ))
 
 #|
-`(,db-name ,cid ,cui ,name (,catid . ,cat) . ,props)
+`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
 |#
 (define (fuzzy-concepto n c)
   (conde
@@ -284,37 +284,50 @@ edge format, with dbname at front (as used in edgeo):
                                 (edgeo e))))
                         '())))
           (let ((ans (remove-duplicates (append ans isa-ans))))
-            (set-box! choices ans)
-            (send concept-listbox
-                  set
-                  (map (lambda (x)
-                         (match x
-                           [`(,db-name ,cid ,cui ,name (,catid . ,cat) . ,props)
-                            (~a db-name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                       ans)
-                  (map (lambda (x)
-                         (match x
-                           [`(,db-name ,cid ,cui ,name (,catid . ,cat) . ,props)
-                            (format "~a" cid)]))
-                       ans)              
-                  (map (lambda (x)
-                         (match x
-                           [`(,db-name ,cid ,cui ,name (,catid . ,cat) . ,props)
-                            (format "~a" cui)]))
-                       ans)
-                  (map (lambda (x)
-                         (match x
-                           [`(,db-name ,cid ,cui ,name (,catid . ,cat) . ,props)
-                            (~a `(,catid . ,cat) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                       ans)              
-                  (map (lambda (x)
-                         (match x
-                           [`(,db-name ,cid ,cui ,name (,catid . ,cat) . ,props)
-                            (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                       ans))
-            ;; unselect all items
-            (for ([i (length ans)])
-                 (send concept-listbox select i #f)))))))
+            (let ((ans (filter (lambda (x)
+                                 (match x
+                                   [`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
+                                    (let ((preds
+                                           (run 1 (pred)
+                                             (fresh (o s eid eprops e)
+                                               (case edge-type
+                                                 [(out-edge) (== `(,cid ,cui ,name (,catid . ,cat) . ,props) s)]
+                                                 [(in-edge) (== `(,cid ,cui ,name (,catid . ,cat) . ,props) o)])
+                                               (== `(,dbname ,eid ,s ,o ,pred . ,eprops) e)
+                                               (edgeo e)))))
+                                      (not (null? preds)))]))
+                        ans)))
+              (set-box! choices ans)
+              (send concept-listbox
+                    set
+                    (map (lambda (x)
+                           (match x
+                             [`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
+                              (~a dbname #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                         ans)
+                    (map (lambda (x)
+                           (match x
+                             [`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
+                              (format "~a" cid)]))
+                         ans)              
+                    (map (lambda (x)
+                           (match x
+                             [`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
+                              (format "~a" cui)]))
+                         ans)
+                    (map (lambda (x)
+                           (match x
+                             [`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
+                              (~a `(,catid . ,cat) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                         ans)              
+                    (map (lambda (x)
+                           (match x
+                             [`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
+                              (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                         ans))
+              ;; unselect all items
+              (for ([i (length ans)])
+                   (send concept-listbox select i #f))))))))
   (define current-name "")
   (define current-isa #f)
   (define pending-name current-name)
