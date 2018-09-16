@@ -405,7 +405,8 @@ edge format, with dbname at front (as used in edgeo):
                          concept-X-list-box
                          running-status-description
                          full-path-list-box
-                         properties-list-box)
+                         properties-list-box
+                         pubmed-list-box)
                                        
         ))
     
@@ -461,7 +462,13 @@ edge format, with dbname at front (as used in edgeo):
                                     (parent frame)
                                     (style '(column-headers reorderable-headers single))
                                     (callback (lambda (button event)
+
+                                                ;; empty the entries in the properties-list-box
                                                 (send properties-list-box set '() '())
+                                                
+                                                ;; empty the entries in the pubmed-list-box
+                                                (send pubmed-list-box set '())                                                
+                                                
                                                 (let ((sel* (send concept-X-list-box get-selections)))
                                                   (when (= (length sel*) 1)
                                                     (let ((selected-X (list-ref (unbox *concept-X-choices*) (car sel*))))
@@ -884,7 +891,7 @@ edge format, with dbname at front (as used in edgeo):
   )
 
 
-(define (find-X-concepts concept-1* concept-2* predicate-1* predicate-2* concept-X-list-box running-status-description full-path-list-box properties-list-box)
+(define (find-X-concepts concept-1* concept-2* predicate-1* predicate-2* concept-X-list-box running-status-description full-path-list-box properties-list-box pubmed-list-box)
 
   (define start-time (current-milliseconds))
 
@@ -1237,7 +1244,10 @@ edge format, with dbname at front (as used in edgeo):
 
   ;; empty the entries in the properties-list-box
   (send properties-list-box set '() '())
-  
+
+  ;; empty the entries in the pubmed-list-box
+  (send pubmed-list-box set '())
+
   )
 
 (displayln
