@@ -796,7 +796,25 @@ edge format, with dbname at front (as used in edgeo):
                                                                  (lambda (p)
                                                                    (~a (cdr p) #:max-width MAX-CHAR-WIDTH #:limit-marker "..."))
                                                                  eprops))]))
-                                                    selected-full-paths)                                                
+                                                    selected-full-paths)
+                                                (for-each
+                                                    (lambda (x)
+                                                      (match x
+                                                        ['path-separator
+                                                         (send pubmed-list-box set '())]
+                                                        [`(,dbname ,eid ,subj ,obj ,p ,eprops)
+                                                         (cond
+                                                           [(assoc "pmids" eprops)
+                                                            =>
+                                                            (lambda (pr)
+                                                              (let ((pubmed* (regexp-split #rx";" (cdr pr))))
+                                                                (let ((URLs
+                                                                       (map (lambda (pubmed-id)
+                                                                              (string-append "https://www.ncbi.nlm.nih.gov/pubmed/" (~a pubmed-id)))
+                                                                            pubmed*)))
+                                                                  (send pubmed-list-box set URLs))))]
+                                                           [else (send pubmed-list-box set '())])]))
+                                                    selected-full-paths)
                                                 (when *verbose*
                                                   (printf "selected full path:\n")
                                                   (for-each
