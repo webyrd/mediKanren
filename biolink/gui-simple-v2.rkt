@@ -46,6 +46,8 @@
 (define DECREASES_PREDICATE_NAMES '("negatively_regulates" "prevents" "treats"))
 (define INCREASES_PREDICATE_NAMES '("positively_regulates" "causes" "produces"))
 
+(define PUBMED_URL_PREFIX "https://www.ncbi.nlm.nih.gov/pubmed/")
+
 #|
 concept format (subject or object), without dbname at front:
 
@@ -141,6 +143,36 @@ edge format, with dbname at front (as used in edgeo):
       [(null? ls) '()]
       [(member (car ls) (cdr ls)) (rem-dups (cdr ls))]
       [else (cons (car ls) (rem-dups (cdr ls)))])))
+
+(define pubmed-ids-from-edge
+  (lambda (edge)
+    (match edge
+      ['path-separator '()]
+      [`(,dbname ,eid ,subj ,obj ,p ,eprops)
+       (cond
+         [(assoc "pmids" eprops) ;; WEB this property is only used by semmed, I believe
+          =>
+          (lambda (pr)
+            (let ((pubmed* (regexp-split #rx";" (cdr pr))))
+              (rem-dups pubmed*)))]
+         [else '()])])))
+
+
+(define (path-confidence p)
+  (define (weight-linear+1 n) (+ 1 n))
+  (define (weight-exponential n) (expt 2 n))
+  ;; To experiment with sorting, try to only change the weight calculation
+  ;; being used.  Leave everything else the same.
+  (define weight weight-exponential)
+  (define (pubmed-count e)
+    (length (pubmed-ids-from-edge e)))
+  (define (confidence/edge e) (- 1 (/ 1.0 (weight (pubmed-count e)))))
+  (foldl * 1 (map confidence/edge p)))
+(define (path-confidence<? p1 p2)
+  (< (path-confidence p1) (path-confidence p2)))
+(define (sort-paths paths) (sort paths path-confidence<?))
+
+
 
 #|
 `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) . ,sprops)
@@ -615,17 +647,14 @@ edge format, with dbname at front (as used in edgeo):
 
                                                       (printf "paths: ~s\n" paths)
                                                       (newline)
-                                                          
-                                                      #|
-                                                          ;; (printf "sorting paths: ~s\n" paths) ;
 
-                                                          ;; This sorting affects the order of the "Path" list for the selected concept. ;
-                                                      (set! paths (map remove-duplicate-pubrefs/path (sort-paths paths)))
+                                                      ;; (printf "sorting paths: ~s\n" paths)
 
-                                                          ;; (printf "sorted paths: ~s\n" paths) ;
-                                                      |#
+                                                      ;; This sorting affects the order of the "Path" list for the selected concept.
+                                                      (set! paths (sort-paths paths))
 
-                                                          
+                                                      ;; (printf "sorted paths: ~s\n" paths)
+                                                      
                                                       (define flattened-paths
                                                         (let ((ls (foldr
                                                                    (lambda (p l)
@@ -816,23 +845,14 @@ edge format, with dbname at front (as used in edgeo):
                                                                  eprops))]))
                                                     selected-full-paths)
                                                 (for-each
-                                                  (lambda (x)
-                                                    (match x
-                                                      ['path-separator
-                                                       (send pubmed-list-box set '())]
-                                                      [`(,dbname ,eid ,subj ,obj ,p ,eprops)
-                                                       (cond
-                                                         [(assoc "pmids" eprops)
-                                                          =>
-                                                          (lambda (pr)
-                                                            (let ((pubmed* (regexp-split #rx";" (cdr pr))))
-                                                              (let ((URLs
-                                                                     (map (lambda (pubmed-id)
-                                                                            (string-append "https://www.ncbi.nlm.nih.gov/pubmed/" (~a pubmed-id)))
-                                                                          pubmed*)))
-                                                                (set-box! *pubmed-choices* URLs)
-                                                                (send pubmed-list-box set URLs))))]
-                                                         [else (send pubmed-list-box set '())])]))
+                                                  (lambda (edge)
+                                                    (let ((pubmed-ids (pubmed-ids-from-edge edge)))
+                                                      (let ((URLs
+                                                             (map (lambda (pubmed-id)
+                                                                    (string-append PUBMED_URL_PREFIX (~a pubmed-id)))
+                                                                  pubmed-ids)))
+                                                        (set-box! *pubmed-choices* URLs)
+                                                        (send pubmed-list-box set URLs))))
                                                   selected-full-paths)
                                                 (when *verbose*
                                                   (printf "selected full path:\n")
