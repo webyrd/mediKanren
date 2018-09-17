@@ -148,7 +148,7 @@ edge format, with dbname at front (as used in edgeo):
   (lambda (edge)
     (match edge
       ['path-separator '()]
-      [`(,dbname ,eid ,subj ,obj ,p ,eprops)
+      [`(,dbname ,eid ,subj ,obj ,p . ,eprops)
        (cond
          [(assoc "pmids" eprops) ;; WEB this property is only used by semmed, I believe
           =>
@@ -553,7 +553,7 @@ edge format, with dbname at front (as used in edgeo):
                                                                 (append paths
                                                                         (run* (q)
                                                                           (fresh (e dbname eid x o pid pred eprops)
-                                                                            (== (list `(,dbname ,eid ,x ,o (,pid . ,pred) ,eprops)) q)
+                                                                            (== (list `(,dbname ,eid ,x ,o (,pid . ,pred) . ,eprops)) q)
                                                                             (== `(,dbname . ,x) selected-X)
                                                                             (== `(,dbname ,eid ,x ,o (,pid . ,pred) . ,eprops) e)
                                                                             (membero `(,dbname . ,o) concept-2*)
@@ -583,7 +583,7 @@ edge format, with dbname at front (as used in edgeo):
                                                                 (append paths
                                                                         (run* (q)
                                                                           (fresh (e dbname eid s x pid pred eprops)
-                                                                            (== (list `(,dbname ,eid ,s ,x (,pid . ,pred) ,eprops)) q)
+                                                                            (== (list `(,dbname ,eid ,s ,x (,pid . ,pred) . ,eprops)) q)
                                                                             (== `(,dbname . ,x) selected-X)
                                                                             (== `(,dbname ,eid ,s ,x (,pid . ,pred) . ,eprops) e)
                                                                             (membero `(,dbname . ,s) concept-1*)
@@ -615,8 +615,8 @@ edge format, with dbname at front (as used in edgeo):
                                                                           (fresh (e1 e2 dbname eid1 eid2 s x o pid1 pid2 p1 p2 eprops1 eprops2)
                                                                             (== `(,dbname . ,x) selected-X)
                                                                             (== (list
-                                                                                 `(,dbname ,eid1 ,s ,x (,pid1 . ,p1) ,eprops1)
-                                                                                 `(,dbname ,eid2 ,x ,o (,pid2 . ,p2) ,eprops2))
+                                                                                 `(,dbname ,eid1 ,s ,x (,pid1 . ,p1) . ,eprops1)
+                                                                                 `(,dbname ,eid2 ,x ,o (,pid2 . ,p2) . ,eprops2))
                                                                                 q)
                                                                             (== `(,dbname ,eid1 ,s ,x (,pid1 . ,p1) . ,eprops1) e1)
                                                                             (== `(,dbname ,eid2 ,x ,o (,pid2 . ,p2) . ,eprops2) e2)
@@ -674,7 +674,7 @@ edge format, with dbname at front (as used in edgeo):
                                                         (map (lambda (x)
                                                                (match x
                                                                  ['path-separator "----"]
-                                                                 [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
+                                                                 [`(,dbname ,eid ,subj ,obj (,pid . ,pred) . ,eprops)
                                                                   (~a dbname)]))
                                                              flattened-paths))
 
@@ -682,7 +682,7 @@ edge format, with dbname at front (as used in edgeo):
                                                         (map (lambda (x)
                                                                (match x
                                                                  ['path-separator "----"]
-                                                                 [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
+                                                                 [`(,dbname ,eid ,subj ,obj (,pid . ,pred) . ,eprops)
                                                                   (~a eid)]))
                                                              flattened-paths))
                                                           
@@ -690,7 +690,7 @@ edge format, with dbname at front (as used in edgeo):
                                                         (map (lambda (x)
                                                                (match x
                                                                  ['path-separator "----"]
-                                                                 [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
+                                                                 [`(,dbname ,eid ,subj ,obj (,pid . ,pred) . ,eprops)
                                                                   (~a subj #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
                                                              flattened-paths))
                                                           
@@ -698,7 +698,7 @@ edge format, with dbname at front (as used in edgeo):
                                                         (map (lambda (x)
                                                                (match x
                                                                  ['path-separator "----"]
-                                                                 [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
+                                                                 [`(,dbname ,eid ,subj ,obj (,pid . ,pred) . ,eprops)
                                                                   (~a `(,pid . ,pred) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
                                                              flattened-paths))
                                                           
@@ -706,7 +706,7 @@ edge format, with dbname at front (as used in edgeo):
                                                         (map (lambda (x)
                                                                (match x
                                                                  ['path-separator "----"]
-                                                                 [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
+                                                                 [`(,dbname ,eid ,subj ,obj (,pid . ,pred) . ,eprops)
                                                                   (~a obj #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
                                                              flattened-paths))
                                                           
@@ -714,7 +714,7 @@ edge format, with dbname at front (as used in edgeo):
                                                         (map (lambda (x)
                                                                (match x
                                                                  ['path-separator "----"]
-                                                                 [`(,dbname ,eid (,cid ,cui ,name (,catid . ,cat) . ,props) ,obj (,pid . ,pred) ,eprops)
+                                                                 [`(,dbname ,eid (,cid ,cui ,name (,catid . ,cat) . ,props) ,obj (,pid . ,pred) . ,eprops)
                                                                   (~a `(,catid . ,cat) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
                                                              flattened-paths))
 
@@ -722,7 +722,7 @@ edge format, with dbname at front (as used in edgeo):
                                                         (map (lambda (x)
                                                                (match x
                                                                  ['path-separator "----"]
-                                                                 [`(,dbname ,eid ,subj (,cid ,cui ,name (,catid . ,cat) . ,props) (,pid . ,pred) ,eprops)
+                                                                 [`(,dbname ,eid ,subj (,cid ,cui ,name (,catid . ,cat) . ,props) (,pid . ,pred) . ,eprops)
                                                                   (~a `(,catid . ,cat) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
                                                              flattened-paths))
 
@@ -731,7 +731,7 @@ edge format, with dbname at front (as used in edgeo):
                                                         (map (lambda (x)
                                                                (match x
                                                                  ['path-separator "----"]
-                                                                 [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
+                                                                 [`(,dbname ,eid ,subj ,obj (,pid . ,pred) . ,eprops)
                                                                   (~a eprops #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
                                                              flattened-paths))
                                                       |#
@@ -832,7 +832,7 @@ edge format, with dbname at front (as used in edgeo):
                                                       (match x
                                                         ['path-separator
                                                          (send properties-list-box set '() '())]
-                                                        [`(,dbname ,eid ,subj ,obj ,p ,eprops)
+                                                        [`(,dbname ,eid ,subj ,obj ,p . ,eprops)
                                                          (send properties-list-box
                                                                set
                                                                (map
@@ -861,8 +861,8 @@ edge format, with dbname at front (as used in edgeo):
                                                       (match x
                                                         ['path-separator
                                                          (printf "-----------------------\n")]
-                                                        [`(,dbname ,eid ,subj ,obj ,p ,eprops)
-                                                         (pretty-print `(,dbname ,eid ,subj ,obj ,p ,eprops))]))
+                                                        [`(,dbname ,eid ,subj ,obj ,p . ,eprops)
+                                                         (pretty-print `(,dbname ,eid ,subj ,obj ,p . ,eprops))]))
                                                     selected-full-paths))
                                                 ))))
 
@@ -1118,17 +1118,14 @@ edge format, with dbname at front (as used in edgeo):
   ;; (printf "all-X-concepts-with-edges: ~s\n" all-X-concepts-with-edges)
   ;; (newline)
   
-  #|
   ;; This sorting affects order of appearance in the "X" concept list
   (set! all-X-concepts-with-edges
     (sort
       all-X-concepts-with-edges
       (lambda (c1 c2)
         (match (list c1 c2)
-          [`((,_ ,_ ,e1*) (,_ ,_ ,e2*))
+          [`((,_ ,_ ,_ ,e1*) (,_ ,_ ,_ ,e2*))
             (not (path-confidence<? e1* e2*))]))))
-  |#
-
 
   (define all-X-concepts '())
   (set! all-X-concepts
