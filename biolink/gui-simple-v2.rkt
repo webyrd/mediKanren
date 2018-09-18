@@ -145,7 +145,7 @@ edge format, with dbname at front (as used in edgeo):
       [(member (car ls) (cdr ls)) (rem-dups (cdr ls))]
       [else (cons (car ls) (rem-dups (cdr ls)))])))
 
-(define pubmed-ids-from-edge
+(define pubmed-URLs-from-edge
   (lambda (edge)
     (match edge
       ['path-separator '()]
@@ -155,7 +155,16 @@ edge format, with dbname at front (as used in edgeo):
           =>
           (lambda (pr)
             (let ((pubmed* (regexp-split #rx";" (cdr pr))))
-              (rem-dups pubmed*)))]
+              (map (lambda (pubmed-id)
+                     (string-append PUBMED_URL_PREFIX (~a pubmed-id)))
+                   (rem-dups pubmed*))))]
+         [(assoc "publications" eprops)
+          =>
+          (lambda (pr)
+            (let ((pubmed* (regexp-match* #rx"'http://www.ncbi.nlm.nih.gov/pubmed/([0-9]+)'" (cdr pr) #:match-select cadr)))
+              (map (lambda (pubmed-id)
+                     (string-append PUBMED_URL_PREFIX (~a pubmed-id)))
+                   (rem-dups pubmed*))))]
          [else '()])])))
 
 
@@ -166,7 +175,7 @@ edge format, with dbname at front (as used in edgeo):
   ;; being used.  Leave everything else the same.
   (define weight weight-exponential)
   (define (pubmed-count e)
-    (length (pubmed-ids-from-edge e)))
+    (length (pubmed-URLs-from-edge e)))
   (define (confidence/edge e) (- 1 (/ 1.0 (weight (pubmed-count e)))))
   (foldl * 1 (map confidence/edge p)))
 (define (path-confidence<? p1 p2)
@@ -929,13 +938,9 @@ edge format, with dbname at front (as used in edgeo):
                                                     selected-full-paths)
                                                 (for-each
                                                   (lambda (edge)
-                                                    (let ((pubmed-ids (pubmed-ids-from-edge edge)))
-                                                      (let ((URLs
-                                                             (map (lambda (pubmed-id)
-                                                                    (string-append PUBMED_URL_PREFIX (~a pubmed-id)))
-                                                                  pubmed-ids)))
-                                                        (set-box! *pubmed-choices* URLs)
-                                                        (send pubmed-list-box set URLs))))
+                                                    (let ((URLs (pubmed-URLs-from-edge edge)))
+                                                      (set-box! *pubmed-choices* URLs)
+                                                      (send pubmed-list-box set URLs)))
                                                   selected-full-paths)
                                                 (when *verbose*
                                                   (printf "selected full path:\n")
