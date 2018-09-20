@@ -39,18 +39,18 @@
           ((loop (stream-rest i&v*))))))))
 
 (define (db:~cui-concepto db ~cui concept)
-  (project (db ~cui)
+  (project (~cui)
     (stream-refo
       (stream-map (i&v->i&d db) (db:~cui->cid&concept* db ~cui)) concept)))
 (define (db:~name-concepto db ~name concept)
-  (project (db ~name)
+  (project (~name)
     (stream-refo
       (stream-map (i&v->i&d db) (db:~name->cid&concept* db ~name)) concept)))
 (define (db:~predicateo db ~predicate predicate)
-  (project (db ~predicate)
+  (project (~predicate)
     (stream-refo (db:~predicate->pid&predicate* db ~predicate) predicate)))
 (define (db:~categoryo db ~category category)
-  (project (db ~category)
+  (project (~category)
     (stream-refo (db:~category->catid&category* db ~category) category)))
 
 (define (vector-refo e->v v* iv)
