@@ -406,7 +406,7 @@ PathD.2		find groups	0
   (lambda (my-cui)
     (define condition-concepts (rem-dups (get-concepts-from-cui my-cui)))
     ;; *** MOD2.1	Q7	What genes are implicated in [condition]?	3
-    (printf "condition-concepts\n")
+    ;;(printf "condition-concepts\n")
     (define proteins-causing-condition
       (run 50 (proteins)
         (fresh (dbname eid s o pid pred eprops
@@ -426,7 +426,7 @@ PathD.2		find groups	0
     ;; MOD2.2	Filter	What subset of genes are most representative of [conditions]?  (find archetypes)	0
     ;; ignore for now--null/identity filter!
 
-    (printf "pathways-involved-in-genes-causing-condition\n")
+    ;;(printf "pathways-involved-in-genes-causing-condition\n")
     
     ;; *** MOD2.3		What pathways/processes are [genes] involved in?	2/3    
     (define pathways-involved-in-genes-causing-condition
@@ -511,4 +511,4 @@ PathD.2		find groups	0
            (~name-concepto sname rtx-drug)))))
     rtx-drugs))
 
-(pretty-print (workflow1module2 "OMIM:606176"))
+;; (pretty-print (workflow1module2 "OMIM:606176"))
