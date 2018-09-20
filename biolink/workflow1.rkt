@@ -150,11 +150,11 @@ PathD.2		find groups	0
   (except-in racket/match ==))
 
 ;(displayln "loading semmed")
-(define semmed (time (make-db "data/semmed")))
+(define semmed (make-db "data/semmed"))
 ;(displayln "loading monarch-lite")
-(define monarch (time (make-db "data/monarch-lite")))
+(define monarch (make-db "data/monarch-lite"))
 ;(displayln "loading rtx")
-(define rtx (time (make-db "data/rtx")))
+(define rtx (make-db "data/rtx"))
 
 ;; list membership
 (define membero
