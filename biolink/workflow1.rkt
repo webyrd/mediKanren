@@ -149,11 +149,11 @@ PathD.2		find groups	0
   "mk-db.rkt"
   (except-in racket/match ==))
 
-(displayln "loading semmed")
+;(displayln "loading semmed")
 (define semmed (time (make-db "data/semmed")))
-(displayln "loading monarch-lite")
+;(displayln "loading monarch-lite")
 (define monarch (time (make-db "data/monarch-lite")))
-(displayln "loading rtx")
+;(displayln "loading rtx")
 (define rtx (time (make-db "data/rtx")))
 
 ;; list membership
@@ -448,7 +448,7 @@ PathD.2		find groups	0
            (== `(,dbname ,eid ,s ,o (,pid . ,pred) . ,eprops) e)
            (edgeo e)))))
 
-    (printf "proteins-involved-in-pathways-of-interest")
+    ;(printf "proteins-involved-in-pathways-of-interest")
         
     ;; *** MOD2.4	Q4	What genes are involved in [pathway/process]?	2/3
     (define proteins-involved-in-pathways-of-interest
