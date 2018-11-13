@@ -27,6 +27,7 @@
 * `cd` to the `biolink` subdirectory of the `mediKanren` repo (which is this repo).
 * Move or copy the downloaded CSV files to an appropriately-named subdirectory of the `biolink/data` directory.  We'll assume your datasource is named `NAME`, and will live at `biolink/data/NAME`.
 * Perform conversion by running: `racket csv-graph-to-db.rkt NAME` (For a typical data source, conversion may take an hour or so.)
+* Optionally, map pubmed ids to the edge ids that reference them (currently only applicable to semmed): `racket build-pubmed-edges.rkt`
 * Given `(require "mk-db.rkt")` you should now be able to access the new db by evaluating `(make-db "db/NAME")`.
 
 ### Verify data
