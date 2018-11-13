@@ -15,6 +15,8 @@
   db:eid&edge/props-stream
   db:subject->edge-stream
   db:object->edge-stream
+  db:pmid->eid*
+  db:pmid&eid*-stream
 
   db:~category->catid&category*
   db:~predicate->pid&predicate*
@@ -35,6 +37,7 @@
 (define fnin-predicates           "predicates.scm")
 (define fnin-edges-by-subject     "edges-by-subject.bytes")
 (define fnin-edges-by-object      "edges-by-object.bytes")
+(define fnin-pubmed-edges         "pubmed-edges.scm")
 (define (fname-offset fname) (string-append fname ".offset"))
 
 (define (read-all in)
@@ -57,6 +60,9 @@
 (define (make-db db-dir)
   (define (db-path fname) (expand-user-path (build-path db-dir fname)))
   (define (open-db-path fname) (open-input-file (db-path fname)))
+  (define (open-db-path/optional fname)
+    (if (file-exists? (db-path fname)) (open-db-path fname)
+      (open-input-file "/dev/null")))
   (define in-concepts-by-category
     (open-db-path fnin-concepts-by-category))
   (define in-offset-concepts-by-category
@@ -71,12 +77,18 @@
     (open-db-path (fname-offset fnin-edges-by-subject)))
   (define in-offset-edges-by-object
     (open-db-path (fname-offset fnin-edges-by-object)))
+  (define in-pubmed-edges (open-db-path/optional fnin-pubmed-edges))
+  (define in-offset-pubmed-edges
+    (open-db-path/optional (fname-offset fnin-pubmed-edges)))
 
   (define category*
     (list->vector (read-all-from-file (db-path fnin-categories))))
   (define predicate*
     (list->vector (read-all-from-file (db-path fnin-predicates))))
-  (define concept* (list->vector (stream->list (stream-map cdr (port->stream-offset&values in-concepts)))))
+  (define concept*
+    (list->vector
+      (stream->list
+        (stream-map cdr (port->stream-offset&values in-concepts)))))
   (define catid=>cid* (make-vector (vector-length category*) #f))
   (for ((catid (in-range 0 (vector-length category*))))
        (define cid* (detail-ref in-concepts-by-category
@@ -94,10 +106,21 @@
   (define (object->edge-stream cid pid? cat? dst?)
     (stream-edges-by-X in-edges-by-object in-offset-edges-by-object
                        cid pid? cat? dst?))
+  (define (pmid->eid* pmid)
+    (define pmid&eid*
+      (detail-find in-pubmed-edges in-offset-pubmed-edges
+                   (lambda (x)
+                     (define key (car x))
+                     (cond ((string<? key pmid) -1)
+                           ((string=? key pmid)  0)
+                           (else                 1)))))
+    (if (eof-object? pmid&eid*) '() (cdr pmid&eid*)))
+  (define (pmid&eid*-stream) (detail-stream in-pubmed-edges))
 
   (vector category* predicate* concept* catid->cid* cid->concept eid->edge
           cid&concept-stream eid&edge/props-stream
-          subject->edge-stream object->edge-stream))
+          subject->edge-stream object->edge-stream
+          pmid->eid* pmid&eid*-stream))
 
 (define (db:category*             db)        (vector-ref db 0))
 (define (db:predicate*            db)        (vector-ref db 1))
@@ -109,6 +132,8 @@
 (define (db:eid&edge/props-stream db)        ((vector-ref db 7)))
 (define (db:subject->edge-stream  db . args) (apply (vector-ref db 8) args))
 (define (db:object->edge-stream   db . args) (apply (vector-ref db 9) args))
+(define (db:pmid->eid*            db . args) (apply (vector-ref db 10) args))
+(define (db:pmid&eid*-stream      db)        ((vector-ref db 11)))
 
 (define (db:catid->category db catid) (vector-ref (db:category* db) catid))
 (define (db:pid->predicate db pid)    (vector-ref (db:predicate* db) pid))

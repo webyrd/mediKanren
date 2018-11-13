@@ -7,6 +7,7 @@
   db:concepto
   db:categoryo
   db:predicateo
+  db:pmid-eido
 
   db:~cui-concepto
   db:~name-concepto
@@ -139,3 +140,19 @@
     (db:predicateo db `(,pid . ,pred))
     (db:concepto db `(,scid ,scui ,sname (,scatid . ,scat) . ,sprops))
     (db:concepto db `(,ocid ,ocui ,oname (,ocatid . ,ocat) . ,oprops))))
+
+(define (db:pmid-eido db pmid eid)
+  (define (eid-loop eid*)
+    (if (null? eid*) fail
+      (conde
+        ((== (car eid*) eid))
+        ((eid-loop (cdr eid*))))))
+  (project (pmid)
+    (if (var? pmid)
+      (let loop ((pe* (db:pmid&eid*-stream db)))
+        (cond ((stream-empty? pe*) fail)
+              (else (define pe (stream-first pe*))
+                    (conde
+                      ((== (car pe) pmid) (eid-loop (cdr pe)))
+                      ((loop (stream-rest pe*)))))))
+      (eid-loop (db:pmid->eid* db pmid)))))
