@@ -28,6 +28,7 @@
   detail-ref
   detail-next
   detail-write
+  detail-stream
   )
 
 (require racket/stream)
@@ -139,7 +140,14 @@
            (define detail (detail-ref detail-in offset-in n))
            (case (compare detail)
              ((-1) (loop (+ 1 n) end best))
-             ((0) (loop start n n))
-             ((1) (loop start n best))))
+             (( 0) (loop start n n))
+             (( 1) (loop start n best))))
           (best (detail-ref detail-in offset-in best))
           (else eof))))
+
+(define (detail-stream in)
+  (let loop ((pos 0))
+    (file-position in pos)
+    (define datum (detail-next in))
+    (define pos-next (file-position in))
+    (if (eof-object? datum) '() (stream-cons datum (loop pos-next)))))
