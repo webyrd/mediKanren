@@ -23,3 +23,9 @@
 (newline)
 (displayln "fuzzy search:")
 (time (pretty-print (run* (c) (db:~name-concepto semmed "imatin" c))))
+
+(displayln "associating pubmed ids with edge ids:")
+(time (pretty-print (run 10 (pmid eid) (db:pmid-eido semmed pmid eid))))
+(time (pretty-print (run*        (eid) (db:pmid-eido semmed "1000085" eid))))
+(time (pretty-print (run*        (eid) (db:pmid-eido semmed "10000" eid))))
+(time (pretty-print (run*        (eid) (db:pmid-eido semmed "999999" eid))))
