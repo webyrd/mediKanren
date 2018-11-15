@@ -140,8 +140,9 @@
 
 (map find-edges-by-pubmed-id (find-pubmed-ids-by-eid 4759781))
 
-(define find-edges-supported-by-related-pubs
+(define find-edges-related-to-given-edge
   (lambda (eid)
+    (printf "finding edges supported by publications that support edge ~s\n" eid)
     (sort
      (rem-dups (foldr (lambda (pmid l)
                         (append (find-edges-by-pubmed-id pmid) l))
@@ -161,4 +162,4 @@
                   (string=? o1 o2)
                   (string<? s1 s2))))))))
 
-(find-edges-supported-by-related-pubs 4759781)
+(find-edges-related-to-given-edge 4759781)
