@@ -2,12 +2,14 @@
 
 (provide
  (all-from-out "mk.rkt")
+ (all-from-out "db.rkt")
  (all-from-out "mk-db.rkt")
  
  (all-defined-out))
 
 (require
   "mk.rkt"
+  "db.rkt"
   "mk-db.rkt"
   (except-in racket/match ==))
 
@@ -163,3 +165,18 @@
                   (string<? s1 s2))))))))
 
 (find-edges-related-to-given-edge 4759781)
+
+(db:eid->edge semmed 5337181)
+
+(let ((v (db:eid->edge semmed 5337181)))
+  (let ((eprops (vector-ref v 3)))
+    (let ((pmid-pr (assoc "pmids" eprops)))
+      (cond
+        [pmid-pr
+         (let ((pmid-str* (rem-dups (string-split (cdr pmid-pr) ";"))))
+           (map (lambda (p) (string-append "https://www.ncbi.nlm.nih.gov/pubmed/" p)) pmid-str*))]
+        [else
+         (printf "bad edge: ~s\n" v)
+         (printf "bad properties: ~s\n" eprops)
+         (printf "bad pmid-pr: ~s\n" pmid-pr)
+         (error 'loop "missing pmids entry")]))))
