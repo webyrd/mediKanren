@@ -1,5 +1,7 @@
 # mediKanren
 
+*** FOR RESEARCH PURPOSES ONLY ***
+
 Proof-of-concept for reasoning over the SemMedDB knowledge base, using miniKanren + heuristics + indexing.
 
 `./code/study-imatinib.rkt` contains the most iteresting examples currently.
