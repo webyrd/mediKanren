@@ -42,6 +42,16 @@
 (provide
   launch-gui)
 
+;;; Query save file settings
+(define WRITE_QUERY_RESULTS_TO_FILE #t) ;; #t will write the query and results to a file, #f will not
+(define QUERY_RESULTS_FILE_NAME "last.sx")
+;; Uncomment exactly one of these:
+(define QUERY_RESULTS_FILE_MODE 'replace)   ;; clobber the save file each time you run a query
+;; (define QUERY_RESULTS_FILE_MODE 'append) ;; save all the queries
+
+
+(define MEDIKANREN_VERSION_STRING "mediKanren version v2.1")
+
 ;;; Synthetic predicates
 ;;; TODO FIXME -- are these the ideal predicates?
 (define DECREASES_PREDICATE_NAMES '("negatively_regulates" "prevents" "treats"))
@@ -75,6 +85,7 @@ edge format, with dbname at front (as used in edgeo):
 
 
 (displayln "Starting mediKanren Explorer...")
+(displayln MEDIKANREN_VERSION_STRING)
 
 (displayln "Loading data sources...")
 
@@ -1282,6 +1293,72 @@ edge format, with dbname at front (as used in edgeo):
   (pretty-print (unbox *solution-predicate-2-choices*))
   (newline)
 
+  (define pretty-print-X-concepts-with-edges
+    (lambda (X-concepts-with-edges)
+      (with-output-to-file
+          QUERY_RESULTS_FILE_NAME
+          (lambda ()
+            (printf ";; mediKanren query output\n")
+            (printf ";; ~a\n" MEDIKANREN_VERSION_STRING)
+            (printf ";; \n")
+            (let ((local-date (seconds->date (current-seconds))))
+              (printf ";; Query run at date/time: ~s ~s ~s  ~s:~s:~s   (Year Month Day  Hour:Minute:Second)\n"
+                      (date-year local-date)
+                      (date-month local-date)
+                      (date-day local-date)
+                      (date-hour local-date)
+                      (date-minute local-date)
+                      (date-second local-date)))
+            (printf ";; \n")
+            (printf ";; ===================================================\n")
+            (printf ";; Low-level query information from the mediKanren GUI\n")
+            (printf ";; ===================================================\n")
+            (printf ";; \n")
+            (printf ";; *concept-1-name-string*: ~s\n" (unbox *concept-1-name-string*))
+            (printf ";; *solution-concept-1-name-string*: ~s\n" (unbox *solution-concept-1-name-string*))
+            (printf ";; *solution-concept-1-isa-flag*: ~s\n" (unbox *solution-concept-1-isa-flag*))
+            (printf ";; *solution-concept-1-choices*:\n")
+            (printf "#|\n")
+            (pretty-print (unbox *solution-concept-1-choices*))
+            (printf "|#\n")
+            (printf ";; atomic/synthetic-predicate-1*: ~s\n" atomic/synthetic-predicate-1*)
+            (printf ";; atomic-predicate-1*: ~s\n" atomic-predicate-1*)
+            (printf ";; synthetic-predicate-1*: ~s\n" synthetic-predicate-1*)
+            (printf ";; *solution-predicate-1-choices*:\n")
+            (printf "#|\n")
+            (pretty-print (unbox *solution-predicate-1-choices*))
+            (printf "|#\n")
+            (printf ";; \n")
+            (printf ";; \n")
+            (printf ";; \n")
+            (printf ";; atomic/synthetic-predicate-2*: ~s\n" atomic/synthetic-predicate-2*)
+            (printf ";; atomic-predicate-2*: ~s\n" atomic-predicate-2*)
+            (printf ";; synthetic-predicate-2*: ~s\n" synthetic-predicate-2*)
+            (printf ";; *solution-predicate-2-choices*:\n")
+            (printf "#|\n")
+            (pretty-print (unbox *solution-predicate-2-choices*))
+            (printf "|#\n")
+            (printf ";; *concept-2-name-string*: ~s\n" (unbox *concept-2-name-string*))
+            (printf ";; *solution-concept-2-name-string*: ~s\n" (unbox *solution-concept-2-name-string*))
+            (printf ";; *solution-concept-2-isa-flag*: ~s\n" (unbox *solution-concept-2-isa-flag*))
+            (printf ";; *solution-concept-2-choices*:\n")
+            (printf "#|\n")
+            (pretty-print (unbox *solution-concept-2-choices*))
+            (printf "|#\n")
+            (printf "\n")
+            (printf ";; ======================================\n")
+            (printf ";; Query results (list of complete edges)\n")
+            (printf ";; ======================================\n")
+            (pretty-print X-concepts-with-edges)
+            (printf "\n\n\n"))
+          #:mode 'text
+          #:exists QUERY_RESULTS_FILE_MODE)))
+
+  (when WRITE_QUERY_RESULTS_TO_FILE
+    (printf "saving all-X-concepts-with-edges to 'last.sx' file...\n")
+    (pretty-print-X-concepts-with-edges all-X-concepts-with-edges)
+    (printf "saved all-X-concepts-with-edges to 'last.sx' file\n"))
+  
   #|
   (define pretty-print-X-concepts-with-edges
     (lambda (X-concepts-with-edges)
@@ -1315,7 +1392,7 @@ edge format, with dbname at front (as used in edgeo):
   ;; (printf "all-X-concepts-with-edges:\n")
   (pretty-print-X-concepts-with-edges all-X-concepts-with-edges)
   |#
-
+  
   (printf "========== end query results =============\n")
 
   (send-concepts-to-concept-X-list-box all-X-concepts concept-X-list-box)  
@@ -1361,3 +1438,5 @@ edge format, with dbname at front (as used in edgeo):
   "Launching GUI")
 
 (launch-gui)
+
+
