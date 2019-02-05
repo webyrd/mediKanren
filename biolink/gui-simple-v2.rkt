@@ -48,7 +48,7 @@
 ;; (define QUERY_RESULTS_FILE_MODE 'append) ;; save all the queries
 
 
-(define MEDIKANREN_VERSION_STRING "mediKanren version v2.1")
+(define MEDIKANREN_VERSION_STRING "mediKanren version v2.2")
 
 ;;; Synthetic predicates
 ;;; TODO FIXME -- are these the ideal predicates?
