@@ -899,6 +899,14 @@ edge format, with dbname at front (as used in edgeo):
                                                                        (~a `(,catid . ,cat) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
                                                                   flattened-paths))
 
+                                                           (define full-path-PubMed-count-list
+                                                             (map (lambda (x)
+                                                                    (match x
+                                                                      ['path-separator "----"]
+                                                                      [`(,dbname ,eid ,subj (,cid ,cui ,name (,catid . ,cat) ,props) (,pid . ,pred) ,eprops)
+                                                                       (~a (length (pubmed-URLs-from-edge x)))]))
+                                                                  flattened-paths))
+                                                           
                                                            #|
                                                            (define full-path-eprops-list
                                                              (map (lambda (x)
@@ -918,6 +926,7 @@ edge format, with dbname at front (as used in edgeo):
                                                                  full-path-obj-list
                                                                  full-path-subj-cat-list
                                                                  full-path-obj-cat-list
+                                                                 full-path-PubMed-count-list
                                                                  ;;full-path-eprops-list
                                                                  )
                                                           
@@ -989,7 +998,7 @@ edge format, with dbname at front (as used in edgeo):
     (define full-path-list-box (new list-box%
                                     (label "Paths")
                                     (choices (unbox *full-path-choices*))
-                                    (columns '("DB" "EID" "Subject" "Predicate" "Object" "Subj Cat" "Obj Cat"))
+                                    (columns '("DB" "EID" "Subject" "Predicate" "Object" "Subj Cat" "Obj Cat" "PubMed #"))
                                     (parent frame)
                                     (style '(column-headers reorderable-headers extended))
                                     (callback (lambda (self event)
@@ -1501,7 +1510,7 @@ edge format, with dbname at front (as used in edgeo):
        (send concept-X-list-box select i #f))
 
   ;; empty the entries in the full-path-list-box
-  (send full-path-list-box set '() '() '() '() '() '() '())
+  (send full-path-list-box set '() '() '() '() '() '() '() '())
 
   ;; empty the entries in the properties-list-box
   (send properties-list-box set '() '())
