@@ -188,7 +188,23 @@ edge format, with dbname at front (as used in edgeo):
   (define (confidence/edge e) (- 1 (/ 1.0 (weight (pubmed-count e)))))
   (foldl * 1 (map confidence/edge p)))
 (define (path-confidence<? p1 p2)
-  (< (path-confidence p1) (path-confidence p2)))
+  (let ((pc1 (path-confidence p1))
+        (pc2 (path-confidence p2)))
+    (cond
+      [(= pc1 pc2)
+       (let ((pubmed-count*1 (map pubmed-count p1))
+             (pubmed-count*2 (map pubmed-count p2)))
+         (let ((min-pubmed-count1 (apply min pubmed-count*1))
+               (min-pubmed-count2 (apply min pubmed-count*2)))
+           (cond
+             [(= min-pubmed-count1 min-pubmed-count2)
+              (let ((max-pubmed-count1 (apply max pubmed-count*1))
+                    (max-pubmed-count2 (apply max pubmed-count*2)))
+                (not (> max-pubmed-count1 max-pubmed-count2)))]
+             [(< min-pubmed-count1 min-pubmed-count2) #t]
+             [else #f])))]
+      [(< pc1 pc2) #t]
+      [else #f])))
 (define (sort-paths paths) (sort paths path-confidence<?))
 
 
@@ -1276,7 +1292,7 @@ edge format, with dbname at front (as used in edgeo):
       (lambda (c1 c2)
         (match (list c1 c2)
           [`((,_ ,_ ,_ ,e1*) (,_ ,_ ,_ ,e2*))
-            (not (path-confidence<? e1* e2*))]))))
+           (not (path-confidence<? e1* e2*))]))))
 
   (define all-X-concepts '())
   (set! all-X-concepts
