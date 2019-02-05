@@ -21,11 +21,9 @@
 
 ;;; TODO FEATURES
 ;;;
-;;; hotkeys for 'go', moving between panes--should be able to do everything from the keyboard
+;;; hotkeys for moving between panes, etc.--should be able to do everything from the keyboard
 
-;;; Consider removing the 'go' button entirely
-
-;;; Add default sorting, along with the ability to click on a column to sort by that column
+;;; Improve sorting to take into account num of pub med entries
 
 
 (require
@@ -178,15 +176,15 @@ edge format, with dbname at front (as used in edgeo):
                    (rem-dups pubmed*))))]
          [else '()])])))
 
+(define (pubmed-count e)
+  (length (pubmed-URLs-from-edge e)))
 
 (define (path-confidence p)
   (define (weight-linear+1 n) (+ 1 n))
   (define (weight-exponential n) (expt 2 n))
   ;; To experiment with sorting, try to only change the weight calculation
   ;; being used.  Leave everything else the same.
-  (define weight weight-exponential)
-  (define (pubmed-count e)
-    (length (pubmed-URLs-from-edge e)))
+  (define weight weight-exponential)  
   (define (confidence/edge e) (- 1 (/ 1.0 (weight (pubmed-count e)))))
   (foldl * 1 (map confidence/edge p)))
 (define (path-confidence<? p1 p2)
@@ -255,6 +253,22 @@ edge format, with dbname at front (as used in edgeo):
                                           INCREASES_STAR_PREDICATE_STRING))
 
 
+(define SORT_COLUMN_INCREASING 'sort-column-increasing)
+(define SORT_COLUMN_DECREASING 'sort-column-decreasing)
+
+(define *concept-X-column-sort-order*
+  (vector SORT_COLUMN_INCREASING
+          SORT_COLUMN_INCREASING
+          SORT_COLUMN_INCREASING
+          SORT_COLUMN_INCREASING
+          SORT_COLUMN_INCREASING
+          SORT_COLUMN_DECREASING
+          SORT_COLUMN_DECREASING
+          SORT_COLUMN_DECREASING
+          SORT_COLUMN_DECREASING))
+(define *last-concept-X-column-clicked-for-sorting* (box -1))
+
+
 (define *concept-1-name-string* (box ""))
 (define *concept-1-isa-flag* (box #f))
 (define *concept-1-choices* (box '()))
@@ -282,21 +296,29 @@ edge format, with dbname at front (as used in edgeo):
 
 (define (convert-X-concept-to-column-sorting-format concept)
   (match concept
-    [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
+    [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props ,max-pubmed-count ,min-pubmed-count ,path-length ,confidence)
      (list (format "~a" dbname)
            cid
            (format "~a" cui)
            catid
-           (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "..."))]))
+           (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")
+           max-pubmed-count
+           min-pubmed-count
+           path-length
+           confidence)]))
 
 (define (convert-X-concept-to-list-box-format concept)
   (match concept
-    [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
+    [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props ,max-pubmed-count ,min-pubmed-count ,path-length ,confidence)
      (list (format "~a" dbname)
            (format "~a" cid)
            (format "~a" cui)
            (format "~a" `(,catid . ,cat))
-           (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "..."))]))
+           (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")
+           (format "~a" max-pubmed-count)
+           (format "~a" min-pubmed-count)
+           (format "~a" path-length)
+           (format "~a" confidence))]))
 
 (define (send-concepts-to-concept-X-list-box concepts concept-X-list-box)
   (define formatted-concepts (map convert-X-concept-to-list-box-format concepts))
@@ -306,7 +328,11 @@ edge format, with dbname at front (as used in edgeo):
         (map (lambda (e) (list-ref e 1)) formatted-concepts)
         (map (lambda (e) (list-ref e 2)) formatted-concepts)
         (map (lambda (e) (list-ref e 3)) formatted-concepts)
-        (map (lambda (e) (list-ref e 4)) formatted-concepts)))
+        (map (lambda (e) (list-ref e 4)) formatted-concepts)
+        (map (lambda (e) (list-ref e 5)) formatted-concepts)
+        (map (lambda (e) (list-ref e 6)) formatted-concepts)
+        (map (lambda (e) (list-ref e 7)) formatted-concepts)
+        (map (lambda (e) (list-ref e 8)) formatted-concepts)))
 
 (define (concept-list parent parent-search/isa-panel parent-list-boxes-panel label name-string isa-flag choices predicate-list-box-thunk predicate-choices edge-type)
   (define name-field (new text-field%
@@ -563,7 +589,7 @@ edge format, with dbname at front (as used in edgeo):
     (define concept-X-list-box (new list-box%
                                     (label "X")
                                     (choices (unbox *concept-X-choices*))
-                                    (columns '("DB" "CID" "CUI" "Category" "Name"))
+                                    (columns '("DB" "CID" "CUI" "Category" "Name" "Max PubMed #" "Min PubMed #" "Path Length" "Path Confidence"))
                                     (parent frame)
                                     (style '(column-headers clickable-headers reorderable-headers single))
                                     (callback (lambda (self event)
@@ -577,9 +603,24 @@ edge format, with dbname at front (as used in edgeo):
                                                    
                                                    ;; sort X concepts by column
                                                    (define column-clicked (send event get-column))
+                                                   (define last-column-clicked (unbox *last-concept-X-column-clicked-for-sorting*))
+                                                   
+                                                   (define sort-order (vector-ref *concept-X-column-sort-order*
+                                                                                  column-clicked))
 
-                                                   (printf "sorting X concepts by column: ~s\n" column-clicked)
+                                                   ;; swap sort order if user clicks on same column twice in a row
+                                                   (when (= column-clicked last-column-clicked)
+                                                     (set! sort-order
+                                                           (if (eqv? sort-order SORT_COLUMN_INCREASING)
+                                                               SORT_COLUMN_DECREASING
+                                                               SORT_COLUMN_INCREASING))
+                                                     (vector-set! *concept-X-column-sort-order*
+                                                                  column-clicked
+                                                                  sort-order))                                                         
 
+                                                   (printf "sorting X concepts by column ~s in ~s order\n" column-clicked sort-order)
+                                                   ;; (printf "current *concept-X-column-sort-order*: ~s\n" *concept-X-column-sort-order*)
+                                                   
                                                    (define choices (unbox *concept-X-choices*))
 
                                                    ;;(printf "choices: ~s\n" choices)
@@ -596,322 +637,333 @@ edge format, with dbname at front (as used in edgeo):
                                                                                           (v2 (list-ref fc2 column-clicked)))
                                                                                       ;;(printf "v1: ~s\n" v1)
                                                                                       ;;(printf "v2: ~s\n" v2)
-                                                                                      (if (number? v1)
-                                                                                          (< v1 v2)
-                                                                                          (string<? (string-downcase v1)
-                                                                                                    (string-downcase v2))))))))
+                                                                                      (let ((num-compare
+                                                                                             (if (eqv? sort-order SORT_COLUMN_INCREASING)
+                                                                                                 <
+                                                                                                 >))
+                                                                                            (string-compare
+                                                                                             (if (eqv? sort-order SORT_COLUMN_INCREASING)
+                                                                                                 string<?
+                                                                                                 string>?)))
+                                                                                        (if (and (number? v1) (number? v2))
+                                                                                            (num-compare v1 v2)
+                                                                                            (string-compare (string-downcase v1)
+                                                                                                            (string-downcase v2)))))))))
 
                                                    ;;(printf "sorted-choices: ~s\n" sorted-choices)
+                                                   
+                                                   (set-box! *last-concept-X-column-clicked-for-sorting* column-clicked)
                                                    
                                                    (set-box! *concept-X-choices* sorted-choices)
 
                                                    (send-concepts-to-concept-X-list-box sorted-choices self)
                                                    (void)]
-                                                  [else
-                                                   
+                                                  [else                                                   
                                                    ;; empty the entries in the properties-list-box
                                                    (send properties-list-box set '() '())
-                                                
+                                                   
                                                    ;; empty the entries in the pubmed-list-box
                                                    (send pubmed-list-box set '())
-                                                
+                                                   
                                                    (let ((sel* (send concept-X-list-box get-selections)))
                                                      (when (= (length sel*) 1)
                                                        (let ((selected-X (list-ref (unbox *concept-X-choices*) (car sel*))))
-                                                         (printf "selected ~s\n" selected-X)
-                                                         (define concept-1* (unbox *solution-concept-1-choices*))
-                                                         (define concept-2* (unbox *solution-concept-2-choices*))
-                                                         (printf "concept-1* ~s\n" concept-1*)
-                                                         (printf "concept-2* ~s\n" concept-2*)
-                                                         (define predicate-1* (unbox *solution-predicate-1-choices*))
-                                                         (define predicate-2* (unbox *solution-predicate-2-choices*))
-                                                         (printf "predicate-1* ~s\n" predicate-1*)
-                                                         (printf "predicate-2* ~s\n" predicate-2*)
+                                                         (let ((selected-X
+                                                                (match selected-X
+                                                                  [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props ,max-pubmed-count ,min-pubmed-count ,path-count ,confidence)
+                                                                   `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)])))
+                                                           (printf "selected ~s\n" selected-X)
+                                                           (define concept-1* (unbox *solution-concept-1-choices*))
+                                                           (define concept-2* (unbox *solution-concept-2-choices*))
+                                                           (printf "concept-1* ~s\n" concept-1*)
+                                                           (printf "concept-2* ~s\n" concept-2*)
+                                                           (define predicate-1* (unbox *solution-predicate-1-choices*))
+                                                           (define predicate-2* (unbox *solution-predicate-2-choices*))
+                                                           (printf "predicate-1* ~s\n" predicate-1*)
+                                                           (printf "predicate-2* ~s\n" predicate-2*)
                                                           
                                                           
-                                                         (define atomic/synthetic-predicate-1* (split-atomic/synthetic-predicates predicate-1*))
-                                                         (define atomic/synthetic-predicate-2* (split-atomic/synthetic-predicates predicate-2*))
+                                                           (define atomic/synthetic-predicate-1* (split-atomic/synthetic-predicates predicate-1*))
+                                                           (define atomic/synthetic-predicate-2* (split-atomic/synthetic-predicates predicate-2*))
 
-                                                         (define atomic-predicate-1* (car atomic/synthetic-predicate-1*))
-                                                         (define atomic-predicate-2* (car atomic/synthetic-predicate-2*))
+                                                           (define atomic-predicate-1* (car atomic/synthetic-predicate-1*))
+                                                           (define atomic-predicate-2* (car atomic/synthetic-predicate-2*))
 
-                                                         (define synthetic-predicate-1* (cadr atomic/synthetic-predicate-1*))
-                                                         (define synthetic-predicate-2* (cadr atomic/synthetic-predicate-2*))
+                                                           (define synthetic-predicate-1* (cadr atomic/synthetic-predicate-1*))
+                                                           (define synthetic-predicate-2* (cadr atomic/synthetic-predicate-2*))
 
 
-                                                         (define paths '())
+                                                           (define paths '())
                                                           
                                                           
-                                                         (cond
-                                                           [(and (equal? (unbox *solution-concept-1-name-string*) "")
-                                                                 (equal? (unbox *solution-concept-2-name-string*) ""))
-                                                            ;; TODO FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
-                                                            (set! paths '())]
-                                                           [(equal? (unbox *solution-concept-1-name-string*) "")
-                                                            ;; TODO FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
-                                                            (set! paths '())
-                                                            ;; run synthetic queries here
-                                                            (set! paths
-                                                                  (remove-duplicates
-                                                                   (append paths
-                                                                           (run* (q)
-                                                                             (fresh (e dbname eid x o pid pred eprops)
-                                                                               (== (list `(,dbname ,eid ,x ,o (,pid . ,pred) ,eprops)) q)
-                                                                               (== `(,dbname . ,x) selected-X)
-                                                                               (== `(,dbname ,eid ,x ,o (,pid . ,pred) ,eprops) e)
-                                                                               (membero `(,dbname . ,o) concept-2*)
-                                                                               (membero pred atomic-predicate-2*)
-                                                                               (edgeo e)))))
-                                                                  #| ;; v0.1 version
-                                                                  (remove-duplicates
-                                                                  (append paths
-                                                                  (run* (q)
-                                                                  (fresh (e2
-                                                                  x
-                                                                  o p2 t2 t3 r2)
-                                                                  (== (list e2) q)
-                                                                  (== selected-X x)
-                                                                  (== e2 `(,x ,o ,p2 ,t2 ,t3 ,r2))
-                                                                  (membero o concept-2*)
-                                                                  (membero p2 atomic-predicate-2*)
-                                                                  (edgeo e2)))))
-                                                                  |#
-                                                                  )]
-                                                           [(equal? (unbox *solution-concept-2-name-string*) "")
-                                                            ;; TODO FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
-                                                            (set! paths '())
-                                                            ;; run synthetic queries here
-                                                            (set! paths
-                                                                  (remove-duplicates
-                                                                   (append paths
-                                                                           (run* (q)
-                                                                             (fresh (e dbname eid s x pid pred eprops)
-                                                                               (== (list `(,dbname ,eid ,s ,x (,pid . ,pred) ,eprops)) q)
-                                                                               (== `(,dbname . ,x) selected-X)
-                                                                               (== `(,dbname ,eid ,s ,x (,pid . ,pred) ,eprops) e)
-                                                                               (membero `(,dbname . ,s) concept-1*)
-                                                                               (membero pred atomic-predicate-1*)
-                                                                               (edgeo e)))))
-                                                                  #| ;; v0.1 version
-                                                                  (remove-duplicates
-                                                                  (append paths
-                                                                  (run* (q)
-                                                                  (fresh (e1
-                                                                  x
-                                                                  s
-                                                                  p1 ts t1 r1)
-                                                                  (== (list e1) q)
-                                                                  (== selected-X x)
-                                                                  (== e1 `(,s ,x ,p1 ,ts ,t1 ,r1))
-                                                                  (membero s concept-1*)
-                                                                  (membero p1 atomic-predicate-1*)
-                                                                  (edgeo e1)))))
-                                                                  |#
-                                                                  )]
-                                                           [else
-                                                            (set! paths '())
-                                                            ;; run synthetic queries here
-                                                            (set! paths                                                                   
-                                                                  (remove-duplicates
-                                                                   (append paths
-                                                                           (run* (q)
-                                                                             (fresh (e1 e2 dbname eid1 eid2 s x o pid1 pid2 p1 p2 eprops1 eprops2)
-                                                                               (== `(,dbname . ,x) selected-X)
-                                                                               (== (list
-                                                                                    `(,dbname ,eid1 ,s ,x (,pid1 . ,p1) ,eprops1)
-                                                                                    `(,dbname ,eid2 ,x ,o (,pid2 . ,p2) ,eprops2))
-                                                                                   q)
-                                                                               (== `(,dbname ,eid1 ,s ,x (,pid1 . ,p1) ,eprops1) e1)
-                                                                               (== `(,dbname ,eid2 ,x ,o (,pid2 . ,p2) ,eprops2) e2)
-                                                                               (membero `(,dbname . ,s) concept-1*)
-                                                                               (membero `(,dbname . ,o) concept-2*)
-                                                                               (membero p1 atomic-predicate-1*)
-                                                                               (membero p2 atomic-predicate-2*)
-                                                                               (edgeo e1)
-                                                                               (edgeo e2)))))
-                                                                  #| ;; v0.1 version
-                                                                  (remove-duplicates
-                                                                  (append paths
-                                                                  (run* (e1 e2)
-                                                                  (fresh (x
-                                                                  s
-                                                                  o p1 p2 ts t1 t2 t3 r1 r2)
-                                                                  (== selected-X x)
-                                                                  (== e1 `(,s ,x ,p1 ,ts ,t1 ,r1))
-                                                                  (== e2 `(,x ,o ,p2 ,t2 ,t3 ,r2))
-                                                                  (membero s concept-1*)
-                                                                  (membero o concept-2*)
-                                                                  (membero p1 atomic-predicate-1*)
-                                                                  (membero p2 atomic-predicate-2*)
-                                                                  (edgeo e1)
-                                                                  (edgeo e2)))))
-                                                                  |#
-                                                                  )])
+                                                           (cond
+                                                             [(and (equal? (unbox *solution-concept-1-name-string*) "")
+                                                                   (equal? (unbox *solution-concept-2-name-string*) ""))
+                                                              ;; TODO FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
+                                                              (set! paths '())]
+                                                             [(equal? (unbox *solution-concept-1-name-string*) "")
+                                                              ;; TODO FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
+                                                              (set! paths '())
+                                                              ;; run synthetic queries here
+                                                              (set! paths
+                                                                    (remove-duplicates
+                                                                     (append paths
+                                                                             (run* (q)
+                                                                               (fresh (e dbname eid x o pid pred eprops)
+                                                                                 (== (list `(,dbname ,eid ,x ,o (,pid . ,pred) ,eprops)) q)
+                                                                                 (== `(,dbname . ,x) selected-X)
+                                                                                 (== `(,dbname ,eid ,x ,o (,pid . ,pred) ,eprops) e)
+                                                                                 (membero `(,dbname . ,o) concept-2*)
+                                                                                 (membero pred atomic-predicate-2*)
+                                                                                 (edgeo e)))))
+                                                                    #| ;; v0.1 version
+                                                                    (remove-duplicates
+                                                                     (append paths
+                                                                             (run* (q)
+                                                                               (fresh (e2
+                                                                                       x
+                                                                                       o p2 t2 t3 r2)
+                                                                                 (== (list e2) q)
+                                                                                 (== selected-X x)
+                                                                                 (== e2 `(,x ,o ,p2 ,t2 ,t3 ,r2))
+                                                                                 (membero o concept-2*)
+                                                                                 (membero p2 atomic-predicate-2*)
+                                                                                 (edgeo e2)))))
+                                                                    |#
+                                                                    )]
+                                                             [(equal? (unbox *solution-concept-2-name-string*) "")
+                                                              ;; TODO FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
+                                                              (set! paths '())
+                                                              ;; run synthetic queries here
+                                                              (set! paths
+                                                                    (remove-duplicates
+                                                                     (append paths
+                                                                             (run* (q)
+                                                                               (fresh (e dbname eid s x pid pred eprops)
+                                                                                 (== (list `(,dbname ,eid ,s ,x (,pid . ,pred) ,eprops)) q)
+                                                                                 (== `(,dbname . ,x) selected-X)
+                                                                                 (== `(,dbname ,eid ,s ,x (,pid . ,pred) ,eprops) e)
+                                                                                 (membero `(,dbname . ,s) concept-1*)
+                                                                                 (membero pred atomic-predicate-1*)
+                                                                                 (edgeo e)))))
+                                                                    #| ;; v0.1 version
+                                                                    (remove-duplicates
+                                                                     (append paths
+                                                                             (run* (q)
+                                                                               (fresh (e1
+                                                                                       x
+                                                                                       s
+                                                                                       p1 ts t1 r1)
+                                                                                 (== (list e1) q)
+                                                                                 (== selected-X x)
+                                                                                 (== e1 `(,s ,x ,p1 ,ts ,t1 ,r1))
+                                                                                 (membero s concept-1*)
+                                                                                 (membero p1 atomic-predicate-1*)
+                                                                                 (edgeo e1)))))
+                                                                    |#
+                                                                    )]
+                                                             [else
+                                                              (set! paths '())
+                                                              ;; run synthetic queries here
+                                                              (set! paths                                                                   
+                                                                    (remove-duplicates
+                                                                     (append paths
+                                                                             (run* (q)
+                                                                               (fresh (e1 e2 dbname eid1 eid2 s x o pid1 pid2 p1 p2 eprops1 eprops2)
+                                                                                 (== `(,dbname . ,x) selected-X)
+                                                                                 (== (list
+                                                                                      `(,dbname ,eid1 ,s ,x (,pid1 . ,p1) ,eprops1)
+                                                                                      `(,dbname ,eid2 ,x ,o (,pid2 . ,p2) ,eprops2))
+                                                                                     q)
+                                                                                 (== `(,dbname ,eid1 ,s ,x (,pid1 . ,p1) ,eprops1) e1)
+                                                                                 (== `(,dbname ,eid2 ,x ,o (,pid2 . ,p2) ,eprops2) e2)
+                                                                                 (membero `(,dbname . ,s) concept-1*)
+                                                                                 (membero `(,dbname . ,o) concept-2*)
+                                                                                 (membero p1 atomic-predicate-1*)
+                                                                                 (membero p2 atomic-predicate-2*)
+                                                                                 (edgeo e1)
+                                                                                 (edgeo e2)))))
+                                                                    #| ;; v0.1 version
+                                                                    (remove-duplicates
+                                                                     (append paths
+                                                                             (run* (e1 e2)
+                                                                               (fresh (x
+                                                                                       s
+                                                                                       o p1 p2 ts t1 t2 t3 r1 r2)
+                                                                                 (== selected-X x)
+                                                                                 (== e1 `(,s ,x ,p1 ,ts ,t1 ,r1))
+                                                                                 (== e2 `(,x ,o ,p2 ,t2 ,t3 ,r2))
+                                                                                 (membero s concept-1*)
+                                                                                 (membero o concept-2*)
+                                                                                 (membero p1 atomic-predicate-1*)
+                                                                                 (membero p2 atomic-predicate-2*)
+                                                                                 (edgeo e1)
+                                                                                 (edgeo e2)))))
+                                                                    |#
+                                                                    )])
 
-                                                         (printf "paths: ~s\n" paths)
-                                                         (newline)
+                                                           (printf "paths: ~s\n" paths)
+                                                           (newline)
 
-                                                         ;; (printf "sorting paths: ~s\n" paths)
+                                                           ;; (printf "sorting paths: ~s\n" paths)
 
-                                                         ;; This sorting affects the order of the "Path" list for the selected concept.
-                                                         (set! paths (sort-paths paths))
+                                                           ;; This sorting affects the order of the "Path" list for the selected concept.
+                                                           (set! paths (sort-paths paths))
 
-                                                         ;; (printf "sorted paths: ~s\n" paths)
+                                                           ;; (printf "sorted paths: ~s\n" paths)
                                                       
-                                                         (define flattened-paths
-                                                           (let ((ls (foldr
-                                                                      (lambda (p l)
-                                                                        (cons
-                                                                         'path-separator
-                                                                         (append (reverse p) l)))
-                                                                      '()
-                                                                      paths)))
-                                                             (if (null? ls)
-                                                                 ;; ls should never be null!
-                                                                 '()
-                                                                 (reverse (cdr ls)))))
+                                                           (define flattened-paths
+                                                             (let ((ls (foldr
+                                                                        (lambda (p l)
+                                                                          (cons
+                                                                           'path-separator
+                                                                           (append (reverse p) l)))
+                                                                        '()
+                                                                        paths)))
+                                                               (if (null? ls)
+                                                                   ;; ls should never be null!
+                                                                   '()
+                                                                   (reverse (cdr ls)))))
 
 
 
-                                                         (define full-path-dbname-list
-                                                           (map (lambda (x)
-                                                                  (match x
-                                                                    ['path-separator "----"]
-                                                                    [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
-                                                                     (~a dbname)]))
-                                                                flattened-paths))
+                                                           (define full-path-dbname-list
+                                                             (map (lambda (x)
+                                                                    (match x
+                                                                      ['path-separator "----"]
+                                                                      [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
+                                                                       (~a dbname)]))
+                                                                  flattened-paths))
 
-                                                         (define full-path-eid-list
-                                                           (map (lambda (x)
-                                                                  (match x
-                                                                    ['path-separator "----"]
-                                                                    [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
-                                                                     (~a eid)]))
-                                                                flattened-paths))
+                                                           (define full-path-eid-list
+                                                             (map (lambda (x)
+                                                                    (match x
+                                                                      ['path-separator "----"]
+                                                                      [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
+                                                                       (~a eid)]))
+                                                                  flattened-paths))
                                                           
-                                                         (define full-path-subj-list
-                                                           (map (lambda (x)
-                                                                  (match x
-                                                                    ['path-separator "----"]
-                                                                    [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
-                                                                     (~a subj #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                                                                flattened-paths))
+                                                           (define full-path-subj-list
+                                                             (map (lambda (x)
+                                                                    (match x
+                                                                      ['path-separator "----"]
+                                                                      [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
+                                                                       (~a subj #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                                                                  flattened-paths))
                                                           
-                                                         (define full-path-pred-list
-                                                           (map (lambda (x)
-                                                                  (match x
-                                                                    ['path-separator "----"]
-                                                                    [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
-                                                                     (~a `(,pid . ,pred) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                                                                flattened-paths))
+                                                           (define full-path-pred-list
+                                                             (map (lambda (x)
+                                                                    (match x
+                                                                      ['path-separator "----"]
+                                                                      [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
+                                                                       (~a `(,pid . ,pred) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                                                                  flattened-paths))
                                                           
-                                                         (define full-path-obj-list
-                                                           (map (lambda (x)
-                                                                  (match x
-                                                                    ['path-separator "----"]
-                                                                    [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
-                                                                     (~a obj #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                                                                flattened-paths))
+                                                           (define full-path-obj-list
+                                                             (map (lambda (x)
+                                                                    (match x
+                                                                      ['path-separator "----"]
+                                                                      [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
+                                                                       (~a obj #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                                                                  flattened-paths))
                                                           
-                                                         (define full-path-subj-cat-list
-                                                           (map (lambda (x)
-                                                                  (match x
-                                                                    ['path-separator "----"]
-                                                                    [`(,dbname ,eid (,cid ,cui ,name (,catid . ,cat) ,props) ,obj (,pid . ,pred) ,eprops)
-                                                                     (~a `(,catid . ,cat) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                                                                flattened-paths))
+                                                           (define full-path-subj-cat-list
+                                                             (map (lambda (x)
+                                                                    (match x
+                                                                      ['path-separator "----"]
+                                                                      [`(,dbname ,eid (,cid ,cui ,name (,catid . ,cat) ,props) ,obj (,pid . ,pred) ,eprops)
+                                                                       (~a `(,catid . ,cat) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                                                                  flattened-paths))
 
-                                                         (define full-path-obj-cat-list
-                                                           (map (lambda (x)
-                                                                  (match x
-                                                                    ['path-separator "----"]
-                                                                    [`(,dbname ,eid ,subj (,cid ,cui ,name (,catid . ,cat) ,props) (,pid . ,pred) ,eprops)
-                                                                     (~a `(,catid . ,cat) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                                                                flattened-paths))
+                                                           (define full-path-obj-cat-list
+                                                             (map (lambda (x)
+                                                                    (match x
+                                                                      ['path-separator "----"]
+                                                                      [`(,dbname ,eid ,subj (,cid ,cui ,name (,catid . ,cat) ,props) (,pid . ,pred) ,eprops)
+                                                                       (~a `(,catid . ,cat) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                                                                  flattened-paths))
 
-                                                         #|
-                                                         (define full-path-eprops-list
-                                                         (map (lambda (x)
-                                                         (match x
-                                                         ['path-separator "----"]
-                                                         [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
-                                                         (~a eprops #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                                                         flattened-paths))
-                                                         |#
+                                                           #|
+                                                           (define full-path-eprops-list
+                                                             (map (lambda (x)
+                                                                    (match x
+                                                                      ['path-separator "----"]
+                                                                      [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
+                                                                       (~a eprops #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                                                                  flattened-paths))
+                                                           |#
 
-                                                         (send full-path-list-box
-                                                               set
-                                                               full-path-dbname-list
-                                                               full-path-eid-list
-                                                               full-path-subj-list
-                                                               full-path-pred-list
-                                                               full-path-obj-list
-                                                               full-path-subj-cat-list
-                                                               full-path-obj-cat-list
-                                                               ;;full-path-eprops-list
-                                                               )
+                                                           (send full-path-list-box
+                                                                 set
+                                                                 full-path-dbname-list
+                                                                 full-path-eid-list
+                                                                 full-path-subj-list
+                                                                 full-path-pred-list
+                                                                 full-path-obj-list
+                                                                 full-path-subj-cat-list
+                                                                 full-path-obj-cat-list
+                                                                 ;;full-path-eprops-list
+                                                                 )
                                                           
                                                           
-                                                         #| ;; v0.1 version
-                                                         (define full-path-subj-list
-                                                         (map (lambda (x)
-                                                         (match x
-                                                         [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
-                                                         (~a subj #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                                                         flattened-paths))
+                                                           #| ;; v0.1 version
+                                                           (define full-path-subj-list
+                                                             (map (lambda (x)
+                                                                    (match x
+                                                                      [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
+                                                                       (~a subj #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                                                                  flattened-paths))
 
-                                                         (define full-path-obj-list
-                                                         (map (lambda (x)
-                                                         (match x
-                                                         [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
-                                                         (~a obj #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                                                         flattened-paths))
+                                                           (define full-path-obj-list
+                                                             (map (lambda (x)
+                                                                    (match x
+                                                                      [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
+                                                                       (~a obj #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                                                                  flattened-paths))
 
-                                                         (define full-path-pred-list
-                                                         (map (lambda (x)
-                                                         (match x
-                                                         [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
-                                                         (~a pred #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                                                         flattened-paths))
+                                                           (define full-path-pred-list
+                                                             (map (lambda (x)
+                                                                    (match x
+                                                                      [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
+                                                                       (~a pred #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                                                                  flattened-paths))
 
-                                                         (define full-path-subj-type-list
-                                                         (map (lambda (x)
-                                                         (match x
-                                                         [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
-                                                         (~a subj-type #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                                                         flattened-paths))
+                                                           (define full-path-subj-type-list
+                                                             (map (lambda (x)
+                                                                    (match x
+                                                                      [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
+                                                                       (~a subj-type #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                                                                  flattened-paths))
 
-                                                         (define full-path-obj-type-list
-                                                         (map (lambda (x)
-                                                         (match x
-                                                         [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
-                                                         (~a obj-type #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                                                         flattened-paths))
+                                                           (define full-path-obj-type-list
+                                                             (map (lambda (x)
+                                                                    (match x
+                                                                      [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
+                                                                       (~a obj-type #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                                                                  flattened-paths))
 
-                                                         (define full-path-pubmed*-list
-                                                         (map (lambda (x)
-                                                         (match x
-                                                         [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
-                                                         (~a pubmed* #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                                                         flattened-paths))
+                                                           (define full-path-pubmed*-list
+                                                             (map (lambda (x)
+                                                                    (match x
+                                                                      [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
+                                                                       (~a pubmed* #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                                                                  flattened-paths))
 
-                                                         (send full-path-list-box
-                                                         set
-                                                         full-path-subj-list
-                                                         full-path-obj-list
-                                                         full-path-pred-list
-                                                         full-path-subj-type-list
-                                                         full-path-obj-type-list
-                                                         full-path-pubmed*-list)
-                                                         |#
+                                                           (send full-path-list-box
+                                                                 set
+                                                                 full-path-subj-list
+                                                                 full-path-obj-list
+                                                                 full-path-pred-list
+                                                                 full-path-subj-type-list
+                                                                 full-path-obj-type-list
+                                                                 full-path-pubmed*-list)
+                                                           |#
 
-                                                         (set-box! *full-path-choices* flattened-paths)
+                                                           (set-box! *full-path-choices* flattened-paths)
 
-                                                         ;; unselect all items
-                                                         (for ([i (length flattened-paths)])
-                                                              (send full-path-list-box select i #f))
-
-                                                         ))
+                                                           ;; unselect all items
+                                                           (for ([i (length flattened-paths)])
+                                                                (send full-path-list-box select i #f)))))
                                                      (void))])))))
 
     (define full-path-list-box (new list-box%
@@ -1233,15 +1285,20 @@ edge format, with dbname at front (as used in edgeo):
             [(null? ls) '()]
             [else
              (match (car ls)
-               [`(,dbname (,cid ,cui ,name (,catid . ,cat) ,props) . ,rest)
-                (cons (car ls)
-                      (loop (remf* (lambda (x)
-                                     (match x
-                                       [`(,dbname-x (,cid-x ,cui-x ,name-x (,catid-x . ,cat-x) ,props-x) . ,rest-x)
-                                        (and (equal? dbname dbname-x)
-                                             (equal? cid cid-x)
-                                             (equal? cui cui-x))]))
-                                   (cdr ls))))])])))
+               [`(,dbname (,cid ,cui ,name (,catid . ,cat) ,props) ,whatever ,e*)
+                (let ((pubmed-count* (map pubmed-count e*)))
+                  (let ((max-pubmed-count (apply max pubmed-count*))
+                        (min-pubmed-count (apply min pubmed-count*))
+                        (path-length (length pubmed-count*))
+                        (confidence (path-confidence e*)))
+                    (cons `(,dbname (,cid ,cui ,name (,catid . ,cat) ,props ,max-pubmed-count ,min-pubmed-count ,path-length ,confidence) ,whatever ,e*)
+                          (loop (remf* (lambda (x)
+                                         (match x
+                                           [`(,dbname-x (,cid-x ,cui-x ,name-x (,catid-x . ,cat-x) ,props-x) . ,rest-x)
+                                            (and (equal? dbname dbname-x)
+                                                 (equal? cid cid-x)
+                                                 (equal? cui cui-x))]))
+                                       (cdr ls))))))])])))
   (set! all-X-concepts (map (lambda (e) (cons (car e) (cadr e))) all-X-concepts))
 
   ;;(printf "all-X-concepts: ~s\n" all-X-concepts)
