@@ -48,7 +48,7 @@
 ;; (define QUERY_RESULTS_FILE_MODE 'append) ;; save all the queries
 
 
-(define MEDIKANREN_VERSION_STRING "mediKanren version v2.2")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.2")
 
 ;;; Synthetic predicates
 ;;; TODO FIXME -- are these the ideal predicates?
@@ -496,7 +496,7 @@ edge format, with dbname at front (as used in edgeo):
 
 (define (launch-gui)
   (let ((frame (new frame%
-                    (label "mediKanren Explorer v0.2")
+                    (label MEDIKANREN_VERSION_STRING)
                     (width HORIZ-SIZE)
                     (height VERT-SIZE))))
 
