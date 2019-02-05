@@ -979,7 +979,11 @@ edge format, with dbname at front (as used in edgeo):
 
                                                            ;; unselect all items
                                                            (for ([i (length flattened-paths)])
-                                                                (send full-path-list-box select i #f)))))
+                                                                (send full-path-list-box select i #f))
+
+                                                           ;; select first item
+                                                           (send full-path-list-box select 0 #t)
+                                                           )))
                                                      (void))])))))
 
     (define full-path-list-box (new list-box%
