@@ -48,7 +48,7 @@
 ;; (define QUERY_RESULTS_FILE_MODE 'append) ;; save all the queries
 
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.2")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.3")
 
 ;;; Synthetic predicates
 ;;; TODO FIXME -- are these the ideal predicates?
@@ -258,8 +258,24 @@ edge format, with dbname at front (as used in edgeo):
 
 (define MAX-CHAR-WIDTH 100)
 
+(define construct-predicate-label-string
+  (lambda (pred-string pred-name-list)
+    (string-append pred-string
+                   "  ("
+                   (foldr (lambda (str1 str2)
+                            (if (equal? "" str2)
+                                (string-append str1 "" str2)
+                                (string-append str1 ", " str2)))
+                          ""
+                          pred-name-list)
+                   ")")))
+
 (define DECREASES_PREDICATE_STRING "decreases [synthetic]")
+(set! DECREASES_PREDICATE_STRING
+      (construct-predicate-label-string DECREASES_PREDICATE_STRING DECREASES_PREDICATE_NAMES))
 (define INCREASES_PREDICATE_STRING "increases [synthetic]")
+(set! INCREASES_PREDICATE_STRING
+      (construct-predicate-label-string INCREASES_PREDICATE_STRING INCREASES_PREDICATE_NAMES))
 (define DECREASES_STAR_PREDICATE_STRING "decreases* [synthetic]")
 (define INCREASES_STAR_PREDICATE_STRING "increases* [synthetic]")
 
@@ -495,6 +511,10 @@ edge format, with dbname at front (as used in edgeo):
   concept-listbox)
 
 (define (launch-gui)
+  (launch-gene-window)
+  (launch-main-window))
+
+(define (launch-main-window)
   (let ((frame (new frame%
                     (label MEDIKANREN_VERSION_STRING)
                     (width HORIZ-SIZE)
@@ -1088,6 +1108,34 @@ edge format, with dbname at front (as used in edgeo):
     (send frame show #t)
     ))
 
+(define (launch-gene-window)
+  (let ((frame (new frame%
+                    (label "Gene Explorer")
+                    (width HORIZ-SIZE)
+                    (height VERT-SIZE))))
+
+    (define gene-name-field (new text-field%
+                                 (label "Gene Name")
+                                 (parent frame)
+                                 (init-value "")
+                                 (callback (lambda (self event)
+                                             (void)))))
+
+    (define gene-listbox (new list-box%
+                              (label "Gene")
+                              (choices '())
+                              (columns '("DB" "CID" "CUI" "Category" "Name"))
+                              (parent frame)
+                              (style '(column-headers reorderable-headers extended))
+                              (callback (lambda (self event)
+                                          (void)))))
+
+    
+    (define current-gene-name "")
+    
+    (send frame show #t)
+    ))
+
 
 (define (split-atomic/synthetic-predicates predicate*)
 
@@ -1524,5 +1572,4 @@ edge format, with dbname at front (as used in edgeo):
   "Launching GUI")
 
 (launch-gui)
-
 
