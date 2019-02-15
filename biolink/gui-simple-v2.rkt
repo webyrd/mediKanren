@@ -276,13 +276,14 @@ edge format, with dbname at front (as used in edgeo):
 (define INCREASES_PREDICATE_STRING "increases [synthetic]")
 (set! INCREASES_PREDICATE_STRING
       (construct-predicate-label-string INCREASES_PREDICATE_STRING INCREASES_PREDICATE_NAMES))
-(define DECREASES_STAR_PREDICATE_STRING "decreases* [synthetic]")
-(define INCREASES_STAR_PREDICATE_STRING "increases* [synthetic]")
+;; (define DECREASES_STAR_PREDICATE_STRING "decreases* [synthetic]")
+;; (define INCREASES_STAR_PREDICATE_STRING "increases* [synthetic]")
 
 (define SYNTHETIC_PREDICATE_STRINGS (list DECREASES_PREDICATE_STRING
                                           INCREASES_PREDICATE_STRING
-                                          DECREASES_STAR_PREDICATE_STRING
-                                          INCREASES_STAR_PREDICATE_STRING))
+                                          ;; DECREASES_STAR_PREDICATE_STRING
+                                          ;; INCREASES_STAR_PREDICATE_STRING
+                                          ))
 
 
 (define SORT_COLUMN_INCREASING 'sort-column-increasing)
@@ -411,8 +412,9 @@ edge format, with dbname at front (as used in edgeo):
                                                              (list
                                                               DECREASES_PREDICATE_STRING
                                                               INCREASES_PREDICATE_STRING
-                                                              DECREASES_STAR_PREDICATE_STRING
-                                                              INCREASES_STAR_PREDICATE_STRING)
+                                                              ;; DECREASES_STAR_PREDICATE_STRING
+                                                              ;; INCREASES_STAR_PREDICATE_STRING
+                                                              )
                                                              predicates))
                                            (printf "predicates: ~s\n" predicates)
                                            (set-box! predicate-choices predicates)
