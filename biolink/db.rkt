@@ -61,8 +61,11 @@
   (define (db-path fname) (expand-user-path (build-path db-dir fname)))
   (define (open-db-path fname) (open-input-file (db-path fname)))
   (define (open-db-path/optional fname)
-    (if (file-exists? (db-path fname)) (open-db-path fname)
-      (open-input-file "/dev/null")))
+    (if (file-exists? (db-path fname))
+        (open-db-path fname)
+        (if (file-exists? "/dev/null")
+            (open-input-file "/dev/null")
+            (open-input-file "nul"))))
   (define in-concepts-by-category
     (open-db-path fnin-concepts-by-category))
   (define in-offset-concepts-by-category
