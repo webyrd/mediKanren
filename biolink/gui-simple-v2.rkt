@@ -48,7 +48,7 @@
 ;; (define QUERY_RESULTS_FILE_MODE 'append) ;; save all the queries
 
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.4")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.5")
 
 ;;; Synthetic predicates
 ;;; TODO FIXME -- are these the ideal predicates?
@@ -712,7 +712,22 @@ edge format, with dbname at front (as used in edgeo):
 
                                                    (send-concepts-to-concept-X-list-box sorted-choices self)
                                                    (void)]
-                                                  [else                                                   
+                                                  [(eqv? event-type 'list-box-dclick)
+                                                   (printf "double-click!! copy name of the concept to the clipboard\n")
+                                                   (define time-stamp (send event get-time-stamp))
+                                                   (printf "time stamp: ~s\n" time-stamp)
+                                                   (define concept-name
+                                                     (let ((sel* (send concept-X-list-box get-selections)))
+                                                       (if (= (length sel*) 1)
+                                                           (let ((selected-X (list-ref (unbox *concept-X-choices*) (car sel*))))
+                                                             (match selected-X
+                                                               [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props ,max-pubmed-count ,min-pubmed-count ,path-count ,confidence)
+                                                                name]
+                                                               [else ""]))
+                                                           "")))
+                                                   (printf "concept name: ~s\n" concept-name)
+                                                   (send the-clipboard set-clipboard-string concept-name time-stamp)]
+                                                  [else
                                                    ;; empty the entries in the properties-list-box
                                                    (send properties-list-box set '() '())
                                                    
