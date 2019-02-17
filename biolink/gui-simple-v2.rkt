@@ -48,7 +48,7 @@
 ;; (define QUERY_RESULTS_FILE_MODE 'append) ;; save all the queries
 
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.3")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.4")
 
 ;;; Synthetic predicates
 ;;; TODO FIXME -- are these the ideal predicates?
@@ -270,12 +270,12 @@ edge format, with dbname at front (as used in edgeo):
                           pred-name-list)
                    ")")))
 
-(define DECREASES_PREDICATE_STRING "decreases [synthetic]")
-(set! DECREASES_PREDICATE_STRING
-      (construct-predicate-label-string DECREASES_PREDICATE_STRING DECREASES_PREDICATE_NAMES))
-(define INCREASES_PREDICATE_STRING "increases [synthetic]")
-(set! INCREASES_PREDICATE_STRING
-      (construct-predicate-label-string INCREASES_PREDICATE_STRING INCREASES_PREDICATE_NAMES))
+(define DECREASES_PREDICATE_BASE_STRING "decreases [synthetic]")
+(define DECREASES_PREDICATE_STRING
+  (construct-predicate-label-string DECREASES_PREDICATE_BASE_STRING DECREASES_PREDICATE_NAMES))
+(define INCREASES_PREDICATE_BASE_STRING "increases [synthetic]")
+(define INCREASES_PREDICATE_STRING
+  (construct-predicate-label-string INCREASES_PREDICATE_BASE_STRING INCREASES_PREDICATE_NAMES))
 ;; (define DECREASES_STAR_PREDICATE_STRING "decreases* [synthetic]")
 ;; (define INCREASES_STAR_PREDICATE_STRING "increases* [synthetic]")
 
@@ -408,13 +408,29 @@ edge format, with dbname at front (as used in edgeo):
                                                      [else (error 'concept-listbox/predicates)])
                                                    (edgeo e))))
                                               string<?))
+                                           (printf "original predicates:\n~s\n" predicates)
+                                           (define (create-increase/decrease-syn-pred-list
+                                                    syn-pred-name predicate-names selected-predicates)
+                                             (let ((inter (set-intersect predicate-names selected-predicates)))
+                                               (if (not (null? inter))
+                                                   (list syn-pred-name)
+                                                   '())))
+                                           (define decreases-synthetic-predicate-string-list
+                                             (create-increase/decrease-syn-pred-list
+                                              DECREASES_PREDICATE_STRING DECREASES_PREDICATE_NAMES predicates))
+                                           (printf "decreases-synthetic-predicate-string-list:\n~s\n"
+                                                   decreases-synthetic-predicate-string-list)
+                                           (define increases-synthetic-predicate-string-list
+                                             (create-increase/decrease-syn-pred-list
+                                              INCREASES_PREDICATE_STRING INCREASES_PREDICATE_NAMES predicates))
+                                           (printf "increases-synthetic-predicate-string-list:\n~s\n"
+                                                   increases-synthetic-predicate-string-list)
                                            (set! predicates (append
-                                                             (list
-                                                              DECREASES_PREDICATE_STRING
-                                                              INCREASES_PREDICATE_STRING
-                                                              ;; DECREASES_STAR_PREDICATE_STRING
-                                                              ;; INCREASES_STAR_PREDICATE_STRING
-                                                              )
+                                                             decreases-synthetic-predicate-string-list
+                                                             increases-synthetic-predicate-string-list
+                                                             #;(list
+                                                                DECREASES_STAR_PREDICATE_STRING
+                                                                INCREASES_STAR_PREDICATE_STRING)
                                                              predicates))
                                            (printf "predicates: ~s\n" predicates)
                                            (set-box! predicate-choices predicates)
