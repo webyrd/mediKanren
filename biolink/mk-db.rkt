@@ -13,6 +13,10 @@
   db:~name-concepto
   db:~predicateo
   db:~categoryo
+  db:~name-concepto/options
+
+  chars:ignore-typical
+  chars:split-typical
   )
 
 (require
@@ -47,6 +51,14 @@
   (project (~name)
     (stream-refo
       (stream-map (i&v->i&d db) (db:~name->cid&concept* db ~name)) concept)))
+(define (db:~name-concepto/options
+          case-sensitive? chars:ignore chars:split db ~name concept)
+  (project (~name)
+    (stream-refo
+      (stream-map (i&v->i&d db)
+                  (db:~name->cid&concept*/options
+                    case-sensitive? chars:ignore chars:split db ~name))
+      concept)))
 (define (db:~predicateo db ~predicate predicate)
   (project (~predicate)
     (stream-refo (db:~predicate->pid&predicate* db ~predicate) predicate)))

@@ -22,6 +22,10 @@
   db:~predicate->pid&predicate*
   db:~name->cid&concept*
   db:~cui->cid&concept*
+  db:~name->cid&concept*/options
+
+  chars:ignore-typical
+  chars:split-typical
   )
 
 (require
@@ -141,22 +145,46 @@
 (define (db:catid->category db catid) (vector-ref (db:category* db) catid))
 (define (db:pid->predicate db pid)    (vector-ref (db:predicate* db) pid))
 
-(define (~string->offset&value* offset&value* value v->str)
-  (define needle (string-downcase value))
+(define chars:ignore-typical "-")
+(define chars:split-typical "\t\n\v\f\r !\"#$%&'()*+,./:;<=>?@\\[\\\\\\]\\^_`{|}~")
+
+(define (~string->offset&value*
+          case-sensitive? chars:ignore chars:split offset&value* value v->str)
+  (define re:ignore (and (non-empty-string? chars:ignore)
+                         (pregexp (string-append "[" chars:ignore "]"))))
+  (define re:split (and (non-empty-string? chars:split)
+                        (pregexp (string-append "[" chars:split "]"))))
+  (define (normalize s)
+    (define pruned (if re:ignore (string-replace s re:ignore "") s))
+    (if case-sensitive? pruned (string-downcase pruned)))
+  (define needle (normalize value))
   (define (p? v)
-    (define haystack (v->str (cdr v)))
-    (and haystack (string-contains? (string-downcase haystack) needle)))
+    (define hay (v->str (cdr v)))
+    (and hay
+         (if re:split (ormap (lambda (s) (string=? needle s))
+                             (string-split (normalize hay) re:split))
+           (string-contains? (normalize hay) needle))))
   (stream-filter p? offset&value*))
 
+(define (simple~string->offset&value* offset&value* value v->str)
+  (~string->offset&value* #f "" "" offset&value* value v->str))
+
 (define (db:~category->catid&category* db ~category)
-  (~string->offset&value* (vector->stream-offset&values (db:category* db))
-                          ~category (lambda (v) v)))
+  (simple~string->offset&value*
+    (vector->stream-offset&values (db:category* db))
+    ~category (lambda (v) v)))
 (define (db:~predicate->pid&predicate* db ~predicate)
-  (~string->offset&value* (vector->stream-offset&values (db:predicate* db))
-                          ~predicate (lambda (v) v)))
+  (simple~string->offset&value*
+    (vector->stream-offset&values (db:predicate* db))
+    ~predicate (lambda (v) v)))
 (define (db:~name->cid&concept* db ~name)
-  (~string->offset&value* (vector->stream-offset&values (db:concept* db))
+  (simple~string->offset&value* (vector->stream-offset&values (db:concept* db))
                           ~name concept-name))
 (define (db:~cui->cid&concept* db ~cui)
-  (~string->offset&value* (vector->stream-offset&values (db:concept* db))
-                          ~cui concept-cui))
+  (simple~string->offset&value* (vector->stream-offset&values (db:concept* db))
+                                ~cui concept-cui))
+(define (db:~name->cid&concept*/options
+          case-sensitive? chars:ignore chars:split db ~name)
+  (~string->offset&value* case-sensitive? chars:ignore chars:split
+                          (vector->stream-offset&values (db:concept* db))
+                          ~name concept-name))
