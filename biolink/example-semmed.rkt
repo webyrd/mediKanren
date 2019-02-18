@@ -52,9 +52,8 @@
 
 (newline)
 (displayln "exact-word search, order swapped:")
-(time (pretty-print (run* (c)
-                      (db:~name-concepto/options #f "" chars:split-typical semmed "400" c)
-                      (db:~name-concepto/options #f "" chars:split-typical semmed "imatinib" c))))
+(time (pretty-print (run* (c) (db:~name-concepto/options
+                                #f "" chars:split-typical semmed (list "400" "imatinib") c))))
 
 ;(newline)
 ;(displayln "exact-word search:")
