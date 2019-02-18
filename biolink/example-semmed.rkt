@@ -1,4 +1,10 @@
 #lang racket
+
+(provide
+  (all-from-out "mk-db.rkt")
+  (all-defined-out)
+  )
+
 (require
   "mk-db.rkt"
   )
@@ -41,6 +47,12 @@
 (time (pretty-print (run* (c)
                       (db:~name-concepto/options #f "" chars:split-typical semmed "imatinib" c)
                       (db:~name-concepto/options #f "" chars:split-typical semmed "400" c))))
+
+(newline)
+(displayln "exact-word search, order swapped:")
+(time (pretty-print (run* (c)
+                      (db:~name-concepto/options #f "" chars:split-typical semmed "400" c)
+                      (db:~name-concepto/options #f "" chars:split-typical semmed "imatinib" c))))
 
 ;(newline)
 ;(displayln "exact-word search:")
