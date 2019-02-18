@@ -55,6 +55,10 @@
 (time (pretty-print (run* (c) (db:~name-concepto/options
                                 #f "" chars:split-typical semmed (list "400" "imatinib") c))))
 
+(newline)
+(displayln "testing Racket's string-split:")
+(string-split "  foo    bar  " #px"\\s+")
+
 ;(newline)
 ;(displayln "exact-word search:")
 ;(time (pretty-print (run* (c) (db:~name-concepto/options #f "" "" semmed "imatin" c))))
