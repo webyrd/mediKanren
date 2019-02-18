@@ -149,7 +149,7 @@
 (define chars:split-typical "\t\n\v\f\r !\"#$%&'()*+,./:;<=>?@\\[\\\\\\]\\^_`{|}~")
 
 (define (~string->offset&value*
-          case-sensitive? chars:ignore chars:split offset&value* value v->str)
+          case-sensitive? chars:ignore chars:split offset&value* vals v->str)
   (define re:ignore (and (non-empty-string? chars:ignore)
                          (pregexp (string-append "[" chars:ignore "]"))))
   (define re:split (and (non-empty-string? chars:split)
@@ -157,17 +157,19 @@
   (define (normalize s)
     (define pruned (if re:ignore (string-replace s re:ignore "") s))
     (if case-sensitive? pruned (string-downcase pruned)))
-  (define needle (normalize value))
+  (define needles (map normalize vals))
   (define (p? v)
     (define hay (v->str (cdr v)))
     (and hay
-         (if re:split (ormap (lambda (s) (string=? needle s))
-                             (string-split (normalize hay) re:split))
-           (string-contains? (normalize hay) needle))))
+         (andmap (if re:split
+                   (lambda (n) (ormap (lambda (s) (string=? n s))
+                                      (string-split (normalize hay) re:split)))
+                   (lambda (n) (string-contains? (normalize hay) n)))
+                 needles)))
   (stream-filter p? offset&value*))
 
 (define (simple~string->offset&value* offset&value* value v->str)
-  (~string->offset&value* #f "" "" offset&value* value v->str))
+  (~string->offset&value* #f "" "" offset&value* (list value) v->str))
 
 (define (db:~category->catid&category* db ~category)
   (simple~string->offset&value*

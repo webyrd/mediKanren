@@ -32,21 +32,23 @@
 
 (newline)
 (displayln "case-sensitive search:")
-(time (pretty-print (run* (c) (db:~name-concepto/options #t "" "" semmed "imatin" c))))
+(time (pretty-print (run* (c) (db:~name-concepto/options
+                                #t "" "" semmed (list "imatin") c))))
 
 (newline)
 (displayln "ignore-spaces search:")
-(time (pretty-print (run* (c) (db:~name-concepto/options #f " " "" semmed "imatinib400" c))))
+(time (pretty-print (run* (c) (db:~name-concepto/options
+                                #f " " "" semmed (list "imatinib400") c))))
 
 (newline)
 (displayln "exact-word search (empty result):")
-(time (pretty-print (run* (c) (db:~name-concepto/options #f "" chars:split-typical semmed "imatin" c))))
+(time (pretty-print (run* (c) (db:~name-concepto/options
+                                #f "" chars:split-typical semmed (list "imatin") c))))
 
 (newline)
 (displayln "exact-word search:")
-(time (pretty-print (run* (c)
-                      (db:~name-concepto/options #f "" chars:split-typical semmed "imatinib" c)
-                      (db:~name-concepto/options #f "" chars:split-typical semmed "400" c))))
+(time (pretty-print (run* (c) (db:~name-concepto/options
+                                #f "" chars:split-typical semmed (list "imatinib" "400") c))))
 
 (newline)
 (displayln "exact-word search, order swapped:")
