@@ -149,7 +149,7 @@
 (define chars:split-typical "\t\n\v\f\r !\"#$%&'()*+,./:;<=>?@\\[\\\\\\]\\^_`{|}~")
 
 (define (~string->offset&value*
-          case-sensitive? exact-match? chars:ignore chars:split offset&value* vals v->str)
+          case-sensitive? chars:ignore chars:split offset&value* vals v->str)
   (define re:ignore (and (non-empty-string? chars:ignore)
                          (pregexp (string-append "[" chars:ignore "]"))))
   (define re:split (and (non-empty-string? chars:split)
@@ -160,12 +160,11 @@
   (define needles (map normalize vals))
   (define (p? v)
     (define hay (v->str (cdr v)))
-    (define string-matching-operation? (if exact-match? string=? string-contains?))
     (and hay
          (andmap (if re:split
-                   (lambda (n) (ormap (lambda (s) (string-matching-operation? s n))
+                   (lambda (n) (ormap (lambda (s) (string=? s n))
                                       (string-split (normalize hay) re:split)))
-                   (lambda (n) (string-matching-operation? (normalize hay) n)))
+                   (lambda (n) (string-contains? (normalize hay) n)))
                  needles)))
   (stream-filter p? offset&value*))
 
@@ -187,7 +186,7 @@
   (simple~string->offset&value* (vector->stream-offset&values (db:concept* db))
                                 ~cui concept-cui))
 (define (db:~name->cid&concept*/options
-          case-sensitive? exact-match? chars:ignore chars:split db ~name)
-  (~string->offset&value* case-sensitive? exact-match? chars:ignore chars:split
+          case-sensitive? chars:ignore chars:split db ~name)
+  (~string->offset&value* case-sensitive? chars:ignore chars:split
                           (vector->stream-offset&values (db:concept* db))
                           ~name concept-name))

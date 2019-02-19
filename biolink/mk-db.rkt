@@ -52,12 +52,12 @@
     (stream-refo
       (stream-map (i&v->i&d db) (db:~name->cid&concept* db ~name)) concept)))
 (define (db:~name-concepto/options
-          case-sensitive? exact-match? chars:ignore chars:split db ~name concept)
+          case-sensitive? chars:ignore chars:split db ~name concept)
   (project (~name)
     (stream-refo
       (stream-map (i&v->i&d db)
                   (db:~name->cid&concept*/options
-                    case-sensitive? exact-match? chars:ignore chars:split db ~name))
+                    case-sensitive? chars:ignore chars:split db ~name))
       concept)))
 (define (db:~predicateo db ~predicate predicate)
   (project (~predicate)

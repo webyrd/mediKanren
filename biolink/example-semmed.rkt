@@ -33,42 +33,42 @@
 (newline)
 (displayln "case-sensitive search:")
 (time (pretty-print (run* (c) (db:~name-concepto/options
-                                #t #t "" "" semmed (list "imatin") c))))
+                                #t "" "" semmed (list "imatin") c))))
 
 (newline)
 (displayln "case-insensitive search:")
 (time (pretty-print (run* (c) (db:~name-concepto/options
-                                #t #f "" "" semmed (list "imatin") c))))
+                                #t "" "" semmed (list "imatin") c))))
 
 (newline)
 (displayln "ignore-spaces search:")
 (time (pretty-print (run* (c) (db:~name-concepto/options
-                                #f #t " " "" semmed (list "imatinib400") c))))
+                                #f " " "" semmed (list "imatinib400") c))))
 
 (newline)
 (displayln "exact-word search (empty result):")
 (time (pretty-print (run* (c) (db:~name-concepto/options
-                                #f #t "" chars:split-typical semmed (list "imatin") c))))
+                                #f "" chars:split-typical semmed (list "imatin") c))))
 
 (newline)
 (displayln "exact-word search:")
 (time (pretty-print (run* (c) (db:~name-concepto/options
-                                #f #t "" chars:split-typical semmed (list "imatinib" "400") c))))
+                                #f "" chars:split-typical semmed (list "imatinib" "400") c))))
 
 (newline)
 (displayln "exact-word search, order swapped:")
 (time (pretty-print (run* (c) (db:~name-concepto/options
-                                #f #t "" chars:split-typical semmed (list "400" "imatinib") c))))
+                                #f "" chars:split-typical semmed (list "400" "imatinib") c))))
 
 (newline)
 (displayln "inexact-word search:")
 (time (pretty-print (run* (c) (db:~name-concepto/options
-                                #f #f "" chars:split-typical semmed (list "imatini" "400") c))))
+                                #f "" "" semmed (list "imatini" "400") c))))
 
 (newline)
 (displayln "inexact-word search, order swapped:")
 (time (pretty-print (run* (c) (db:~name-concepto/options
-                                #f #f "" chars:split-typical semmed (list "400" "imatini") c))))
+                                #f "" "" semmed (list "400" "imatini") c))))
 
 
 (newline)

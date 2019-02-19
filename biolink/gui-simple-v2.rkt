@@ -259,9 +259,8 @@ edge format, with dbname at front (as used in edgeo):
     (let ((find-conceptso (lambda (db name* cc)
                             (db:~name-concepto/options
                              #f ;; case sensitivity flag
-                             #f ;; exact-match flag
                              "" ;; ignored characters ('chars:ignore-typical' is pre-defined)
-                             chars:split-typical
+                             "" ;; characters to split target name on for exact matching ('chars:split-typical' is pre-defined)
                              db
                              name*
                              cc))))
