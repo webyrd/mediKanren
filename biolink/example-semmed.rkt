@@ -33,27 +33,43 @@
 (newline)
 (displayln "case-sensitive search:")
 (time (pretty-print (run* (c) (db:~name-concepto/options
-                                #t "" "" semmed (list "imatin") c))))
+                                #t #t "" "" semmed (list "imatin") c))))
+
+(newline)
+(displayln "case-insensitive search:")
+(time (pretty-print (run* (c) (db:~name-concepto/options
+                                #t #f "" "" semmed (list "imatin") c))))
 
 (newline)
 (displayln "ignore-spaces search:")
 (time (pretty-print (run* (c) (db:~name-concepto/options
-                                #f " " "" semmed (list "imatinib400") c))))
+                                #f #t " " "" semmed (list "imatinib400") c))))
 
 (newline)
 (displayln "exact-word search (empty result):")
 (time (pretty-print (run* (c) (db:~name-concepto/options
-                                #f "" chars:split-typical semmed (list "imatin") c))))
+                                #f #t "" chars:split-typical semmed (list "imatin") c))))
 
 (newline)
 (displayln "exact-word search:")
 (time (pretty-print (run* (c) (db:~name-concepto/options
-                                #f "" chars:split-typical semmed (list "imatinib" "400") c))))
+                                #f #t "" chars:split-typical semmed (list "imatinib" "400") c))))
 
 (newline)
 (displayln "exact-word search, order swapped:")
 (time (pretty-print (run* (c) (db:~name-concepto/options
-                                #f "" chars:split-typical semmed (list "400" "imatinib") c))))
+                                #f #t "" chars:split-typical semmed (list "400" "imatinib") c))))
+
+(newline)
+(displayln "inexact-word search:")
+(time (pretty-print (run* (c) (db:~name-concepto/options
+                                #f #f "" chars:split-typical semmed (list "imatini" "400") c))))
+
+(newline)
+(displayln "inexact-word search, order swapped:")
+(time (pretty-print (run* (c) (db:~name-concepto/options
+                                #f #f "" chars:split-typical semmed (list "400" "imatini") c))))
+
 
 (newline)
 (displayln "testing Racket's string-split:")

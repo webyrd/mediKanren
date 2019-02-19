@@ -48,7 +48,7 @@
 ;; (define QUERY_RESULTS_FILE_MODE 'append) ;; save all the queries
 
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.5")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.6")
 
 ;;; Synthetic predicates
 ;;; TODO FIXME -- are these the ideal predicates?
@@ -235,6 +235,7 @@ edge format, with dbname at front (as used in edgeo):
 #|
 `(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
 |#
+#|
 (define (fuzzy-concepto n c)
   (fresh (cc dbname cid cui name catid cat props)
     ;; get rid of annoying .'s for properties!!
@@ -245,7 +246,34 @@ edge format, with dbname at front (as used in edgeo):
       ((== 'monarch dbname) (db:~name-concepto monarch n cc))
       ((== 'rtx dbname) (db:~name-concepto rtx n cc))
       )))
+|#
 
+(define (split-name-string name)
+  (string-split name #px"\\s+"))
+
+(define (fuzzy-concepto n c)
+  ;; (printf "fuzzy concept search...\n")
+  ;; (printf "name string: ~s\n" n)
+  (let ((name* (split-name-string n)))
+    ;; (printf "name*: ~s\n" name*)
+    (let ((find-conceptso (lambda (db name* cc)
+                            (db:~name-concepto/options
+                             #f ;; case sensitivity flag
+                             #f ;; exact-match flag
+                             "" ;; ignored characters ('chars:ignore-typical' is pre-defined)
+                             chars:split-typical
+                             db
+                             name*
+                             cc))))
+      (fresh (cc dbname cid cui name catid cat props)
+        ;; get rid of annoying .'s for properties!!
+        (== `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props) c)
+        (== `(,cid ,cui ,name (,catid . ,cat) . ,props) cc)
+        (conde 
+          ((== 'semmed dbname) (find-conceptso semmed name* cc))        
+          ((== 'monarch dbname) (find-conceptso monarch name* cc))
+          ((== 'rtx dbname) (find-conceptso rtx name* cc))
+          )))))
 
 
 (define *verbose* #t)
@@ -440,11 +468,12 @@ edge format, with dbname at front (as used in edgeo):
                                            (for ([i (length predicates)])
                                                 (send (predicate-list-box-thunk) select i #f))))))
   (define (mk-run)
-    (let ((ans (if (equal? current-name "") ;; TODO FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
+    (let ((ans (if (null? (split-name-string current-name))
                    '()
                    (run* (q) (fuzzy-concepto current-name q)))))
       (let ((ans (remove-duplicates ans)))
-        (let ((isa-ans (if (and (not (equal? current-name "")) current-isa)  ;; TODO FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
+        ;; (printf "ans from fuzzy-concepto: ~s\n" ans)
+        (let ((isa-ans (if (and (not (null? (split-name-string current-name))) current-isa)
                            ;; only grab the first 50
                            (remove-duplicates
                             (run 50 (s-with-dbname) ;; 50 should probably be a parameter
@@ -529,7 +558,7 @@ edge format, with dbname at front (as used in edgeo):
   concept-listbox)
 
 (define (launch-gui)
-  (launch-gene-window)
+  ;; (launch-gene-window)
   (launch-main-window))
 
 (define (launch-main-window)
@@ -766,12 +795,17 @@ edge format, with dbname at front (as used in edgeo):
                                                           
                                                           
                                                            (cond
-                                                             [(and (equal? (unbox *solution-concept-1-name-string*) "")
-                                                                   (equal? (unbox *solution-concept-2-name-string*) ""))
-                                                              ;; TODO FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
+                                                             [(and
+                                                               (null?
+                                                                (split-name-string
+                                                                 (unbox *solution-concept-1-name-string*)))
+                                                               (null?
+                                                                (split-name-string
+                                                                 (unbox *solution-concept-2-name-string*))))
+
                                                               (set! paths '())]
-                                                             [(equal? (unbox *solution-concept-1-name-string*) "")
-                                                              ;; TODO FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
+                                                             [(null? (split-name-string (unbox *solution-concept-1-name-string*)))
+                                                              
                                                               (set! paths '())
                                                               ;; run synthetic queries here
                                                               (set! paths
@@ -800,8 +834,8 @@ edge format, with dbname at front (as used in edgeo):
                                                                                  (edgeo e2)))))
                                                                     |#
                                                                     )]
-                                                             [(equal? (unbox *solution-concept-2-name-string*) "")
-                                                              ;; TODO FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
+                                                             [(null? (split-name-string (unbox *solution-concept-2-name-string*)))
+                                                              
                                                               (set! paths '())
                                                               ;; run synthetic queries here
                                                               (set! paths
@@ -1265,10 +1299,17 @@ edge format, with dbname at front (as used in edgeo):
   |#
 
   (cond
-    [(and (equal? (unbox *concept-1-name-string*) "")  ;; TODO FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
-          (equal? (unbox *concept-2-name-string*) ""))
+    [(and
+      (null?
+       (split-name-string
+        (unbox *concept-1-name-string*)))
+      (null?
+       (split-name-string
+        (unbox *concept-2-name-string*))))
+
      (set! all-X-concepts-with-edges '())]
-    [(equal? (unbox *concept-1-name-string*) "")  ;; TODO FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
+    [(null? (split-name-string (unbox *concept-1-name-string*)))
+     
      (set! all-X-concepts-with-edges '())
      ;; run synthetic queries here
      #|
@@ -1307,7 +1348,8 @@ edge format, with dbname at front (as used in edgeo):
                         (edgeo e2)))
                     |#
                     )))]
-    [(equal? (unbox *concept-2-name-string*) "")  ;; TODO FIXME -- handle spaces, tabs, whatever (regex for all whitespace)
+    [(null? (split-name-string (unbox *concept-2-name-string*)))
+     
      (set! all-X-concepts-with-edges '())
      ;; run synthetic queries here
      (set! all-X-concepts-with-edges
