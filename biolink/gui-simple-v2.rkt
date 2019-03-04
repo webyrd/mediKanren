@@ -1570,17 +1570,22 @@ edge format, with dbname at front (as used in edgeo):
         (lambda (entry)
           (match entry
             [`(,dbname
-               ,s
-               (,eprops)
-               (,edge))
-             (match edge
-               [`(,dbname
-                  ,eid
-                  (,scid ,scui ,sname (,scatid . ,scat) . ,sprops)
-                  (,ocid ,ocui ,oname (,ocatid . ,ocat) . ,oprops)
-                  (,pid . ,pred) ,eprops)
-                (let ((pubmed* (pubmed-URLs-from-edge edge)))
-                  (printf "~s\t~s\t~s\t~s\t~s\t~s\t~s PubMed Entries\n~s\n\n" dbname sname scat pred oname ocat (length pubmed*) pubmed*))])]))
+                ,s
+                ,eprops*
+                ,edges)
+              (printf "*** Edge group:")
+              (for-each
+                (lambda (edge)
+                  (match edge
+                    [`(,dbname
+                        ,eid
+                        (,scid ,scui ,sname (,scatid . ,scat) . ,sprops)
+                        (,ocid ,ocui ,oname (,ocatid . ,ocat) . ,oprops)
+                        (,pid . ,pred) ,eprops)
+                      (let ((pubmed* (pubmed-URLs-from-edge edge)))
+                        (printf "\n~s\t~s\t~s\t~s\t~s\t~s\t~s PubMed Entries\n~s\n" dbname sname scat pred oname ocat (length pubmed*) pubmed*))]))
+                edges)
+              (printf "***\n\n") ]))
         X-concepts-with-edges)))
 
   (when WRITE_QUERY_RESULTS_TO_FILE
