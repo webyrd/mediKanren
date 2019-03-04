@@ -17,7 +17,7 @@
 ;;;
 
 ;;; monarch-lite:
-;;; 
+;;;
 
 ;;; TODO FEATURES
 ;;;
@@ -185,7 +185,7 @@ edge format, with dbname at front (as used in edgeo):
   (define (weight-exponential n) (expt 2 n))
   ;; To experiment with sorting, try to only change the weight calculation
   ;; being used.  Leave everything else the same.
-  (define weight weight-exponential)  
+  (define weight weight-exponential)
   (define (confidence/edge e) (- 1 (/ 1.0 (weight (pubmed-count e)))))
   (foldl * 1 (map confidence/edge p)))
 (define (path-confidence<? p1 p2)
@@ -269,8 +269,8 @@ edge format, with dbname at front (as used in edgeo):
         ;; get rid of annoying .'s for properties!!
         (== `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props) c)
         (== `(,cid ,cui ,name (,catid . ,cat) . ,props) cc)
-        (conde 
-          ((== 'semmed dbname) (find-conceptso semmed name* cc))        
+        (conde
+          ((== 'semmed dbname) (find-conceptso semmed name* cc))
           ((== 'monarch dbname) (find-conceptso monarch name* cc))
           ((== 'rtx dbname) (find-conceptso rtx name* cc))
           )))))
@@ -519,7 +519,7 @@ edge format, with dbname at front (as used in edgeo):
                              (match x
                                [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                 (format "~a" cid)]))
-                           ans)              
+                           ans)
                       (map (lambda (x)
                              (match x
                                [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
@@ -529,7 +529,7 @@ edge format, with dbname at front (as used in edgeo):
                              (match x
                                [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                 (~a `(,catid . ,cat) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                           ans)              
+                           ans)
                       (map (lambda (x)
                              (match x
                                [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
@@ -589,7 +589,7 @@ edge format, with dbname at front (as used in edgeo):
         (printf "concept-2-selections: ~s\n" concept-2-selections)
         (displayln concept-2-selected-concepts)
         (printf "---------------------------------\n")
-                                       
+
 
         (define predicate-1-selections (send predicate-1-list-box get-selections))
         (define predicate-2-selections (send predicate-2-list-box get-selections))
@@ -603,7 +603,7 @@ edge format, with dbname at front (as used in edgeo):
                  '()
                  predicate-2-selections))
 
-                                       
+
         (printf "predicate-1-selections: ~s\n" predicate-1-selections)
         (displayln predicate-1-selected-predicates)
         (printf "---------------------------------\n")
@@ -611,7 +611,7 @@ edge format, with dbname at front (as used in edgeo):
         (displayln predicate-2-selected-predicates)
         (printf "---------------------------------\n")
 
-                                       
+
         (find-X-concepts concept-1-selected-concepts
                          concept-2-selected-concepts
                          predicate-1-selected-predicates
@@ -621,9 +621,9 @@ edge format, with dbname at front (as used in edgeo):
                          full-path-list-box
                          properties-list-box
                          pubmed-list-box)
-                                       
+
         ))
-    
+
     (define concept-1-search/isa-panel (new horizontal-panel%
                                             (parent frame)
                                             (alignment '(left center))
@@ -664,7 +664,7 @@ edge format, with dbname at front (as used in edgeo):
                            (label "go!")
                            (callback go-callback)))
     |#
-    
+
     (define running-status-description (new message%
                                             (parent frame)
                                             (label "                                                                ")))
@@ -683,11 +683,11 @@ edge format, with dbname at front (as used in edgeo):
 
                                                 (cond
                                                   [(eqv? event-type 'list-box-column)
-                                                   
+
                                                    ;; sort X concepts by column
                                                    (define column-clicked (send event get-column))
                                                    (define last-column-clicked (unbox *last-concept-X-column-clicked-for-sorting*))
-                                                   
+
                                                    (define sort-order (vector-ref *concept-X-column-sort-order*
                                                                                   column-clicked))
 
@@ -699,15 +699,15 @@ edge format, with dbname at front (as used in edgeo):
                                                                SORT_COLUMN_INCREASING))
                                                      (vector-set! *concept-X-column-sort-order*
                                                                   column-clicked
-                                                                  sort-order))                                                         
+                                                                  sort-order))
 
                                                    (printf "sorting X concepts by column ~s in ~s order\n" column-clicked sort-order)
                                                    ;; (printf "current *concept-X-column-sort-order*: ~s\n" *concept-X-column-sort-order*)
-                                                   
+
                                                    (define choices (unbox *concept-X-choices*))
 
                                                    ;;(printf "choices: ~s\n" choices)
-                                                   
+
                                                    (define sorted-choices (sort choices
                                                                                 (lambda (c1 c2)
                                                                                   ;;(printf "c1: ~s\n" c1)
@@ -734,9 +734,9 @@ edge format, with dbname at front (as used in edgeo):
                                                                                                             (string-downcase v2)))))))))
 
                                                    ;;(printf "sorted-choices: ~s\n" sorted-choices)
-                                                   
+
                                                    (set-box! *last-concept-X-column-clicked-for-sorting* column-clicked)
-                                                   
+
                                                    (set-box! *concept-X-choices* sorted-choices)
 
                                                    (send-concepts-to-concept-X-list-box sorted-choices self)
@@ -759,10 +759,10 @@ edge format, with dbname at front (as used in edgeo):
                                                   [else
                                                    ;; empty the entries in the properties-list-box
                                                    (send properties-list-box set '() '())
-                                                   
+
                                                    ;; empty the entries in the pubmed-list-box
                                                    (send pubmed-list-box set '())
-                                                   
+
                                                    (let ((sel* (send concept-X-list-box get-selections)))
                                                      (when (= (length sel*) 1)
                                                        (let ((selected-X (list-ref (unbox *concept-X-choices*) (car sel*))))
@@ -779,8 +779,8 @@ edge format, with dbname at front (as used in edgeo):
                                                            (define predicate-2* (unbox *solution-predicate-2-choices*))
                                                            (printf "predicate-1* ~s\n" predicate-1*)
                                                            (printf "predicate-2* ~s\n" predicate-2*)
-                                                          
-                                                          
+
+
                                                            (define atomic/synthetic-predicate-1* (split-atomic/synthetic-predicates predicate-1*))
                                                            (define atomic/synthetic-predicate-2* (split-atomic/synthetic-predicates predicate-2*))
 
@@ -792,8 +792,8 @@ edge format, with dbname at front (as used in edgeo):
 
 
                                                            (define paths '())
-                                                          
-                                                          
+
+
                                                            (cond
                                                              [(and
                                                                (null?
@@ -805,7 +805,7 @@ edge format, with dbname at front (as used in edgeo):
 
                                                               (set! paths '())]
                                                              [(null? (split-name-string (unbox *solution-concept-1-name-string*)))
-                                                              
+
                                                               (set! paths '())
                                                               ;; run synthetic queries here
                                                               (set! paths
@@ -835,7 +835,7 @@ edge format, with dbname at front (as used in edgeo):
                                                                     |#
                                                                     )]
                                                              [(null? (split-name-string (unbox *solution-concept-2-name-string*)))
-                                                              
+
                                                               (set! paths '())
                                                               ;; run synthetic queries here
                                                               (set! paths
@@ -868,7 +868,7 @@ edge format, with dbname at front (as used in edgeo):
                                                              [else
                                                               (set! paths '())
                                                               ;; run synthetic queries here
-                                                              (set! paths                                                                   
+                                                              (set! paths
                                                                     (remove-duplicates
                                                                      (append paths
                                                                              (run* (q)
@@ -914,7 +914,7 @@ edge format, with dbname at front (as used in edgeo):
                                                            (set! paths (sort-paths paths))
 
                                                            ;; (printf "sorted paths: ~s\n" paths)
-                                                      
+
                                                            (define flattened-paths
                                                              (let ((ls (foldr
                                                                         (lambda (p l)
@@ -945,7 +945,7 @@ edge format, with dbname at front (as used in edgeo):
                                                                       [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
                                                                        (~a eid)]))
                                                                   flattened-paths))
-                                                          
+
                                                            (define full-path-subj-list
                                                              (map (lambda (x)
                                                                     (match x
@@ -953,7 +953,7 @@ edge format, with dbname at front (as used in edgeo):
                                                                       [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
                                                                        (~a subj #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
                                                                   flattened-paths))
-                                                          
+
                                                            (define full-path-pred-list
                                                              (map (lambda (x)
                                                                     (match x
@@ -961,7 +961,7 @@ edge format, with dbname at front (as used in edgeo):
                                                                       [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
                                                                        (~a `(,pid . ,pred) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
                                                                   flattened-paths))
-                                                          
+
                                                            (define full-path-obj-list
                                                              (map (lambda (x)
                                                                     (match x
@@ -969,7 +969,7 @@ edge format, with dbname at front (as used in edgeo):
                                                                       [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
                                                                        (~a obj #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
                                                                   flattened-paths))
-                                                          
+
                                                            (define full-path-subj-cat-list
                                                              (map (lambda (x)
                                                                     (match x
@@ -993,7 +993,7 @@ edge format, with dbname at front (as used in edgeo):
                                                                       [`(,dbname ,eid ,subj (,cid ,cui ,name (,catid . ,cat) ,props) (,pid . ,pred) ,eprops)
                                                                        (~a (length (pubmed-URLs-from-edge x)))]))
                                                                   flattened-paths))
-                                                           
+
                                                            #|
                                                            (define full-path-eprops-list
                                                              (map (lambda (x)
@@ -1016,8 +1016,8 @@ edge format, with dbname at front (as used in edgeo):
                                                                  full-path-PubMed-count-list
                                                                  ;;full-path-eprops-list
                                                                  )
-                                                          
-                                                          
+
+
                                                            #| ;; v0.1 version
                                                            (define full-path-subj-list
                                                              (map (lambda (x)
@@ -1137,7 +1137,7 @@ edge format, with dbname at front (as used in edgeo):
                                          (parent frame)
                                          (alignment '(left center))
                                          (stretchable-height #t)))
-    
+
     (define properties-list-box (new list-box%
                                      (label "Properties")
                                      (choices '())
@@ -1166,12 +1166,12 @@ edge format, with dbname at front (as used in edgeo):
                                              ;(printf "selected-pubmeds: ~s\n" selected-pubmeds)
                                              (for-each
                                                (lambda (url)
-                                                 (printf "url: ~s\n" url)                                                 
+                                                 (printf "url: ~s\n" url)
                                                  (when (eqv? event-type 'list-box-dclick)
                                                    ;; if the user double-clicked on the URL, open it in a web browser
                                                    (send-url url)))
                                                selected-pubmeds)))))
-    
+
     (send frame show #t)
     ))
 
@@ -1197,9 +1197,9 @@ edge format, with dbname at front (as used in edgeo):
                               (callback (lambda (self event)
                                           (void)))))
 
-    
+
     (define current-gene-name "")
-    
+
     (send frame show #t)
     ))
 
@@ -1261,7 +1261,7 @@ edge format, with dbname at front (as used in edgeo):
   (printf "synthetic-predicate-1*: ~s\n" synthetic-predicate-1*)
   (printf "synthetic-predicate-2*: ~s\n" synthetic-predicate-2*)
   (newline)
-  
+
   #|
   (define (stream-query/predicate/trust predicate&nedges&ntrusted->ss)
     (start-streaming
@@ -1309,7 +1309,7 @@ edge format, with dbname at front (as used in edgeo):
 
      (set! all-X-concepts-with-edges '())]
     [(null? (split-name-string (unbox *concept-1-name-string*)))
-     
+
      (set! all-X-concepts-with-edges '())
      ;; run synthetic queries here
      #|
@@ -1349,7 +1349,7 @@ edge format, with dbname at front (as used in edgeo):
                     |#
                     )))]
     [(null? (split-name-string (unbox *concept-2-name-string*)))
-     
+
      (set! all-X-concepts-with-edges '())
      ;; run synthetic queries here
      (set! all-X-concepts-with-edges
@@ -1420,7 +1420,7 @@ edge format, with dbname at front (as used in edgeo):
 
   ;; (printf "all-X-concepts-with-edges: ~s\n" all-X-concepts-with-edges)
   ;; (newline)
-  
+
   ;; This sorting affects order of appearance in the "X" concept list
   (set! all-X-concepts-with-edges
     (sort
@@ -1455,7 +1455,7 @@ edge format, with dbname at front (as used in edgeo):
 
   ;;(printf "all-X-concepts: ~s\n" all-X-concepts)
   ;;(newline)
-  
+
   (newline)
   (printf "========== begin query results =============\n")
   (newline)
@@ -1505,7 +1505,7 @@ edge format, with dbname at front (as used in edgeo):
   (define pretty-print-X-concepts-with-edges
     (lambda (file-name pretty-printer print-low-level-query-information X-concepts-with-edges)
       (with-output-to-file
-          file-name 
+          file-name
           (lambda ()
             (printf ";; mediKanren query output\n")
             (printf ";; ~a\n" MEDIKANREN_VERSION_STRING)
@@ -1582,7 +1582,7 @@ edge format, with dbname at front (as used in edgeo):
                 (let ((pubmed* (pubmed-URLs-from-edge edge)))
                   (printf "~s\t~s\t~s\t~s\t~s\t~s\t~s PubMed Entries\n~s\n\n" dbname sname scat pred oname ocat (length pubmed*) pubmed*))])]))
         X-concepts-with-edges)))
-  
+
   (when WRITE_QUERY_RESULTS_TO_FILE
     (printf "saving all-X-concepts-with-edges to 'last.sx' file...\n")
     (pretty-print-X-concepts-with-edges
@@ -1598,7 +1598,7 @@ edge format, with dbname at front (as used in edgeo):
       #f ;; print-low-level-query-information flag
       all-X-concepts-with-edges)
     (printf "saved human-friendly version of all-X-concepts-with-edges to 'last.txt' file\n"))
-  
+
   #|
   (define pretty-print-X-concepts-with-edges
     (lambda (X-concepts-with-edges)
@@ -1632,11 +1632,11 @@ edge format, with dbname at front (as used in edgeo):
   ;; (printf "all-X-concepts-with-edges:\n")
   (pretty-print-X-concepts-with-edges all-X-concepts-with-edges)
   |#
-  
+
   (printf "========== end query results =============\n")
 
-  (send-concepts-to-concept-X-list-box all-X-concepts concept-X-list-box)  
-  
+  (send-concepts-to-concept-X-list-box all-X-concepts concept-X-list-box)
+
   #| ;; v 0.1 version
   (send concept-X-list-box
         set
@@ -1658,7 +1658,7 @@ edge format, with dbname at front (as used in edgeo):
                   (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
              all-X-concepts))
   |#
-  
+
   ;; unselect all items
   (for ([i (length all-X-concepts)])
        (send concept-X-list-box select i #f))
