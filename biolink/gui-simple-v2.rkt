@@ -49,7 +49,7 @@
 ;; (define QUERY_RESULTS_FILE_MODE 'append) ;; save all the queries
 
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.7")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.8")
 
 ;;; Synthetic predicates
 ;;; TODO FIXME -- are these the ideal predicates?
@@ -1579,7 +1579,7 @@ edge format, with dbname at front (as used in edgeo):
                   (,ocid ,ocui ,oname (,ocatid . ,ocat) . ,oprops)
                   (,pid . ,pred) ,eprops)
                 (let ((pubmed* (pubmed-URLs-from-edge edge)))
-                  (printf "~s\t~s\t~s\t~s\t~s PubMed Entries\n~s\n\n" dbname sname pred oname (length pubmed*) pubmed*))])]))
+                  (printf "~s\t~s\t~s\t~s\t~s\t~s\t~s PubMed Entries\n~s\n\n" dbname sname scat pred oname ocat (length pubmed*) pubmed*))])]))
         X-concepts-with-edges)))
   
   (when WRITE_QUERY_RESULTS_TO_FILE
