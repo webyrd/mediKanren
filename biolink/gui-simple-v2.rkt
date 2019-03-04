@@ -49,7 +49,7 @@
 ;; (define QUERY_RESULTS_FILE_MODE 'append) ;; save all the queries
 
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.8")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.9")
 
 ;;; Synthetic predicates
 ;;; TODO FIXME -- are these the ideal predicates?
@@ -1503,7 +1503,7 @@ edge format, with dbname at front (as used in edgeo):
   (newline)
 
   (define pretty-print-X-concepts-with-edges
-    (lambda (file-name pretty-printer X-concepts-with-edges)
+    (lambda (file-name pretty-printer print-low-level-query-information X-concepts-with-edges)
       (with-output-to-file
           file-name 
           (lambda ()
@@ -1519,42 +1519,43 @@ edge format, with dbname at front (as used in edgeo):
                       (date-minute local-date)
                       (date-second local-date)))
             (printf ";; \n")
-            (printf ";; ===================================================\n")
-            (printf ";; Low-level query information from the mediKanren GUI\n")
-            (printf ";; ===================================================\n")
-            (printf ";; \n")
-            (printf ";; *concept-1-name-string*: ~s\n" (unbox *concept-1-name-string*))
-            (printf ";; *solution-concept-1-name-string*: ~s\n" (unbox *solution-concept-1-name-string*))
-            (printf ";; *solution-concept-1-isa-flag*: ~s\n" (unbox *solution-concept-1-isa-flag*))
-            (printf ";; *solution-concept-1-choices*:\n")
-            (printf "#|\n")
-            (pretty-print (unbox *solution-concept-1-choices*))
-            (printf "|#\n")
-            (printf ";; atomic/synthetic-predicate-1*: ~s\n" atomic/synthetic-predicate-1*)
-            (printf ";; atomic-predicate-1*: ~s\n" atomic-predicate-1*)
-            (printf ";; synthetic-predicate-1*: ~s\n" synthetic-predicate-1*)
-            (printf ";; *solution-predicate-1-choices*:\n")
-            (printf "#|\n")
-            (pretty-print (unbox *solution-predicate-1-choices*))
-            (printf "|#\n")
-            (printf ";; \n")
-            (printf ";; \n")
-            (printf ";; \n")
-            (printf ";; atomic/synthetic-predicate-2*: ~s\n" atomic/synthetic-predicate-2*)
-            (printf ";; atomic-predicate-2*: ~s\n" atomic-predicate-2*)
-            (printf ";; synthetic-predicate-2*: ~s\n" synthetic-predicate-2*)
-            (printf ";; *solution-predicate-2-choices*:\n")
-            (printf "#|\n")
-            (pretty-print (unbox *solution-predicate-2-choices*))
-            (printf "|#\n")
-            (printf ";; *concept-2-name-string*: ~s\n" (unbox *concept-2-name-string*))
-            (printf ";; *solution-concept-2-name-string*: ~s\n" (unbox *solution-concept-2-name-string*))
-            (printf ";; *solution-concept-2-isa-flag*: ~s\n" (unbox *solution-concept-2-isa-flag*))
-            (printf ";; *solution-concept-2-choices*:\n")
-            (printf "#|\n")
-            (pretty-print (unbox *solution-concept-2-choices*))
-            (printf "|#\n")
-            (printf "\n")
+            (when print-low-level-query-information
+              (printf ";; ===================================================\n")
+              (printf ";; Low-level query information from the mediKanren GUI\n")
+              (printf ";; ===================================================\n")
+              (printf ";; \n")
+              (printf ";; *concept-1-name-string*: ~s\n" (unbox *concept-1-name-string*))
+              (printf ";; *solution-concept-1-name-string*: ~s\n" (unbox *solution-concept-1-name-string*))
+              (printf ";; *solution-concept-1-isa-flag*: ~s\n" (unbox *solution-concept-1-isa-flag*))
+              (printf ";; *solution-concept-1-choices*:\n")
+              (printf "#|\n")
+              (pretty-print (unbox *solution-concept-1-choices*))
+              (printf "|#\n")
+              (printf ";; atomic/synthetic-predicate-1*: ~s\n" atomic/synthetic-predicate-1*)
+              (printf ";; atomic-predicate-1*: ~s\n" atomic-predicate-1*)
+              (printf ";; synthetic-predicate-1*: ~s\n" synthetic-predicate-1*)
+              (printf ";; *solution-predicate-1-choices*:\n")
+              (printf "#|\n")
+              (pretty-print (unbox *solution-predicate-1-choices*))
+              (printf "|#\n")
+              (printf ";; \n")
+              (printf ";; \n")
+              (printf ";; \n")
+              (printf ";; atomic/synthetic-predicate-2*: ~s\n" atomic/synthetic-predicate-2*)
+              (printf ";; atomic-predicate-2*: ~s\n" atomic-predicate-2*)
+              (printf ";; synthetic-predicate-2*: ~s\n" synthetic-predicate-2*)
+              (printf ";; *solution-predicate-2-choices*:\n")
+              (printf "#|\n")
+              (pretty-print (unbox *solution-predicate-2-choices*))
+              (printf "|#\n")
+              (printf ";; *concept-2-name-string*: ~s\n" (unbox *concept-2-name-string*))
+              (printf ";; *solution-concept-2-name-string*: ~s\n" (unbox *solution-concept-2-name-string*))
+              (printf ";; *solution-concept-2-isa-flag*: ~s\n" (unbox *solution-concept-2-isa-flag*))
+              (printf ";; *solution-concept-2-choices*:\n")
+              (printf "#|\n")
+              (pretty-print (unbox *solution-concept-2-choices*))
+              (printf "|#\n")
+              (printf "\n"))
             (printf ";; ======================================\n")
             (printf ";; Query results (list of complete edges)\n")
             (printf ";; ======================================\n")
@@ -1587,12 +1588,14 @@ edge format, with dbname at front (as used in edgeo):
     (pretty-print-X-concepts-with-edges
       QUERY_RESULTS_FILE_NAME
       pretty-print
+      #t ;; print-low-level-query-information flag
       all-X-concepts-with-edges)
     (printf "saved all-X-concepts-with-edges to 'last.sx' file\n")
     (printf "saving human-friendly version of all-X-concepts-with-edges to 'last.txt' file...\n")
     (pretty-print-X-concepts-with-edges
       HUMAN_FRIENDLY_QUERY_RESULTS_FILE_NAME
       human-friendly-pretty-print-X-concepts-with-edges
+      #f ;; print-low-level-query-information flag
       all-X-concepts-with-edges)
     (printf "saved human-friendly version of all-X-concepts-with-edges to 'last.txt' file\n"))
   
