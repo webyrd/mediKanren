@@ -41,14 +41,15 @@
   launch-gui)
 
 ;;; Query save file settings
-(define WRITE_QUERY_RESULTS_TO_FILE #t) ;; #t will write the query and results to a file, #f will not
+(define WRITE_QUERY_RESULTS_TO_FILE #t) ;; #t will write the query and results to file, #f will not
 (define QUERY_RESULTS_FILE_NAME "last.sx")
+(define HUMAN_FRIENDLY_QUERY_RESULTS_FILE_NAME "last.txt")
 ;; Uncomment exactly one of these:
 (define QUERY_RESULTS_FILE_MODE 'replace)   ;; clobber the save file each time you run a query
 ;; (define QUERY_RESULTS_FILE_MODE 'append) ;; save all the queries
 
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.6")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.7")
 
 ;;; Synthetic predicates
 ;;; TODO FIXME -- are these the ideal predicates?
@@ -1502,9 +1503,9 @@ edge format, with dbname at front (as used in edgeo):
   (newline)
 
   (define pretty-print-X-concepts-with-edges
-    (lambda (X-concepts-with-edges)
+    (lambda (file-name pretty-printer X-concepts-with-edges)
       (with-output-to-file
-          QUERY_RESULTS_FILE_NAME
+          file-name 
           (lambda ()
             (printf ";; mediKanren query output\n")
             (printf ";; ~a\n" MEDIKANREN_VERSION_STRING)
@@ -1557,15 +1558,43 @@ edge format, with dbname at front (as used in edgeo):
             (printf ";; ======================================\n")
             (printf ";; Query results (list of complete edges)\n")
             (printf ";; ======================================\n")
-            (pretty-print X-concepts-with-edges)
+            (pretty-printer X-concepts-with-edges)
             (printf "\n\n\n"))
           #:mode 'text
           #:exists QUERY_RESULTS_FILE_MODE)))
 
+  (define human-friendly-pretty-print-X-concepts-with-edges
+    (lambda (X-concepts-with-edges)
+      (for-each
+        (lambda (entry)
+          (match entry
+            [`(,dbname
+               ,s
+               (,eprops)
+               (,edge))
+             (match edge
+               [`(,dbname
+                  ,eid
+                  (,scid ,scui ,sname (,scatid . ,scat) . ,sprops)
+                  (,ocid ,ocui ,oname (,ocatid . ,ocat) . ,oprops)
+                  (,pid . ,pred) ,eprops)
+                (let ((pubmed* (pubmed-URLs-from-edge edge)))
+                  (printf "~s\t~s\t~s\t~s\t~s PubMed Entries\n~s\n\n" dbname sname pred oname (length pubmed*) pubmed*))])]))
+        X-concepts-with-edges)))
+  
   (when WRITE_QUERY_RESULTS_TO_FILE
     (printf "saving all-X-concepts-with-edges to 'last.sx' file...\n")
-    (pretty-print-X-concepts-with-edges all-X-concepts-with-edges)
-    (printf "saved all-X-concepts-with-edges to 'last.sx' file\n"))
+    (pretty-print-X-concepts-with-edges
+      QUERY_RESULTS_FILE_NAME
+      pretty-print
+      all-X-concepts-with-edges)
+    (printf "saved all-X-concepts-with-edges to 'last.sx' file\n")
+    (printf "saving human-friendly version of all-X-concepts-with-edges to 'last.txt' file...\n")
+    (pretty-print-X-concepts-with-edges
+      HUMAN_FRIENDLY_QUERY_RESULTS_FILE_NAME
+      human-friendly-pretty-print-X-concepts-with-edges
+      all-X-concepts-with-edges)
+    (printf "saved human-friendly version of all-X-concepts-with-edges to 'last.txt' file\n"))
   
   #|
   (define pretty-print-X-concepts-with-edges
