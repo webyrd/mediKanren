@@ -183,7 +183,7 @@
   (stream-filter p? offset&value*))
 
 (define (simple~string->offset&value* offset&value* value v->str)
-  (~string->offset&value* #f #f "" "" offset&value* (list value) v->str))
+  (~string->offset&value* #f "" "" offset&value* (list value) v->str))
 
 (define (db:~category->catid&category* db ~category)
   (simple~string->offset&value*
