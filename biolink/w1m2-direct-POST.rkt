@@ -4,8 +4,9 @@
 
 (define data (jsexpr->bytes
                '(
-                 ("UMLS:C0282687" "Ebola hemorrhagic fever")
+                 ;("UMLS:C0282687" "Ebola hemorrhagic fever")
                  ;("OMIM:600807"   "Asthma")
+                 ("DOID:3302"   "Chordoma")
                  ;("OMIM:215400"   "Chordoma")
                  ;("OMIM:125853"   "Type 2 Diabetes Mellitus")
                  )))
