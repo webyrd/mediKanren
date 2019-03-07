@@ -35,7 +35,8 @@
   net/sendurl
   "db.rkt"
   "mk-db.rkt"
-  (except-in racket/match ==))
+  (except-in racket/match ==)
+  (only-in srfi/1 iota))
 
 (provide
   launch-gui)
@@ -1567,7 +1568,7 @@ edge format, with dbname at front (as used in edgeo):
   (define human-friendly-pretty-print-X-concepts-with-edges
     (lambda (X-concepts-with-edges)
       (for-each
-        (lambda (entry)
+        (lambda (entry index)
           (match entry
             [`(,dbname
                 ,s
@@ -1575,18 +1576,19 @@ edge format, with dbname at front (as used in edgeo):
                 ,edges)
               (printf "*** Edge group:")
               (for-each
-                (lambda (edge)
+                (lambda (edge) 
                   (match edge
                     [`(,dbname
-                        ,eid
-                        (,scid ,scui ,sname (,scatid . ,scat) . ,sprops)
-                        (,ocid ,ocui ,oname (,ocatid . ,ocat) . ,oprops)
-                        (,pid . ,pred) ,eprops)
-                      (let ((pubmed* (pubmed-URLs-from-edge edge)))
-                        (printf "\n~s\t~s\t~s\t~s\t~s\t~s\t~s PubMed Entries\n~s\n" dbname sname scat pred oname ocat (length pubmed*) pubmed*))]))
+                       ,eid
+                       (,scid ,scui ,sname (,scatid . ,scat) . ,sprops)
+                       (,ocid ,ocui ,oname (,ocatid . ,ocat) . ,oprops)
+                       (,pid . ,pred) ,eprops)
+                     (let ((pubmed* (pubmed-URLs-from-edge edge)))
+                       (printf "\n~s\t~s\t~s\t~s\t~s\t~s\t~s\t~s PubMed Entries\n~s\n" index dbname sname scat pred oname ocat (length pubmed*) pubmed*))]))
                 edges)
               (printf "***\n\n") ]))
-        X-concepts-with-edges)))
+        X-concepts-with-edges
+        (iota (length X-concepts-with-edges) 1))))
 
   (when WRITE_QUERY_RESULTS_TO_FILE
     (printf "saving all-X-concepts-with-edges to 'last.sx' file...\n")
