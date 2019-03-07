@@ -94,6 +94,8 @@ edge format, with dbname at front (as used in edgeo):
 (define semmed (time (make-db "data/semmed")))
 (displayln "loading monarch-lite")
 (define monarch (time (make-db "data/monarch-lite")))
+(displayln "loading orange")
+(define orange (time (make-db "data/orange")))
 (displayln "loading rtx")
 (define rtx (time (make-db "data/rtx")))
 ;(displayln "loading scigraph")
@@ -231,6 +233,7 @@ edge format, with dbname at front (as used in edgeo):
     (conde
       ((== 'semmed dbname) (db:edgeo semmed ee))
       ((== 'monarch dbname) (db:edgeo monarch ee))
+      ((== 'orange dbname) (db:edgeo orange ee))
       ((== 'rtx dbname) (db:edgeo rtx ee))
       )))
 
@@ -273,6 +276,7 @@ edge format, with dbname at front (as used in edgeo):
         (conde
           ((== 'semmed dbname) (find-conceptso semmed name* cc))
           ((== 'monarch dbname) (find-conceptso monarch name* cc))
+          ((== 'orange dbname) (find-conceptso orange name* cc))
           ((== 'rtx dbname) (find-conceptso rtx name* cc))
           )))))
 
