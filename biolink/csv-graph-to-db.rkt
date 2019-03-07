@@ -6,13 +6,15 @@
   )
 
 (define argv (current-command-line-arguments))
-(define argv-expected '#(GRAPH_DIR))
+(define argv-expected '#(DATA_DIR GRAPH_DIR))
 
 (when (not (= (vector-length argv-expected) (vector-length argv)))
   (error 'cmd-line-args (format "expected ~s; given ~s" argv-expected argv)))
 
-(define graph-dir (vector-ref argv 0))
-(define (graph-path fname) (expand-user-path (build-path graph-dir fname)))
+(define data-dir (vector-ref argv 0))
+(define graph-dir (vector-ref argv 1))
+(define (graph-path fname)
+  (expand-user-path (build-path data-dir graph-dir fname)))
 
 ;; Input
 ;; We don't need anything from *.node.csv to build the DB.
@@ -138,10 +140,14 @@
                       (hash-ref cui=>id&cat object-cui))
         (define (required-prop props key)
           (define kv (assoc key props))
-          (if kv (cdr kv) (error "missing required property:" id key)))
-        (define type (required-prop props "type"))
+          (and kv (cdr kv)))
+        (define type (or (required-prop props "edge_label")
+                         (required-prop props "type")
+                         (error "missing required property:" id key)))
         (define pid (add-predicate type))
-        (define (other-key? kv) (not (equal? "type" (car kv))))
+        (define (other-key? kv)
+          (not (ormap (lambda (k) (equal? k (car kv))) '("type" "edge_label"))))
+        ;(define (other-key? kv) (not (equal? "type" (car kv))))
         (set! subject=>edges
           (hash-set subject=>edges subject
                     (cons (edge->bytes
