@@ -279,6 +279,7 @@ edge format, with dbname at front (as used in edgeo):
         (conde
           ((== 'semmed dbname) (find-conceptso semmed name* cc))
           ((== 'monarch dbname) (find-conceptso monarch name* cc))
+          ((== 'orange dbname) (find-conceptso orange name* cc))
           ((== 'robokop1 dbname) (find-conceptso robokop1 name* cc))
           ((== 'rtx dbname) (find-conceptso rtx name* cc))
           )))))
