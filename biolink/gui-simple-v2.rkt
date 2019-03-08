@@ -59,6 +59,29 @@
 
 (define PUBMED_URL_PREFIX "https://www.ncbi.nlm.nih.gov/pubmed/")
 
+(define database-names:all
+  '(semmed monarch-lite orange robokop1 robokop2 rtx))
+(define database-names:omitted
+  (map string->symbol '()) ;; TODO: determine from a .gitignore-able text file?
+  )
+(define database-names
+  (foldl remove database-names:all database-names:omitted))
+
+(displayln "Starting mediKanren Explorer...")
+(displayln MEDIKANREN_VERSION_STRING)
+(displayln "Loading data sources...")
+(define databases
+  (map (lambda (name)
+         (printf "loading ~a\n" name)
+         (define path (string-append "data/" (symbol->string name)))
+         (cons name (time (make-db path))))
+       database-names))
+(displayln "Finished loading data sources")
+
+(define (conde/databases dbdesc->clause)
+  (foldr (lambda (desc rest) (conde ((dbdesc->clause desc)) (rest)))
+         (== #t #f) databases))
+
 #|
 concept format (subject or object), without dbname at front:
 
@@ -81,33 +104,6 @@ edge format, with dbname at front (as used in edgeo):
                (,ocid ,ocui ,oname (,ocatid . ,ocat) . ,oprops)
                (,pid . ,pred) . ,eprops)
 |#
-
-
-
-(displayln "Starting mediKanren Explorer...")
-(displayln MEDIKANREN_VERSION_STRING)
-
-(displayln "Loading data sources...")
-
-
-(displayln "loading semmed")
-(define semmed (time (make-db "data/semmed")))
-(displayln "loading monarch-lite")
-(define monarch (time (make-db "data/monarch-lite")))
-(displayln "loading orange")
-(define orange (time (make-db "data/orange")))
-(displayln "loading robokop1")
-(define robokop1 (time (make-db "data/robokop1")))
-(displayln "loading robokop2")
-(define robokop2 (time (make-db "data/robokop2")))
-(displayln "loading rtx")
-(define rtx (time (make-db "data/rtx")))
-;(displayln "loading scigraph")
-;(define scigraph (time (make-db "data/scigraph")))
-
-(displayln "Finished loading data sources")
-
-
 
 ;;; TODO
 ;;;
@@ -240,14 +236,11 @@ edge format, with dbname at front (as used in edgeo):
                (,ocid ,ocui ,oname (,ocatid . ,ocat) . ,oprops)
                (,pid . ,pred) . ,eprops)
         ee)
-    (conde
-      ((== 'semmed dbname) (db:edgeo semmed ee))
-      ((== 'monarch dbname) (db:edgeo monarch ee))
-      ((== 'orange dbname) (db:edgeo orange ee))
-      ((== 'robokop1 dbname) (db:edgeo robokop1 ee))
-      ((== 'robokop2 dbname) (db:edgeo robokop2 ee))
-      ((== 'rtx dbname) (db:edgeo rtx ee))
-      )))
+    (conde/databases
+      (lambda (db-desc)
+        (define tag (car db-desc))
+        (define db (cdr db-desc))
+        (fresh () (== tag dbname) (db:edgeo db ee))))))
 
 #|
 `(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
@@ -285,14 +278,11 @@ edge format, with dbname at front (as used in edgeo):
         ;; get rid of annoying .'s for properties!!
         (== `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props) c)
         (== `(,cid ,cui ,name (,catid . ,cat) . ,props) cc)
-        (conde
-          ((== 'semmed dbname) (find-conceptso semmed name* cc))
-          ((== 'monarch dbname) (find-conceptso monarch name* cc))
-          ((== 'orange dbname) (find-conceptso orange name* cc))
-          ((== 'robokop1 dbname) (find-conceptso robokop1 name* cc))
-          ((== 'robokop2 dbname) (find-conceptso robokop2 name* cc))
-          ((== 'rtx dbname) (find-conceptso rtx name* cc))
-          )))))
+        (conde/databases
+          (lambda (db-desc)
+            (define tag (car db-desc))
+            (define db (cdr db-desc))
+            (fresh () (== tag dbname) (find-conceptso db name* cc))))))))
 
 
 (define *verbose* #t)
