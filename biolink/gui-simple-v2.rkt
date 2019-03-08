@@ -98,6 +98,8 @@ edge format, with dbname at front (as used in edgeo):
 (define orange (time (make-db "data/orange")))
 (displayln "loading robokop1")
 (define robokop1 (time (make-db "data/robokop1")))
+(displayln "loading robokop2")
+(define robokop2 (time (make-db "data/robokop2")))
 (displayln "loading rtx")
 (define rtx (time (make-db "data/rtx")))
 ;(displayln "loading scigraph")
@@ -237,6 +239,7 @@ edge format, with dbname at front (as used in edgeo):
       ((== 'monarch dbname) (db:edgeo monarch ee))
       ((== 'orange dbname) (db:edgeo orange ee))
       ((== 'robokop1 dbname) (db:edgeo robokop1 ee))
+      ((== 'robokop2 dbname) (db:edgeo robokop2 ee))
       ((== 'rtx dbname) (db:edgeo rtx ee))
       )))
 
@@ -281,6 +284,7 @@ edge format, with dbname at front (as used in edgeo):
           ((== 'monarch dbname) (find-conceptso monarch name* cc))
           ((== 'orange dbname) (find-conceptso orange name* cc))
           ((== 'robokop1 dbname) (find-conceptso robokop1 name* cc))
+          ((== 'robokop2 dbname) (find-conceptso robokop2 name* cc))
           ((== 'rtx dbname) (find-conceptso rtx name* cc))
           )))))
 
