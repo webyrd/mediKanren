@@ -178,10 +178,16 @@ edge format, with dbname at front (as used in edgeo):
          [(assoc "publications" eprops)
           =>
           (lambda (pr)
-            (let ((pubmed* (regexp-match* #rx"'http://www.ncbi.nlm.nih.gov/pubmed/([0-9]+)'" (cdr pr) #:match-select cadr)))
-              (map (lambda (pubmed-id)
-                     (string-append PUBMED_URL_PREFIX (~a pubmed-id)))
-                   (rem-dups pubmed*))))]
+            (let ((pubs (cdr pr)))
+              (if (and (string? pubs) (> (string-length pubs) 0) (equal? (string-ref pubs 0) #\())
+                  (let ((pubmed* (regexp-match* #rx"PMID:([0-9]+)" pubs #:match-select cadr)))
+                    (map (lambda (pubmed-id)
+                           (string-append PUBMED_URL_PREFIX (~a pubmed-id)))
+                         (rem-dups pubmed*)))
+                  (let ((pubmed* (regexp-match* #rx"'http://www.ncbi.nlm.nih.gov/pubmed/([0-9]+)'" pubs #:match-select cadr)))
+                    (map (lambda (pubmed-id)
+                           (string-append PUBMED_URL_PREFIX (~a pubmed-id)))
+                         (rem-dups pubmed*))))))]
          [else '()])])))
 
 (define (pubmed-count e)
