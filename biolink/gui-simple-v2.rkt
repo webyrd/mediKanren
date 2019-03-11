@@ -62,10 +62,8 @@
 (define database-names:all
   '(
     semmed
-    ;monarch-lite
     orange
-    ;robokop1
-    robokop2
+    robokop
     rtx
     ))
 (define database-names:omitted
