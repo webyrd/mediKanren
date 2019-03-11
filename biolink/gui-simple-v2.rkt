@@ -60,7 +60,14 @@
 (define PUBMED_URL_PREFIX "https://www.ncbi.nlm.nih.gov/pubmed/")
 
 (define database-names:all
-  '(semmed monarch-lite orange robokop1 robokop2 rtx))
+  '(
+    semmed
+    ;monarch-lite
+    orange
+    ;robokop1
+    robokop2
+    rtx
+    ))
 (define database-names:omitted
   (map string->symbol '()) ;; TODO: determine from a .gitignore-able text file?
   )
