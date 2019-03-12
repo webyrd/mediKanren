@@ -1566,7 +1566,7 @@ edge format, with dbname at front (as used in edgeo):
                 ,edges)
               (printf "*** Edge group:")
               (for-each
-                (lambda (edge) 
+                (lambda (edge)
                   (match edge
                     [`(,dbname
                        ,eid
