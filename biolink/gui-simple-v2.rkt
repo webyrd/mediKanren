@@ -214,9 +214,9 @@ edge format, with dbname at front (as used in edgeo):
                   (,ocid ,ocui ,oname (,ocatid . ,ocat) ,oprops)
                   (,pid . ,pred) ,eprops)
         e)
-    (== `(,eid (,scid ,scui ,sname (,scatid . ,scat) . ,sprops)
-               (,ocid ,ocui ,oname (,ocatid . ,ocat) . ,oprops)
-               (,pid . ,pred) . ,eprops)
+    (== `(,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
+               (,ocid ,ocui ,oname (,ocatid . ,ocat) ,oprops)
+               (,pid . ,pred) ,eprops)
         ee)
     (conde/databases
       (lambda (db-desc)
@@ -259,7 +259,7 @@ edge format, with dbname at front (as used in edgeo):
       (fresh (cc dbname cid cui name catid cat props)
         ;; get rid of annoying .'s for properties!!
         (== `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props) c)
-        (== `(,cid ,cui ,name (,catid . ,cat) . ,props) cc)
+        (== `(,cid ,cui ,name (,catid . ,cat) ,props) cc)
         (conde/databases
           (lambda (db-desc)
             (define tag (car db-desc))
