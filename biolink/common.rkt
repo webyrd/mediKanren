@@ -1,7 +1,12 @@
 #lang racket/base
 (provide
+  load-databases
+  conde/databases
   config
   config-ref
+  path/data
+  path:data
+  path/root
   path:root)
 (require
   "mk-db.rkt"
@@ -10,6 +15,8 @@
 
 (define-runtime-path path:root ".")
 (define (path/root relative-path) (build-path path:root relative-path))
+(define path:data                 (path/root "data"))
+(define (path/data relative-path) (build-path path:data relative-path))
 
 (define path:config.user     (path/root "config.scm"))
 (define path:config.defaults (path/root "config.defaults.scm"))
@@ -30,3 +37,29 @@
   (define kv (assoc key config))
   (unless kv (error "missing configuration key:" key))
   (cdr kv))
+
+(define box:databases (box #f))
+(define (load-databases verbose?)
+  (define (load-dbs)
+    (filter (lambda (desc) desc)
+            (map (lambda (name)
+                   (define path (path/data (symbol->string name)))
+                   (cond ((directory-exists? path)
+                          (when verbose? (printf "loading ~a\n" name))
+                          (cons name (if verbose?
+                                       (time (make-db path))
+                                       (make-db path))))
+                         (else (when verbose?
+                                 (printf "cannot load ~a; " name)
+                                 (printf "directory missing: ~a\n" path))
+                               #f)))
+                 (config-ref 'databases))))
+  (cond ((unbox box:databases))
+        (else (when verbose? (displayln "Loading data sources..."))
+              (define dbs (load-dbs))
+              (set-box! box:databases dbs)
+              (when verbose? (displayln "Finished loading data sources"))
+              dbs)))
+(define (conde/databases dbdesc->clause)
+  (foldr (lambda (desc rest) (conde ((dbdesc->clause desc)) (rest)))
+         (== #t #f) (load-databases #t)))

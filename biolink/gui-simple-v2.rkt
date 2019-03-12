@@ -62,23 +62,7 @@
 
 (displayln "Starting mediKanren Explorer...")
 (displayln MEDIKANREN_VERSION_STRING)
-(displayln "Loading data sources...")
-(define databases
-  (filter (lambda (desc) desc)
-          (map (lambda (name)
-                 (define path (string-append "data/" (symbol->string name)))
-                 (cond ((directory-exists? (expand-user-path path))
-                        (printf "loading ~a\n" name)
-                        (cons name (time (make-db path))))
-                       (else (printf "cannot load ~a; " name)
-                             (printf "directory does not exist: ~a\n" path)
-                             #f)))
-               (config-ref 'databases))))
-(displayln "Finished loading data sources")
-
-(define (conde/databases dbdesc->clause)
-  (foldr (lambda (desc rest) (conde ((dbdesc->clause desc)) (rest)))
-         (== #t #f) databases))
+(void (load-databases #t))
 
 #|
 concept format (subject or object), without dbname at front:
