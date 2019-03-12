@@ -1,6 +1,7 @@
 #lang racket/base
 (provide
   ~name*-concepto
+  edgeo
   load-databases
   conde/databases
   config
@@ -66,6 +67,9 @@
            (conde ((dbdesc->clause (car desc) (cdr desc))) (rest)))
          (== #t #f) (load-databases #t)))
 
+#|
+concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
+|#
 (define (~name*-concepto ~name* concept)
   (conde/databases
     (lambda (dbname db)
@@ -76,3 +80,15 @@
           "" ;; ignored characters ('chars:ignore-typical' is pre-defined)
           "" ;; characters to split target name on for exact matching ('chars:split-typical' is pre-defined)
           db ~name* c)))))
+
+#|
+edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
+                      (,ocid ,ocui ,oname (,ocatid . ,ocat) ,oprops)
+                      (,pid . ,pred) ,eprops)
+|#
+(define (edgeo edge)
+  (conde/databases
+    (lambda (dbname db)
+      (fresh (e)
+        (== `(,dbname . ,e) edge)
+        (db:edgeo db e)))))

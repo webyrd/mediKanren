@@ -199,31 +199,12 @@ edge format, with dbname at front (as used in edgeo):
       [else #f])))
 (define (sort-paths paths) (sort paths path-confidence<?))
 
-
-#|
-`(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
-               (,ocid ,ocui ,oname (,ocatid . ,ocat) ,oprops)
-               (,pid . ,pred) ,eprops)
-|#
-(define (edgeo e)
-  (fresh (ee dbname eid scid scui sname scatid scat sprops
-                 ocid ocui oname ocatid ocat oprops
-                 pid pred eprops)
-    ;; get rid of annoying .'s for properties!!
-    (== `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
-                  (,ocid ,ocui ,oname (,ocatid . ,ocat) ,oprops)
-                  (,pid . ,pred) ,eprops)
-        e)
-    (== `(,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
-               (,ocid ,ocui ,oname (,ocatid . ,ocat) ,oprops)
-               (,pid . ,pred) ,eprops)
-        ee)
-    (conde/databases
-      (lambda (tag db)
-        (fresh () (== tag dbname) (db:edgeo db ee))))))
-
 (define (split-name-string name)
   (string-split name #px"\\s+"))
+
+#|
+concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
+|#
 (define (fuzzy-concepto n c)
   (~name*-concepto (split-name-string n) c))
 
