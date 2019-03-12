@@ -1,5 +1,6 @@
 #lang racket/base
 (provide
+  ~name*-concepto
   load-databases
   conde/databases
   config
@@ -61,5 +62,17 @@
               (when verbose? (displayln "Finished loading data sources"))
               dbs)))
 (define (conde/databases dbdesc->clause)
-  (foldr (lambda (desc rest) (conde ((dbdesc->clause desc)) (rest)))
+  (foldr (lambda (desc rest)
+           (conde ((dbdesc->clause (car desc) (cdr desc))) (rest)))
          (== #t #f) (load-databases #t)))
+
+(define (~name*-concepto ~name* concept)
+  (conde/databases
+    (lambda (dbname db)
+      (fresh (c)
+        (== `(,dbname . ,c) concept)
+        (db:~name*-concepto/options
+          #f ;; case sensitivity flag
+          "" ;; ignored characters ('chars:ignore-typical' is pre-defined)
+          "" ;; characters to split target name on for exact matching ('chars:split-typical' is pre-defined)
+          db ~name* c)))))

@@ -201,9 +201,9 @@ edge format, with dbname at front (as used in edgeo):
 
 
 #|
-`(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) . ,sprops)
-               (,ocid ,ocui ,oname (,ocatid . ,ocat) . ,oprops)
-               (,pid . ,pred) . ,eprops)
+`(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
+               (,ocid ,ocui ,oname (,ocatid . ,ocat) ,oprops)
+               (,pid . ,pred) ,eprops)
 |#
 (define (edgeo e)
   (fresh (ee dbname eid scid scui sname scatid scat sprops
@@ -219,53 +219,13 @@ edge format, with dbname at front (as used in edgeo):
                (,pid . ,pred) ,eprops)
         ee)
     (conde/databases
-      (lambda (db-desc)
-        (define tag (car db-desc))
-        (define db (cdr db-desc))
+      (lambda (tag db)
         (fresh () (== tag dbname) (db:edgeo db ee))))))
-
-#|
-`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
-|#
-#|
-(define (fuzzy-concepto n c)
-  (fresh (cc dbname cid cui name catid cat props)
-    ;; get rid of annoying .'s for properties!!
-    (== `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props) c)
-    (== `(,cid ,cui ,name (,catid . ,cat) . ,props) cc)
-    (conde
-      ((== 'semmed dbname) (db:~name-concepto semmed n cc))
-      ((== 'monarch dbname) (db:~name-concepto monarch n cc))
-      ((== 'rtx dbname) (db:~name-concepto rtx n cc))
-      )))
-|#
 
 (define (split-name-string name)
   (string-split name #px"\\s+"))
-
 (define (fuzzy-concepto n c)
-  ;; (printf "fuzzy concept search...\n")
-  ;; (printf "name string: ~s\n" n)
-  (let ((name* (split-name-string n)))
-    ;; (printf "name*: ~s\n" name*)
-    (let ((find-conceptso (lambda (db name* cc)
-                            (db:~name*-concepto/options
-                             #f ;; case sensitivity flag
-                             "" ;; ignored characters ('chars:ignore-typical' is pre-defined)
-                             "" ;; characters to split target name on for exact matching ('chars:split-typical' is pre-defined)
-                             db
-                             name*
-                             cc))))
-      (fresh (cc dbname cid cui name catid cat props)
-        ;; get rid of annoying .'s for properties!!
-        (== `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props) c)
-        (== `(,cid ,cui ,name (,catid . ,cat) ,props) cc)
-        (conde/databases
-          (lambda (db-desc)
-            (define tag (car db-desc))
-            (define db (cdr db-desc))
-            (fresh () (== tag dbname) (find-conceptso db name* cc))))))))
-
+  (~name*-concepto (split-name-string n) c))
 
 (define *verbose* #t)
 
