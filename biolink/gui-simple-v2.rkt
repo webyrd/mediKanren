@@ -27,6 +27,7 @@
 
 
 (require
+  "common.rkt"
   racket/sandbox
   racket/gui/base
   racket/engine
@@ -59,19 +60,6 @@
 
 (define PUBMED_URL_PREFIX "https://www.ncbi.nlm.nih.gov/pubmed/")
 
-(define database-names:all
-  '(
-    semmed
-    orange
-    robokop
-    rtx
-    ))
-(define database-names:omitted
-  (map string->symbol '()) ;; TODO: determine from a .gitignore-able text file?
-  )
-(define database-names
-  (foldl remove database-names:all database-names:omitted))
-
 (displayln "Starting mediKanren Explorer...")
 (displayln MEDIKANREN_VERSION_STRING)
 (displayln "Loading data sources...")
@@ -85,7 +73,7 @@
                        (else (printf "cannot load ~a; " name)
                              (printf "directory does not exist: ~a\n" path)
                              #f)))
-               database-names)))
+               (config-ref 'databases))))
 (displayln "Finished loading data sources")
 
 (define (conde/databases dbdesc->clause)

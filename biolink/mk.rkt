@@ -25,7 +25,7 @@
   mplus*
   bind
   bind*
-  take take-stream
+  take-stream
   reify
   )
 
