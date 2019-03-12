@@ -249,7 +249,7 @@ edge format, with dbname at front (as used in edgeo):
   (let ((name* (split-name-string n)))
     ;; (printf "name*: ~s\n" name*)
     (let ((find-conceptso (lambda (db name* cc)
-                            (db:~name-concepto/options
+                            (db:~name*-concepto/options
                              #f ;; case sensitivity flag
                              "" ;; ignored characters ('chars:ignore-typical' is pre-defined)
                              "" ;; characters to split target name on for exact matching ('chars:split-typical' is pre-defined)

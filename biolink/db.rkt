@@ -22,7 +22,7 @@
   db:~predicate->pid&predicate*
   db:~name->cid&concept*
   db:~cui->cid&concept*
-  db:~name->cid&concept*/options
+  db:~name*->cid&concept*/options
 
   chars:ignore-typical
   chars:split-typical
@@ -148,8 +148,8 @@
 (define chars:ignore-typical "-")
 (define chars:split-typical "\t\n\v\f\r !\"#$%&'()*+,./:;<=>?@\\[\\\\\\]\\^_`{|}~")
 
-(define (~string->offset&value*
-          case-sensitive? chars:ignore chars:split offset&value* vals v->str)
+(define (~string*->offset&value*
+          case-sensitive? chars:ignore chars:split offset&value* str* v->str)
   (define re:ignore (and (non-empty-string? chars:ignore)
                          (pregexp (string-append "[" chars:ignore "]"))))
   (define re:split (and (non-empty-string? chars:split)
@@ -158,32 +158,26 @@
     (define pruned (if re:ignore (string-replace s re:ignore "") s))
     (if case-sensitive? pruned (string-downcase pruned)))
   (define (contains-upcase? s) (not (string=? s (string-downcase s))))
-  (define vals/case-sensitive?
-    (map (lambda (s) (cons s (or case-sensitive? (contains-upcase? s)))) vals))
-  (define needles/case-sensitive?
-    (map (lambda (v/case-sensitive?)
-           (let ((v (car v/case-sensitive?))
-                 (case-sensitive? (cdr v/case-sensitive?)))
-             (cons (normalize v case-sensitive?) case-sensitive?)))
-         vals/case-sensitive?))
+  (define case-sensitive?*
+    (map (lambda (s) (or case-sensitive? (contains-upcase? s))) str*))
+  (define needles
+    (map (lambda (v case-sensitive?) (normalize v case-sensitive?))
+         str* case-sensitive?*))
   (define (p? v)
     (define hay (v->str (cdr v)))
     (and hay
-         (andmap (if re:split
-                   (lambda (n/case-sensitive?)
-                     (let ((n (car n/case-sensitive?))
-                           (case-sensitive? (cdr n/case-sensitive?)))
-                       (ormap (lambda (s case-sensitive?) (string=? s n))
-                              (string-split (normalize hay case-sensitive?) re:split))))
-                   (lambda (n/case-sensitive?)
-                     (let ((n (car n/case-sensitive?))
-                           (case-sensitive? (cdr n/case-sensitive?)))
-                       (string-contains? (normalize hay case-sensitive?) n))))
-                 needles/case-sensitive?)))
+         (andmap
+           (if re:split
+             (lambda (n case-sensitive?)
+               (ormap (lambda (s) (string=? s n))
+                      (string-split (normalize hay case-sensitive?) re:split)))
+             (lambda (n case-sensitive?)
+               (string-contains? (normalize hay case-sensitive?) n)))
+           needles case-sensitive?*)))
   (stream-filter p? offset&value*))
 
-(define (simple~string->offset&value* offset&value* value v->str)
-  (~string->offset&value* #f "" "" offset&value* (list value) v->str))
+(define (simple~string->offset&value* offset&value* str v->str)
+  (~string*->offset&value* #f "" "" offset&value* (list str) v->str))
 
 (define (db:~category->catid&category* db ~category)
   (simple~string->offset&value*
@@ -195,12 +189,12 @@
     ~predicate (lambda (v) v)))
 (define (db:~name->cid&concept* db ~name)
   (simple~string->offset&value* (vector->stream-offset&values (db:concept* db))
-                          ~name concept-name))
+                                ~name concept-name))
 (define (db:~cui->cid&concept* db ~cui)
   (simple~string->offset&value* (vector->stream-offset&values (db:concept* db))
                                 ~cui concept-cui))
-(define (db:~name->cid&concept*/options
-          case-sensitive? chars:ignore chars:split db ~name)
-  (~string->offset&value* case-sensitive? chars:ignore chars:split
-                          (vector->stream-offset&values (db:concept* db))
-                          ~name concept-name))
+(define (db:~name*->cid&concept*/options
+          case-sensitive? chars:ignore chars:split db ~name*)
+  (~string*->offset&value* case-sensitive? chars:ignore chars:split
+                           (vector->stream-offset&values (db:concept* db))
+                           ~name* concept-name))
