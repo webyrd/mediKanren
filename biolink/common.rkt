@@ -1,7 +1,11 @@
 #lang racket/base
 (provide
   ~name*-concepto
+  ~cui-concepto
+  ~categoryo
+  ~predicateo
   edgeo
+  pmid-edgeo
 
   pubmed-URLs-from-edge
   pubmed-count
@@ -110,6 +114,23 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
           "" ;; ignored characters ('chars:ignore-typical' is pre-defined)
           "" ;; characters to split target name on for exact matching ('chars:split-typical' is pre-defined)
           db ~name* c)))))
+(define (~cui-concepto ~cui concept)
+  (conde/databases
+    (lambda (dbname db)
+      (fresh (c) (== `(,dbname . ,c) concept)
+        (db:~cui-concepto db ~cui c)))))
+(define (~categoryo ~category-name category)
+  (conde/databases
+    (lambda (dbname db)
+      (fresh (c)
+        (== `(,dbname . ,c) category)
+        (db:~categoryo db ~category-name c)))))
+(define (~predicateo ~predicate-name predicate)
+  (conde/databases
+    (lambda (dbname db)
+      (fresh (p)
+        (== `(,dbname . ,p) predicate)
+        (db:~predicateo db ~predicate-name p)))))
 
 #|
 edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
@@ -122,6 +143,13 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
       (fresh (e)
         (== `(,dbname . ,e) edge)
         (db:edgeo db e)))))
+(define (pmid-edgeo pmid edge)
+  (conde/databases
+    (lambda (dbname db)
+      (fresh (eid body)
+        (== `(,dbname ,eid . ,body) edge)
+        (db:pmid-eido db pmid eid)
+        (edgeo edge)))))
 
 (define PUBMED_URL_PREFIX "https://www.ncbi.nlm.nih.gov/pubmed/")
 (define (pubmed-URLs-from-edge edge)
