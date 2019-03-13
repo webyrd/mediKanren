@@ -42,15 +42,6 @@
 (provide
   launch-gui)
 
-;;; Query save file settings
-(define WRITE_QUERY_RESULTS_TO_FILE #t) ;; #t will write the query and results to file, #f will not
-(define QUERY_RESULTS_FILE_NAME "last.sx")
-(define HUMAN_FRIENDLY_QUERY_RESULTS_FILE_NAME "last.txt")
-;; Uncomment exactly one of these:
-(define QUERY_RESULTS_FILE_MODE 'replace)   ;; clobber the save file each time you run a query
-;; (define QUERY_RESULTS_FILE_MODE 'append) ;; save all the queries
-
-
 (define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.9")
 
 ;;; Synthetic predicates
@@ -69,6 +60,12 @@
 ;; Loading will occur at first use if not explicitly forced like this.
 (load-config #t (and (<= 1 (vector-length argv)) (vector-ref argv 0)))
 (load-databases #t)
+
+;;; Query save file settings
+(define WRITE_QUERY_RESULTS_TO_FILE            (config-ref 'query-results.write-to-file?))
+(define QUERY_RESULTS_FILE_NAME                (config-ref 'query-results.file-name))
+(define HUMAN_FRIENDLY_QUERY_RESULTS_FILE_NAME (config-ref 'query-results.file-name-human))
+(define QUERY_RESULTS_FILE_MODE                (config-ref 'query-results.file-mode))
 
 #|
 concept format (subject or object), without dbname at front:
