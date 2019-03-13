@@ -1458,20 +1458,25 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
         (iota (length X-concepts-with-edges) 1))))
 
   (when WRITE_QUERY_RESULTS_TO_FILE
-    (printf "saving all-X-concepts-with-edges to 'last.sx' file...\n")
+
+    (printf "saving all-X-concepts-with-edges to '~a' file...\n"
+            QUERY_RESULTS_FILE_NAME)
     (pretty-print-X-concepts-with-edges
       QUERY_RESULTS_FILE_NAME
       pretty-print
       #t ;; print-low-level-query-information flag
       all-X-concepts-with-edges)
-    (printf "saved all-X-concepts-with-edges to 'last.sx' file\n")
-    (printf "saving human-friendly version of all-X-concepts-with-edges to 'last.txt' file...\n")
+    (printf "saved all-X-concepts-with-edges to '~a' file\n"
+            QUERY_RESULTS_FILE_NAME)
+    (printf "saving human-friendly version of all-X-concepts-with-edges to '~a' file...\n"
+            HUMAN_FRIENDLY_QUERY_RESULTS_FILE_NAME)
     (pretty-print-X-concepts-with-edges
       HUMAN_FRIENDLY_QUERY_RESULTS_FILE_NAME
       human-friendly-pretty-print-X-concepts-with-edges
       #f ;; print-low-level-query-information flag
       all-X-concepts-with-edges)
-    (printf "saved human-friendly version of all-X-concepts-with-edges to 'last.txt' file\n"))
+    (printf "saved human-friendly version of all-X-concepts-with-edges to '~a' file\n"
+            HUMAN_FRIENDLY_QUERY_RESULTS_FILE_NAME))
 
   #|
   (define pretty-print-X-concepts-with-edges
