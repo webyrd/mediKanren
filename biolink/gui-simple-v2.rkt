@@ -58,8 +58,6 @@
 (define DECREASES_PREDICATE_NAMES '("negatively_regulates" "prevents" "treats"))
 (define INCREASES_PREDICATE_NAMES '("positively_regulates" "causes" "produces"))
 
-(define PUBMED_URL_PREFIX "https://www.ncbi.nlm.nih.gov/pubmed/")
-
 (define argv (current-command-line-arguments))
 (define argv-optional '#(CONFIG_FILE))
 
@@ -139,65 +137,6 @@ edge format, with dbname at front (as used in edgeo):
       (conde
         [(== x y)]
         [(=/= x y) (membero x rest)]))))
-
-(define pubmed-URLs-from-edge
-  (lambda (edge)
-    (match edge
-      ['path-separator '()]
-      [`(,dbname ,eid ,subj ,obj ,p ,eprops)
-       (cond
-         [(assoc "pmids" eprops) ;; WEB this property is only used by semmed, I believe
-          =>
-          (lambda (pr)
-            (let ((pubmed* (regexp-split #rx";" (cdr pr))))
-              (map (lambda (pubmed-id)
-                     (string-append PUBMED_URL_PREFIX (~a pubmed-id)))
-                   (remove-duplicates pubmed*))))]
-         [(assoc "publications" eprops)
-          =>
-          (lambda (pr)
-            (let ((pubs (cdr pr)))
-              (if (and (string? pubs) (> (string-length pubs) 0) (equal? (string-ref pubs 0) #\())
-                  (let ((pubmed* (regexp-match* #rx"PMID:([0-9]+)" pubs #:match-select cadr)))
-                    (map (lambda (pubmed-id)
-                           (string-append PUBMED_URL_PREFIX (~a pubmed-id)))
-                         (remove-duplicates pubmed*)))
-                  (let ((pubmed* (regexp-match* #rx"'http://www.ncbi.nlm.nih.gov/pubmed/([0-9]+)'" pubs #:match-select cadr)))
-                    (map (lambda (pubmed-id)
-                           (string-append PUBMED_URL_PREFIX (~a pubmed-id)))
-                         (remove-duplicates pubmed*))))))]
-         [else '()])])))
-
-(define (pubmed-count e)
-  (length (pubmed-URLs-from-edge e)))
-
-(define (path-confidence p)
-  (define (weight-linear+1 n) (+ 1 n))
-  (define (weight-exponential n) (expt 2 n))
-  ;; To experiment with sorting, try to only change the weight calculation
-  ;; being used.  Leave everything else the same.
-  (define weight weight-exponential)
-  (define (confidence/edge e) (- 1 (/ 1.0 (weight (pubmed-count e)))))
-  (foldl * 1 (map confidence/edge p)))
-(define (path-confidence<? p1 p2)
-  (let ((pc1 (path-confidence p1))
-        (pc2 (path-confidence p2)))
-    (cond
-      [(= pc1 pc2)
-       (let ((pubmed-count*1 (map pubmed-count p1))
-             (pubmed-count*2 (map pubmed-count p2)))
-         (let ((min-pubmed-count1 (apply min pubmed-count*1))
-               (min-pubmed-count2 (apply min pubmed-count*2)))
-           (cond
-             [(= min-pubmed-count1 min-pubmed-count2)
-              (let ((max-pubmed-count1 (apply max pubmed-count*1))
-                    (max-pubmed-count2 (apply max pubmed-count*2)))
-                (not (> max-pubmed-count1 max-pubmed-count2)))]
-             [(< min-pubmed-count1 min-pubmed-count2) #t]
-             [else #f])))]
-      [(< pc1 pc2) #t]
-      [else #f])))
-(define (sort-paths paths) (sort paths path-confidence<?))
 
 (define (split-name-string name)
   (string-split name #px"\\s+"))
