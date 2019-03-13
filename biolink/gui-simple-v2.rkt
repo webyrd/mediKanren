@@ -70,24 +70,24 @@
 #|
 concept format (subject or object), without dbname at front:
 
-`(,cid ,cui ,name (,catid . ,cat) . ,props)
+`(,cid ,cui ,name (,catid . ,cat) ,props)
 
 concept format (subject or object), with dbname at front (as used in fuzzy-concepto):
 
-`(,dbname ,cid ,cui ,name (,catid . ,cat) . ,props)
+`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
 
 
 edge format, without dbname at front:
 
-`(,eid (,scid ,scui ,sname (,scatid . ,scat) . ,sprops)
-       (,ocid ,ocui ,oname (,ocatid . ,ocat) . ,oprops)
-       (,pid . ,pred) . ,eprops)
+`(,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
+       (,ocid ,ocui ,oname (,ocatid . ,ocat) ,oprops)
+       (,pid . ,pred) ,eprops)
 
 edge format, with dbname at front (as used in edgeo):
 
-`(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) . ,sprops)
-               (,ocid ,ocui ,oname (,ocatid . ,ocat) . ,oprops)
-               (,pid . ,pred) . ,eprops)
+`(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
+               (,ocid ,ocui ,oname (,ocatid . ,ocat) ,oprops)
+               (,pid . ,pred) ,eprops)
 |#
 
 ;;; TODO
