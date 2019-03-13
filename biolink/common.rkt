@@ -124,37 +124,26 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
         (db:edgeo db e)))))
 
 (define PUBMED_URL_PREFIX "https://www.ncbi.nlm.nih.gov/pubmed/")
-(define pubmed-URLs-from-edge
-  (lambda (edge)
+(define (pubmed-URLs-from-edge edge)
+  (define pubmed*
     (match edge
       ['path-separator '()]
       [`(,dbname ,eid ,subj ,obj ,p ,eprops)
-        (cond
-          [(assoc "pmids" eprops) ;; WEB this property is only used by semmed, I believe
-           =>
-           (lambda (pr)
-             (let ((pubmed* (regexp-split #rx";" (cdr pr))))
-               (map (lambda (pubmed-id)
-                      (string-append PUBMED_URL_PREFIX (~a pubmed-id)))
-                    (remove-duplicates pubmed*))))]
-          [(assoc "publications" eprops)
-           =>
-           (lambda (pr)
-             (let ((pubs (cdr pr)))
-               (if (and (string? pubs)
-                        (> (string-length pubs) 0)
-                        (equal? (string-ref pubs 0) #\())
-                 (let ((pubmed* (regexp-match* #rx"PMID:([0-9]+)"
-                                               pubs #:match-select cadr)))
-                   (map (lambda (pubmed-id)
-                          (string-append PUBMED_URL_PREFIX (~a pubmed-id)))
-                        (remove-duplicates pubmed*)))
-                 (let ((pubmed* (regexp-match* #rx"'http://www.ncbi.nlm.nih.gov/pubmed/([0-9]+)'"
-                                               pubs #:match-select cadr)))
-                   (map (lambda (pubmed-id)
-                          (string-append PUBMED_URL_PREFIX (~a pubmed-id)))
-                        (remove-duplicates pubmed*))))))]
-          [else '()])])))
+        (cond [(assoc "pmids" eprops) ;; WEB this property is only used by semmed, I believe
+               => (lambda (pr) (regexp-split #rx";" (cdr pr)))]
+              [(assoc "publications" eprops)
+               => (lambda (pr)
+                    (define pubs (cdr pr))
+                    (if (not (string? pubs)) '()
+                      (regexp-match*
+                        (if (and (> (string-length pubs) 0)
+                                 (equal? (string-ref pubs 0) #\())
+                          #rx"PMID:([0-9]+)"
+                          #rx"'http://www.ncbi.nlm.nih.gov/pubmed/([0-9]+)'")
+                        pubs #:match-select cadr)))]
+              [else '()])]))
+  (map (lambda (pubmed-id) (string-append PUBMED_URL_PREFIX (~a pubmed-id)))
+       (remove-duplicates pubmed*)))
 
 (define (pubmed-count e)
   (length (pubmed-URLs-from-edge e)))
