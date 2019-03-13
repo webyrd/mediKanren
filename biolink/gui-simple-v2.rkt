@@ -132,14 +132,6 @@ edge format, with dbname at front (as used in edgeo):
         [(== x y)]
         [(=/= x y) (membero x rest)]))))
 
-;; remove duplicates from a list
-(define rem-dups
-  (lambda (ls)
-    (cond
-      [(null? ls) '()]
-      [(member (car ls) (cdr ls)) (rem-dups (cdr ls))]
-      [else (cons (car ls) (rem-dups (cdr ls)))])))
-
 (define pubmed-URLs-from-edge
   (lambda (edge)
     (match edge
@@ -152,7 +144,7 @@ edge format, with dbname at front (as used in edgeo):
             (let ((pubmed* (regexp-split #rx";" (cdr pr))))
               (map (lambda (pubmed-id)
                      (string-append PUBMED_URL_PREFIX (~a pubmed-id)))
-                   (rem-dups pubmed*))))]
+                   (remove-duplicates pubmed*))))]
          [(assoc "publications" eprops)
           =>
           (lambda (pr)
@@ -161,11 +153,11 @@ edge format, with dbname at front (as used in edgeo):
                   (let ((pubmed* (regexp-match* #rx"PMID:([0-9]+)" pubs #:match-select cadr)))
                     (map (lambda (pubmed-id)
                            (string-append PUBMED_URL_PREFIX (~a pubmed-id)))
-                         (rem-dups pubmed*)))
+                         (remove-duplicates pubmed*)))
                   (let ((pubmed* (regexp-match* #rx"'http://www.ncbi.nlm.nih.gov/pubmed/([0-9]+)'" pubs #:match-select cadr)))
                     (map (lambda (pubmed-id)
                            (string-append PUBMED_URL_PREFIX (~a pubmed-id)))
-                         (rem-dups pubmed*))))))]
+                         (remove-duplicates pubmed*))))))]
          [else '()])])))
 
 (define (pubmed-count e)
