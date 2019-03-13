@@ -2,6 +2,7 @@
 (provide
   ~name*-concepto
   edgeo
+  databases
   load-databases
   conde/databases
   config
@@ -41,6 +42,11 @@
   (cdr kv))
 
 (define box:databases (box #f))
+(define (databases)
+  (define dbs (unbox box:databases))
+  (cond (dbs dbs)
+        (else (load-databases #t)
+              (unbox box:databases))))
 (define (load-databases verbose?)
   (define (load-dbs)
     (filter (lambda (desc) desc)
@@ -56,16 +62,15 @@
                                  (printf "directory missing: ~a\n" path))
                                #f)))
                  (config-ref 'databases))))
-  (cond ((unbox box:databases))
-        (else (when verbose? (displayln "Loading data sources..."))
-              (define dbs (load-dbs))
-              (set-box! box:databases dbs)
-              (when verbose? (displayln "Finished loading data sources"))
-              dbs)))
+  (unless (unbox box:databases)
+    (when verbose? (displayln "Loading data sources..."))
+    (define dbs (load-dbs))
+    (set-box! box:databases dbs)
+    (when verbose? (displayln "Finished loading data sources"))))
 (define (conde/databases dbdesc->clause)
   (foldr (lambda (desc rest)
            (conde ((dbdesc->clause (car desc) (cdr desc))) (rest)))
-         (== #t #f) (load-databases #t)))
+         (== #t #f) (databases)))
 
 #|
 concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)

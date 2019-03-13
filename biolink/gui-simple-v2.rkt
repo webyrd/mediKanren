@@ -62,7 +62,7 @@
 
 (displayln "Starting mediKanren Explorer...")
 (displayln MEDIKANREN_VERSION_STRING)
-(void (load-databases #t))
+(load-databases #t)
 
 #|
 concept format (subject or object), without dbname at front:
