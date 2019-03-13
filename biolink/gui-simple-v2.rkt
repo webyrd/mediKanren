@@ -60,8 +60,16 @@
 
 (define PUBMED_URL_PREFIX "https://www.ncbi.nlm.nih.gov/pubmed/")
 
+(define argv (current-command-line-arguments))
+(define argv-optional '#(CONFIG_FILE))
+
+(when (not (<= (vector-length argv) (vector-length argv-optional)))
+  (error "optional arguments ~s; given ~s" argv-optional argv))
+
 (displayln "Starting mediKanren Explorer...")
 (displayln MEDIKANREN_VERSION_STRING)
+;; Loading will occur at first use if not explicitly forced like this.
+(load-config #t (and (<= 1 (vector-length argv)) (vector-ref argv 0)))
 (load-databases #t)
 
 #|
