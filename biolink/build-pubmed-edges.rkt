@@ -2,17 +2,18 @@
 (require
   "repr.rkt"
   racket/match
-  racket/stream
-  )
+  racket/stream)
 
 (define argv (current-command-line-arguments))
-(define argv-expected '#(GRAPH_DIR))
+(define argv-expected '#(DATA_DIR GRAPH_DIR))
 
 (when (not (= (vector-length argv-expected) (vector-length argv)))
-  (error 'cmd-line-args (format "expected ~s; given ~s" argv-expected argv)))
+  (error "command line argument mismatch:" argv-expected argv))
 
-(define graph-dir (vector-ref argv 0))
-(define (graph-path fname) (expand-user-path (build-path graph-dir fname)))
+(define data-dir (vector-ref argv 0))
+(define graph-dir (vector-ref argv 1))
+(define (graph-path fname)
+  (expand-user-path (build-path data-dir graph-dir fname)))
 
 (define (call-with-?-files cw?f paths proc)
   (let loop ((paths paths) (ports '()))

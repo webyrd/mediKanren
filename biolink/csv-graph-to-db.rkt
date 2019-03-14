@@ -9,7 +9,7 @@
 (define argv-expected '#(DATA_DIR GRAPH_DIR))
 
 (when (not (= (vector-length argv-expected) (vector-length argv)))
-  (error 'cmd-line-args (format "expected ~s; given ~s" argv-expected argv)))
+  (error "command line argument mismatch:" argv-expected argv))
 
 (define data-dir (vector-ref argv 0))
 (define graph-dir (vector-ref argv 1))
