@@ -21,6 +21,9 @@
   config-ref
   load-config
 
+  read/file
+  read/string
+
   path-simple
   path/data
   path:data
@@ -32,7 +35,11 @@
   racket/format
   racket/list
   (except-in racket/match ==)
-  racket/runtime-path)
+  racket/runtime-path
+  racket/port)
+
+(define (read/file path)  (with-input-from-file  path (lambda () (read))))
+(define (read/string str) (with-input-from-string str (lambda () (read))))
 
 (define-runtime-path path:root ".")
 (define (path/root relative-path) (build-path path:root relative-path))
@@ -57,12 +64,10 @@
                          (path-simple path:config.defaults)))
   (when verbose? (printf "loading configuration overrides: ~a\n"
                          (path-simple path:config.user)))
-  (define config.user          (if (file-exists? path:config.user)
-                                 (with-input-from-file path:config.user
-                                                       (lambda () (read)))
-                                 '()))
-  (define config.defaults      (with-input-from-file path:config.defaults
-                                                     (lambda () (read))))
+  (define config.user     (if (file-exists? path:config.user)
+                            (read/file path:config.user)
+                            '()))
+  (define config.defaults (read/file path:config.defaults))
   (unless (and (list? config.user) (andmap pair? config.user))
     (error "invalid configuration overrides:" config.user))
   (define user-keys (map car config.user))
