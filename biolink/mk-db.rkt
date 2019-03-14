@@ -96,10 +96,16 @@
           (if (<= len i) fail
             (let ((cid (vector-ref cid* i)))
               (conde
-                ((== (cons cid (v->concept (vector-ref (db:concept* db) cid)))
-                     concept))
+                ((== (cons cid (v->concept (db:cid->concept db cid))) concept))
                 ((loop (+ i 1))))))))
-      (_ (vector-refo v->concept (db:concept* db) concept)))))
+      (`(,(and cid (? integer?)) . ,_)
+        (== (cons cid (v->concept (db:cid->concept db cid))) concept))
+      (_ (let loop ((c&c* (db:cid&concept-stream db)))
+           (if (stream-empty? c&c*) fail
+             (let ((c&c (stream-first c&c*)))
+               (conde
+                 ((== (cons (car c&c) (v->concept (cdr c&c))) concept))
+                 ((loop (stream-rest c&c*)))))))))))
 
 (define (db:edgeo db edge)
   (define (edge-propso eid scid ocid pid eprops)

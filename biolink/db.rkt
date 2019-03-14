@@ -4,7 +4,6 @@
 
   db:category*
   db:predicate*
-  db:concept*
 
   db:catid->category
   db:pid->predicate
@@ -124,14 +123,13 @@
     (if (eof-object? pmid&eid*) '() (cdr pmid&eid*)))
   (define (pmid&eid*-stream) (detail-stream in-pubmed-edges))
 
-  (vector category* predicate* concept* catid->cid* cid->concept eid->edge
+  (vector category* predicate* #t catid->cid* cid->concept eid->edge
           cid&concept-stream eid&edge/props-stream
           subject->edge-stream object->edge-stream
           pmid->eid* pmid&eid*-stream))
 
 (define (db:category*             db)        (vector-ref db 0))
 (define (db:predicate*            db)        (vector-ref db 1))
-(define (db:concept*              db)        (vector-ref db 2))
 (define (db:catid->cid*           db . args) (apply (vector-ref db 3) args))
 (define (db:cid->concept          db . args) (apply (vector-ref db 4) args))
 (define (db:eid->edge             db . args) (apply (vector-ref db 5) args))
@@ -188,13 +186,10 @@
     (vector->stream-offset&values (db:predicate* db))
     ~predicate (lambda (v) v)))
 (define (db:~name->cid&concept* db ~name)
-  (simple~string->offset&value* (vector->stream-offset&values (db:concept* db))
-                                ~name concept-name))
+  (simple~string->offset&value* (db:cid&concept-stream db) ~name concept-name))
 (define (db:~cui->cid&concept* db ~cui)
-  (simple~string->offset&value* (vector->stream-offset&values (db:concept* db))
-                                ~cui concept-cui))
+  (simple~string->offset&value* (db:cid&concept-stream db) ~cui concept-cui))
 (define (db:~name*->cid&concept*/options
           case-sensitive? chars:ignore chars:split db ~name*)
   (~string*->offset&value* case-sensitive? chars:ignore chars:split
-                           (vector->stream-offset&values (db:concept* db))
-                           ~name* concept-name))
+                           (db:cid&concept-stream db) ~name* concept-name))
