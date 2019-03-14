@@ -17,10 +17,16 @@
   edge->bytes
   bytes->edge
 
+  suffix-key->bytes
+  bytes->suffix-key
+  write-suffix-keys
+  port->suffix-keys
+
   stream-edges-by-X
   port->stream-offset&values
   vector->stream-offset&values
 
+  write-scm
   offset-write
   offset-count
   offset-ref
@@ -28,8 +34,7 @@
   detail-ref
   detail-next
   detail-write
-  detail-stream
-  )
+  detail-stream)
 
 (require racket/stream)
 
@@ -50,11 +55,10 @@
 (define (edge-dst e)          (vector-ref e 2))
 (define (edge-eid e)          (vector-ref e 3))
 
-;; 1-byte predicate + 1-byte category + 3-byte concept-id + 4-byte eid
-(define edge-byte-size (+ 1 1 3 4))
-
 (define (byte-at offset n) (bitwise-and 255 (arithmetic-shift n offset)))
 
+;; 1-byte predicate + 1-byte category + 3-byte concept-id + 4-byte eid
+(define edge-byte-size (+ 1 1 3 4))
 (define (edge->bytes e)
   (define c (edge-dst e))
   (define pid (edge-predicate e))
@@ -68,8 +72,26 @@
   (vector (bref 0) (bref 1)
           (+ (bref-to 2 16) (bref-to 3 8) (bref-to 4 0))
           (+ (bref-to 5 24) (bref-to 6 16) (bref-to 7 8) (bref-to 8 0))))
-
 (define (read-edge-bytes in) (read-bytes edge-byte-size in))
+
+(define suffix-key-byte-size (+ 4 2))
+(define (suffix-key->bytes s)
+  (define cid (car s))
+  (define pos (cdr s))
+  (bytes (byte-at -24 cid) (byte-at -16 cid) (byte-at -8 cid) (byte-at 0 cid)
+         (byte-at -8 pos) (byte-at 0 pos)))
+(define (bytes->suffix-key bs)
+  (define (bref-to pos offset) (arithmetic-shift (bytes-ref bs pos) offset))
+  (cons (+ (bref-to 0 24) (bref-to 1 16) (bref-to 2 8) (bref-to 3 0))
+        (+ (bref-to 4 8) (bref-to 5 0))))
+(define (read-suffix-key-bytes in) (read-bytes suffix-key-byte-size in))
+(define (write-suffix-keys out v)
+  (for ((s (in-vector v))) (write-bytes (suffix-key->bytes s) out)))
+(define (port->suffix-keys in)
+  (define end (begin (file-position in eof) (file-position in)))
+  (file-position in 0)
+  (for/vector ((_ (in-range (/ end suffix-key-byte-size))))
+              (bytes->suffix-key (read-suffix-key-bytes in))))
 
 ;; Stream edges-by-X by mask for a particular source concept, e.g.,
 ;;   #(#f  #f         #f):     get all.
