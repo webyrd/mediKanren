@@ -335,83 +335,85 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                            ;; unselect all items
                                            (for ([i (length predicates)])
                                                 (send (predicate-list-box-thunk) select i #f))))))
+
   (define (mk-run)
-    (let ((ans (if (null? (split-name-string current-name))
-                   '()
-                   (run* (q) (fuzzy-concepto current-name q)))))
-      (let ((ans (remove-duplicates ans)))
-        ;; (printf "ans from fuzzy-concepto: ~s\n" ans)
-        (let ((isa-ans (if (and (not (null? (split-name-string current-name))) current-isa)
-                           ;; only grab the first 50
-                           (remove-duplicates
-                            (run 50 (s-with-dbname) ;; 50 should probably be a parameter
-                              (fresh (o-with-dbname dbname o s eid pid eprops e)
-                                (membero o-with-dbname ans)
-                                (== `(,dbname . ,o) o-with-dbname)
-                                (== `(,dbname ,eid ,s ,o (,pid . "subclass_of") ,eprops) e)
-                                (== `(,dbname . ,s) s-with-dbname)
-                                (edgeo e))))
-                        '())))
-          (let ((ans (remove-duplicates (append ans isa-ans))))
-            (let ((ans (filter (lambda (x) ;; only include concepts with at least one predicate
-                                 (match x
-                                   [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
-                                    (let ((preds
-                                           (run 1 (pred)
-                                             (fresh (o s eid eprops e)
-                                               (case edge-type
-                                                 [(out-edge) (== `(,cid ,cui ,name (,catid . ,cat) ,props) s)]
-                                                 [(in-edge) (== `(,cid ,cui ,name (,catid . ,cat) ,props) o)])
-                                               (== `(,dbname ,eid ,s ,o ,pred ,eprops) e)
-                                               (edgeo e)))))
-                                      (not (null? preds)))]))
-                        ans)))
-              (let ((ans (sort ans
-                               (lambda (a1 a2)
-                                 (let ((dbname1 (symbol->string (car a1)))
-                                       (cui1 (caddr a1))
-                                       (dbname2 (symbol->string (car a2)))
-                                       (cui2 (caddr a2)))
-                                   (or (string>? dbname1 dbname2)
-                                       (and (string=? dbname1 dbname2)
-                                            (string<? cui1 cui2))))))))
-                (set-box! choices ans)
-                (send concept-listbox
-                      set
-                      (map (lambda (x)
-                             (match x
-                               [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
-                                (~a dbname #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                           ans)
-                      (map (lambda (x)
-                             (match x
-                               [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
-                                (format "~a" cid)]))
-                           ans)
-                      (map (lambda (x)
-                             (match x
-                               [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
-                                (format "~a" cui)]))
-                           ans)
-                      (map (lambda (x)
-                             (match x
-                               [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
-                                (~a `(,catid . ,cat) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                           ans)
-                      (map (lambda (x)
-                             (match x
-                               [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
-                                (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                           ans))
-                ;; unselect all items
-                (for ([i (length ans)])
-                     (send concept-listbox select i #f)))))))))
+    (let* ((ans (if (null? (split-name-string current-name)) '()
+                  (begin (printf "searching for: ~s\n" current-name)
+                         (time (run* (q) (fuzzy-concepto current-name q))))))
+           (isa-ans (if (and (not (null? (split-name-string current-name)))
+                             current-isa)
+                      ;; only grab the first 50
+                      (remove-duplicates
+                        (run 50 (s-with-dbname) ;; 50 should probably be a parameter
+                          (fresh (o-with-dbname dbname o s eid pid eprops e)
+                            (membero o-with-dbname ans)
+                            (== `(,dbname . ,o) o-with-dbname)
+                            (== `(,dbname ,eid ,s ,o (,pid . "subclass_of") ,eprops) e)
+                            (== `(,dbname . ,s) s-with-dbname)
+                            (edgeo e))))
+                      '()))
+           (ans (if (null? isa-ans) ans
+                  (remove-duplicates (append ans isa-ans))))
+           (ans (filter ;; only include concepts with at least one predicate
+                  (lambda (x)
+                    (match x
+                      [`(,dbname . ,concept)
+                        (let ((preds
+                                (run 1 (pred)
+                                  (fresh (o s eid eprops e)
+                                    (case edge-type
+                                      [(out-edge) (== concept s)]
+                                      [(in-edge) (== concept o)])
+                                    (== `(,dbname ,eid ,s ,o ,pred ,eprops) e)
+                                    (edgeo e)))))
+                          (not (null? preds)))]))
+                  ans))
+           (ans (sort ans (lambda (a1 a2)
+                            (let ((dbname1 (symbol->string (car a1)))
+                                  (cui1 (caddr a1))
+                                  (dbname2 (symbol->string (car a2)))
+                                  (cui2 (caddr a2)))
+                              (or (string>? dbname1 dbname2)
+                                  (and (string=? dbname1 dbname2)
+                                       (string<? cui1 cui2))))))))
+      (set-box! choices ans)
+      (send concept-listbox
+            set
+            (map (lambda (x)
+                   (match x
+                     [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
+                       (~a dbname #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                 ans)
+            (map (lambda (x)
+                   (match x
+                     [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
+                       (format "~a" cid)]))
+                 ans)
+            (map (lambda (x)
+                   (match x
+                     [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
+                       (format "~a" cui)]))
+                 ans)
+            (map (lambda (x)
+                   (match x
+                     [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
+                       (~a `(,catid . ,cat) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                 ans)
+            (map (lambda (x)
+                   (match x
+                     [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
+                       (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                 ans))
+      ;; unselect all items
+      (for ([i (length ans)])
+           (send concept-listbox select i #f))))
+
   (define current-name "")
   (define current-isa #f)
   (define pending-name current-name)
   (define mk-thread #f)
   (define timer (new timer% (notify-callback
-                             (lambda () (set! mk-thread (thread mk-run))))))
+                              (lambda () (set! mk-thread (thread mk-run))))))
   (define (handle)
     (define new-name (send name-field get-value))
     (define new-isa (send isa-field get-value))
