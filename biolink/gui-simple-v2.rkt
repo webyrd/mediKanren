@@ -290,20 +290,18 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                            (define selected-concepts (foldr (lambda (i l) (cons (list-ref (unbox choices) i) l)) '() selections))
                                            (when *verbose*
                                              (printf "selected concepts:\n~s\n" selected-concepts))
+                                           (define concept-predicateo
+                                             (case edge-type
+                                               [(in-edge)  object-predicateo]
+                                               [(out-edge) subject-predicateo]
+                                               [else       (error 'concept-listbox/predicates)]))
                                            (define predicates
-                                             (sort
-                                              (remove-duplicates
-                                               (run* (predicate)
-                                                 (fresh (dbname e eid s o pid eprops)
-                                                   (== `(,dbname ,eid ,s ,o (,pid . ,predicate) ,eprops) e)
-                                                   (case edge-type
-                                                     [(in-edge)
-                                                      (membero `(,dbname . ,o) selected-concepts)]
-                                                     [(out-edge)
-                                                      (membero `(,dbname . ,s) selected-concepts)]
-                                                     [else (error 'concept-listbox/predicates)])
-                                                   (edgeo e))))
-                                              string<?))
+                                             (sort (remove-duplicates
+                                                     (time (run* (predicate)
+                                                             (fresh (dbname pid c)
+                                                               (membero c selected-concepts)
+                                                               (concept-predicateo c `(,dbname ,pid . ,predicate))))))
+                                                   string<?))
                                            (printf "original predicates:\n~s\n" predicates)
                                            (define (create-increase/decrease-syn-pred-list
                                                     syn-pred-name predicate-names selected-predicates)
