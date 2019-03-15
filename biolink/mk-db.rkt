@@ -91,7 +91,9 @@
   (define (v->concept v) (vconcept->details db v))
   (project (concept)
     (match concept
-      (`(,(? var?) ,_ ,_ (,(and catid (? integer?)) . ,_) . ,_)
+      (`(,(and cid (? integer?)) . ,_)
+        (== (cons cid (v->concept (db:cid->concept db cid))) concept))
+      (`(,_ ,_ ,_ (,(and catid (? integer?)) . ,_) . ,_)
         (define cid* (db:catid->cid* db catid))
         (define len (vector-length cid*))
         (let loop ((i 0))
@@ -100,8 +102,6 @@
               (conde
                 ((== (cons cid (v->concept (db:cid->concept db cid))) concept))
                 ((loop (+ i 1))))))))
-      (`(,(and cid (? integer?)) . ,_)
-        (== (cons cid (v->concept (db:cid->concept db cid))) concept))
       (_ (let loop ((c&c* (db:cid&concept-stream db)))
            (if (stream-empty? c&c*) fail
              (let ((c&c (stream-first c&c*)))
