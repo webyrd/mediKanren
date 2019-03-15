@@ -6,6 +6,8 @@
   ~predicateo
   edgeo
   pmid-edgeo
+  subject-predicateo
+  object-predicateo
 
   pubmed-URLs-from-edge
   pubmed-count
@@ -155,6 +157,21 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
         (== `(,dbname ,eid . ,body) edge)
         (db:pmid-eido db pmid eid)
         (edgeo edge)))))
+
+(define (subject-predicateo concept predicate)
+  (conde/databases
+    (lambda (dbname db)
+      (fresh (c p)
+        (== `(,dbname . ,c) concept)
+        (== `(,dbname . ,p) predicate)
+        (db:subject-predicateo db c p)))))
+(define (object-predicateo concept predicate)
+  (conde/databases
+    (lambda (dbname db)
+      (fresh (c p)
+        (== `(,dbname . ,c) concept)
+        (== `(,dbname . ,p) predicate)
+        (db:object-predicateo db c p)))))
 
 (define PUBMED_URL_PREFIX "https://www.ncbi.nlm.nih.gov/pubmed/")
 (define (pubmed-URLs-from-edge edge)

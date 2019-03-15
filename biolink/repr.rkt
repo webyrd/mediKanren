@@ -22,6 +22,7 @@
   write-suffix-keys
   port->suffix-keys
 
+  edge-pids-by-X
   stream-edges-by-X
   port->stream-offset&values
   vector->stream-offset&values
@@ -36,7 +37,7 @@
   detail-write
   detail-stream)
 
-(require racket/stream)
+(require racket/set racket/stream)
 
 (define (concept-cui c)      (vector-ref c 0))
 (define (concept-category c) (vector-ref c 1))
@@ -92,6 +93,15 @@
   (file-position in 0)
   (for/vector ((_ (in-range (/ end suffix-key-byte-size))))
               (bytes->suffix-key (read-suffix-key-bytes in))))
+
+(define (edge-pids-by-X in in-offset src)
+  (define start (offset-ref in-offset src))
+  (define end   (offset-ref in-offset (+ src 1)))
+  (file-position in start)
+  (let loop ((n (/ (- end start) edge-byte-size)) (pids (set)))
+    (cond ((= n 0) (sort (set->list pids) <))
+          (else (define edge (bytes->edge (read-edge-bytes in)))
+                (loop (- n 1) (set-add pids (edge-predicate edge)))))))
 
 ;; Stream edges-by-X by mask for a particular source concept, e.g.,
 ;;   #(#f  #f         #f):     get all.

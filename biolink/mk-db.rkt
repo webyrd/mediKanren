@@ -8,6 +8,8 @@
   db:categoryo
   db:predicateo
   db:pmid-eido
+  db:subject-predicateo
+  db:object-predicateo
 
   db:~cui-concepto
   db:~name-concepto
@@ -106,6 +108,21 @@
                (conde
                  ((== (cons (car c&c) (v->concept (cdr c&c))) concept))
                  ((loop (stream-rest c&c*)))))))))))
+
+(define (db:concept-predicateo db:concept->pids db concept predicate)
+  (fresh (cid cdetails pdetails)
+    (== `(,cid . ,cdetails) concept)
+    (db:concepto db concept)
+    (project (cid)
+      (foldr (lambda (pid others) (conde
+                                    ((== `(,pid . ,pdetails) predicate)
+                                     (db:predicateo db predicate))
+                                    (others)))
+             fail (db:concept->pids db cid)))))
+(define (db:subject-predicateo db concept predicate)
+  (db:concept-predicateo db:subject->pids db concept predicate))
+(define (db:object-predicateo db concept predicate)
+  (db:concept-predicateo db:object->pids db concept predicate))
 
 (define (db:edgeo db edge)
   (define (edge-propso eid scid ocid pid eprops)

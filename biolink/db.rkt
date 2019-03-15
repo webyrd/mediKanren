@@ -12,6 +12,8 @@
   db:eid->edge
   db:cid&concept-stream
   db:eid&edge/props-stream
+  db:subject->pids
+  db:object->pids
   db:subject->edge-stream
   db:object->edge-stream
   db:pmid->eid*
@@ -113,6 +115,11 @@
   (define (cid&concept-stream) (port->stream-offset&values in-concepts))
   (define (eid->edge eid)         (detail-ref in-edges in-offset-edges eid))
   (define (eid&edge/props-stream) (port->stream-offset&values in-edges))
+
+  (define (subject->pids cid)
+    (edge-pids-by-X in-edges-by-subject in-offset-edges-by-subject cid))
+  (define (object->pids cid)
+    (edge-pids-by-X in-edges-by-object in-offset-edges-by-object cid))
   (define (subject->edge-stream cid pid? cat? dst?)
     (stream-edges-by-X in-edges-by-subject in-offset-edges-by-subject
                        cid pid? cat? dst?))
@@ -134,7 +141,7 @@
           catid->cid* cid->concept eid->edge
           cid&concept-stream eid&edge/props-stream
           subject->edge-stream object->edge-stream
-          pmid->eid* pmid&eid*-stream))
+          pmid->eid* pmid&eid*-stream subject->pids object->pids))
 
 (define (db:category*             db)        (vector-ref db 0))
 (define (db:predicate*            db)        (vector-ref db 1))
@@ -149,6 +156,8 @@
 (define (db:object->edge-stream   db . args) (apply (vector-ref db 9) args))
 (define (db:pmid->eid*            db . args) (apply (vector-ref db 10) args))
 (define (db:pmid&eid*-stream      db)        ((vector-ref db 11)))
+(define (db:subject->pids         db . args) (apply (vector-ref db 12) args))
+(define (db:object->pids          db . args) (apply (vector-ref db 13) args))
 
 (define (db:catid->category db catid) (vector-ref (db:category* db) catid))
 (define (db:pid->predicate db pid)    (vector-ref (db:predicate* db) pid))
