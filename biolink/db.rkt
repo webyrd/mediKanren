@@ -29,11 +29,14 @@
 
 (require
   "repr.rkt"
+  "string-search.rkt"
   racket/stream
   racket/string
-  )
+  racket/vector)
 
 (define fnin-concepts             "concepts.scm")
+(define fnin-concept-name-corpus  "concept-name-corpus.scm")
+(define fnin-concept-name-index   "concept-name-index.bytes")
 (define fnin-categories           "categories.scm")
 (define fnin-concepts-by-category "concepts-by-category.scm")
 (define fnin-edges                "edges.scm")
@@ -73,7 +76,9 @@
     (open-db-path fnin-concepts-by-category))
   (define in-offset-concepts-by-category
     (open-db-path (fname-offset fnin-concepts-by-category)))
-  (define in-concepts         (open-db-path fnin-concepts))
+  (define in-concepts            (open-db-path fnin-concepts))
+  (define in-concept-name-corpus (open-db-path fnin-concept-name-corpus))
+  (define in-concept-name-index  (open-db-path fnin-concept-name-index))
   (define in-offset-concepts  (open-db-path (fname-offset fnin-concepts)))
   (define in-edges            (open-db-path fnin-edges))
   (define in-offset-edges     (open-db-path (fname-offset fnin-edges)))
@@ -91,20 +96,22 @@
     (list->vector (read-all-from-file (db-path fnin-categories))))
   (define predicate*
     (list->vector (read-all-from-file (db-path fnin-predicates))))
-  (define concept*
-    (list->vector
-      (stream->list
-        (stream-map cdr (port->stream-offset&values in-concepts)))))
+
+  (define name-corpus
+    (list->vector (stream->list (stream-map cdr (port->stream-offset&values
+                                                  in-concept-name-corpus)))))
+  (define name-index (port->suffix-keys in-concept-name-index))
+
   (define catid=>cid* (make-vector (vector-length category*) #f))
   (for ((catid (in-range 0 (vector-length category*))))
        (define cid* (detail-ref in-concepts-by-category
                                 in-offset-concepts-by-category catid))
        (vector-set! catid=>cid* catid cid*))
 
-  (define (catid->cid* catid) (vector-ref catid=>cid* catid))
-  (define (cid->concept cid)  (vector-ref concept* cid))
-  (define (eid->edge eid)     (detail-ref in-edges in-offset-edges eid))
-  (define (cid&concept-stream)    (vector->stream-offset&values concept*))
+  (define (catid->cid* catid)  (vector-ref catid=>cid* catid))
+  (define (cid->concept cid)   (detail-ref in-concepts in-offset-concepts cid))
+  (define (cid&concept-stream) (port->stream-offset&values in-concepts))
+  (define (eid->edge eid)         (detail-ref in-edges in-offset-edges eid))
   (define (eid&edge/props-stream) (port->stream-offset&values in-edges))
   (define (subject->edge-stream cid pid? cat? dst?)
     (stream-edges-by-X in-edges-by-subject in-offset-edges-by-subject
@@ -123,13 +130,16 @@
     (if (eof-object? pmid&eid*) '() (cdr pmid&eid*)))
   (define (pmid&eid*-stream) (detail-stream in-pubmed-edges))
 
-  (vector category* predicate* #t catid->cid* cid->concept eid->edge
+  (vector category* predicate* (cons name-corpus name-index)
+          catid->cid* cid->concept eid->edge
           cid&concept-stream eid&edge/props-stream
           subject->edge-stream object->edge-stream
           pmid->eid* pmid&eid*-stream))
 
 (define (db:category*             db)        (vector-ref db 0))
 (define (db:predicate*            db)        (vector-ref db 1))
+(define (db:concept-name-corpus   db)        (car (vector-ref db 2)))
+(define (db:concept-name-index    db)        (cdr (vector-ref db 2)))
 (define (db:catid->cid*           db . args) (apply (vector-ref db 3) args))
 (define (db:cid->concept          db . args) (apply (vector-ref db 4) args))
 (define (db:eid->edge             db . args) (apply (vector-ref db 5) args))
@@ -191,5 +201,10 @@
   (simple~string->offset&value* (db:cid&concept-stream db) ~cui concept-cui))
 (define (db:~name*->cid&concept*/options
           case-sensitive? chars:ignore chars:split db ~name*)
+  (define cids (corpus-find* (db:concept-name-corpus db)
+                             (db:concept-name-index db) ~name*))
+  (define found (foldr (lambda (i cs)
+                         (stream-cons (cons i (db:cid->concept db i)) cs))
+                       '() cids))
   (~string*->offset&value* case-sensitive? chars:ignore chars:split
-                           (db:cid&concept-stream db) ~name* concept-name))
+                           found ~name* concept-name))
