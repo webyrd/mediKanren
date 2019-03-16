@@ -1,5 +1,7 @@
 #lang racket/base
 (provide
+  membero
+
   ~name*-concepto
   ~cui-concepto
   ~categoryo
@@ -107,6 +109,15 @@
   (foldr (lambda (desc rest)
            (conde ((dbdesc->clause (car desc) (cdr desc))) (rest)))
          (== #t #f) (databases)))
+
+;; list membership
+(define membero
+  (lambda (x ls)
+    (fresh (y rest)
+      (== `(,y . ,rest) ls)
+      (conde
+        [(== x y)]
+        [(=/= x y) (membero x rest)]))))
 
 #|
 concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)

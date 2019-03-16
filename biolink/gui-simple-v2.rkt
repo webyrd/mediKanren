@@ -125,16 +125,6 @@ edge format, with dbname at front (as used in edgeo):
 ;;; for Semmed and (21 . "chemical_substance") for Scigraph.  Why?
 ;;; (The concept IDs are different in this case)
 
-
-;; list membership
-(define membero
-  (lambda (x ls)
-    (fresh (y rest)
-      (== `(,y . ,rest) ls)
-      (conde
-        [(== x y)]
-        [(=/= x y) (membero x rest)]))))
-
 (define (split-name-string name)
   (string-split name #px"\\s+"))
 
