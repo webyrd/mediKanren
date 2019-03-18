@@ -42,7 +42,7 @@
 (provide
   launch-gui)
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.9")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.10")
 
 ;;; Synthetic predicates
 ;;; TODO FIXME -- are these the ideal predicates?
@@ -143,6 +143,42 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
 (define input-response-latency 50)
 
 (define MAX-CHAR-WIDTH 100)
+
+(define smart-column-width-list-box%
+  (class list-box%
+    (super-new)
+    (define (on-size width height)
+      ;; (printf "on-size called with width/height ~s ~s\n" width height)
+      (super on-size width height)
+      (set-default-column-widths this))
+    (override on-size)))
+
+(define (set-default-column-widths list-box)
+  ;; (printf "setting default column widths for ~s\n" list-box)
+  (define label* (send list-box get-column-labels))
+  ;; (printf "label*: ~s\n" label*)
+  (define num-cols (length label*))
+  ;; (printf "num-cols: ~s\n" num-cols)
+  (define window-width (send list-box get-width))
+  ;; (printf "window-width: ~s\n" window-width)
+  (define min-width 5)
+  (define max-width 1000)
+  (define fudge-factor 4) ;; column divider width
+  (define width (min (max (- (floor (/ window-width num-cols)) fudge-factor)
+                          min-width)
+                     max-width))
+  ;; (printf "width: ~s\n" width)
+  (let loop ((col-num (sub1 num-cols)))
+    (cond
+      [(zero? col-num) (void)]
+      [else
+       (send list-box
+             set-column-width
+             col-num
+             width
+             min-width	 
+             max-width)
+       (loop (sub1 col-num))])))
 
 (define construct-predicate-label-string
   (lambda (pred-string pred-name-list)
@@ -269,7 +305,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                          (label "Include ISA-related concepts")
                          (value #f)
                          (callback (lambda (self event) (handle)))))
-  (define concept-listbox (new list-box%
+  (define concept-listbox (new smart-column-width-list-box%
                                (label label)
                                (choices '())
                                (columns '("DB" "CID" "CUI" "Category" "Name"))
@@ -490,7 +526,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                             (parent frame)
                                             (alignment '(left center))))
     (define concept-1-list-box (concept-list frame concept-1-search/isa-panel concept-1-list-boxes-panel "Concept 1" *concept-1-name-string* *concept-1-isa-flag* *concept-1-choices* (lambda () predicate-1-list-box) *predicate-1-choices* 'out-edge))
-    (define predicate-1-list-box (new list-box%
+    (define predicate-1-list-box (new smart-column-width-list-box%
                                       (label "Predicate 1")
                                       (choices (unbox *predicate-1-choices*))
                                       (columns '("Name"))
@@ -507,7 +543,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
     (define concept-2-list-boxes-panel (new horizontal-panel%
                                             (parent frame)
                                             (alignment '(left center))))
-    (define predicate-2-list-box (new list-box%
+    (define predicate-2-list-box (new smart-column-width-list-box%
                                       (label "Predicate 2")
                                       (choices (unbox *predicate-2-choices*))
                                       (columns '("Name"))
@@ -527,7 +563,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                             (parent frame)
                                             (label "                                                                ")))
 
-    (define concept-X-list-box (new list-box%
+    (define concept-X-list-box (new smart-column-width-list-box%
                                     (label "X")
                                     (choices (unbox *concept-X-choices*))
                                     (columns '("DB" "CID" "CUI" "Category" "Name" "Max PubMed #" "Min PubMed #" "Path Length" "Path Confidence"))
@@ -940,7 +976,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                                            )))
                                                      (void))])))))
 
-    (define full-path-list-box (new list-box%
+    (define full-path-list-box (new smart-column-width-list-box%
                                     (label "Paths")
                                     (choices (unbox *full-path-choices*))
                                     (columns '("DB" "EID" "Subject" "Predicate" "Object" "Subj Cat" "Obj Cat" "PubMed #"))
@@ -996,7 +1032,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                          (alignment '(left center))
                                          (stretchable-height #t)))
 
-    (define properties-list-box (new list-box%
+    (define properties-list-box (new smart-column-width-list-box%
                                      (label "Properties")
                                      (choices '())
                                      (columns '("Property" "Value"))
@@ -1005,7 +1041,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                      (callback (lambda (self event)
                                                  (void)))))
 
-    (define pubmed-list-box (new list-box%
+    (define pubmed-list-box (new smart-column-width-list-box%
                                  (label "Pubmed")
                                  (choices (unbox *pubmed-choices*))
                                  (columns '("URL"))
@@ -1029,36 +1065,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                                    ;; if the user double-clicked on the URL, open it in a web browser
                                                    (send-url url)))
                                                selected-pubmeds)))))
-
-    ;;; Set reasonable default column widths, since this doesn't
-    ;;; happen automatically on Windoze.
-    (define (set-default-column-widths list-box)
-      (printf "setting default column widths for ~s\n" list-box)
-      (define label* (send list-box get-column-labels))
-      (printf "label*: ~s\n" label*)
-      (define num-cols (length label*))
-      (printf "num-cols: ~s\n" num-cols)
-      (define window-width (send list-box get-width))
-      (printf "window-width: ~s\n" window-width)
-      (define min-width 5)
-      (define max-width 1000)
-      (define fudge-factor 4) ;; column divider width
-      (define width (min (max (- (floor (/ window-width num-cols)) fudge-factor)
-                              min-width)
-                         max-width))
-      (printf "width: ~s\n" width)
-      (let loop ((col-num (sub1 num-cols)))
-          (cond
-            [(zero? col-num) (void)]
-            [else
-             (send list-box
-                   set-column-width
-                   col-num
-                   width	 	 	 	 
-                   min-width	 
-                   max-width)
-             (loop (sub1 col-num))])))
-
+   
     ;; trigger reflowing of object sizes
     (send frame reflow-container)
     
@@ -1083,7 +1090,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                  (callback (lambda (self event)
                                              (void)))))
 
-    (define gene-listbox (new list-box%
+    (define gene-listbox (new smart-column-width-list-box%
                               (label "Gene")
                               (choices '())
                               (columns '("DB" "CID" "CUI" "Category" "Name"))
