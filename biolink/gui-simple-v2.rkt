@@ -1030,8 +1030,45 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                                    (send-url url)))
                                                selected-pubmeds)))))
 
-    (send frame show #t)
-    ))
+    ;;; Set reasonable default column widths, since this doesn't
+    ;;; happen automatically on Windoze.
+    (define (set-default-column-widths list-box)
+      (printf "setting default column widths for ~s\n" list-box)
+      (define label* (send list-box get-column-labels))
+      (printf "label*: ~s\n" label*)
+      (define num-cols (length label*))
+      (printf "num-cols: ~s\n" num-cols)
+      (define window-width (send list-box get-width))
+      (printf "window-width: ~s\n" window-width)
+      (define min-width 5)
+      (define max-width 1000)
+      (define fudge-factor 4) ;; column divider width
+      (define width (min (max (- (floor (/ window-width num-cols)) fudge-factor)
+                              min-width)
+                         max-width))
+      (printf "width: ~s\n" width)
+      (let loop ((col-num (sub1 num-cols)))
+          (cond
+            [(zero? col-num) (void)]
+            [else
+             (send list-box
+                   set-column-width
+                   col-num
+                   width	 	 	 	 
+                   min-width	 
+                   max-width)
+             (loop (sub1 col-num))])))
+
+    ;; trigger reflowing of object sizes
+    (send frame reflow-container)
+    
+    (set-default-column-widths concept-1-list-box)
+    (set-default-column-widths concept-2-list-box)
+    (set-default-column-widths concept-X-list-box)
+    (set-default-column-widths full-path-list-box)
+    (set-default-column-widths properties-list-box)
+        
+    (send frame show #t)))
 
 (define (launch-gene-window)
   (let ((frame (new frame%
