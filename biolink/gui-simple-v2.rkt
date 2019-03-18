@@ -30,6 +30,7 @@
   "common.rkt"
   racket/sandbox
   racket/gui/base
+  framework
   racket/engine
   racket/date
   racket/string
@@ -1027,7 +1028,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                                     selected-full-paths))
                                                 ))))
 
-    (define properties/pubmed-panel (new horizontal-panel%
+    (define properties/pubmed-panel (new panel:horizontal-dragable%
                                          (parent frame)
                                          (alignment '(left center))
                                          (stretchable-height #t)))
