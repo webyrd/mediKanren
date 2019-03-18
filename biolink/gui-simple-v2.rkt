@@ -42,7 +42,7 @@
 (provide
   launch-gui)
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.10")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.11")
 
 ;;; Synthetic predicates
 ;;; TODO FIXME -- are these the ideal predicates?
@@ -526,7 +526,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                             (parent frame)
                                             (alignment '(left center))))
     (define concept-1-list-box (concept-list frame concept-1-search/isa-panel concept-1-list-boxes-panel "Concept 1" *concept-1-name-string* *concept-1-isa-flag* *concept-1-choices* (lambda () predicate-1-list-box) *predicate-1-choices* 'out-edge))
-    (define predicate-1-list-box (new smart-column-width-list-box%
+    (define predicate-1-list-box (new list-box%
                                       (label "Predicate 1")
                                       (choices (unbox *predicate-1-choices*))
                                       (columns '("Name"))
@@ -543,7 +543,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
     (define concept-2-list-boxes-panel (new horizontal-panel%
                                             (parent frame)
                                             (alignment '(left center))))
-    (define predicate-2-list-box (new smart-column-width-list-box%
+    (define predicate-2-list-box (new list-box%
                                       (label "Predicate 2")
                                       (choices (unbox *predicate-2-choices*))
                                       (columns '("Name"))
@@ -1041,7 +1041,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                      (callback (lambda (self event)
                                                  (void)))))
 
-    (define pubmed-list-box (new smart-column-width-list-box%
+    (define pubmed-list-box (new list-box%
                                  (label "Pubmed")
                                  (choices (unbox *pubmed-choices*))
                                  (columns '("URL"))
