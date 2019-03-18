@@ -519,11 +519,11 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
 
         ))
 
-    (define concept-1-search/isa-panel (new horizontal-panel%
+    (define concept-1-search/isa-panel (new panel:horizontal-dragable%
                                             (parent frame)
                                             (alignment '(left center))
                                             (stretchable-height #f)))
-    (define concept-1-list-boxes-panel (new horizontal-panel%
+    (define concept-1-list-boxes-panel (new panel:horizontal-dragable%
                                             (parent frame)
                                             (alignment '(left center))))
     (define concept-1-list-box (concept-list frame concept-1-search/isa-panel concept-1-list-boxes-panel "Concept 1" *concept-1-name-string* *concept-1-isa-flag* *concept-1-choices* (lambda () predicate-1-list-box) *predicate-1-choices* 'out-edge))
@@ -537,11 +537,11 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
     (define edge-description (new message%
                                   (parent frame)
                                   (label "Concept 1 -> Predicate 1 -> [X] -> Predicate 2 -> Concept 2")))
-    (define concept-2-search/isa-panel (new horizontal-panel%
+    (define concept-2-search/isa-panel (new panel:horizontal-dragable%
                                             (parent frame)
                                             (alignment '(left center))
                                             (stretchable-height #f)))
-    (define concept-2-list-boxes-panel (new horizontal-panel%
+    (define concept-2-list-boxes-panel (new panel:horizontal-dragable%
                                             (parent frame)
                                             (alignment '(left center))))
     (define predicate-2-list-box (new list-box%
