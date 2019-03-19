@@ -43,7 +43,7 @@
 (provide
   launch-gui)
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.11")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.12")
 
 ;;; Synthetic predicates
 ;;; TODO FIXME -- are these the ideal predicates?
@@ -470,7 +470,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                             (parent outer-vert-draggable-panel)
                             (alignment '(left center))))
 
-    (define lower-pane (new vertical-pane%
+    (define lower-pane (new panel:vertical-dragable%
                             (parent outer-vert-draggable-panel)
                             (alignment '(left center))))
     
