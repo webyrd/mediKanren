@@ -462,6 +462,14 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                     (width HORIZ-SIZE)
                     (height VERT-SIZE))))
 
+    (define upper-pane (new vertical-pane%                            
+                            (parent frame)
+                            (alignment '(left center))))
+
+    (define lower-pane (new vertical-pane%                     
+                            (parent frame)
+                            (alignment '(left center))))
+    
     (define go-callback
       (lambda (button event)
         (send running-status-description set-label "Running...")
@@ -520,13 +528,13 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
         ))
 
     (define concept-1-search/isa-panel (new panel:horizontal-dragable%
-                                            (parent frame)
+                                            (parent upper-pane)
                                             (alignment '(left center))
                                             (stretchable-height #f)))
     (define concept-1-list-boxes-panel (new panel:horizontal-dragable%
-                                            (parent frame)
+                                            (parent upper-pane)
                                             (alignment '(left center))))
-    (define concept-1-list-box (concept-list frame concept-1-search/isa-panel concept-1-list-boxes-panel "Concept 1" *concept-1-name-string* *concept-1-isa-flag* *concept-1-choices* (lambda () predicate-1-list-box) *predicate-1-choices* 'out-edge))
+    (define concept-1-list-box (concept-list upper-pane concept-1-search/isa-panel concept-1-list-boxes-panel "Concept 1" *concept-1-name-string* *concept-1-isa-flag* *concept-1-choices* (lambda () predicate-1-list-box) *predicate-1-choices* 'out-edge))
     (define predicate-1-list-box (new list-box%
                                       (label "Predicate 1")
                                       (choices (unbox *predicate-1-choices*))
@@ -535,14 +543,14 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                       (style '(extended))
                                       (callback go-callback)))
     (define edge-description (new message%
-                                  (parent frame)
+                                  (parent upper-pane)
                                   (label "Concept 1 -> Predicate 1 -> [X] -> Predicate 2 -> Concept 2")))
     (define concept-2-search/isa-panel (new panel:horizontal-dragable%
-                                            (parent frame)
+                                            (parent upper-pane)
                                             (alignment '(left center))
                                             (stretchable-height #f)))
     (define concept-2-list-boxes-panel (new panel:horizontal-dragable%
-                                            (parent frame)
+                                            (parent upper-pane)
                                             (alignment '(left center))))
     (define predicate-2-list-box (new list-box%
                                       (label "Predicate 2")
@@ -551,24 +559,24 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                       (parent concept-2-list-boxes-panel)
                                       (style '(extended))
                                       (callback go-callback)))
-    (define concept-2-list-box (concept-list frame concept-2-search/isa-panel concept-2-list-boxes-panel "Concept 2" *concept-2-name-string* *concept-2-isa-flag* *concept-2-choices* (lambda () predicate-2-list-box) *predicate-2-choices* 'in-edge))
+    (define concept-2-list-box (concept-list upper-pane concept-2-search/isa-panel concept-2-list-boxes-panel "Concept 2" *concept-2-name-string* *concept-2-isa-flag* *concept-2-choices* (lambda () predicate-2-list-box) *predicate-2-choices* 'in-edge))
 
     #|
     (define go-button (new button%
-                           (parent frame)
+                           (parent upper-pane)
                            (label "go!")
                            (callback go-callback)))
     |#
 
     (define running-status-description (new message%
-                                            (parent frame)
+                                            (parent upper-pane)
                                             (label "                                                                ")))
 
     (define concept-X-list-box (new smart-column-width-list-box%
                                     (label "X")
                                     (choices (unbox *concept-X-choices*))
                                     (columns '("DB" "CID" "CUI" "Category" "Name" "Max PubMed #" "Min PubMed #" "Path Length" "Path Confidence"))
-                                    (parent frame)
+                                    (parent lower-pane)
                                     (style '(column-headers clickable-headers reorderable-headers single))
                                     (callback (lambda (self event)
 
@@ -981,7 +989,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                     (label "Paths")
                                     (choices (unbox *full-path-choices*))
                                     (columns '("DB" "EID" "Subject" "Predicate" "Object" "Subj Cat" "Obj Cat" "PubMed #"))
-                                    (parent frame)
+                                    (parent lower-pane)
                                     (style '(column-headers reorderable-headers extended))
                                     (callback (lambda (self event)
                                                 (when *verbose*
@@ -1029,7 +1037,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                                 ))))
 
     (define properties/pubmed-panel (new panel:horizontal-dragable%
-                                         (parent frame)
+                                         (parent lower-pane)
                                          (alignment '(left center))
                                          (stretchable-height #t)))
 
