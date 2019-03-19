@@ -462,12 +462,16 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                     (width HORIZ-SIZE)
                     (height VERT-SIZE))))
 
-    (define upper-pane (new vertical-pane%                            
-                            (parent frame)
+    (define outer-vert-draggable-panel (new panel:vertical-dragable%
+                                            (parent frame)
+                                            (alignment '(left center))))
+    
+    (define upper-pane (new vertical-pane%
+                            (parent outer-vert-draggable-panel)
                             (alignment '(left center))))
 
-    (define lower-pane (new vertical-pane%                     
-                            (parent frame)
+    (define lower-pane (new vertical-pane%
+                            (parent outer-vert-draggable-panel)
                             (alignment '(left center))))
     
     (define go-callback
