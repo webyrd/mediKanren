@@ -43,7 +43,7 @@
 (provide
   launch-gui)
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.12")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.13")
 
 ;;; Synthetic predicates
 ;;; TODO FIXME -- are these the ideal predicates?
@@ -66,6 +66,7 @@
 (define WRITE_QUERY_RESULTS_TO_FILE            (config-ref 'query-results.write-to-file?))
 (define QUERY_RESULTS_FILE_NAME                (config-ref 'query-results.file-name))
 (define HUMAN_FRIENDLY_QUERY_RESULTS_FILE_NAME (config-ref 'query-results.file-name-human))
+(define SPREADSHEET_FRIENDLY_QUERY_RESULTS_FILE_NAME (config-ref 'query-results.file-name-spreadsheet))
 (define QUERY_RESULTS_FILE_MODE                (config-ref 'query-results.file-mode))
 
 #|
@@ -1418,22 +1419,23 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
   (newline)
 
   (define pretty-print-X-concepts-with-edges
-    (lambda (file-name pretty-printer print-low-level-query-information X-concepts-with-edges)
+    (lambda (file-name pretty-printer print-basic-header print-low-level-query-information X-concepts-with-edges)
       (with-output-to-file
           file-name
           (lambda ()
-            (printf ";; mediKanren query output\n")
-            (printf ";; ~a\n" MEDIKANREN_VERSION_STRING)
-            (printf ";; \n")
-            (let ((local-date (seconds->date (current-seconds))))
-              (printf ";; Query run at date/time: ~s ~s ~s  ~s:~s:~s   (Year Month Day  Hour:Minute:Second)\n"
-                      (date-year local-date)
-                      (date-month local-date)
-                      (date-day local-date)
-                      (date-hour local-date)
-                      (date-minute local-date)
-                      (date-second local-date)))
-            (printf ";; \n")
+            (when print-basic-header
+              (printf ";; mediKanren query output\n")
+              (printf ";; ~a\n" MEDIKANREN_VERSION_STRING)
+              (printf ";; \n")
+              (let ((local-date (seconds->date (current-seconds))))
+                (printf ";; Query run at date/time: ~s ~s ~s  ~s:~s:~s   (Year Month Day  Hour:Minute:Second)\n"
+                        (date-year local-date)
+                        (date-month local-date)
+                        (date-day local-date)
+                        (date-hour local-date)
+                        (date-minute local-date)
+                        (date-second local-date)))
+              (printf ";; \n"))
             (when print-low-level-query-information
               (printf ";; ===================================================\n")
               (printf ";; Low-level query information from the mediKanren GUI\n")
@@ -1471,11 +1473,11 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
               (pretty-print (unbox *solution-concept-2-choices*))
               (printf "|#\n")
               (printf "\n"))
-            (printf ";; ======================================\n")
-            (printf ";; Query results (list of complete edges)\n")
-            (printf ";; ======================================\n")
-            (pretty-printer X-concepts-with-edges)
-            (printf "\n\n\n"))
+            (when print-basic-header
+              (printf ";; ======================================\n")
+              (printf ";; Query results (list of complete edges)\n")
+              (printf ";; ======================================\n"))
+            (pretty-printer X-concepts-with-edges))
           #:mode 'text
           #:exists QUERY_RESULTS_FILE_MODE)))
 
@@ -1504,6 +1506,55 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
         X-concepts-with-edges
         (iota (length X-concepts-with-edges) 1))))
 
+  (define spreadsheet-friendly-pretty-print-X-concepts-with-edges
+    (lambda (X-concepts-with-edges)
+      (printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\n"
+              "Subject Category"
+              "Subject Name"
+              
+              "Predicate"
+              
+              "Object Category"
+              "Object Name"
+              
+              "PubMed URL"
+              
+              "DB Name")
+      (for-each
+        (lambda (entry index)
+          (match entry
+            [`(,dbname
+                ,s
+                ,eprops*
+                ,edges)
+              (for-each
+                (lambda (edge)
+                  (match edge
+                    [`(,dbname
+                       ,eid
+                       (,scid ,scui ,sname (,scatid . ,scat) . ,sprops)
+                       (,ocid ,ocui ,oname (,ocatid . ,ocat) . ,oprops)
+                       (,pid . ,pred) ,eprops)
+                     (let ((pubmed* (pubmed-URLs-from-edge edge)))
+                       (for-each
+                         (lambda (pubmed)
+                           (printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\n"
+                                   scat
+                                   sname
+
+                                   pred
+
+                                   ocat
+                                   oname                                   
+
+                                   pubmed
+                                   
+                                   dbname))
+                         pubmed*))]))
+                edges)]))
+        X-concepts-with-edges
+        (iota (length X-concepts-with-edges) 1))))
+
   (when WRITE_QUERY_RESULTS_TO_FILE
 
     (printf "saving all-X-concepts-with-edges to '~a' file...\n"
@@ -1511,20 +1562,37 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
     (pretty-print-X-concepts-with-edges
       QUERY_RESULTS_FILE_NAME
       pretty-print
+      #t ;; print-basic-header flag
       #t ;; print-low-level-query-information flag
       all-X-concepts-with-edges)
     (printf "saved all-X-concepts-with-edges to '~a' file\n"
             QUERY_RESULTS_FILE_NAME)
+
     (printf "saving human-friendly version of all-X-concepts-with-edges to '~a' file...\n"
             HUMAN_FRIENDLY_QUERY_RESULTS_FILE_NAME)
     (pretty-print-X-concepts-with-edges
       HUMAN_FRIENDLY_QUERY_RESULTS_FILE_NAME
       human-friendly-pretty-print-X-concepts-with-edges
+      #t ;; print-basic-header flag
       #f ;; print-low-level-query-information flag
       all-X-concepts-with-edges)
     (printf "saved human-friendly version of all-X-concepts-with-edges to '~a' file\n"
-            HUMAN_FRIENDLY_QUERY_RESULTS_FILE_NAME))
+            HUMAN_FRIENDLY_QUERY_RESULTS_FILE_NAME)
 
+  (printf "saving spreadsheet-friendly version of all-X-concepts-with-edges to '~a' file...\n"
+            SPREADSHEET_FRIENDLY_QUERY_RESULTS_FILE_NAME)
+    (pretty-print-X-concepts-with-edges
+      SPREADSHEET_FRIENDLY_QUERY_RESULTS_FILE_NAME
+      spreadsheet-friendly-pretty-print-X-concepts-with-edges
+      #f ;; print-basic-header flag
+      #f ;; print-low-level-query-information flag
+      all-X-concepts-with-edges)
+    (printf "saved spreadsheet-friendly version of all-X-concepts-with-edges to '~a' file\n"
+            SPREADSHEET_FRIENDLY_QUERY_RESULTS_FILE_NAME)
+
+    )
+
+  
   #|
   (define pretty-print-X-concepts-with-edges
     (lambda (X-concepts-with-edges)
