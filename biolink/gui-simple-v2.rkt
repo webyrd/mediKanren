@@ -43,12 +43,7 @@
 (provide
   launch-gui)
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.13")
-
-;;; Synthetic predicates
-;;; TODO FIXME -- are these the ideal predicates?
-(define DECREASES_PREDICATE_NAMES '("negatively_regulates" "prevents" "treats"))
-(define INCREASES_PREDICATE_NAMES '("positively_regulates" "causes" "produces"))
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.14")
 
 (define argv (current-command-line-arguments))
 (define argv-optional '#(CONFIG_FILE))
@@ -68,6 +63,11 @@
 (define HUMAN_FRIENDLY_QUERY_RESULTS_FILE_NAME (config-ref 'query-results.file-name-human))
 (define SPREADSHEET_FRIENDLY_QUERY_RESULTS_FILE_NAME (config-ref 'query-results.file-name-spreadsheet))
 (define QUERY_RESULTS_FILE_MODE                (config-ref 'query-results.file-mode))
+
+;;; Decreases/increases predicate names
+(define DECREASES_PREDICATE_NAMES (config-ref 'decreases-predicate-names))
+(define INCREASES_PREDICATE_NAMES (config-ref 'increases-predicate-names))
+
 
 #|
 concept format (subject or object), without dbname at front:

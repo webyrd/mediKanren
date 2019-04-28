@@ -14,6 +14,16 @@
  ;; Uncomment exactly one of these:
  (query-results.file-mode       . replace)  ;; Clobber the save file each time you run a query.
  ;(query-results.file-mode       . append)  ;; Save all the queries.
-
+ (decreases-predicate-names
+  .
+  ("negatively_regulates"
+   "prevents"
+   "treats"))
+ (increases-predicate-names
+  .
+  ("positively_regulates"
+   "causes"
+   "produces"))
+ 
  ;; Add configuration options as new association pairs.
  )
