@@ -43,7 +43,7 @@
 (provide
   launch-gui)
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.17")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.18")
 
 (define argv (current-command-line-arguments))
 (define argv-optional '#(CONFIG_FILE))
@@ -215,6 +215,22 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
 (define SORT_COLUMN_INCREASING 'sort-column-increasing)
 (define SORT_COLUMN_DECREASING 'sort-column-decreasing)
 
+(define *concept-1-column-sort-order*
+  (vector SORT_COLUMN_INCREASING
+          SORT_COLUMN_INCREASING
+          SORT_COLUMN_INCREASING
+          SORT_COLUMN_INCREASING
+          SORT_COLUMN_INCREASING))
+(define *last-concept-1-column-clicked-for-sorting* (box -1))
+
+(define *concept-2-column-sort-order*
+  (vector SORT_COLUMN_INCREASING
+          SORT_COLUMN_INCREASING
+          SORT_COLUMN_INCREASING
+          SORT_COLUMN_INCREASING
+          SORT_COLUMN_INCREASING))
+(define *last-concept-2-column-clicked-for-sorting* (box -1))
+
 (define *concept-X-column-sort-order*
   (vector SORT_COLUMN_INCREASING
           SORT_COLUMN_INCREASING
@@ -253,18 +269,14 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
 (define *solution-predicate-1-choices* (box '()))
 (define *solution-predicate-2-choices* (box '()))
 
-(define (convert-X-concept-to-column-sorting-format concept)
+(define (convert-concept-1/2-to-list-box-format concept)
   (match concept
-    [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props ,max-pubmed-count ,min-pubmed-count ,path-length ,confidence)
+    [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
      (list (format "~a" dbname)
-           cid
+           (format "~a" cid)
            (format "~a" cui)
-           catid
-           (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")
-           max-pubmed-count
-           min-pubmed-count
-           path-length
-           confidence)]))
+           (format "~a" `(,catid . ,cat))
+           (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "..."))]))
 
 (define (convert-X-concept-to-list-box-format concept)
   (match concept
@@ -279,21 +291,122 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
            (format "~a" path-length)
            (format "~a" confidence))]))
 
-(define (send-concepts-to-concept-X-list-box concepts concept-X-list-box)
-  (define formatted-concepts (map convert-X-concept-to-list-box-format concepts))
-  (send concept-X-list-box
-        set
-        (map (lambda (e) (list-ref e 0)) formatted-concepts)
-        (map (lambda (e) (list-ref e 1)) formatted-concepts)
-        (map (lambda (e) (list-ref e 2)) formatted-concepts)
-        (map (lambda (e) (list-ref e 3)) formatted-concepts)
-        (map (lambda (e) (list-ref e 4)) formatted-concepts)
-        (map (lambda (e) (list-ref e 5)) formatted-concepts)
-        (map (lambda (e) (list-ref e 6)) formatted-concepts)
-        (map (lambda (e) (list-ref e 7)) formatted-concepts)
-        (map (lambda (e) (list-ref e 8)) formatted-concepts)))
+(define (convert-concept-1/2-to-column-sorting-format concept)
+  (match concept
+    [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)     
+     (list (format "~a" dbname)
+           cid
+           (format "~a" cui)
+           catid
+           (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "..."))]))
 
-(define (concept-list parent parent-search/isa-panel parent-list-boxes-panel label name-string isa-flag choices predicate-list-box-thunk predicate-choices edge-type)
+(define (convert-X-concept-to-column-sorting-format concept)
+  (match concept
+    [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props ,max-pubmed-count ,min-pubmed-count ,path-length ,confidence)
+     (list (format "~a" dbname)
+           cid
+           (format "~a" cui)
+           catid
+           (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")
+           max-pubmed-count
+           min-pubmed-count
+           path-length
+           confidence)]))
+
+(define (make-send-concepts-to-concept-1/2-list-box concept-1/2-list-box-thunk)
+  (lambda (concepts)
+    (define concept-1/2-list-box (concept-1/2-list-box-thunk))
+    (define formatted-concepts (map convert-concept-1/2-to-list-box-format concepts))
+    (send concept-1/2-list-box
+          set
+          (map (lambda (e) (list-ref e 0)) formatted-concepts)
+          (map (lambda (e) (list-ref e 1)) formatted-concepts)
+          (map (lambda (e) (list-ref e 2)) formatted-concepts)
+          (map (lambda (e) (list-ref e 3)) formatted-concepts)
+          (map (lambda (e) (list-ref e 4)) formatted-concepts))))
+
+(define (make-send-concepts-to-concept-X-list-box concept-X-list-box)
+  (lambda (concepts)
+    (define formatted-concepts (map convert-X-concept-to-list-box-format concepts))
+    (send concept-X-list-box
+          set
+          (map (lambda (e) (list-ref e 0)) formatted-concepts)
+          (map (lambda (e) (list-ref e 1)) formatted-concepts)
+          (map (lambda (e) (list-ref e 2)) formatted-concepts)
+          (map (lambda (e) (list-ref e 3)) formatted-concepts)
+          (map (lambda (e) (list-ref e 4)) formatted-concepts)
+          (map (lambda (e) (list-ref e 5)) formatted-concepts)
+          (map (lambda (e) (list-ref e 6)) formatted-concepts)
+          (map (lambda (e) (list-ref e 7)) formatted-concepts)
+          (map (lambda (e) (list-ref e 8)) formatted-concepts))))
+
+(define (handle-sort-by-column-header-click event
+                                            last-column-clicked-for-sorting-box
+                                            column-sort-order-vector
+                                            choices-box
+                                            convert-values-to-column-sorting-format
+                                            send-values-to-list-box)
+  ;; sort by column
+  (define column-clicked (send event get-column))
+  (define last-column-clicked (unbox last-column-clicked-for-sorting-box))
+
+  (define sort-order (vector-ref column-sort-order-vector column-clicked))
+
+  ;; swap sort order if user clicks on same column twice in a row
+  (when (= column-clicked last-column-clicked)
+    (set! sort-order
+          (if (eqv? sort-order SORT_COLUMN_INCREASING)
+              SORT_COLUMN_DECREASING
+              SORT_COLUMN_INCREASING))
+    (vector-set! column-sort-order-vector
+                 column-clicked
+                 sort-order))
+
+  (printf "sorting by column ~s in ~s order\n" column-clicked sort-order)
+
+  (define choices (unbox choices-box))
+
+  (define sorted-choices (sort choices
+                               (lambda (c1 c2) 
+                                 (let ((fc1 (convert-values-to-column-sorting-format c1))
+                                       (fc2 (convert-values-to-column-sorting-format c2)))
+                                   (let ((v1 (list-ref fc1 column-clicked))
+                                         (v2 (list-ref fc2 column-clicked)))
+                                     (let ((num-compare
+                                            (if (eqv? sort-order SORT_COLUMN_INCREASING)
+                                                <
+                                                >))
+                                           (string-compare
+                                            (if (eqv? sort-order SORT_COLUMN_INCREASING)
+                                                string<?
+                                                string>?)))
+                                       (if (and (number? v1) (number? v2))
+                                           (num-compare v1 v2)
+                                           (string-compare (string-downcase v1)
+                                                           (string-downcase v2)))))))))
+
+  (set-box! last-column-clicked-for-sorting-box column-clicked)
+
+  (set-box! choices-box sorted-choices)
+
+  (send-values-to-list-box sorted-choices)
+  (void))
+
+(define (concept-list parent
+                      parent-search/isa-panel
+                      parent-list-boxes-panel
+                      label
+                      name-string
+                      isa-flag
+                      choices
+                      predicate-list-box-thunk
+                      predicate-choices
+                      edge-type
+                      last-column-clicked-for-sorting-box
+                      column-sort-order-vector
+                      choices-box
+                      convert-values-to-column-sorting-format
+                      send-values-to-list-box)
   (define name-field (new text-field%
                           (label label)
                           (parent parent-search/isa-panel)
@@ -314,55 +427,71 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                (choices '())
                                (columns '("DB" "CID" "CUI" "Category" "Name"))
                                (parent parent-list-boxes-panel)
-                               (style '(column-headers reorderable-headers extended))
+                               (style '(column-headers clickable-headers reorderable-headers extended))
                                (callback (lambda (self event)
-                                           (define selections (send self get-selections))
-                                           (define selected-concepts (foldr (lambda (i l) (cons (list-ref (unbox choices) i) l)) '() selections))
-                                           (when *verbose*
-                                             (printf "selected concepts:\n~s\n" selected-concepts))
-                                           (define concept-predicateo
-                                             (case edge-type
-                                               [(in-edge)  object-predicateo]
-                                               [(out-edge) subject-predicateo]
-                                               [else       (error 'concept-listbox/predicates)]))
-                                           (define predicates
-                                             (sort (remove-duplicates
-                                                     (time (run* (predicate)
-                                                             (fresh (dbname pid c)
-                                                               (membero c selected-concepts)
-                                                               (concept-predicateo c `(,dbname ,pid . ,predicate))))))
-                                                   string<?))
-                                           (printf "original predicates:\n~s\n" predicates)
-                                           (define (create-increase/decrease-syn-pred-list
-                                                    syn-pred-name predicate-names selected-predicates)
-                                             (let ((inter (set-intersect predicate-names selected-predicates)))
-                                               (if (not (null? inter))
-                                                   (list syn-pred-name)
-                                                   '())))
-                                           (define decreases-synthetic-predicate-string-list
-                                             (create-increase/decrease-syn-pred-list
-                                              DECREASES_PREDICATE_STRING DECREASES_PREDICATE_NAMES predicates))
-                                           (printf "decreases-synthetic-predicate-string-list:\n~s\n"
-                                                   decreases-synthetic-predicate-string-list)
-                                           (define increases-synthetic-predicate-string-list
-                                             (create-increase/decrease-syn-pred-list
-                                              INCREASES_PREDICATE_STRING INCREASES_PREDICATE_NAMES predicates))
-                                           (printf "increases-synthetic-predicate-string-list:\n~s\n"
-                                                   increases-synthetic-predicate-string-list)
-                                           (set! predicates (append
-                                                             decreases-synthetic-predicate-string-list
-                                                             increases-synthetic-predicate-string-list
-                                                             #;(list
+
+                                           (printf "event: ~s\n" event)
+                                           (define event-type (send event get-event-type))
+                                           (printf "event-type: ~s\n" event-type)
+
+                                           (cond
+                                             [(eqv? event-type 'list-box-column)                                              
+                                              (handle-sort-by-column-header-click
+                                                    event
+                                                    last-column-clicked-for-sorting-box
+                                                    column-sort-order-vector
+                                                    choices-box
+                                                    convert-values-to-column-sorting-format
+                                                    send-values-to-list-box)]
+                                             [else
+                                              (define selections (send self get-selections))
+                                              (define selected-concepts (foldr (lambda (i l) (cons (list-ref (unbox choices) i) l)) '() selections))
+                                              (when *verbose*
+                                                (printf "selected concepts:\n~s\n" selected-concepts))
+                                              (define concept-predicateo
+                                                (case edge-type
+                                                  [(in-edge)  object-predicateo]
+                                                  [(out-edge) subject-predicateo]
+                                                  [else       (error 'concept-listbox/predicates)]))
+                                              (define predicates
+                                                (sort (remove-duplicates
+                                                       (time (run* (predicate)
+                                                               (fresh (dbname pid c)
+                                                                 (membero c selected-concepts)
+                                                                 (concept-predicateo c `(,dbname ,pid . ,predicate))))))
+                                                      string<?))
+                                              (printf "original predicates:\n~s\n" predicates)
+                                              (define (create-increase/decrease-syn-pred-list
+                                                       syn-pred-name predicate-names selected-predicates)
+                                                (let ((inter (set-intersect predicate-names selected-predicates)))
+                                                  (if (not (null? inter))
+                                                      (list syn-pred-name)
+                                                      '())))
+                                              (define decreases-synthetic-predicate-string-list
+                                                (create-increase/decrease-syn-pred-list
+                                                 DECREASES_PREDICATE_STRING DECREASES_PREDICATE_NAMES predicates))
+                                              (printf "decreases-synthetic-predicate-string-list:\n~s\n"
+                                                      decreases-synthetic-predicate-string-list)
+                                              (define increases-synthetic-predicate-string-list
+                                                (create-increase/decrease-syn-pred-list
+                                                 INCREASES_PREDICATE_STRING INCREASES_PREDICATE_NAMES predicates))
+                                              (printf "increases-synthetic-predicate-string-list:\n~s\n"
+                                                      increases-synthetic-predicate-string-list)
+                                              (set! predicates (append
+                                                                decreases-synthetic-predicate-string-list
+                                                                increases-synthetic-predicate-string-list
+                                                                #;(list
                                                                 DECREASES_STAR_PREDICATE_STRING
                                                                 INCREASES_STAR_PREDICATE_STRING)
-                                                             predicates))
-                                           (printf "predicates: ~s\n" predicates)
-                                           (set-box! predicate-choices predicates)
-                                           (send (predicate-list-box-thunk) set predicates)
+                                                                predicates))
+                                              (printf "predicates: ~s\n" predicates)
+                                              (set-box! predicate-choices predicates)
+                                              (send (predicate-list-box-thunk) set predicates)
 
-                                           ;; unselect all items
-                                           (for ([i (length predicates)])
-                                                (send (predicate-list-box-thunk) select i #f))))))
+                                              ;; unselect all items
+                                              (for ([i (length predicates)])
+                                                   (send (predicate-list-box-thunk) select i #f))
+                                              ])))))
 
   (define (mk-run)
     (let* ((ans (if (null? (split-name-string current-name)) '()
@@ -545,7 +674,21 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
     (define concept-1-list-boxes-panel (new panel:horizontal-dragable%
                                             (parent concept-1-overall-pane)
                                             (alignment '(left center))))
-    (define concept-1-list-box (concept-list concept-1-overall-pane concept-1-search/isa-panel concept-1-list-boxes-panel "Concept 1" *concept-1-name-string* *concept-1-isa-flag* *concept-1-choices* (lambda () predicate-1-list-box) *predicate-1-choices* 'out-edge))
+    (define concept-1-list-box (concept-list concept-1-overall-pane
+                                             concept-1-search/isa-panel
+                                             concept-1-list-boxes-panel
+                                             "Concept 1"
+                                             *concept-1-name-string*
+                                             *concept-1-isa-flag*
+                                             *concept-1-choices*
+                                             (lambda () predicate-1-list-box)
+                                             *predicate-1-choices*
+                                             'out-edge
+                                             *last-concept-1-column-clicked-for-sorting*
+                                             *concept-1-column-sort-order*
+                                             *concept-1-choices*
+                                             convert-concept-1/2-to-column-sorting-format
+                                             (make-send-concepts-to-concept-1/2-list-box (lambda () concept-1-list-box))))
     (define predicate-1-list-box (new list-box%
                                       (label "Predicate 1")
                                       (choices (unbox *predicate-1-choices*))
@@ -575,7 +718,21 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                       (parent concept-2-list-boxes-panel)
                                       (style '(extended))
                                       (callback go-callback)))
-    (define concept-2-list-box (concept-list concept-2-overall-pane concept-2-search/isa-panel concept-2-list-boxes-panel "Concept 2" *concept-2-name-string* *concept-2-isa-flag* *concept-2-choices* (lambda () predicate-2-list-box) *predicate-2-choices* 'in-edge))
+    (define concept-2-list-box (concept-list concept-2-overall-pane
+                                             concept-2-search/isa-panel
+                                             concept-2-list-boxes-panel
+                                             "Concept 2"
+                                             *concept-2-name-string*
+                                             *concept-2-isa-flag*
+                                             *concept-2-choices*
+                                             (lambda () predicate-2-list-box)
+                                             *predicate-2-choices*
+                                             'in-edge
+                                             *last-concept-2-column-clicked-for-sorting*
+                                             *concept-2-column-sort-order*
+                                             *concept-2-choices*
+                                             convert-concept-1/2-to-column-sorting-format
+                                             (make-send-concepts-to-concept-1/2-list-box (lambda () concept-2-list-box))))
 
     (define running-status-description (new message%
                                             (parent concept-2-overall-pane)
@@ -595,64 +752,13 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
 
                                                 (cond
                                                   [(eqv? event-type 'list-box-column)
-
-                                                   ;; sort X concepts by column
-                                                   (define column-clicked (send event get-column))
-                                                   (define last-column-clicked (unbox *last-concept-X-column-clicked-for-sorting*))
-
-                                                   (define sort-order (vector-ref *concept-X-column-sort-order*
-                                                                                  column-clicked))
-
-                                                   ;; swap sort order if user clicks on same column twice in a row
-                                                   (when (= column-clicked last-column-clicked)
-                                                     (set! sort-order
-                                                           (if (eqv? sort-order SORT_COLUMN_INCREASING)
-                                                               SORT_COLUMN_DECREASING
-                                                               SORT_COLUMN_INCREASING))
-                                                     (vector-set! *concept-X-column-sort-order*
-                                                                  column-clicked
-                                                                  sort-order))
-
-                                                   (printf "sorting X concepts by column ~s in ~s order\n" column-clicked sort-order)
-                                                   ;; (printf "current *concept-X-column-sort-order*: ~s\n" *concept-X-column-sort-order*)
-
-                                                   (define choices (unbox *concept-X-choices*))
-
-                                                   ;;(printf "choices: ~s\n" choices)
-
-                                                   (define sorted-choices (sort choices
-                                                                                (lambda (c1 c2)
-                                                                                  ;;(printf "c1: ~s\n" c1)
-                                                                                  ;;(printf "c2: ~s\n" c2)
-                                                                                  (let ((fc1 (convert-X-concept-to-column-sorting-format c1))
-                                                                                        (fc2 (convert-X-concept-to-column-sorting-format c2)))
-                                                                                    ;;(printf "fc1: ~s\n" fc1)
-                                                                                    ;;(printf "fc2: ~s\n" fc2)
-                                                                                    (let ((v1 (list-ref fc1 column-clicked))
-                                                                                          (v2 (list-ref fc2 column-clicked)))
-                                                                                      ;;(printf "v1: ~s\n" v1)
-                                                                                      ;;(printf "v2: ~s\n" v2)
-                                                                                      (let ((num-compare
-                                                                                             (if (eqv? sort-order SORT_COLUMN_INCREASING)
-                                                                                                 <
-                                                                                                 >))
-                                                                                            (string-compare
-                                                                                             (if (eqv? sort-order SORT_COLUMN_INCREASING)
-                                                                                                 string<?
-                                                                                                 string>?)))
-                                                                                        (if (and (number? v1) (number? v2))
-                                                                                            (num-compare v1 v2)
-                                                                                            (string-compare (string-downcase v1)
-                                                                                                            (string-downcase v2)))))))))
-
-                                                   ;;(printf "sorted-choices: ~s\n" sorted-choices)
-
-                                                   (set-box! *last-concept-X-column-clicked-for-sorting* column-clicked)
-
-                                                   (set-box! *concept-X-choices* sorted-choices)
-
-                                                   (send-concepts-to-concept-X-list-box sorted-choices self)
-                                                   (void)]
+                                                   (handle-sort-by-column-header-click
+                                                    event
+                                                    *last-concept-X-column-clicked-for-sorting*
+                                                    *concept-X-column-sort-order*
+                                                    *concept-X-choices*
+                                                    convert-X-concept-to-column-sorting-format
+                                                    (make-send-concepts-to-concept-X-list-box self))]
                                                   [(eqv? event-type 'list-box-dclick)
                                                    (printf "double-click!! copy name of the concept to the clipboard\n")
                                                    (define time-stamp (send event get-time-stamp))
@@ -1633,7 +1739,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
 
   (printf "========== end query results =============\n")
 
-  (send-concepts-to-concept-X-list-box all-X-concepts concept-X-list-box)
+  ((make-send-concepts-to-concept-X-list-box concept-X-list-box) all-X-concepts)
 
   #| ;; v 0.1 version
   (send concept-X-list-box
