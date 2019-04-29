@@ -17,7 +17,7 @@
 (provide
   launch-gui)
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.23")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.24")
 
 (define argv (current-command-line-arguments))
 (define argv-optional '#(CONFIG_FILE))
@@ -1432,7 +1432,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
     (printf "saved human-friendly version of all-X-concepts-with-edges to '~a' file\n"
             HUMAN_FRIENDLY_QUERY_RESULTS_FILE_NAME)
 
-  (printf "saving spreadsheet-friendly version of all-X-concepts-with-edges to '~a' file...\n"
+    (printf "saving spreadsheet-friendly version of all-X-concepts-with-edges to '~a' file...\n"
             SPREADSHEET_FRIENDLY_QUERY_RESULTS_FILE_NAME)
     (pretty-print-X-concepts-with-edges
       SPREADSHEET_FRIENDLY_QUERY_RESULTS_FILE_NAME

@@ -190,19 +190,16 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
     (match edge
       ['path-separator '()]
       [`(,dbname ,eid ,subj ,obj ,p ,eprops)
-        (cond [(assoc "pmids" eprops) ;; WEB this property is only used by semmed, I believe
-               => (lambda (pr) (regexp-split #rx";" (cdr pr)))]
-              [(assoc "publications" eprops)
-               => (lambda (pr)
-                    (define pubs (cdr pr))
-                    (if (not (string? pubs)) '()
-                      (regexp-match*
-                        (if (and (> (string-length pubs) 0)
-                                 (equal? (string-ref pubs 0) #\())
-                          #rx"PMID:([0-9]+)"
-                          #rx"'http://www.ncbi.nlm.nih.gov/pubmed/([0-9]+)'")
-                        pubs #:match-select cadr)))]
-              [else '()])]))
+       (cond
+         [(assoc "pmids" eprops) => ;; WEB the 'pmids' property is only used by semmed, I believe
+          (lambda (pr) (regexp-split #rx";" (cdr pr)))]
+         [(assoc "publications" eprops) =>
+          (lambda (pr)
+            (define pubs (cdr pr))
+            (if (not (string? pubs))
+                '()
+                (regexp-match* #rx"([0-9]+)" pubs #:match-select cadr)))]
+         [else '()])]))
   (map (lambda (pubmed-id) (string-append PUBMED_URL_PREFIX (~a pubmed-id)))
        (remove-duplicates pubmed*)))
 
