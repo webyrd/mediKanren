@@ -43,7 +43,7 @@
 (provide
   launch-gui)
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.21")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.22")
 
 (define argv (current-command-line-arguments))
 (define argv-optional '#(CONFIG_FILE))
@@ -144,7 +144,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
 
 (define input-response-latency 50)
 
-(define MAX-CHAR-WIDTH 100)
+(define MAX-CHAR-WIDTH 150)
 
 (define smart-column-width-list-box%
   (class list-box%
