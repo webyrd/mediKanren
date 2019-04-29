@@ -43,7 +43,7 @@
 (provide
   launch-gui)
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.16")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.17")
 
 (define argv (current-command-line-arguments))
 (define argv-optional '#(CONFIG_FILE))
@@ -469,7 +469,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                             (parent frame)
                                             (alignment '(left center))))
     
-    (define upper-pane (new vertical-pane%
+    (define upper-pane (new panel:vertical-dragable%
                             (parent outer-vert-draggable-panel)
                             (alignment '(left center))))
 
@@ -534,14 +534,18 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
 
         ))
 
+    (define concept-1-overall-pane (new vertical-pane%
+                                        (parent upper-pane)
+                                        (alignment '(left center))))
+    
     (define concept-1-search/isa-panel (new panel:horizontal-dragable%
-                                            (parent upper-pane)
+                                            (parent concept-1-overall-pane)
                                             (alignment '(left center))
                                             (stretchable-height #f)))
     (define concept-1-list-boxes-panel (new panel:horizontal-dragable%
-                                            (parent upper-pane)
+                                            (parent concept-1-overall-pane)
                                             (alignment '(left center))))
-    (define concept-1-list-box (concept-list upper-pane concept-1-search/isa-panel concept-1-list-boxes-panel "Concept 1" *concept-1-name-string* *concept-1-isa-flag* *concept-1-choices* (lambda () predicate-1-list-box) *predicate-1-choices* 'out-edge))
+    (define concept-1-list-box (concept-list concept-1-overall-pane concept-1-search/isa-panel concept-1-list-boxes-panel "Concept 1" *concept-1-name-string* *concept-1-isa-flag* *concept-1-choices* (lambda () predicate-1-list-box) *predicate-1-choices* 'out-edge))
     (define predicate-1-list-box (new list-box%
                                       (label "Predicate 1")
                                       (choices (unbox *predicate-1-choices*))
@@ -550,14 +554,19 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                       (style '(extended))
                                       (callback go-callback)))
     (define edge-description (new message%
-                                  (parent upper-pane)
+                                  (parent concept-1-overall-pane)
                                   (label "Concept 1 -> Predicate 1 -> [X] -> Predicate 2 -> Concept 2")))
+
+    (define concept-2-overall-pane (new vertical-pane%
+                                        (parent upper-pane)
+                                        (alignment '(left center))))
+    
     (define concept-2-search/isa-panel (new panel:horizontal-dragable%
-                                            (parent upper-pane)
+                                            (parent concept-2-overall-pane)
                                             (alignment '(left center))
                                             (stretchable-height #f)))
     (define concept-2-list-boxes-panel (new panel:horizontal-dragable%
-                                            (parent upper-pane)
+                                            (parent concept-2-overall-pane)
                                             (alignment '(left center))))
     (define predicate-2-list-box (new list-box%
                                       (label "Predicate 2")
@@ -566,17 +575,10 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                       (parent concept-2-list-boxes-panel)
                                       (style '(extended))
                                       (callback go-callback)))
-    (define concept-2-list-box (concept-list upper-pane concept-2-search/isa-panel concept-2-list-boxes-panel "Concept 2" *concept-2-name-string* *concept-2-isa-flag* *concept-2-choices* (lambda () predicate-2-list-box) *predicate-2-choices* 'in-edge))
-
-    #|
-    (define go-button (new button%
-                           (parent upper-pane)
-                           (label "go!")
-                           (callback go-callback)))
-    |#
+    (define concept-2-list-box (concept-list concept-2-overall-pane concept-2-search/isa-panel concept-2-list-boxes-panel "Concept 2" *concept-2-name-string* *concept-2-isa-flag* *concept-2-choices* (lambda () predicate-2-list-box) *predicate-2-choices* 'in-edge))
 
     (define running-status-description (new message%
-                                            (parent upper-pane)
+                                            (parent concept-2-overall-pane)
                                             (label "                                                                ")))
 
     (define concept-X-list-box (new smart-column-width-list-box%
