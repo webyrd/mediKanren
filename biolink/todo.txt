@@ -1,3 +1,8 @@
+HIGH PRIORITY
+* Matt : 2-hop query--want to modify a target T;  may need to find X that modifies Y that modifies T
+(need to link concepts and synonyms across data sets)
+
+
 * update the synthetic predicates, and consider adding new synthetic predicates
 * be able to specify a gene, drug, etc., by standard IDs (ENSMBL, etc) (need to index by these IDs, etc)
 * add ability to find all edges with a given PubMed ID to interface (see find-edges-by-pubmed-id.rkt; will probably need to index Orange and RTX KGs as well)
@@ -12,9 +17,9 @@
 * figure out how to make the deep blue selection color easier to read
 * update the ISA checkbox to handle ontological connections in a more sophisticated way
 * add a simple query builder window, similar to ROBOKOP
-
-
-
+* add ability to import and use user data
+* be able to (efficiently?) find all edges for a given predicate/predicates
+* be able to query between KGs in a single query (like in 'imatinib [decreases] X [increases] asthma')
 
 
 
