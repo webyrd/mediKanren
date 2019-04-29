@@ -21,6 +21,7 @@ Standardization
 
 
 Refactoring/Generalization/Consistency
+* double-clicking on any property entry should copy the Value to the clipboard (what if the property's value is a URL?  what to do then?)
 * auto-select the first X entry once the X concept list is populated
 * be able to specify a gene, drug, etc., by standard IDs (ENSMBL, etc) (need to index by these IDs, etc)
 * add ability to find all edges with a given PubMed ID to interface (see find-edges-by-pubmed-id.rkt; will probably need to index Orange and RTX KGs as well)
@@ -29,7 +30,6 @@ Refactoring/Generalization/Consistency
 * update the ISA checkbox to handle ontological connections in a more sophisticated way
 * be able to query between KGs in a single query (like in 'imatinib [decreases] X [increases] asthma')
 * add a simple query builder window, similar to ROBOKOP
-* double-clicking on any property entry should copy the Value to the clipboard
 * be able to (efficiently?) find all edges for a given predicate/predicates
 
 
