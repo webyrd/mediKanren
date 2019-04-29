@@ -8,7 +8,10 @@
 * create window for Workflow 1 and Workflow X modules
 * workflow builder
 * support emerging 9.1 input/output standard
-
+* auto-select the first X entry once the X concept list is populated
+* figure out how to make the deep blue selection color easier to read
+* update the ISA checkbox to handle ontological connections in a more sophisticated way
+* add a simple query builder window, similar to ROBOKOP
 
 
 
