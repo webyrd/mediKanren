@@ -43,7 +43,7 @@
 (provide
   launch-gui)
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.20")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.21")
 
 (define argv (current-command-line-arguments))
 (define argv-optional '#(CONFIG_FILE))
@@ -462,7 +462,9 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                                 (let ((inter (sort (set-intersect predicate-names selected-predicates)
                                                                    string<?)))
                                                   (if (not (null? inter))
-                                                      (list (string-append syn-pred-prefix " (" (string-join inter ", ") ")"))
+                                                      (let ((str (string-append syn-pred-prefix " (" (string-join inter ", ") ")")))
+                                                        (let ((safe-string (~a str #:max-width MAX-CHAR-WIDTH #:limit-marker "...")))
+                                                          (list safe-string))) 
                                                       '())))
                                               (define decreases-synthetic-predicate-string-list
                                                 (create-increase/decrease-syn-pred-list
