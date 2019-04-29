@@ -1,13 +1,13 @@
-* double-clicking on any property entry should copy the Value to the clipboard
-* make sure to pick up pubmed entries is unusual places
+* update the synthetic predicates, and consider adding new synthetic predicates
 * be able to specify a gene, drug, etc., by standard IDs (ENSMBL, etc) (need to index by these IDs, etc)
-* add ability to find all edges wiht a give PubMed ID to interface (see find-edges-by-pubmed-id.rkt; will probably need to index Orange and RTX KGs as well)
+* add ability to find all edges with a given PubMed ID to interface (see find-edges-by-pubmed-id.rkt; will probably need to index Orange and RTX KGs as well)
+* make sure to pick up pubmed entries is unusual places
 * add interruptible thread tech for when clicking on predicates, just like we have for concept string searches
+* double-clicking on any property entry should copy the Value to the clipboard
 * create window for getting all info about a specified gene (run a bunch of standard mini-queries and display results/report)
 * create window for Workflow 1 and Workflow X modules
+* workflow builder
 * support emerging 9.1 input/output standard
-
-
 
 
 
