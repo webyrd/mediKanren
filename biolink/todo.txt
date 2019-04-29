@@ -2,7 +2,7 @@ HIGH PRIORITY
 * Matt : 2-hop query--want to modify a target T;  may need to find X that modifies Y that modifies T
 (need to link concepts and synonyms across data sets)
 
-
+* figure out what to do when concepts in more than one KG has an identical CUI (there can still be differences in the Category and Name, for example!)  For example, for 'X has_phentype SOX5', 'Robokop' and 'orange' each have a concept for SOX5 with MONDO:0017782 as the CUI, but with slightly different category and name info!
 * add ability to annotate queries/answers, or otherwise provide feedback for good/suspicious/missing answers (potentially send to some central place, or at least save locally)
 * update the synthetic predicates, and consider adding new synthetic predicates
 * be able to specify a gene, drug, etc., by standard IDs (ENSMBL, etc) (need to index by these IDs, etc)
