@@ -43,7 +43,7 @@
 (provide
   launch-gui)
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.14")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.15")
 
 (define argv (current-command-line-arguments))
 (define argv-optional '#(CONFIG_FILE))
@@ -184,7 +184,8 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
 
 (define construct-predicate-label-string
   (lambda (pred-string pred-name-list)
-    (string-append pred-string
+    (~a
+     (string-append pred-string
                    "  ("
                    (foldr (lambda (str1 str2)
                             (if (equal? "" str2)
@@ -192,7 +193,8 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                 (string-append str1 ", " str2)))
                           ""
                           pred-name-list)
-                   ")")))
+                   ")")
+     #:max-width MAX-CHAR-WIDTH #:limit-marker "...")))
 
 (define DECREASES_PREDICATE_BASE_STRING "decreases [synthetic]")
 (define DECREASES_PREDICATE_STRING
