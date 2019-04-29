@@ -3,6 +3,7 @@ HIGH PRIORITY
 (need to link concepts and synonyms across data sets)
 
 
+* add ability to annotate queries/answers, or otherwise provide feedback for good/suspicious/missing answers (potentially send to some central place, or at least save locally)
 * update the synthetic predicates, and consider adding new synthetic predicates
 * be able to specify a gene, drug, etc., by standard IDs (ENSMBL, etc) (need to index by these IDs, etc)
 * add ability to find all edges with a given PubMed ID to interface (see find-edges-by-pubmed-id.rkt; will probably need to index Orange and RTX KGs as well)
