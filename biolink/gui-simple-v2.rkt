@@ -43,7 +43,7 @@
 (provide
   launch-gui)
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.18")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.19")
 
 (define argv (current-command-line-arguments))
 (define argv-optional '#(CONFIG_FILE))
@@ -196,20 +196,16 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                    ")")
      #:max-width MAX-CHAR-WIDTH #:limit-marker "...")))
 
-(define DECREASES_PREDICATE_BASE_STRING "decreases [synthetic]")
+(define DECREASES_PREDICATE_PREFIX_STRING "decreases [synthetic]")
 (define DECREASES_PREDICATE_STRING
-  (construct-predicate-label-string DECREASES_PREDICATE_BASE_STRING DECREASES_PREDICATE_NAMES))
-(define INCREASES_PREDICATE_BASE_STRING "increases [synthetic]")
+  (construct-predicate-label-string DECREASES_PREDICATE_PREFIX_STRING DECREASES_PREDICATE_NAMES))
+(define INCREASES_PREDICATE_PREFIX_STRING "increases [synthetic]")
 (define INCREASES_PREDICATE_STRING
-  (construct-predicate-label-string INCREASES_PREDICATE_BASE_STRING INCREASES_PREDICATE_NAMES))
-;; (define DECREASES_STAR_PREDICATE_STRING "decreases* [synthetic]")
-;; (define INCREASES_STAR_PREDICATE_STRING "increases* [synthetic]")
+  (construct-predicate-label-string INCREASES_PREDICATE_PREFIX_STRING INCREASES_PREDICATE_NAMES))
 
-(define SYNTHETIC_PREDICATE_STRINGS (list DECREASES_PREDICATE_STRING
-                                          INCREASES_PREDICATE_STRING
-                                          ;; DECREASES_STAR_PREDICATE_STRING
-                                          ;; INCREASES_STAR_PREDICATE_STRING
-                                          ))
+(define SYNTHETIC_PREDICATE_PREFIXES (list DECREASES_PREDICATE_PREFIX_STRING
+                                           INCREASES_PREDICATE_PREFIX_STRING
+                                           ))
 
 
 (define SORT_COLUMN_INCREASING 'sort-column-increasing)
@@ -462,27 +458,25 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                                       string<?))
                                               (printf "original predicates:\n~s\n" predicates)
                                               (define (create-increase/decrease-syn-pred-list
-                                                       syn-pred-name predicate-names selected-predicates)
-                                                (let ((inter (set-intersect predicate-names selected-predicates)))
+                                                       syn-pred-prefix predicate-names selected-predicates)
+                                                (let ((inter (sort (set-intersect predicate-names selected-predicates)
+                                                                   string<?)))
                                                   (if (not (null? inter))
-                                                      (list syn-pred-name)
+                                                      (list (string-append syn-pred-prefix " (" (string-join inter ", ") ")"))
                                                       '())))
                                               (define decreases-synthetic-predicate-string-list
                                                 (create-increase/decrease-syn-pred-list
-                                                 DECREASES_PREDICATE_STRING DECREASES_PREDICATE_NAMES predicates))
+                                                 DECREASES_PREDICATE_PREFIX_STRING DECREASES_PREDICATE_NAMES predicates))
                                               (printf "decreases-synthetic-predicate-string-list:\n~s\n"
                                                       decreases-synthetic-predicate-string-list)
                                               (define increases-synthetic-predicate-string-list
                                                 (create-increase/decrease-syn-pred-list
-                                                 INCREASES_PREDICATE_STRING INCREASES_PREDICATE_NAMES predicates))
+                                                 INCREASES_PREDICATE_PREFIX_STRING INCREASES_PREDICATE_NAMES predicates))
                                               (printf "increases-synthetic-predicate-string-list:\n~s\n"
                                                       increases-synthetic-predicate-string-list)
                                               (set! predicates (append
                                                                 decreases-synthetic-predicate-string-list
                                                                 increases-synthetic-predicate-string-list
-                                                                #;(list
-                                                                DECREASES_STAR_PREDICATE_STRING
-                                                                INCREASES_STAR_PREDICATE_STRING)
                                                                 predicates))
                                               (printf "predicates: ~s\n" predicates)
                                               (set-box! predicate-choices predicates)
@@ -1235,20 +1229,24 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
   (define atomic-predicate* predicate*)
   (define synthetic-predicate* '())
 
-  (set! synthetic-predicate* (filter (lambda (pred) (member pred SYNTHETIC_PREDICATE_STRINGS))
+  (set! synthetic-predicate* (filter (lambda (pred)
+                                       (memf (lambda (syn-prefix) (string-prefix? pred syn-prefix))
+                                             SYNTHETIC_PREDICATE_PREFIXES))
                                      atomic-predicate*))
 
-  (when (member DECREASES_PREDICATE_STRING atomic-predicate*)
-    ;; v0.1 predicates: (set! atomic-predicate* (cons "INHIBITS" (cons "PREVENTS" (cons "TREATS" atomic-predicate*))))
+  (when (memf (lambda (pred) (string-prefix? pred DECREASES_PREDICATE_PREFIX_STRING))
+              atomic-predicate*)
     (set! atomic-predicate* (append DECREASES_PREDICATE_NAMES atomic-predicate*))
     (set! synthetic-predicate* (remove DECREASES_PREDICATE_STRING synthetic-predicate*)))
 
-  (when (member INCREASES_PREDICATE_STRING atomic-predicate*)
-    ;; v0.1 predicates: (set! atomic-predicate* (cons "STIMULATES" (cons "AUGMENTS" (cons "CAUSES" atomic-predicate*))))
+  (when (memf (lambda (pred) (string-prefix? pred INCREASES_PREDICATE_PREFIX_STRING))
+              atomic-predicate*)
     (set! atomic-predicate* (append INCREASES_PREDICATE_NAMES atomic-predicate*))
     (set! synthetic-predicate* (remove INCREASES_PREDICATE_STRING synthetic-predicate*)))
 
-  (set! atomic-predicate* (filter (lambda (pred) (not (member pred SYNTHETIC_PREDICATE_STRINGS)))
+  (set! atomic-predicate* (filter (lambda (pred)
+                                    (not (memf (lambda (syn-prefix) (string-prefix? pred syn-prefix))
+                                               SYNTHETIC_PREDICATE_PREFIXES))) 
                                   atomic-predicate*))
 
   (set! atomic-predicate* (remove-duplicates atomic-predicate*))
