@@ -2,6 +2,7 @@ HIGH PRIORITY
 * Matt : 2-hop query--want to modify a target T;  may need to find X that modifies Y that modifies T
 (need to link concepts and synonyms across data sets)
 
+* add blacklist to default config file, for things like 'Disease' in Semmeddb, etc.  Make sure this list is respected in *every* relevant 'run' expression (for example, need to filter before determining which predicates are available)
 * figure out what to do when concepts in more than one KG has an identical CUI (there can still be differences in the Category and Name, for example!)  For example, for 'X has_phentype SOX5', 'Robokop' and 'orange' each have a concept for SOX5 with MONDO:0017782 as the CUI, but with slightly different category and name info!
 * add ability to annotate queries/answers, or otherwise provide feedback for good/suspicious/missing answers (potentially send to some central place, or at least save locally)
 * update the synthetic predicates, and consider adding new synthetic predicates
@@ -21,7 +22,7 @@ HIGH PRIORITY
 * add ability to import and use user data
 * be able to (efficiently?) find all edges for a given predicate/predicates
 * be able to query between KGs in a single query (like in 'imatinib [decreases] X [increases] asthma')
-
+* be able to answer the SH3 / tau question
 
 
 
