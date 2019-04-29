@@ -3,6 +3,7 @@ HIGH PRIORITY
 (need to link concepts and synonyms across data sets)
 
 * add blacklist to default config file, for things like 'Disease' in Semmeddb, etc.  Make sure this list is respected in *every* relevant 'run' expression (for example, need to filter before determining which predicates are available)
+* consider adding a mode for aggressively checking/pruning likely low quality/howler answers (for example, the innumerable incorrect answers in Semmeddb due to gene aliasing colliding with random short abbreviations for non-genes)
 * figure out what to do when concepts in more than one KG has an identical CUI (there can still be differences in the Category and Name, for example!)  For example, for 'X has_phentype SOX5', 'Robokop' and 'orange' each have a concept for SOX5 with MONDO:0017782 as the CUI, but with slightly different category and name info!
 * add ability to annotate queries/answers, or otherwise provide feedback for good/suspicious/missing answers (potentially send to some central place, or at least save locally)
 * update the synthetic predicates, and consider adding new synthetic predicates
