@@ -1,31 +1,5 @@
 #lang racket
 
-;;; TODO FIXME
-
-;;; NGLY1 in concept 2
-;;; semmed
-;;; interacts_with
-;;; FAF1 gene
-
-
-;;; Extract Pubmed ids from the alist of properties in the full path
-
-;;; semmed:
-;;; ("pmids" . "27748395")
-
-;;; rtx:
-;;;
-
-;;; monarch-lite:
-;;;
-
-;;; TODO FEATURES
-;;;
-;;; hotkeys for moving between panes, etc.--should be able to do everything from the keyboard
-
-;;; Improve sorting to take into account num of pub med entries
-
-
 (require
   "common.rkt"
   racket/sandbox
@@ -43,7 +17,7 @@
 (provide
   launch-gui)
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.22")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.23")
 
 (define argv (current-command-line-arguments))
 (define argv-optional '#(CONFIG_FILE))
@@ -96,41 +70,6 @@ edge format, with dbname at front (as used in edgeo):
                (,pid . ,pred) ,eprops)
 |#
 
-;;; TODO
-;;;
-;;; recognize concept name containing only whitespace as being empty
-;;;
-;;; use a reasonable default sorting for the concepts
-;;;
-;;; add ability to sort concept columns by clicking on column titles
-;;;
-;;; speed up concept search--seems much slower than in the old mediKanren
-;;; (perhaps consider searching one DB exhaustively before moving to the next one)
-;;;
-;;; add ability to include only some of the data sources
-;;;
-;;; add ability to show and hide concept columns
-;;;
-;;; add ability to show date of data sources, and date/provenance for results
-;;;
-;;; add ability to specify/filter by data source or category
-
-
-;;; ISSUES
-;;;
-;;; Seem to be missing '<gene> has_phenotype alacrima' entries for
-;;; HEXA and GBA, even though these seem to be in the Monarch website.
-;;; Why?
-;;;
-;;; Different data sources have what are effectively duplicate entries,
-;;; but it isn't always easy to tell.
-;;;
-;;; Different data sources have different category numbers for the
-;;; same CUI/entity.  For example, 'Imatinib mesylate' has the 'UMLS:C0939537'
-;;; CUI in both Semmed and Scigraph, yet the category is (5 . "chemical_substance")
-;;; for Semmed and (21 . "chemical_substance") for Scigraph.  Why?
-;;; (The concept IDs are different in this case)
-
 (define (split-name-string name)
   (string-split name #px"\\s+"))
 
@@ -150,26 +89,20 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
   (class list-box%
     (super-new)
     (define (on-size width height)
-      ;; (printf "on-size called with width/height ~s ~s\n" width height)
       (super on-size width height)
       (set-default-column-widths this))
     (override on-size)))
 
 (define (set-default-column-widths list-box)
-  ;; (printf "setting default column widths for ~s\n" list-box)
   (define label* (send list-box get-column-labels))
-  ;; (printf "label*: ~s\n" label*)
   (define num-cols (length label*))
-  ;; (printf "num-cols: ~s\n" num-cols)
   (define window-width (send list-box get-width))
-  ;; (printf "window-width: ~s\n" window-width)
   (define min-width 5)
   (define max-width 1000)
   (define fudge-factor 4) ;; column divider width
   (define width (min (max (- (floor (/ window-width num-cols)) fudge-factor)
                           min-width)
                      max-width))
-  ;; (printf "width: ~s\n" width)
   (let loop ((col-num (sub1 num-cols)))
     (cond
       [(zero? col-num) (void)]
@@ -425,11 +358,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                (parent parent-list-boxes-panel)
                                (style '(column-headers clickable-headers reorderable-headers extended))
                                (callback (lambda (self event)
-
-                                           (printf "event: ~s\n" event)
                                            (define event-type (send event get-event-type))
-                                           (printf "event-type: ~s\n" event-type)
-
                                            (cond
                                              [(eqv? event-type 'list-box-column)                                              
                                               (handle-sort-by-column-header-click
@@ -456,7 +385,6 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                                                  (membero c selected-concepts)
                                                                  (concept-predicateo c `(,dbname ,pid . ,predicate))))))
                                                       string<?))
-                                              (printf "original predicates:\n~s\n" predicates)
                                               (define (create-increase/decrease-syn-pred-list
                                                        syn-pred-prefix predicate-names selected-predicates)
                                                 (let ((inter (sort (set-intersect predicate-names selected-predicates)
@@ -469,13 +397,9 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                               (define decreases-synthetic-predicate-string-list
                                                 (create-increase/decrease-syn-pred-list
                                                  DECREASES_PREDICATE_PREFIX_STRING DECREASES_PREDICATE_NAMES predicates))
-                                              (printf "decreases-synthetic-predicate-string-list:\n~s\n"
-                                                      decreases-synthetic-predicate-string-list)
                                               (define increases-synthetic-predicate-string-list
                                                 (create-increase/decrease-syn-pred-list
                                                  INCREASES_PREDICATE_PREFIX_STRING INCREASES_PREDICATE_NAMES predicates))
-                                              (printf "increases-synthetic-predicate-string-list:\n~s\n"
-                                                      increases-synthetic-predicate-string-list)
                                               (set! predicates (append
                                                                 decreases-synthetic-predicate-string-list
                                                                 increases-synthetic-predicate-string-list
@@ -743,11 +667,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                     (parent lower-pane)
                                     (style '(column-headers clickable-headers reorderable-headers single))
                                     (callback (lambda (self event)
-
-                                                (printf "event: ~s\n" event)
                                                 (define event-type (send event get-event-type))
-                                                (printf "event-type: ~s\n" event-type)
-
                                                 (cond
                                                   [(eqv? event-type 'list-box-column)
                                                    (handle-sort-by-column-header-click
@@ -836,22 +756,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                                                                  (== `(,dbname ,eid ,x ,o (,pid . ,pred) ,eprops) e)
                                                                                  (membero `(,dbname . ,o) concept-2*)
                                                                                  (membero pred atomic-predicate-2*)
-                                                                                 (edgeo e)))))
-                                                                    #| ;; v0.1 version
-                                                                    (remove-duplicates
-                                                                     (append paths
-                                                                             (run* (q)
-                                                                               (fresh (e2
-                                                                                       x
-                                                                                       o p2 t2 t3 r2)
-                                                                                 (== (list e2) q)
-                                                                                 (== selected-X x)
-                                                                                 (== e2 `(,x ,o ,p2 ,t2 ,t3 ,r2))
-                                                                                 (membero o concept-2*)
-                                                                                 (membero p2 atomic-predicate-2*)
-                                                                                 (edgeo e2)))))
-                                                                    |#
-                                                                    )]
+                                                                                 (edgeo e))))))]
                                                              [(null? (split-name-string (unbox *solution-concept-2-name-string*)))
 
                                                               (set! paths '())
@@ -866,23 +771,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                                                                  (== `(,dbname ,eid ,s ,x (,pid . ,pred) ,eprops) e)
                                                                                  (membero `(,dbname . ,s) concept-1*)
                                                                                  (membero pred atomic-predicate-1*)
-                                                                                 (edgeo e)))))
-                                                                    #| ;; v0.1 version
-                                                                    (remove-duplicates
-                                                                     (append paths
-                                                                             (run* (q)
-                                                                               (fresh (e1
-                                                                                       x
-                                                                                       s
-                                                                                       p1 ts t1 r1)
-                                                                                 (== (list e1) q)
-                                                                                 (== selected-X x)
-                                                                                 (== e1 `(,s ,x ,p1 ,ts ,t1 ,r1))
-                                                                                 (membero s concept-1*)
-                                                                                 (membero p1 atomic-predicate-1*)
-                                                                                 (edgeo e1)))))
-                                                                    |#
-                                                                    )]
+                                                                                 (edgeo e))))))]
                                                              [else
                                                               (set! paths '())
                                                               ;; run synthetic queries here
@@ -903,36 +792,15 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                                                                  (membero p1 atomic-predicate-1*)
                                                                                  (membero p2 atomic-predicate-2*)
                                                                                  (edgeo e1)
-                                                                                 (edgeo e2)))))
-                                                                    #| ;; v0.1 version
-                                                                    (remove-duplicates
-                                                                     (append paths
-                                                                             (run* (e1 e2)
-                                                                               (fresh (x
-                                                                                       s
-                                                                                       o p1 p2 ts t1 t2 t3 r1 r2)
-                                                                                 (== selected-X x)
-                                                                                 (== e1 `(,s ,x ,p1 ,ts ,t1 ,r1))
-                                                                                 (== e2 `(,x ,o ,p2 ,t2 ,t3 ,r2))
-                                                                                 (membero s concept-1*)
-                                                                                 (membero o concept-2*)
-                                                                                 (membero p1 atomic-predicate-1*)
-                                                                                 (membero p2 atomic-predicate-2*)
-                                                                                 (edgeo e1)
-                                                                                 (edgeo e2)))))
-                                                                    |#
-                                                                    )])
+                                                                                 (edgeo e2))))))])
 
                                                            (printf "paths: ~s\n" paths)
                                                            (newline)
 
-                                                           ;; (printf "sorting paths: ~s\n" paths)
-
-                                                           ;; This sorting affects the order of the "Path" list for the selected concept.
+                                                           ;; This sorting affects the order of the "Path" list
+                                                           ;; for the selected concept.
                                                            (set! paths (sort-paths paths))
-
-                                                           ;; (printf "sorted paths: ~s\n" paths)
-
+                                                           
                                                            (define flattened-paths
                                                              (let ((ls (foldr
                                                                         (lambda (p l)
@@ -1012,16 +880,6 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                                                        (~a (length (pubmed-URLs-from-edge x)))]))
                                                                   flattened-paths))
 
-                                                           #|
-                                                           (define full-path-eprops-list
-                                                             (map (lambda (x)
-                                                                    (match x
-                                                                      ['path-separator "----"]
-                                                                      [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
-                                                                       (~a eprops #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                                                                  flattened-paths))
-                                                           |#
-
                                                            (send full-path-list-box
                                                                  set
                                                                  full-path-dbname-list
@@ -1032,62 +890,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                                                  full-path-subj-cat-list
                                                                  full-path-obj-cat-list
                                                                  full-path-PubMed-count-list
-                                                                 ;;full-path-eprops-list
                                                                  )
-
-
-                                                           #| ;; v0.1 version
-                                                           (define full-path-subj-list
-                                                             (map (lambda (x)
-                                                                    (match x
-                                                                      [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
-                                                                       (~a subj #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                                                                  flattened-paths))
-
-                                                           (define full-path-obj-list
-                                                             (map (lambda (x)
-                                                                    (match x
-                                                                      [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
-                                                                       (~a obj #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                                                                  flattened-paths))
-
-                                                           (define full-path-pred-list
-                                                             (map (lambda (x)
-                                                                    (match x
-                                                                      [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
-                                                                       (~a pred #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                                                                  flattened-paths))
-
-                                                           (define full-path-subj-type-list
-                                                             (map (lambda (x)
-                                                                    (match x
-                                                                      [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
-                                                                       (~a subj-type #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                                                                  flattened-paths))
-
-                                                           (define full-path-obj-type-list
-                                                             (map (lambda (x)
-                                                                    (match x
-                                                                      [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
-                                                                       (~a obj-type #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                                                                  flattened-paths))
-
-                                                           (define full-path-pubmed*-list
-                                                             (map (lambda (x)
-                                                                    (match x
-                                                                      [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
-                                                                       (~a pubmed* #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                                                                  flattened-paths))
-
-                                                           (send full-path-list-box
-                                                                 set
-                                                                 full-path-subj-list
-                                                                 full-path-obj-list
-                                                                 full-path-pred-list
-                                                                 full-path-subj-type-list
-                                                                 full-path-obj-type-list
-                                                                 full-path-pubmed*-list)
-                                                           |#
 
                                                            (set-box! *full-path-choices* flattened-paths)
 
@@ -1207,17 +1010,13 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                  (columns '("URL"))
                                  (parent properties/pubmed-panel)
                                  (style '(column-headers reorderable-headers single))
-                                 (callback (lambda (self event)
-                                             ;(printf "event: ~s\n" event)
+                                 (callback (lambda (self event)                                        
                                              (define event-type (send event get-event-type))
-                                             ;(printf "event-type: ~s\n" event-type)
                                              (define selections (send self get-selections))
-                                             ;(printf "selections: ~s\n" selections)
                                              (define selected-pubmeds
                                                (foldr (lambda (i l) (cons (list-ref (unbox *pubmed-choices*) i) l))
                                                       '()
                                                       selections))
-                                             ;(printf "selected-pubmeds: ~s\n" selected-pubmeds)
                                              (for-each
                                                (lambda (url)
                                                  (printf "url: ~s\n" url)
@@ -1330,42 +1129,6 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
   (printf "synthetic-predicate-2*: ~s\n" synthetic-predicate-2*)
   (newline)
 
-  #|
-  (define (stream-query/predicate/trust predicate&nedges&ntrusted->ss)
-    (start-streaming
-      (foldr
-        (lambda (pname ss)
-          (define predicate (cdr (assoc pname synthetic-relations)))
-          (define (run/ranked nedges ntrusted)
-            (stream-cons
-              (begin
-                (displayln "***************************************")
-                (printf "Path length: ~s, Trusted edge count: ~s\n" nedges ntrusted)
-                (displayln "***************************************")
-                (flush-output))
-              (predicate&nedges&ntrusted->ss predicate nedges ntrusted)))
-          (stream-append
-            (stream-cons
-              (printf "Streaming synthetic predicate ~s\n" pname)
-              (stream-append
-                (run/ranked 1 1)
-                (stream-append
-                  (run/ranked 1 0)
-                  (let loop ((nedges 2) (ntrusted 2))
-                    (if (< 4 nedges)
-                      '()
-                      (stream-append
-                        (run/ranked nedges ntrusted)
-                        (loop (+ nedges 1) (+ ntrusted 1))))))))
-            (stream-cons
-              (printf "Finished streaming synthetic predicate ~s\n" pname)
-              ss)))
-        (stream-cons (begin (displayln "Finished all streaming.")
-                            (flush-output))
-                     '())
-        synthetic-predicate-2*)))
-  |#
-
   (cond
     [(and
       (null?
@@ -1379,20 +1142,6 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
     [(null? (split-name-string (unbox *concept-1-name-string*)))
 
      (set! all-X-concepts-with-edges '())
-     ;; run synthetic queries here
-     #|
-     (stream-query/predicate/trust
-       (lambda (predicate nedges ntrusted)
-         (run-stream
-           (path-url)
-           (fresh (m o path)
-             (path-length-trustedo path nedges ntrusted)
-             (membero o concept-2*)
-             (predicate m o path)
-             (path/urlo path path-url)
-             ;(== path path-url)
-             ))))
-     |#
      (set! all-X-concepts-with-edges
            (remove-duplicates
             (append all-X-concepts-with-edges
@@ -1403,19 +1152,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                         (== `(,dbname ,eid ,s ,o (,pid . ,pred) ,eprops) e)
                         (membero `(,dbname . ,o) concept-2*)
                         (membero pred atomic-predicate-2*)
-                        (edgeo e)))
-                    #| ;; v0.1 version
-                    (run* (q)
-                      (fresh (m
-                              e2
-                              o p2 t2 t3 r2)
-                        (== (list m (list r2) (list e2)) q)
-                        (== e2 `(,m ,o ,p2 ,t2 ,t3 ,r2))
-                        (membero o concept-2*)
-                        (membero p2 atomic-predicate-2*)
-                        (edgeo e2)))
-                    |#
-                    )))]
+                        (edgeo e))))))]
     [(null? (split-name-string (unbox *concept-2-name-string*)))
 
      (set! all-X-concepts-with-edges '())
@@ -1430,20 +1167,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                         (== `(,dbname ,eid ,s ,o (,pid . ,pred) ,eprops) e)
                         (membero `(,dbname . ,s) concept-1*)
                         (membero pred atomic-predicate-1*)
-                        (edgeo e)))
-                    #| ;; v0.1 version
-                    (run* (q)
-                      (fresh (m
-                              e1 e2
-                              s
-                              p1 ts t1 r1)
-                        (== (list m (list r1) (list e1)) q)
-                        (== e1 `(,s ,m ,p1 ,ts ,t1 ,r1))
-                        (membero s concept-1*)
-                        (membero p1 atomic-predicate-1*)
-                        (edgeo e1)))
-                    |#
-                    )))]
+                        (edgeo e))))))]
     [else
      (set! all-X-concepts-with-edges '())
      ;; run synthetic queries here
@@ -1460,24 +1184,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                         (membero p1 atomic-predicate-1*)
                         (membero p2 atomic-predicate-2*)
                         (edgeo e1)
-                        (edgeo e2)))
-                    #| ;; v0.1 version
-                    (run* (q)
-                      (fresh (m
-                              e1 e2
-                              s
-                              o p1 p2 ts t1 t2 t3 r1 r2)
-                        (== (list m (list r1 r2) (list e1 e2)) q)
-                        (== e1 `(,s ,m ,p1 ,ts ,t1 ,r1))
-                        (== e2 `(,m ,o ,p2 ,t2 ,t3 ,r2))
-                        (membero s concept-1*)
-                        (membero o concept-2*)
-                        (membero p1 atomic-predicate-1*)
-                        (membero p2 atomic-predicate-2*)
-                        (edgeo e1)
-                        (edgeo e2)))
-                    |#
-                    )))])
+                        (edgeo e2))))))])
 
   (define end-time (current-milliseconds))
 
@@ -1485,9 +1192,6 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
 
   (printf "elapsed query time: ~s seconds\n" (/ elapsed-time 1000.0))
   (printf "=============================\n")
-
-  ;; (printf "all-X-concepts-with-edges: ~s\n" all-X-concepts-with-edges)
-  ;; (newline)
 
   ;; This sorting affects order of appearance in the "X" concept list
   (set! all-X-concepts-with-edges
@@ -1520,9 +1224,6 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                                  (equal? cui cui-x))]))
                                        (cdr ls))))))])])))
   (set! all-X-concepts (map (lambda (e) (cons (car e) (cadr e))) all-X-concepts))
-
-  ;;(printf "all-X-concepts: ~s\n" all-X-concepts)
-  ;;(newline)
 
   (newline)
   (printf "========== begin query results =============\n")
@@ -1744,66 +1445,9 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
 
     )
 
-  
-  #|
-  (define pretty-print-X-concepts-with-edges
-    (lambda (X-concepts-with-edges)
-      (with-output-to-file
-          "a.out"
-          (lambda ()
-            (printf "'(\n")
-            (let loop ([ls X-concepts-with-edges])
-              (cond
-                [(null? ls)
-                 (printf ")\n")
-                 (newline)]
-                [else
-                 (match (car ls)
-                   [`((,cui ,name ,concept-type*) ,pubmed** ,edge*)
-                    ;; (printf "-----------------------------------------------\n")
-                    (for-each
-                      (lambda (x)
-                        (match x
-                          [`(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*)
-                           (let ((pubmed* (if (list? pubmed*)
-                                              (map (lambda (pubmed-id) (string-append "https://www.ncbi.nlm.nih.gov/pubmed/" (~a pubmed-id)))
-                                                   pubmed*)
-                                              pubmed*)))
-                             (pretty-print `(,subj ,obj ,pred ,subj-type ,obj-type ,pubmed*) (current-output-port) 1))]))
-                      edge*)
-                    (loop (cdr ls))])])))
-          #:mode 'text
-          #:exists 'append)))
-
-  ;; (printf "all-X-concepts-with-edges:\n")
-  (pretty-print-X-concepts-with-edges all-X-concepts-with-edges)
-  |#
-
   (printf "========== end query results =============\n")
 
   ((make-send-concepts-to-concept-X-list-box concept-X-list-box) all-X-concepts)
-
-  #| ;; v 0.1 version
-  (send concept-X-list-box
-        set
-        (map (lambda (x)
-               (match x
-                 [`(,cui ,name ,concept-type*)
-                  (format "~a" cui)]))
-             all-X-concepts)
-        (map (lambda (x)
-               (match x
-                 [`(,cui ,name ,concept-type*)
-                  (let ((concept-type*
-                         (sort concept-type* string<?)))
-                    (format "~a" concept-type*))]))
-             all-X-concepts)
-        (map (lambda (x)
-               (match x
-                 [`(,cui ,name ,concept-type*)
-                  (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-             all-X-concepts))
-  |#
 
   ;; unselect all items
   (for ([i (length all-X-concepts)])
@@ -1826,4 +1470,3 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
   "Launching GUI")
 
 (launch-gui)
-
