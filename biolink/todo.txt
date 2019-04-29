@@ -1,0 +1,82 @@
+* double-clicking on any property entry should copy the Value to the clipboard
+* make sure to pick up pubmed entries is unusual places
+* be able to specify a gene, drug, etc., by standard IDs (ENSMBL, etc) (need to index by these IDs, etc)
+* add ability to find all edges wiht a give PubMed ID to interface (see find-edges-by-pubmed-id.rkt; will probably need to index Orange and RTX KGs as well)
+* add interruptible thread tech for when clicking on predicates, just like we have for concept string searches
+
+
+
+
+
+
+
+
+
+
+
+
+
+old TODOs
+
+====================================
+
+
+;;; TODO FIXME
+
+;;; NGLY1 in concept 2
+;;; semmed
+;;; interacts_with
+;;; FAF1 gene
+
+
+;;; Extract Pubmed ids from the alist of properties in the full path
+
+;;; semmed:
+;;; ("pmids" . "27748395")
+
+;;; rtx:
+;;;
+
+;;; monarch-lite:
+;;;
+
+;;; TODO FEATURES
+;;;
+;;; hotkeys for moving between panes, etc.--should be able to do everything from the keyboard
+
+;;; Improve sorting to take into account num of pub med entries
+
+;;; TODO
+;;;
+;;; recognize concept name containing only whitespace as being empty
+;;;
+;;; use a reasonable default sorting for the concepts
+;;;
+;;; add ability to sort concept columns by clicking on column titles
+;;;
+;;; speed up concept search--seems much slower than in the old mediKanren
+;;; (perhaps consider searching one DB exhaustively before moving to the next one)
+;;;
+;;; add ability to include only some of the data sources
+;;;
+;;; add ability to show and hide concept columns
+;;;
+;;; add ability to show date of data sources, and date/provenance for results
+;;;
+;;; add ability to specify/filter by data source or category
+
+
+;;; ISSUES
+;;;
+;;; Seem to be missing '<gene> has_phenotype alacrima' entries for
+;;; HEXA and GBA, even though these seem to be in the Monarch website.
+;;; Why?
+;;;
+;;; Different data sources have what are effectively duplicate entries,
+;;; but it isn't always easy to tell.
+;;;
+;;; Different data sources have different category numbers for the
+;;; same CUI/entity.  For example, 'Imatinib mesylate' has the 'UMLS:C0939537'
+;;; CUI in both Semmed and Scigraph, yet the category is (5 . "chemical_substance")
+;;; for Semmed and (21 . "chemical_substance") for Scigraph.  Why?
+;;; (The concept IDs are different in this case)
