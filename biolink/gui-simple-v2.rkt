@@ -43,7 +43,7 @@
 (provide
   launch-gui)
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.19")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.20")
 
 (define argv (current-command-line-arguments))
 (define argv-optional '#(CONFIG_FILE))
@@ -652,7 +652,9 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                          concept-X-list-box
                          running-status-description
                          full-path-list-box
-                         properties-list-box
+                         subject-properties-list-box
+                         edge-properties-list-box
+                         object-properties-list-box
                          pubmed-list-box)
 
         ))
@@ -769,8 +771,10 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                                    (printf "concept name: ~s\n" concept-name)
                                                    (send the-clipboard set-clipboard-string concept-name time-stamp)]
                                                   [else
-                                                   ;; empty the entries in the properties-list-box
-                                                   (send properties-list-box set '() '())
+                                                   ;; empty the entries in the properties list-boxes
+                                                   (send subject-properties-list-box set '() '())
+                                                   (send edge-properties-list-box set '() '())
+                                                   (send object-properties-list-box set '() '())
 
                                                    ;; empty the entries in the pubmed-list-box
                                                    (send pubmed-list-box set '())
@@ -1114,18 +1118,36 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                                     (lambda (x)
                                                       (match x
                                                         ['path-separator
-                                                         (send properties-list-box set '() '())]
-                                                        [`(,dbname ,eid ,subj ,obj ,p ,eprops)
-                                                         (send properties-list-box
-                                                               set
-                                                               (map
-                                                                 (lambda (p)
-                                                                   (~a (car p) #:max-width MAX-CHAR-WIDTH #:limit-marker "..."))
-                                                                 eprops)
-                                                               (map
-                                                                 (lambda (p)
-                                                                   (~a (cdr p) #:max-width MAX-CHAR-WIDTH #:limit-marker "..."))
-                                                                 eprops))]))
+                                                         (send subject-properties-list-box set '() '())
+                                                         (send edge-properties-list-box set '() '())
+                                                         (send object-properties-list-box set '() '())]
+                                                        [`(,dbname ,eid
+                                                                   (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
+                                                                   (,ocid ,ocui ,oname (,ocatid . ,ocat) ,oprops)
+                                                                   ,p
+                                                                   ,eprops)
+                                                         (define (set-properties-list-box prop-list-box props)
+                                                           (send prop-list-box
+                                                                 set
+                                                                 (map
+                                                                  (lambda (p)
+                                                                    (~a (car p)
+                                                                        #:max-width
+                                                                        MAX-CHAR-WIDTH
+                                                                        #:limit-marker
+                                                                        "..."))
+                                                                  props)
+                                                                 (map
+                                                                  (lambda (p)
+                                                                    (~a (cdr p)
+                                                                        #:max-width
+                                                                        MAX-CHAR-WIDTH
+                                                                        #:limit-marker
+                                                                        "..."))
+                                                                  props)))
+                                                         (set-properties-list-box subject-properties-list-box sprops)
+                                                         (set-properties-list-box edge-properties-list-box eprops)
+                                                         (set-properties-list-box object-properties-list-box oprops)]))
                                                     selected-full-paths)
                                                 (for-each
                                                   (lambda (edge)
@@ -1150,8 +1172,17 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                          (alignment '(left center))
                                          (stretchable-height #t)))
 
-    (define properties-list-box (new smart-column-width-list-box%
-                                     (label "Properties")
+    (define subject-properties-list-box (new smart-column-width-list-box%
+                                             (label "Subject")
+                                             (choices '())
+                                             (columns '("Property" "Value"))
+                                             (parent properties/pubmed-panel)
+                                             (style '(column-headers reorderable-headers extended))
+                                             (callback (lambda (self event)
+                                                         (void)))))
+    
+    (define edge-properties-list-box (new smart-column-width-list-box%
+                                     (label "Edge")
                                      (choices '())
                                      (columns '("Property" "Value"))
                                      (parent properties/pubmed-panel)
@@ -1159,6 +1190,15 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                      (callback (lambda (self event)
                                                  (void)))))
 
+    (define object-properties-list-box (new smart-column-width-list-box%
+                                            (label "Object")
+                                            (choices '())
+                                            (columns '("Property" "Value"))
+                                            (parent properties/pubmed-panel)
+                                            (style '(column-headers reorderable-headers extended))
+                                            (callback (lambda (self event)
+                                                        (void)))))
+    
     (define pubmed-list-box (new list-box%
                                  (label "Pubmed")
                                  (choices (unbox *pubmed-choices*))
@@ -1191,7 +1231,9 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
     (set-default-column-widths concept-2-list-box)
     (set-default-column-widths concept-X-list-box)
     (set-default-column-widths full-path-list-box)
-    (set-default-column-widths properties-list-box)
+    (set-default-column-widths edge-properties-list-box)
+    (set-default-column-widths edge-properties-list-box)
+    (set-default-column-widths object-properties-list-box)
         
     (send frame show #t)))
 
@@ -1258,7 +1300,7 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
   )
 
 
-(define (find-X-concepts concept-1* concept-2* predicate-1* predicate-2* concept-X-list-box running-status-description full-path-list-box properties-list-box pubmed-list-box)
+(define (find-X-concepts concept-1* concept-2* predicate-1* predicate-2* concept-X-list-box running-status-description full-path-list-box subject-properties-list-box edge-properties-list-box object-properties-list-box pubmed-list-box)
 
   (define start-time (current-milliseconds))
 
@@ -1768,8 +1810,10 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
   ;; empty the entries in the full-path-list-box
   (send full-path-list-box set '() '() '() '() '() '() '() '())
 
-  ;; empty the entries in the properties-list-box
-  (send properties-list-box set '() '())
+  ;; empty the entries in the properties list-boxes
+  (send subject-properties-list-box set '() '())
+  (send edge-properties-list-box set '() '())
+  (send object-properties-list-box set '() '())
 
   ;; empty the entries in the pubmed-list-box
   (send pubmed-list-box set '())
