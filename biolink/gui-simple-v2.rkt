@@ -43,7 +43,7 @@
 (provide
   launch-gui)
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.15")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.16")
 
 (define argv (current-command-line-arguments))
 (define argv-optional '#(CONFIG_FILE))
@@ -63,6 +63,10 @@
 (define HUMAN_FRIENDLY_QUERY_RESULTS_FILE_NAME (config-ref 'query-results.file-name-human))
 (define SPREADSHEET_FRIENDLY_QUERY_RESULTS_FILE_NAME (config-ref 'query-results.file-name-spreadsheet))
 (define QUERY_RESULTS_FILE_MODE                (config-ref 'query-results.file-mode))
+
+;;; Initial window size
+(define HORIZ-SIZE (config-ref 'initial-window-size.horizontal))
+(define VERT-SIZE (config-ref 'initial-window-size.vertical))
 
 ;;; Decreases/increases predicate names
 (define DECREASES_PREDICATE_NAMES (config-ref 'decreases-predicate-names))
@@ -137,10 +141,6 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
   (~name*-concepto (split-name-string n) c))
 
 (define *verbose* #t)
-
-;;; window size
-(define HORIZ-SIZE 800)
-(define VERT-SIZE 400)
 
 (define input-response-latency 50)
 

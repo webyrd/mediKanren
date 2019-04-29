@@ -14,6 +14,8 @@
  ;; Uncomment exactly one of these:
  (query-results.file-mode       . replace)  ;; Clobber the save file each time you run a query.
  ;(query-results.file-mode       . append)  ;; Save all the queries.
+ (initial-window-size.horizontal . 800)
+ (initial-window-size.vertical . 400)
  (decreases-predicate-names
   .
   ("negatively_regulates"
