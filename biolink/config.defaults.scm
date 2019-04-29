@@ -41,6 +41,7 @@
    "causes"
    "produces"
    "causes_condition"
+   "causally_related_to"
    "contributes_to"
    "causes_adverse_event"
    "gene_associated_with_condition"
@@ -56,7 +57,7 @@
    "increases_transport_of"
    "increases_uptake_of"
    "decreases_degradation_of"
-   ;; "posetively_regulates" ;;; robokop typo??
+   "posetively_regulates" ;;; robokop typo??
    ;; "positively_regulates__entity_to_entity"
    ;; "increases_molecular_modification_of"
    ;; "increases_localization_of"
