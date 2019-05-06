@@ -156,6 +156,31 @@
        (membero pred G-G-increases-predicate-names)
        (restrict-concept-to-gene dbname x)))))
 
+#|
+;;; slow query 1
+;;; cpu time: 24794 real time: 25191 gc time: 3238
+(time
+ (length
+  (remove-duplicates
+   (run 1 (path)
+     (fresh (dbname1 eid1 s1 o1 pid1 pred1 eprops1 e1
+                     dbname2 eid2 s2 o2 pid2 pred2 eprops2 e2
+                     cid1 cui1 name1 catid1 cat1 props1
+                     cid2 cui2 name2 catid2 cat2 props2)
+       (== `(,dbname1 ,eid1 ,s1 ,o1 (,pid1 . ,pred1) ,eprops1) e1)
+       (== `(,dbname2 ,eid2 ,s2 ,o2 (,pid2 . ,pred2) ,eprops2) e2)
+       (== `(,e1 ,e2) path)
+
+       (== `(,cid1 ,cui1 ,name1 (,catid1 . ,cat1) ,props1) o1)
+       (== `(,cid2 ,cui2 ,name2 (,catid2 . ,cat2) ,props2) s2)
+       (== cui1 cui2)
+       (membero e2 G1-G2-edges)
+       (edgeo e1)
+       (restrict-concept-to-drug dbname1 s1)
+       (membero pred1 D-G-increases-predicate-names)
+       )))))
+
+;;; swap two goals in the query above to make it suuuupeeer slow
 (time
   (length
     (remove-duplicates
@@ -170,13 +195,41 @@
 
           (== `(,cid1 ,cui1 ,name1 (,catid1 . ,cat1) ,props1) o1)
           (== `(,cid2 ,cui2 ,name2 (,catid2 . ,cat2) ,props2) s2)
-          (== o1 s2)
-          (== dbname1 'rtx)
+          (== cui1 cui2)
           (membero e2 G1-G2-edges)
           (restrict-concept-to-drug dbname1 s1)
           (edgeo e1)
           (membero pred1 D-G-increases-predicate-names)
           )))))
+#|
+
+
+
+
+
+
+#|
+(time
+  (length
+    (remove-duplicates
+      (run 1 (path)
+        (fresh (dbname1 eid1 s1 o1 pid1 pred1 eprops1 e1
+                        dbname2 eid2 s2 o2 pid2 pred2 eprops2 e2
+                        cid1 cui1 name1 catid1 cat1 props1
+                        cid2 cui2 name2 catid2 cat2 props2)
+          (== `(,dbname1 ,eid1 ,s1 ,o1 (,pid1 . ,pred1) ,eprops1) e1)
+          (== `(,dbname2 ,eid2 ,s2 ,o2 (,pid2 . ,pred2) ,eprops2) e2)
+          (== `(,e1 ,e2) path)
+
+          (== `(,cid1 ,cui1 ,name1 (,catid1 . ,cat1) ,props1) o1)
+          (== `(,cid2 ,cui2 ,name2 (,catid2 . ,cat2) ,props2) s2)
+          (== cui1 cui2)
+          (membero e2 G1-G2-edges)
+          (restrict-concept-to-drug dbname1 s1)
+          (edgeo e1)
+          (membero pred1 D-G-increases-predicate-names)
+          )))))
+|#
 
 #|
 (define D-G1-G2-paths
