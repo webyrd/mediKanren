@@ -26,6 +26,16 @@
 ;;; display the info as part of the output.  And, of course, we need
 ;;; to consider the strength of the evidence for all of these claims.
 
+;;; Also, the approach I'm taking with
+;;; G1-G2-edges-without-duplicate-dbname/scui seems wrong.  Really
+;;; need to separate evidence of G1 increasing G2 from evidence that D
+;;; increases G1.  After all, the evidence that G1 increases G2 can
+;;; already be complex: should be calculating all the ways in which G1
+;;; positively or negatively affects G2, weighing the evidence, etc.,
+;;; and producing a full mini-report just for the 'G1 increases G2'
+;;; claim.  Then the user can pick a G2, and get a full mini-report
+;;; for each D that interacts with G2.  This is probably easier in a
+;;; GUI or custom text interface than in the REPL.
 
 #lang racket
 
