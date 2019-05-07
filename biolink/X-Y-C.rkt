@@ -10,6 +10,23 @@
 ;;; Also want to report what other things that G1 increases (as part
 ;;; of tox info)
 
+
+;;; Hmm--need to be smarter here!
+;;;
+;;; Suppose we want to increase expression of gene G2, and that genes
+;;; A, B, and C increase expression of G2, and genes D, E, and F
+;;; decrease expression of G2.  It may be that a drug D increases
+;;; expression of A, but decreases expression of B and C, and
+;;; increases expression of D, E, and F!  Since we don't have
+;;; quantitative data, we have to assume this would be
+;;; counter-productive!
+;;;
+;;; So, really, we need to calculate the effects of D on *all* genes
+;;; known to regulate G2, use this information for ranking, and
+;;; display the info as part of the output.  And, of course, we need
+;;; to consider the strength of the evidence for all of these claims.
+
+
 #lang racket
 
 (provide
