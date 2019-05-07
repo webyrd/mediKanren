@@ -45,6 +45,7 @@
 (define INCREASES_PREDICATE_NAMES (config-ref 'increases-predicate-names))
 
 
+
 (define G-G-increases-predicate-names
   '("positively_regulates"
     ;; "causes"
@@ -246,14 +247,16 @@ cpu time: 1 real time: 3 gc time: 0
 (define G1-G2-edges
   (remove-duplicates
    (run* (e)
-     (fresh (dbname eid x o pid pred eprops)
-       (== `(,dbname ,eid ,x ,o (,pid . ,pred) ,eprops) e)
-       (membero `(,dbname . ,o) G2-concepts)
+     (fresh (dbname eid G1 G2 pid pred eprops)
+       (== `(,dbname ,eid ,G1 ,G2 (,pid . ,pred) ,eprops) e)
+       ;; don't want G1 and G2 to be the same gene!
+       (=/= G1 G2)
+       (membero `(,dbname . ,G2) G2-concepts)
        (edgeo e)
        (membero pred G-G-increases-predicate-names)
-       (restrict-concept-to-gene dbname x)
+       (restrict-concept-to-gene dbname G1)
        ;; should be configurable which concepts are "bogus"
-       (filter-out-bogus-genes dbname x)))))
+       (filter-out-bogus-genes dbname G1)))))
 
 #|
 (remove-duplicates
@@ -268,6 +271,8 @@ cpu time: 1 real time: 3 gc time: 0
   G1-G2-edges))
 |#
 
+;;; Can end up with duplicate concepts/CUIs, due to different KGs and also different predicates;
+;;; be smart about this!!
 (define G1-G2-edges-without-duplicate-dbname/scui
   (let loop ([edges G1-G2-edges])
     (match edges
@@ -294,28 +299,28 @@ cpu time: 1 real time: 3 gc time: 0
 (define D-G1-G2-paths
   (remove-duplicates
    (run 150 (q)
-     (fresh (dbname1 eid1 s1 o1 pid1 pred1 eprops1 e1
-                     dbname2 eid2 s2 o2 pid2 pred2 eprops2 e2
+     (fresh (dbname1 eid1 D G1 pid1 pred1 eprops1 e1
+                     dbname2 eid2 G2^ G2 pid2 pred2 eprops2 e2
                      cid0 cui0 name0 catid0 cat0 props0
                      cid1 cui1 name1 catid1 cat1 props1
                      cid2 cui2 name2 catid2 cat2 props2
                      cid3 cui3 name3 catid3 cat3 props3)
-       (== `(,dbname1 ,eid1 ,s1 ,o1 (,pid1 . ,pred1) ,eprops1) e1)
-       (== `(,dbname2 ,eid2 ,s2 ,o2 (,pid2 . ,pred2) ,eprops2) e2)
+       (== `(,dbname1 ,eid1 ,D ,G1 (,pid1 . ,pred1) ,eprops1) e1)
+       (== `(,dbname2 ,eid2 ,G2^ ,G2 (,pid2 . ,pred2) ,eprops2) e2)
 
        (== `(,e1 ,e2) q)
 
-       (== `(,cid0 ,cui0 ,name0 (,catid0 . ,cat0) ,props0) s1)
-       (== `(,cid1 ,cui1 ,name1 (,catid1 . ,cat1) ,props1) o1)
-       (== `(,cid2 ,cui2 ,name2 (,catid2 . ,cat2) ,props2) s2)
-       (== `(,cid3 ,cui3 ,name3 (,catid3 . ,cat3) ,props3) o2)
+       (== `(,cid0 ,cui0 ,name0 (,catid0 . ,cat0) ,props0) D)
+       (== `(,cid1 ,cui1 ,name1 (,catid1 . ,cat1) ,props1) G1)
+       (== `(,cid2 ,cui2 ,name2 (,catid2 . ,cat2) ,props2) G2^)
+       (== `(,cid3 ,cui3 ,name3 (,catid3 . ,cat3) ,props3) G2)
        
        (== cui1 cui2)
        (== dbname1 dbname2)
        
        (membero e2 G1-G2-edges-without-duplicate-dbname/scui)
        (edgeo e1)
-       (restrict-concept-to-drug dbname1 s1)
+       (restrict-concept-to-drug dbname1 D)
        (membero pred1 D-G-increases-predicate-names)
        ))))
 
