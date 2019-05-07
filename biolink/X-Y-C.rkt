@@ -46,6 +46,12 @@
 ;;; the genes against the NLM list of genes/pubmed ids to flag/filter
 ;;; those associations that are bogus, picked up through bad NLP.
 
+;;; Example problems:
+;;;
+;;; X that downregulates GMPPB resulting in a decrease of GMPPA expression
+;;; X that increases KLF4 in order to compensate for a decrease in SOX5.
+;;; X that increases the expression of the CDKL5 gene to increase CDKL5 protein expression
+
 #lang racket
 
 (provide
