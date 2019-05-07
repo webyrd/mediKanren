@@ -37,6 +37,11 @@
 ;;; for each D that interacts with G2.  This is probably easier in a
 ;;; GUI or custom text interface than in the REPL.
 
+;;; And still need to create the 'tox report' showing what other genes
+;;; G1 affects, what other genes D affects, etc.  Probably also want
+;;; to list what diseases/symptoms both G1 and D are associated with,
+;;; ranked by evidence.
+
 #lang racket
 
 (provide
