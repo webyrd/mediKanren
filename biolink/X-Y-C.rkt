@@ -329,7 +329,8 @@ cpu time: 1 real time: 3 gc time: 0
    (match p
      [`(,e1 ,e2)
       (match `(,e1 ,e2)
-        [`((,dbname1 ,eid1 (,cid0 ,cui0 ,name0 (,catid0 . ,cat0) ,props0)
+        [`((,dbname1 ,eid1
+                     (,cid0 ,cui0 ,name0 (,catid0 . ,cat0) ,props0)
                      (,cid1 ,cui1 ,name1 (,catid1 . ,cat1) ,props1)
                      (,pid1 . ,pred1)
                      ,eprops1)
@@ -337,9 +338,9 @@ cpu time: 1 real time: 3 gc time: 0
                      (,cid2 ,cui2 ,name2 (,catid2 . ,cat2) ,props2)
                      (,cid3 ,cui3 ,name3 (,catid3 . ,cat3) ,props3)
                      (,pid2 . ,pred2)
-                     ,eprops2))         
-         `(,name0 ,pred1 ,(pubmed-URLs-from-edge e1) ,name1
-                  ,pred2 ,(pubmed-URLs-from-edge e2) ,name3 ,dbname1)])]))
+                     ,eprops2))
+         `(,name0 ,pred1 ,(pubmed-URLs-from-edge e1) ,name1 ,dbname1
+                  ,pred2 ,(pubmed-URLs-from-edge e2) ,name3 ,dbname2)])]))
  D-G1-G2-paths)
 
 #|
