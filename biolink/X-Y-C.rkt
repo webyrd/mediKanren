@@ -45,6 +45,10 @@
 ;;; Also, given how noisy semmed is, prolly want to cross-reference
 ;;; the genes against the NLM list of genes/pubmed ids to flag/filter
 ;;; those associations that are bogus, picked up through bad NLP.
+;;; May be best to incorporate this list as an actual relation we
+;;; can query over, although we might need to index it as well.
+;;; This would be the most consistent and flexible approach, though,
+;;; as opposed to putting the info in a hash table or whatever.
 
 ;;; Example problems:
 ;;;
