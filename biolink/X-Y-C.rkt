@@ -42,6 +42,10 @@
 ;;; to list what diseases/symptoms both G1 and D are associated with,
 ;;; ranked by evidence.
 
+;;; Also, given how noisy semmed is, prolly want to cross-reference
+;;; the genes against the NLM list of genes/pubmed ids to flag/filter
+;;; those associations that are bogus, picked up through bad NLP.
+
 #lang racket
 
 (provide
