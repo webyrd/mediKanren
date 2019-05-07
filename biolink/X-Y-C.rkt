@@ -256,6 +256,146 @@ cpu time: 1 real time: 3 gc time: 0
        (filter-out-bogus-genes dbname x)))))
 
 #|
+(remove-duplicates
+ (map
+  (lambda (e)
+    (match e
+      [`(,dbname ,eid
+                 (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
+                 (,ocid ,ocui ,oname (,ocatid . ,ocat) ,oprops)
+                 (,pid . ,pred) ,eprops)
+       (list scui sname pred ocui oname (pubmed-URLs-from-edge e) dbname)]))
+  G1-G2-edges))
+|#
+
+(define G1-G2-edges-without-duplicate-dbname/scui
+  (let loop ([edges G1-G2-edges])
+    (match edges
+      ['() '()]
+      [`(,e . ,rest)
+       (match e
+         [`(,dbname ,eid
+                    (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
+                    (,ocid ,ocui ,oname (,ocatid . ,ocat) ,oprops)
+                    (,pid . ,pred) ,eprops)
+          (let ((e^ (memf
+                     (lambda (e^)
+                       (match e^
+                         [`(,dbname^ ,eid^
+                                     (,scid^ ,scui^ ,sname^ (,scatid^ . ,scat^) ,sprops^)
+                                     (,ocid^ ,ocui^ ,oname^ (,ocatid^ . ,ocat^) ,oprops^)
+                                     (,pid^ . ,pred^) ,eprops^)
+                          (equal? (list dbname scui) (list dbname^ scui^))]))
+                     rest)))
+            (if e^
+                (loop rest)
+                (cons e (loop rest))))])])))
+
+(define D-G1-G2-paths
+  (remove-duplicates
+   (run 150 (q)
+     (fresh (dbname1 eid1 s1 o1 pid1 pred1 eprops1 e1
+                     dbname2 eid2 s2 o2 pid2 pred2 eprops2 e2
+                     cid0 cui0 name0 catid0 cat0 props0
+                     cid1 cui1 name1 catid1 cat1 props1
+                     cid2 cui2 name2 catid2 cat2 props2
+                     cid3 cui3 name3 catid3 cat3 props3)
+       (== `(,dbname1 ,eid1 ,s1 ,o1 (,pid1 . ,pred1) ,eprops1) e1)
+       (== `(,dbname2 ,eid2 ,s2 ,o2 (,pid2 . ,pred2) ,eprops2) e2)
+
+       (== `(,e1 ,e2) q)
+
+       (== `(,cid0 ,cui0 ,name0 (,catid0 . ,cat0) ,props0) s1)
+       (== `(,cid1 ,cui1 ,name1 (,catid1 . ,cat1) ,props1) o1)
+       (== `(,cid2 ,cui2 ,name2 (,catid2 . ,cat2) ,props2) s2)
+       (== `(,cid3 ,cui3 ,name3 (,catid3 . ,cat3) ,props3) o2)
+       
+       (== cui1 cui2)
+       (== dbname1 dbname2)
+       
+       (membero e2 G1-G2-edges-without-duplicate-dbname/scui)
+       (edgeo e1)
+       (restrict-concept-to-drug dbname1 s1)
+       (membero pred1 D-G-increases-predicate-names)
+       ))))
+
+(map
+ (lambda (p)
+   (match p
+     [`(,e1 ,e2)
+      (match `(,e1 ,e2)
+        [`((,dbname1 ,eid1 (,cid0 ,cui0 ,name0 (,catid0 . ,cat0) ,props0)
+                     (,cid1 ,cui1 ,name1 (,catid1 . ,cat1) ,props1)
+                     (,pid1 . ,pred1)
+                     ,eprops1)
+           (,dbname2 ,eid2
+                     (,cid2 ,cui2 ,name2 (,catid2 . ,cat2) ,props2)
+                     (,cid3 ,cui3 ,name3 (,catid3 . ,cat3) ,props3)
+                     (,pid2 . ,pred2)
+                     ,eprops2))         
+         `(,name0 ,pred1 ,(pubmed-URLs-from-edge e1) ,name1
+                  ,pred2 ,(pubmed-URLs-from-edge e2) ,name3 ,dbname1)])]))
+ D-G1-G2-paths)
+
+#|
+(time
+ (remove-duplicates
+   (run 1 (q)
+     (fresh (dbname1 eid1 s1 o1 pid1 pred1 eprops1 e1
+             dbname2 eid2 s2 o2 pid2 pred2 eprops2 e2
+             cid0 cui0 name0 catid0 cat0 props0
+             cid1 cui1 name1 catid1 cat1 props1
+             cid2 cui2 name2 catid2 cat2 props2
+             cid3 cui3 name3 catid3 cat3 props3)
+       (== `(,dbname1 ,eid1 ,s1 ,o1 (,pid1 . ,pred1) ,eprops1) e1)
+       (== `(,dbname2 ,eid2 ,s2 ,o2 (,pid2 . ,pred2) ,eprops2) e2)
+
+       (== `(,name0 ,pred1 ,name1 ,pred2 ,name3 ,dbname1) q)
+
+       (== `(,cid0 ,cui0 ,name0 (,catid0 . ,cat0) ,props0) s1)
+       (== `(,cid1 ,cui1 ,name1 (,catid1 . ,cat1) ,props1) o1)
+       (== `(,cid2 ,cui2 ,name2 (,catid2 . ,cat2) ,props2) s2)
+       (== `(,cid3 ,cui3 ,name3 (,catid3 . ,cat3) ,props3) o2)
+       
+       (== cui1 cui2)
+       (== dbname1 dbname2)
+       
+       (membero e2 G1-G2-edges-without-duplicate-dbname/scui)
+       (edgeo e1)
+       (restrict-concept-to-drug dbname1 s1)
+       (membero pred1 D-G-increases-predicate-names)
+       ))))
+|#
+
+#|
+(time
+ (remove-duplicates
+   (run 1 (q)
+     (fresh (dbname1 eid1 s1 o1 pid1 pred1 eprops1 e1
+             dbname2 eid2 s2 o2 pid2 pred2 eprops2 e2
+             cid0 cui0 name0 catid0 cat0 props0
+             cid1 cui1 name1 catid1 cat1 props1
+             cid2 cui2 name2 catid2 cat2 props2
+             cid3 cui3 name3 catid3 cat3 props3)
+       (== `(,dbname1 ,eid1 ,s1 ,o1 (,pid1 . ,pred1) ,eprops1) e1)
+       (== `(,dbname2 ,eid2 ,s2 ,o2 (,pid2 . ,pred2) ,eprops2) e2)
+
+       (== `(,name0 ,pred1 ,name1 ,pred2 ,name3 ,dbname1) q)
+
+       (== `(,cid0 ,cui0 ,name0 (,catid0 . ,cat0) ,props0) s1)
+       (== `(,cid1 ,cui1 ,name1 (,catid1 . ,cat1) ,props1) o1)
+       (== `(,cid2 ,cui2 ,name2 (,catid2 . ,cat2) ,props2) s2)
+       (== `(,cid3 ,cui3 ,name3 (,catid3 . ,cat3) ,props3) o2)
+       
+       (== cui1 cui2)
+       (== dbname1 dbname2)
+       
+       (membero e2 G1-G2-edges)
+       (edgeo e1)
+       (restrict-concept-to-drug dbname1 s1)
+       (membero pred1 D-G-increases-predicate-names)
+       ))))
+
 (time
  (remove-duplicates
    (run 1 (q)
