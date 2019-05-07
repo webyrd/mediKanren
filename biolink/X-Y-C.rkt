@@ -110,6 +110,7 @@
 ;;; X - increases - G1 - increases - G2
 
 
+
 #|
 ;;; let's try NGLY1 as an example
 (define G2-concepts
@@ -118,11 +119,13 @@
  (orange 16958 "NCBIGene:55768" "NGLY1" (6 . "(\"gene\")") (("iri" . "http://www.ncbi.nlm.nih.gov/gene/55768") ("synonym" . "(\"FLJ11005\" \"PNG1\" \"peptide-N(4)-(N-acetyl-beta-glucosaminyl)asparagine amidase\" \"Peptide-N-Glycanase 1, S. Cerevisiae, Homolog of\" \"N-GLYCANASE 1; NGLY1\" \"NGLY1\")") ("in_taxon" . "NCBITaxon:9606") ("description" . "N-glycanase 1") ("same_as" . "(\"ENSEMBL:ENSG00000151092\" \"HGNC:17646\" \"OMIM:610661\" \"Orphanet:406885\")") ("provided_by" . "(\"orphanet.ttl\" \"omim.ttl\")") ("id" . "NCBIGene:55768")))))
 |#
 
+
 ;;; let's try BRCA1 as an example
 (define G2-concepts
   '((semmed 74686 "UMLS:C0376571" "BRCA1 gene" (4 . "gene") (("umls_type_label" . "['Gene or Genome']") ("xrefs" . "['NCI_NCI-HGNC:HGNC:1100', 'CHV:0000031821', 'PDQ:CDR0000043111', 'MESH:D019398', 'CSP:4005-0006', 'MTH:NOCODE', 'LNC:LP36227-4', 'NCI:C17965', 'LNC:LP19666-4', 'OMIM:113705', 'HGNC:HGNC:1100']") ("id" . "UMLS:C0376571") ("umls_type" . "['T028']") ("labels" . "['gene']")))
     (robokop 26 "HGNC:1100" "BRCA1" (0 . "(\"named_thing\" \"gene\")") (("locus_group" . "protein-coding gene") ("chromosome" . "17") ("taxon" . "9606") ("gene_family" . "(\"Ring finger proteins\" \"FA complementation groups\" \"Protein phosphatase 1 regulatory subunits\" \"BRCA1 A complex\" \"BRCA1 B complex\" \"BRCA1 C complex\")") ("location" . "17q21.31") ("id" . "HGNC:1100") ("gene_family_id" . "(58 548 694 1328 1335 1336)") ("equivalent_identifiers" . "(\"UniProtKB:C9IZW4\" \"UniProtKB:E9PC22\" \"UniProtKB:A0A2R8Y7V5\" \"UniProtKB:H0Y8D8\" \"UniProtKB:E9PH68\" \"UniProtKB:K7EPC7\" \"UniProtKB:E7EQW4\" \"UniProtKB:H0Y881\" \"UniProtKB:E7EWN5\" \"UniProtKB:H0Y850\" \"UniProtKB:C6YB45\" \"UniProtKB:E7EUM2\" \"UniProtKB:A0A024R1V0\" \"HGNC:1100\" \"UniProtKB:A0A0U1RRA9\" \"UniProtKB:E7ENB7\" \"UniProtKB:K7EJW3\" \"UniProtKB:H0Y8B8\" \"UniProtKB:A0A2R8Y6Y9\" \"UniProtKB:Q5YLB2\" \"UniProtKB:P38398\" \"UniProtKB:B7ZA85\" \"UniProtKB:A0A0A0MSN1\" \"ENSEMBL:ENSG00000012048\" \"UniProtKB:Q3B891\" \"UniProtKB:G1UI37\" \"NCBIGENE:672\" \"UniProtKB:A0A2R8Y587\")")))
     (orange 32553 "NCBIGene:672" "BRCA1" (6 . "(\"gene\")") (("iri" . "http://www.ncbi.nlm.nih.gov/gene/672") ("synonym" . "(\"BRCA1/BRCA2-containing complex, subunit 1\" \"Fanconi anemia, complementation group S\" \"protein phosphatase 1, regulatory subunit 53\" \"BRCC1\" \"FANCS\" \"PPP1R53\" \"RNF53\" \"BREAST CANCER 1 GENE; BRCA1\" \"BRCA1\")") ("in_taxon" . "NCBITaxon:9606") ("same_as" . "(\"ENSEMBL:ENSG00000012048\" \"HGNC:1100\" \"OMIM:113705\" \"Orphanet:119068\")") ("provided_by" . "(\"orphanet.ttl\" \"omim.ttl\")") ("description" . "BRCA1, DNA repair associated") ("id" . "NCBIGene:672")))))
+
 
 ;;; Want to restrict to gene/protein/whatever
 ;;;
@@ -146,6 +149,100 @@
                (rtx (0 . "chemical_substance"))
                (robokop (1 . "(\"named_thing\" \"chemical_substance\")"))))))
 
+;;; don't allow gene classes, such as "Genes", "Tumor Suppressor Genes", etc.
+(define (filter-out-bogus-genes dbname c)
+  (fresh (cid cui name catid cat props)
+    (== `(,cid ,cui ,name (,catid . ,cat) ,props) c)
+    (conde
+      ((== 'semmed dbname)
+       (=/= "Genes" name)
+       (=/= "Homologous Gene" name)
+       (=/= "Tumor Suppressor Genes" name))
+      ((=/= 'semmed dbname)))))
+
+#|
+;; seems like this might be a better/more general way to determine if
+;; a concept is really a class of concepts; alas, semmed's 'subclass_of'
+;; seems horrible:  A subclass_of B subclass_of A
+;;; So, not sure how to use this!
+(define (concept-has-subclass dbname c)
+  (not (null? (run 1 (o)
+                (fresh (dbname eid pid eprops e)
+                  (== 'semmed dbname) ;; how to handle others?
+                  (== `(,dbname ,eid ,c ,o (4 . "subclass_of") ,eprops) e)
+                  (edgeo e))))))
+|#
+
+#|
+;;; uh oh!!  sigh
+(time
+ (concept-has-subclass
+  'semmed
+  '(74686
+    "UMLS:C0376571"
+    "BRCA1 gene"
+    (4 . "gene")
+    (("umls_type_label" . "['Gene or Genome']")
+     ("xrefs" . "['NCI_NCI-HGNC:HGNC:1100', 'CHV:0000031821', 'PDQ:CDR0000043111', 'MESH:D019398', 'CSP:4005-0006', 'MTH:NOCODE', 'LNC:LP36227-4', 'NCI:C17965', 'LNC:LP19666-4', 'OMIM:113705', 'HGNC:HGNC:1100']")
+     ("id" . "UMLS:C0376571")
+     ("umls_type" . "['T028']")
+     ("labels" . "['gene']")))))
+cpu time: 1 real time: 3 gc time: 0
+#t
+
+(time
+  (concept-has-subclass
+    'semmed
+    '(17324
+      "UMLS:C0017337"
+      "Genes"
+      (4 . "gene")
+      (("umls_type_label" . "['Gene or Genome']")
+       ("xrefs"
+        .
+        "['CSP:1256-5501', 'NCI:C16612', 'LNC:LP32747-5', 'NCI_NCI-GLOSS:CDR0000045693', 'LNC:LP199195-1', 'NCI_CDISC:C16612', 'PDQ:CDR0000042941', 'SNMI:F-E0000', 'MESH:D005796', 'LCH_NW:sh91000344', 'NCI:TCGA', 'AOD:0000002944', 'SNOMEDCT_US:67271001', 'UWDA:74402', 'CHV:0000005419', 'HL7V3.0:GENE', 'FMA:74402', 'PSY:20820']")
+       ("id" . "UMLS:C0017337")
+       ("umls_type" . "['T028']")
+       ("labels" . "['gene']")))))
+;; cpu time: 3 real time: 3 gc time: 0
+;; #t
+
+(time
+ (concept-has-subclass
+  'semmed
+  '(141262
+    "UMLS:C1425023"
+    "NGLY1 gene"
+    (4 . "gene")
+    (("umls_type_label" . "['Gene or Genome']")
+     ("xrefs" . "['HGNC:HGNC:17646', 'OMIM:610661', 'MTH:NOCODE']")
+     ("id" . "UMLS:C1425023")
+     ("umls_type" . "['T028']")
+     ("labels" . "['gene']")))))
+;; cpu time: 1 real time: 2 gc time: 0
+;; #f
+
+(time
+ (concept-has-subclass
+  'semmed
+  '(33093
+    "UMLS:C0079427"
+    "Tumor Suppressor Genes"
+    (4 . "gene")
+    (("umls_type_label" . "['Gene or Genome']")
+     ("xrefs" . "['SNOMEDCT_US:77864004', 'NCI_NCI-GLOSS:CDR0000046657', 'MESH:D016147', 'CHV:0000015171', 'MTH:NOCODE', 'SNMI:F-E00A0', 'NCI_NCI-GLOSS:CDR0000583866', 'SNOMEDCT_US:405842004', 'LCH_NW:sh90002154', 'OMIM:MTHU005882', 'NCI:C17362', 'CSP:1256-6400']")
+     ("id" . "UMLS:C0079427")
+     ("umls_type" . "['T028']")
+     ("labels" . "['gene']")))))
+;; cpu time: 1 real time: 1 gc time: 0
+;; #t
+|#
+
+;;; Filter out "Genes", "Tumor Suppressor Genes", and other losers etc.
+;;; Or provide interface for hoomon to do so.
+;;;
+;;; Also, can end up with duplicate concepts/CUIs, due to different KGs and also different predicates;
+;;; be smart about this!!
 (define G1-G2-edges
   (remove-duplicates
    (run* (e)
@@ -154,7 +251,39 @@
        (membero `(,dbname . ,o) G2-concepts)
        (edgeo e)
        (membero pred G-G-increases-predicate-names)
-       (restrict-concept-to-gene dbname x)))))
+       (restrict-concept-to-gene dbname x)
+       ;; should be configurable which concepts are "bogus"
+       (filter-out-bogus-genes dbname x)))))
+
+#|
+(time
+ (remove-duplicates
+   (run 1 (q)
+     (fresh (dbname1 eid1 s1 o1 pid1 pred1 eprops1 e1
+             dbname2 eid2 s2 o2 pid2 pred2 eprops2 e2
+             cid0 cui0 name0 catid0 cat0 props0
+             cid1 cui1 name1 catid1 cat1 props1
+             cid2 cui2 name2 catid2 cat2 props2
+             cid3 cui3 name3 catid3 cat3 props3)
+       (== `(,dbname1 ,eid1 ,s1 ,o1 (,pid1 . ,pred1) ,eprops1) e1)
+       (== `(,dbname2 ,eid2 ,s2 ,o2 (,pid2 . ,pred2) ,eprops2) e2)
+
+       (== `(,name0 ,pred1 ,name1 ,pred2 ,name3 ,dbname1) q)
+
+       (== `(,cid0 ,cui0 ,name0 (,catid0 . ,cat0) ,props0) s1)
+       (== `(,cid1 ,cui1 ,name1 (,catid1 . ,cat1) ,props1) o1)
+       (== `(,cid2 ,cui2 ,name2 (,catid2 . ,cat2) ,props2) s2)
+       (== `(,cid3 ,cui3 ,name3 (,catid3 . ,cat3) ,props3) o2)
+       
+       (== cui1 cui2)
+       (== dbname1 dbname2)
+       
+       (membero e2 G1-G2-edges)
+       (edgeo e1)
+       (restrict-concept-to-drug dbname1 s1)
+       (membero pred1 D-G-increases-predicate-names)
+       ))))
+|#
 
 #|
 ;;; slow query 1
@@ -201,7 +330,7 @@
           (edgeo e1)
           (membero pred1 D-G-increases-predicate-names)
           )))))
-#|
+|#
 
 
 
