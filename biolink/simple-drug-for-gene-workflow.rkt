@@ -10,6 +10,7 @@
   (all-from-out "db.rkt")
   (all-from-out "mk-db.rkt")
   (all-from-out "common.rkt")
+  (all-from-out racket/date)
   (all-defined-out))
 
 (require
@@ -18,8 +19,10 @@
   "mk-db.rkt"
   "common.rkt"
   racket/date
-  (except-in racket/match ==)
-  (only-in srfi/1 iota))
+  (except-in racket/match ==))
+
+;;; Dont' print a quote at the beginning of values.
+(print-as-expression #f)
 
 ;;; directions
 (define DECREASE 'DECREASE)
@@ -79,6 +82,9 @@
     ))
 
 
+(define ROBOKOP_GENE_CATEGORY '(0 . "(\"named_thing\" \"gene\")"))
+
+
 (define VERSION_STRING "mediKanren Simple Drug-for-Gene Workflow 0.1.0")
 (displayln VERSION_STRING)
 
@@ -96,45 +102,104 @@
 (displayln "loading orange knowledge graph")
 (define orange (make-db "data/orange"))
 
-(define (simple-drug-for-gene-workflow gene-symbol direction)
-  (printf "Running simple-drug-for-target-gene-workflow for gene ~s in direction ~s\n" gene-symbol direction)
-  (printf "Trying to find a drug or biological entity that will budge target gene ~s in direction ~s\n" gene-symbol direction)
-  (printf "Starting workflow for ~s/~s at date/time: ~a\n" gene-symbol direction (date->string (seconds->date (current-seconds)) #t))
+(define (simple-drug-for-gene-workflow gene-symbol-string direction)
+  (printf "Running simple-drug-for-target-gene-workflow for gene ~s in direction ~s\n" gene-symbol-string direction)
+  (printf "Trying to find a drug or biological entity that will budge target gene ~s in direction ~s\n" gene-symbol-string direction)
+  (printf "Starting workflow for ~s/~s at date/time: ~a\n" gene-symbol-string direction (date->string (seconds->date (current-seconds)) #t))
 
-  ;;; Do a concept lookup in Robokop for the gene-symbol as the CUI (exact match, case sensitive).
+  ;;; Do a concept lookup in Robokop for the gene-symbol-string as the CUI (exact match, case sensitive).
   ;;; Error is none is found, or if more than one is found.
   ;;; Error if the type of the concept isn't 
   ;;; [Eventually need to be able to recover from error.]
-  (printf "Looking up a concept in the Robokop Knowledge graph with the exact concept name ~s...\n" gene-symbol)
+  (printf "Looking up a concept in the Robokop Knowledge graph containing the concept name ~s...\n" gene-symbol-string)
+
+  (define robokop-concepts-containing-gene-symbol-name
+    (run* (concept)
+      (db:~name*-concepto/options
+       #t ;;case-sensitive?
+       "" ;; chars:ignore
+       "" ;; chars:split
+       robokop
+       (list gene-symbol-string)
+       concept)))
+
+  (printf "Found ~s concept(s) in Robokop that contain the concept name ~s:\n\n"
+          (length robokop-concepts-containing-gene-symbol-name)
+          gene-symbol-string)
+
+  (for-each
+    (lambda (c) (pretty-print c) (newline))
+    robokop-concepts-containing-gene-symbol-name)
   
+  (printf "Filtering out all found concepts whose name doesn't exactly match the string ~s\n" gene-symbol-string)
+
+  (define robokop-concepts-with-exact-gene-name
+    (filter
+     (lambda (c)
+       (match c
+         [`(,cid ,cui ,name (,catid . ,cat) ,props)
+          (string=? gene-symbol-string name)]))
+     robokop-concepts-containing-gene-symbol-name))
+
+  ;; make sure we no longer use the old concept list
+  (set! robokop-concepts-containing-gene-symbol-name #f)
+ 
+  (printf "Keeping ~s Robokop concept(s) whose name exactly matches ~s:\n\n"
+          (length robokop-concepts-with-exact-gene-name)
+          gene-symbol-string)
+
+  (for-each
+    (lambda (c) (pretty-print c) (newline))
+    robokop-concepts-with-exact-gene-name)
+
   ;;; In the case of "KRAS", should produce the concept:
-  ;;; 
-  ;; (robokop 23561
-  ;;          "HGNC:6407"
-  ;;          "KRAS"
-  ;;          (0 . "(\"named_thing\" \"gene\")")
-  ;;          (("locus_group" . "protein-coding gene")
-  ;;           ("chromosome" . "12")
-  ;;           ("taxon" . "9606")
-  ;;           ("location" . "12p12.1")
-  ;;           ("gene_family" . "(\"RAS type GTPase family\")")
-  ;;           ("id" . "HGNC:6407")
-  ;;           ("gene_family_id" . "(389)")
-  ;;           ("equivalent_identifiers" . "(\"ENSEMBL:ENSG00000133703\" \"UniProtKB:P01116\" \"NCBIGENE:3845\" \"UniProtKB:I1SRC5\" \"UniProtKB:L7RSL8\" \"HGNC:6407\" \"UniProtKB:G3V5T7\" \"UniProtKB:G3V4K2\" \"UniProtKB:A0A024RAV5\")")))
+  ;;;
+  ;; (23561
+  ;;  "HGNC:6407"
+  ;;  "KRAS"
+  ;;  (0 . "(\"named_thing\" \"gene\")")
+  ;;  (("locus_group" . "protein-coding gene")
+  ;;   ("chromosome" . "12")
+  ;;   ("taxon" . "9606")
+  ;;   ("location" . "12p12.1")
+  ;;   ("gene_family" . "(\"RAS type GTPase family\")")
+  ;;   ("id" . "HGNC:6407")
+  ;;   ("gene_family_id" . "(389)")
+  ;;   ("equivalent_identifiers"
+  ;;    .
+  ;;    "(\"ENSEMBL:ENSG00000133703\" \"UniProtKB:P01116\" \"NCBIGENE:3845\" \"UniProtKB:I1SRC5\" \"UniProtKB:L7RSL8\" \"HGNC:6407\" \"UniProtKB:G3V5T7\" \"UniProtKB:G3V4K2\" \"UniProtKB:A0A024RAV5\")")))
 
-  ;;; lookup concept in robokop
+  
+  (if (= (length robokop-concepts-with-exact-gene-name) 1)
+      (printf "Exactly 1 Robokop concept has a name that exactly matches ~s, as expected.  Continuing...\n" gene-symbol-string)
+      (error (format "ERROR  Expected exactly 1 Robokop concept whose name exactly matches ~s.  Found ~s instead."
+                     gene-symbol-string
+                     (length robokop-concepts-with-exact-gene-name))))
+  
+  (define robokop-target-gene-concept (car robokop-concepts-with-exact-gene-name))
+  ;; make sure we no longer use the old concept list
+  (set! robokop-concepts-with-exact-gene-name #f)
+    
+  (match robokop-target-gene-concept
+    [`(,cid ,cui ,name (,catid . ,cat) ,props)
 
-  ;;; check there is exactly one concept
-
-  ;;; check the type of the concept
-
+     (if (equal? `(,catid . ,cat) ROBOKOP_GENE_CATEGORY)
+         (printf "The remaining Robokop concept has the expected category, ~s.  Continuing...\n" ROBOKOP_GENE_CATEGORY)
+         (error (format "ERROR  The remaining Robokop concept has the category ~s rather than the expected category ~s"
+                        `(,catid . ,cat)
+                        ROBOKOP_GENE_CATEGORY))) 
+     
+     ])
 
   ;;; Next step: extract the HGNC code from the CUI, and extract the ENSEMBL and UniProtKB names (hmm--should we lookup all the UniProtKB equivalents, if there is more than one?  Is that okay?) (What about the NCBIGENE name?  Is that useful at all?)
 
 
   
   
-  (printf "Ending workflow for ~s/~s at date/time: ~a\n" gene-symbol direction (date->string (seconds->date (current-seconds)) #t))
+  (printf "Ending workflow for ~s/~s at date/time: ~a\n" gene-symbol-string direction (date->string (seconds->date (current-seconds)) #t))
+  (displayln "-----------------------------------------------------")
+  (newline)
+  (newline)
   )
 
 (simple-drug-for-gene-workflow "KRAS" DECREASE)
