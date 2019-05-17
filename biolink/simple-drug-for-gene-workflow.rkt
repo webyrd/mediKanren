@@ -197,7 +197,7 @@
       [`(,cid ,cui ,name (,catid . ,cat) ,props)
        (list cui props)]))
 
-  (printf "Got CUI and properties from Robokop target gene concept:\n~s\n" robokop-target-gene-concept-CUI/props)
+  (printf "Extracted CUI and properties from Robokop target gene concept:\n\n~s\n\n" robokop-target-gene-concept-CUI/props)
   
   (define robokop-target-gene-concept-CUI (car robokop-target-gene-concept-CUI/props))
 
