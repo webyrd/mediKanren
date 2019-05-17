@@ -83,6 +83,7 @@
 
 
 (define ROBOKOP_GENE_CATEGORY '(0 . "(\"named_thing\" \"gene\")"))
+(define ROBOKOP_EQUIVALENT_IDENTIFIERS_KEY "equivalent_identifiers")
 
 
 (define VERSION_STRING "mediKanren Simple Drug-for-Gene Workflow 0.1.0")
@@ -181,12 +182,12 @@
   (set! robokop-concepts-with-exact-gene-name #f)
     
   (match robokop-target-gene-concept
-    [`(,cid ,cui ,name (,catid . ,cat) ,props)
+    [`(,cid ,cui ,name ,category ,props)
 
-     (if (equal? `(,catid . ,cat) ROBOKOP_GENE_CATEGORY)
+     (if (equal? category ROBOKOP_GENE_CATEGORY)
          (printf "The remaining Robokop concept has the expected category, ~s.  Continuing...\n" ROBOKOP_GENE_CATEGORY)
          (error (format "ERROR  The remaining Robokop concept has the category ~s rather than the expected category ~s"
-                        `(,catid . ,cat)
+                        category
                         ROBOKOP_GENE_CATEGORY))) 
      
      ])
@@ -214,11 +215,27 @@
   ;; make sure we no longer use old variable value
   (set! robokop-target-gene-concept-CUI #f)
 
+  (define robokop-target-gene-concept-property-list (cadr robokop-target-gene-concept-CUI/props))
+
+  (printf "Looking up ~s list in Robokop target gene property list:\n\n~s\n\n" ROBOKOP_EQUIVALENT_IDENTIFIERS_KEY robokop-target-gene-concept-property-list)
+
+  (define robokop-target-gene-concept-equivalent-identifiers-list
+    (let ((v (assoc ROBOKOP_EQUIVALENT_IDENTIFIERS_KEY robokop-target-gene-concept-property-list)))
+      (and v (cdr v))))
+
+  (if robokop-target-gene-concept-equivalent-identifiers-list
+      (printf "Found equivalent identifiers list for Robokop target gene, as expected:\n~s\nContinuing...\n"
+              robokop-target-gene-concept-equivalent-identifiers-list)
+      (error (format "ERROR  Unable to find key ~s in property list ~s"
+                     ROBOKOP_EQUIVALENT_IDENTIFIERS_KEY
+                     robokop-target-gene-concept-property-list)))
+  
+  
   #|
   (define robokop-target-gene-concept-ENSEMBL-IDs
-    (get-ENSEMBLE-IDs-from-robokop-props (cadr robokop-target-gene-concept-CUI/props)))  
+    (get-ENSEMBLE-IDs-from-robokop-props robokop-target-gene-concept-property-list))
   (define robokop-target-gene-concept-UniProtKB-IDs
-    (get-UniProtKB-IDs-from-robokop-props (cadr robokop-target-gene-concept-CUI/props)))
+    (get-UniProtKB-IDs-from-robokop-props robokop-target-gene-concept-property-list))
   |#
   
   ;; make sure we no longer use the old variable
