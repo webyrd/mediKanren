@@ -192,8 +192,33 @@
      ])
 
   ;;; Next step: extract the HGNC code from the CUI, and extract the ENSEMBL and UniProtKB names (hmm--should we lookup all the UniProtKB equivalents, if there is more than one?  Is that okay?) (What about the NCBIGENE name?  Is that useful at all?)
+  (define robokop-target-gene-concept-CUI/props
+    (match robokop-target-gene-concept
+      [`(,cid ,cui ,name (,catid . ,cat) ,props)
+       (list cui props)]))
 
+  (printf "Got CUI and properties from Robokop target gene concept:\n~s\n" robokop-target-gene-concept-CUI/props)
+  
+  (define robokop-target-gene-concept-CUI (car robokop-target-gene-concept-CUI/props))
 
+  (printf "Robokop target gene concept CUI: ~s\n" robokop-target-gene-concept-CUI)
+
+  ;; check CUI is HGNC ID
+
+  (define robokop-target-gene-concept-HGNC-ID robokop-target-gene-concept-CUI)
+
+  ;; make sure we no longer use old variable value
+  (set! robokop-target-gene-concept-CUI #f)
+
+  #|
+  (define robokop-target-gene-concept-ENSEMBL-IDs
+    (get-ENSEMBLE-IDs-from-robokop-props (cadr robokop-target-gene-concept-CUI/props)))  
+  (define robokop-target-gene-concept-UniProtKB-IDs
+    (get-UniProtKB-IDs-from-robokop-props (cadr robokop-target-gene-concept-CUI/props)))
+  |#
+  
+  ;; make sure we no longer use the old variable
+  (set! robokop-target-gene-concept-CUI/props #f)
   
   
   (printf "Ending workflow for ~s/~s at date/time: ~a\n" gene-symbol-string direction (date->string (seconds->date (current-seconds)) #t))
