@@ -79,10 +79,10 @@
     ))
 
 
-(define VERSION_STRING "Simple Drug-for-Gene Workflow 0.1.0")
+(define VERSION_STRING "mediKanren Simple Drug-for-Gene Workflow 0.1.0")
 (displayln VERSION_STRING)
 
-(displayln "loading HGNC-to-concepts hashtable")
+(displayln "loading HGNC-ID-to-concepts hashtable")
 (define hgnc-ip (open-input-file "hgnc-hash.rkt"))
 (define hgnc-ht (read hgnc-ip))
 (close-input-port hgnc-ip)
