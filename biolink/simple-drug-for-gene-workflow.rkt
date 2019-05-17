@@ -203,7 +203,11 @@
 
   (printf "Robokop target gene concept CUI: ~s\n" robokop-target-gene-concept-CUI)
 
-  ;; check CUI is HGNC ID
+  (printf "Checking that Robokop target gene concept CUI is a valid HGNC identifier of the form \"HGNC:<integer>\"\n")
+  (if (regexp-match #rx"^HGNC:[0-9]+$" robokop-target-gene-concept-CUI)
+      (printf "Robokop target gene concept CUI ~s is a valid HGNC identifier of the form \"HGNC:<integer>\", as expected.  Continuing...\n" robokop-target-gene-concept-CUI)
+      (error (format "ERROR  Robokop target gene concept CUI ~s is not a valid HGNC identifier of the form \"HGNC:<integer>\""
+                     robokop-target-gene-concept-CUI)))
 
   (define robokop-target-gene-concept-HGNC-ID robokop-target-gene-concept-CUI)
 
