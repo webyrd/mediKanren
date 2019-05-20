@@ -8,25 +8,34 @@
   RTX
   ROBOKOP
   ORANGE
-  add-concept-key/cid-associations-to-hashtable!)
+  filled-hashtable?
+  add-concept-key/cid-associations-to-hashtable!
+  save-hashtable!
+  load-hashtable  
+  load-or-create/save-hashtable!
+  )
 
-(define SEMMED 'SEMMED)
-(define RTX 'RTX)
-(define ROBOKOP 'ROBOKOP)
-(define ORANGE 'ORANGE)
+(define SEMMED 'semmed)
+(define RTX 'rtx)
+(define ROBOKOP 'robokop)
+(define ORANGE 'orange)
 
 (define DB/concept-file-alist
-  '((SEMMED . "data/semmed/concepts.scm")
-    (RTX . "data/rtx/concepts.scm")
-    (ROBOKOP . "data/robokop/concepts.scm")
-    (ORANGE . "data/orange/concepts.scm")))
+  '((semmed . "data/semmed/concepts.scm")
+    (rtx . "data/rtx/concepts.scm")
+    (robokop . "data/robokop/concepts.scm")
+    (orange . "data/orange/concepts.scm")))
 
 (define DB/props-key-alist
-  '((SEMMED . "xrefs")
-    (RTX . "id")
-    (ROBOKOP . "equivalent_identifiers")
-    (ORANGE . "same_as")))
+  '((semmed . "xrefs")
+    (rtx . "id")
+    (robokop . "equivalent_identifiers")
+    (orange . "same_as")))
 
+
+(define filled-hashtable?
+  (lambda (ht)
+    (and ht (hash? ht) (> (hash-count ht) 0))))
 
 (define (add-concept-key/cid-associations-to-hashtable! ht)
   (lambda (db-name key-regex)
@@ -60,3 +69,39 @@
              (let ((str (cdr pr)))
                (let ((keys (regexp-match* key-regex str #:match-select cadr)))
                  keys)))))))
+
+(define (save-hashtable! ht ht-file-name)
+  (define op (open-output-file ht-file-name #:exists 'replace))
+  (write ht op)
+  (close-output-port op))
+
+(define (load-hashtable ht-file-name)
+  (if (file-exists? ht-file-name)
+      (let ()
+        (define ip (open-input-file ht-file-name))
+        (let ((ht (read ip)))
+          (close-input-port ip)
+          ht))
+      #f))
+
+(define (load-or-create/save-hashtable! ht-name load-ht fill-ht! save-ht!)
+  (printf "attempting to load hashtable for ~s\n" ht-name)
+  (let ((ht (load-ht)))
+    (if (filled-hashtable? ht)
+        (begin
+          (printf "loaded non-empty hashtable for ~s, with ~s entries\n" ht-name (hash-count ht))
+          ht)
+        (begin
+          (printf "unable to load a non-empty hashtable for ~s\n" ht-name)
+          (printf "trying to create a hashtable for ~s...\n" ht-name)
+          (fill-ht!)
+          (printf "filled a hashtable for ~s. Trying to save hashtable...\n" ht-name)
+          (save-ht!)
+          (printf "saved the hashtable for ~s. Trying to load saved hashtable...\n" ht-name)
+          (let ((ht (load-ht)))
+            (printf "load the saved hashtable for ~s.  Checking if non-empty valid hashtable...\n" ht-name)
+            (if (filled-hashtable? ht)
+                (begin
+                  (printf "loaded hashtable for ~s is non-empty, with ~s entries\n" ht-name (hash-count ht))
+                  ht)
+                (error "Unable to load or create hashtable ~s" ht-name)))))))

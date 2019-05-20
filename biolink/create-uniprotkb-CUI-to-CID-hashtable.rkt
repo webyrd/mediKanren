@@ -1,31 +1,42 @@
 #lang racket
 
+(require
+  "create-hashtable-common.rkt")
+
 (provide
   (all-defined-out))
 
-(define add-concept-key/cid-associations-to-hashtable
-  (lambda (concepts-file-name db-name ht concept-vector->keys)
-    (let ((ip (open-input-file concepts-file-name)))
-      (let loop ([cid 0]
-                 [data (read ip)])
-        (cond
-          [(eof-object? data)
-           (close-input-port ip)
-           (void)]
-          [else
-           (when (= (modulo cid 10000) 0)
-             (printf "~s cid: ~s\n" db-name cid))
-           (let ((keys (concept-vector->keys data)))
-             (when keys
-               (for-each
-                 (lambda (key)
-                   (let ((entry (hash-ref ht key '())))
-                     (hash-set! ht key (cons (cons db-name cid) entry))))
-                 keys)))
-           (loop (add1 cid) (read ip))])))))
-
 
 (define uniprotkb-ht (make-hash))
+(define uniprotkb-ht-file-name "uniprotkb-hash.rkt")
+
+(define (fill-uniprotkb-ht!)
+
+  (set! uniprotkb-ht (make-hash))
+
+  (define add-to-ht! (add-concept-key/cid-associations-to-hashtable! uniprotkb-ht))
+
+  (add-to-ht! SEMMED #rx"UNIPROT:([A-Z0-9]+)")
+  (add-to-ht! RTX #rx"UniProtKB:([A-Z0-9]+)")
+  (add-to-ht! ROBOKOP #rx"UniProtKB:([A-Z0-9]+)")
+  ;; apparently orange doesn't have UniProtKB synonyms 
+
+  )
+
+(define (save-uniprotkb-ht!)
+  (save-hashtable! uniprotkb-ht uniprotkb-ht-file-name))
+
+(define (load-uniprotkb-ht)
+  (load-hashtable uniprotkb-ht-file-name))
+
+(define (load-or-create/save-uniprotkb-ht!)
+  (load-or-create/save-hashtable!
+    'uniprotkb
+    load-uniprotkb-ht
+    fill-uniprotkb-ht!
+    save-uniprotkb-ht!))
+
+
 
 #|
 Three supposedly equivalent concepts:
@@ -45,47 +56,6 @@ Another concept:
 orange doesn't seem to contain UniProtKB synonyms
 |#
 
-(add-concept-key/cid-associations-to-hashtable
- "data/semmed/concepts.scm"
- 'semmed
- uniprotkb-ht
- (lambda (data)
-   (let ((props (vector-ref data 3)))
-     (let ((pr (assoc "xrefs" props)))
-       (and pr
-            (let ((xrefs-string (cdr pr)))
-              (let ((keys (regexp-match* #rx"UNIPROT:([A-Z0-9]+)" xrefs-string #:match-select cadr)))
-                keys)))))))
-
-(add-concept-key/cid-associations-to-hashtable
- "data/rtx/concepts.scm"
- 'rtx
- uniprotkb-ht
- (lambda (data)
-   (let ((props (vector-ref data 3)))
-     (let ((pr (assoc "id" props)))
-       (and pr
-            (let ((id-string (cdr pr)))
-              (let ((keys (regexp-match* #rx"UniProtKB:([A-Z0-9]+)" id-string #:match-select cadr)))
-                keys)))))))
-
-(add-concept-key/cid-associations-to-hashtable
- "data/robokop/concepts.scm"
- 'robokop
- uniprotkb-ht
- (lambda (data)
-   (let ((props (vector-ref data 3)))
-     (let ((pr (assoc "equivalent_identifiers" props)))
-       (and pr
-            (let ((equivalent-identifiers-string (cdr pr)))
-              (let ((keys (regexp-match* #rx"UniProtKB:([A-Z0-9]+)" equivalent-identifiers-string #:match-select cadr)))
-                keys)))))))
-
-;;; orange doesn't seem to contain UniProtKB synonyms
-
-(define op (open-output-file "uniprotkb-hash.rkt"))
-(write uniprotkb-ht op)
-(close-output-port op)
 
 
 #|
