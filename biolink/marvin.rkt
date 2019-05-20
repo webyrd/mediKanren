@@ -253,7 +253,7 @@
   
   
   (newline)
-  (printf "Ending workflow for ~s/~s at date/time: ~a\n" gene-symbol-string direction (date->string (seconds->date (current-seconds)) #t))
+  (printf "Ending Marvin workflow for ~s/~s at date/time: ~a\n" gene-symbol-string direction (date->string (seconds->date (current-seconds)) #t))
   (displayln "-----------------------------------------------------")
   (newline)
   (newline)
