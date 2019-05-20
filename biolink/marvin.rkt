@@ -229,36 +229,82 @@
                      robokop-target-gene-concept-property-list)))
 
   (printf "Extracting ENSMBL equivalent identifiers...\n") 
-  (define robokop-target-gene-concept-ENSEMBL-IDs
+  (define robokop-target-gene-concept-ENSEMBL-CUIs
     (regexp-match* #rx"ENSEMBL:[A-Z0-9]+" robokop-target-gene-concept-equivalent-identifiers))
-  (printf "Extracted ENSMBL equivalent identifiers:\n~s\n\n" robokop-target-gene-concept-ENSEMBL-IDs)
+  (printf "Extracted ENSMBL equivalent identifiers:\n~s\n\n" robokop-target-gene-concept-ENSEMBL-CUIs)
 
   (printf "Extracting HGNC equivalent identifiers...\n") 
-  (define robokop-target-gene-concept-HGNC-IDs
+  (define robokop-target-gene-concept-HGNC-CUIs
     (regexp-match* #rx"HGNC:[A-Z0-9]+" robokop-target-gene-concept-equivalent-identifiers))
-  (printf "Extracted HGNC equivalent identifiers:\n~s\n\n" robokop-target-gene-concept-HGNC-IDs)
+  (printf "Extracted HGNC equivalent identifiers:\n~s\n\n" robokop-target-gene-concept-HGNC-CUIs)
 
   (printf "Extracting OMIM equivalent identifiers...\n") 
-  (define robokop-target-gene-concept-OMIM-IDs
+  (define robokop-target-gene-concept-OMIM-CUIs
     (regexp-match* #rx"OMIM:[A-Z0-9]+" robokop-target-gene-concept-equivalent-identifiers))
-  (printf "Extracted OMIM equivalent identifiers:\n~s\n\n" robokop-target-gene-concept-OMIM-IDs)
+  (printf "Extracted OMIM equivalent identifiers:\n~s\n\n" robokop-target-gene-concept-OMIM-CUIs)
   
   (printf "Extracting UniProtKB equivalent identifiers...\n")
-  (define robokop-target-gene-concept-UniProtKB-IDs
+  (define robokop-target-gene-concept-UniProtKB-CUIs
     (regexp-match* #rx"UniProtKB:[A-Z0-9]+" robokop-target-gene-concept-equivalent-identifiers))
-  (printf "Extracted UniProtKB equivalent identifiers:\n~s\n\n" robokop-target-gene-concept-UniProtKB-IDs)
+  (printf "Extracted UniProtKB equivalent identifiers:\n~s\n\n" robokop-target-gene-concept-UniProtKB-CUIs)
 
-  (define robokop-target-gene-concept-HGNC-CUI-number-only
-    (car (regexp-match* #rx"^HGNC:([0-9]+)$" robokop-target-gene-concept-CUI #:match-select cadr)))
 
-  (printf "Looking up ID ~s from HGNC CUI ~s in HGNC-ID-to-concepts hashtable...\n"
-          robokop-target-gene-concept-HGNC-CUI-number-only
-          robokop-target-gene-concept-CUI)
-  (define concept-DB/IDs-for-HGNC-CUI (hash-ref hgnc-ht robokop-target-gene-concept-HGNC-CUI-number-only '()))
-  (printf "Found these concept DB/IDs for ID ~s from HGNC CUI ~s in HGNC-ID-to-concepts hashtable:\n\n~s\n\n"
-          robokop-target-gene-concept-HGNC-CUI-number-only
-          robokop-target-gene-concept-CUI
-          concept-DB/IDs-for-HGNC-CUI)
+  (define (find-CIDs-for-CUI CUI hashtable CUI-ID-regex)
+    (define ID* (regexp-match* CUI-ID-regex CUI #:match-select cadr))
+    (define ID #f)
+    (if (and (list? ID*) (= (length ID*) 1))
+        (set! ID (car ID*))
+        (error (format "ERROR  find-CIDs-for-CUI expected ID* to be a singleton list, instead got ~s" ID*)))
+    (printf "Looking up CID ~s from CUI ~s in hashtable...\n"
+            ID
+            CUI)
+    (define concept-DB/IDs-for-CUI (hash-ref hashtable ID '()))
+    (printf "Found these concept DB/IDs for ID ~s from CUI ~s in hashtable:\n\n~s\n\n"
+            ID
+            CUI
+            concept-DB/IDs-for-CUI)
+    concept-DB/IDs-for-CUI)
+
+
+  
+  ;; special case: single HGNCI CUI as the Robokop main CUI
+  (printf "finding concept IDs for canonical Robolop HGNC CUI...\n")
+  (define CUIs-for-single-HGNCI-CUI
+    (find-CIDs-for-CUI robokop-target-gene-concept-CUI hgnc-ht #rx"^HGNC:([A-Z0-9]+)$"))
+  
+  
+  (printf "finding concept IDs for ENSEMBL equivalents...\n")
+  (define CIDs-for-ENSEMBL-CUIs
+    (let loop ([CUI* robokop-target-gene-concept-ENSEMBL-CUIs]
+               [CID* (set)])
+      (cond
+        ((null? CUI*)
+         (let ((CID* (set->list CID*)))
+           (printf "in aggregate, found these IDs for all ENSEMBL CUIs:\n~s\n" CID*)))
+        (else (let ((CUI (car CUI*))
+                    (rest (cdr CUI*)))
+                (printf "looking up concept IDs for ENSEMBL CUI ~s...\n" CUI)
+                (let ((res (find-CIDs-for-CUI CUI ensembl-ht #rx"^ENSEMBL:([A-Z0-9]+)$")))
+                  (printf "found these IDs for ENSEMBL CUI ~s:\n~s\n" CUI res)
+                  (loop rest
+                        (set-union (list->set res) CID*))))))))
+
+  (printf "finding concept IDs for UniProtKB equivalents...\n")
+  (define CIDs-for-UniProtKB-CUIs
+    (let loop ([CUI* robokop-target-gene-concept-UniProtKB-CUIs]
+               [CID* (set)])
+      (cond
+        ((null? CUI*)
+         (let ((CID* (set->list CID*)))
+           (printf "in aggregate, found these IDs for all UniProtKB CUIs:\n~s\n" CID*)))
+        (else (let ((CUI (car CUI*))
+                    (rest (cdr CUI*)))
+                (printf "looking up concept IDs for UniProtKB CUI ~s...\n" CUI)
+                (let ((res (find-CIDs-for-CUI CUI uniprotkb-ht #rx"^UniProtKB:([A-Z0-9]+)$")))
+                  (printf "found these IDs for UniProtKB CUI ~s:\n~s\n" CUI res)
+                  (loop rest
+                        (set-union (list->set res) CID*))))))))
+
   
   
   (newline)
