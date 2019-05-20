@@ -15,10 +15,10 @@
 
   (define add-to-ht! (add-concept-key/cid-associations-to-hashtable! omim-ht))
 
- (add-to-ht! SEMMED #rx"OMIM:([0-9]+)") 
+ (add-to-ht! SEMMED #rx"OMIM:([A-Z0-9]+)") 
   ;; apparently rtx doesn't have OMIM synonyms
-  (add-to-ht! ROBOKOP #rx"OMIM:([0-9]+)")
-  (add-to-ht! ORANGE #rx"OMIM:([0-9]+)")
+  (add-to-ht! ROBOKOP #rx"OMIM:([A-Z0-9]+)")
+  (add-to-ht! ORANGE #rx"OMIM:([A-Z0-9]+)")
 
   )
 
