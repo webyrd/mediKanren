@@ -9,7 +9,7 @@
   (all-from-out "mk.rkt")
   (all-from-out "db.rkt")
   (all-from-out "mk-db.rkt")
-  (all-from-out "common.rkt")
+  (all-from-out "common.rkt")  
   (all-from-out racket/date)
   (all-defined-out))
 
@@ -18,6 +18,7 @@
   "db.rkt"
   "mk-db.rkt"
   "common.rkt"
+  "create-all-hashtables.rkt"
   racket/date
   (except-in racket/match ==))
 
@@ -89,15 +90,9 @@
 (define VERSION_STRING "mediKanren Marvin Prototype 0.1.0 (Simple Drug-for-Gene Workflow Module)")
 (displayln VERSION_STRING)
 
-(displayln "loading HGNC-ID-to-concepts hashtable")
-(define hgnc-ip (open-input-file "hgnc-hash.rkt"))
-(define hgnc-ht (read hgnc-ip))
-(printf "loaded HGNC-ID-to-concepts hashtable, with ~s entries\n" (hash-count hgnc-ht))
-(if (zero? (hash-count hgnc-ht))
-    (error "ERROR  HGNC-ID-to-concepts hashtable is empty!")
-    (printf "HGNC-ID-to-concepts hashtable is non-empty, as expected.  Continuing...\n\n"))
-(close-input-port hgnc-ip)
 
+(printf "loading or creating hashtables, as necessary...\n")
+(load-or-create/save-all-hashtables!)
 
 
 (displayln "loading semmed knowledge graph")
@@ -243,11 +238,15 @@
     (regexp-match* #rx"UniProtKB:[A-Z0-9]+" robokop-target-gene-concept-equivalent-identifiers))
   (printf "Extracted UniProtKB equivalent identifiers:\n~s\n\n" robokop-target-gene-concept-UniProtKB-IDs)
 
+  (define robokop-target-gene-concept-HGNC-CUI-number-only
+    (car (regexp-match* #rx"^HGNC:([0-9]+)$" robokop-target-gene-concept-CUI #:match-select cadr)))
 
-
-  (printf "Looking up HGNC CUI ~s in HGNC-ID-to-concepts hashtable...\n" robokop-target-gene-concept-CUI)
-  (define concept-DB/IDs-for-HGNC-CUI (hash-ref hgnc-ht robokop-target-gene-concept-CUI '()))
-  (printf "Found these concept DB/IDs for HGNC CUI ~s in HGNC-ID-to-concepts hashtable:\n\n~s\n\n"
+  (printf "Looking up ID ~s from HGNC CUI ~s in HGNC-ID-to-concepts hashtable...\n"
+          robokop-target-gene-concept-HGNC-CUI-number-only
+          robokop-target-gene-concept-CUI)
+  (define concept-DB/IDs-for-HGNC-CUI (hash-ref hgnc-ht robokop-target-gene-concept-HGNC-CUI-number-only '()))
+  (printf "Found these concept DB/IDs for ID ~s from HGNC CUI ~s in HGNC-ID-to-concepts hashtable:\n\n~s\n\n"
+          robokop-target-gene-concept-HGNC-CUI-number-only
           robokop-target-gene-concept-CUI
           concept-DB/IDs-for-HGNC-CUI)
   
