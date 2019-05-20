@@ -172,7 +172,7 @@
 
   
   (if (= (length robokop-concepts-with-exact-gene-name) 1)
-      (printf "Exactly 1 Robokop concept has a name that exactly matches ~s, as expected.  Continuing...\n" gene-symbol-string)
+      (printf "Exactly 1 Robokop concept has a name that exactly matches ~s, as expected.  Continuing...\n\n" gene-symbol-string)
       (error (format "ERROR  Expected exactly 1 Robokop concept whose name exactly matches ~s.  Found ~s instead."
                      gene-symbol-string
                      (length robokop-concepts-with-exact-gene-name))))
@@ -185,7 +185,7 @@
     [`(,cid ,cui ,name ,category ,props)
 
      (if (equal? category ROBOKOP_GENE_CATEGORY)
-         (printf "The remaining Robokop concept has the expected category, ~s.  Continuing...\n" ROBOKOP_GENE_CATEGORY)
+         (printf "The remaining Robokop concept has the expected category, ~s.  Continuing...\n\n" ROBOKOP_GENE_CATEGORY)
          (error (format "ERROR  The remaining Robokop concept has the category ~s rather than the expected category ~s"
                         category
                         ROBOKOP_GENE_CATEGORY))) 
@@ -206,7 +206,7 @@
 
   (printf "Checking that Robokop target gene concept CUI is a valid HGNC identifier of the form \"HGNC:<integer>\"\n")
   (if (regexp-match #rx"^HGNC:[0-9]+$" robokop-target-gene-concept-CUI)
-      (printf "Robokop target gene concept CUI ~s is a valid HGNC identifier of the form \"HGNC:<integer>\", as expected.  Continuing...\n" robokop-target-gene-concept-CUI)
+      (printf "Robokop target gene concept CUI ~s is a valid HGNC identifier of the form \"HGNC:<integer>\", as expected.  Continuing...\n\n" robokop-target-gene-concept-CUI)
       (error (format "ERROR  Robokop target gene concept CUI ~s is not a valid HGNC identifier of the form \"HGNC:<integer>\""
                      robokop-target-gene-concept-CUI)))
 
