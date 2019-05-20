@@ -249,7 +249,15 @@
   (define robokop-target-gene-concept-UniProtKB-IDs
     (regexp-match* #rx"UniProtKB:[A-Z0-9]+" robokop-target-gene-concept-equivalent-identifiers))
   (printf "Extracted UniProtKB equivalent identifiers:\n~s\n\n" robokop-target-gene-concept-UniProtKB-IDs)
-   
+
+
+
+  (printf "Looking up HGNC CUI ~s in HGNC-ID-to-concepts hashtable...\n" robokop-target-gene-concept-CUI)
+  (define concept-DB/IDs-for-HGNC-CUI (hash-ref hgnc-ht robokop-target-gene-concept-CUI '()))
+  (printf "Found these concept DB/IDs for HGNC CUI ~s in HGNC-ID-to-concepts hashtable:\n~s\n"
+          robokop-target-gene-concept-CUI
+          concept-DB/IDs-for-HGNC-CUI)
+  
   
   
   (printf "Ending workflow for ~s/~s at date/time: ~a\n" gene-symbol-string direction (date->string (seconds->date (current-seconds)) #t))
