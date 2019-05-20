@@ -217,29 +217,33 @@
 
   (define robokop-target-gene-concept-property-list (cadr robokop-target-gene-concept-CUI/props))
 
+  ;; make sure we no longer use the old variable
+  (set! robokop-target-gene-concept-CUI/props #f)
+ 
+  
   (printf "Looking up ~s list in Robokop target gene property list:\n\n~s\n\n" ROBOKOP_EQUIVALENT_IDENTIFIERS_KEY robokop-target-gene-concept-property-list)
 
-  (define robokop-target-gene-concept-equivalent-identifiers-list
+  (define robokop-target-gene-concept-equivalent-identifiers
     (let ((v (assoc ROBOKOP_EQUIVALENT_IDENTIFIERS_KEY robokop-target-gene-concept-property-list)))
       (and v (cdr v))))
 
-  (if robokop-target-gene-concept-equivalent-identifiers-list
-      (printf "Found equivalent identifiers list for Robokop target gene, as expected:\n~s\nContinuing...\n"
-              robokop-target-gene-concept-equivalent-identifiers-list)
+  (if robokop-target-gene-concept-equivalent-identifiers
+      (printf "Found equivalent identifiers list for Robokop target gene, as expected:\n~s\nContinuing...\n\n"
+              robokop-target-gene-concept-equivalent-identifiers)
       (error (format "ERROR  Unable to find key ~s in property list ~s"
                      ROBOKOP_EQUIVALENT_IDENTIFIERS_KEY
                      robokop-target-gene-concept-property-list)))
-  
-  
-  #|
+
+  (printf "Extracting ENSMBL equivalent identifiers...\n") 
   (define robokop-target-gene-concept-ENSEMBL-IDs
-    (get-ENSEMBLE-IDs-from-robokop-props robokop-target-gene-concept-property-list))
-  (define robokop-target-gene-concept-UniProtKB-IDs
-    (get-UniProtKB-IDs-from-robokop-props robokop-target-gene-concept-property-list))
-  |#
+    (regexp-match* #rx"ENSEMBL:[A-Z0-9]+" robokop-target-gene-concept-equivalent-identifiers))
+  (printf "Extracted ENSMBL equivalent identifiers:\n~s\n\n" robokop-target-gene-concept-ENSEMBL-IDs)
   
-  ;; make sure we no longer use the old variable
-  (set! robokop-target-gene-concept-CUI/props #f)
+  (printf "Extracting UniProtKB equivalent identifiers...\n")
+  (define robokop-target-gene-concept-UniProtKB-IDs
+    (regexp-match* #rx"UniProtKB:[A-Z0-9]+" robokop-target-gene-concept-equivalent-identifiers))
+  (printf "Extracted UniProtKB equivalent identifiers:\n~s\n\n" robokop-target-gene-concept-UniProtKB-IDs)
+   
   
   
   (printf "Ending workflow for ~s/~s at date/time: ~a\n" gene-symbol-string direction (date->string (seconds->date (current-seconds)) #t))
