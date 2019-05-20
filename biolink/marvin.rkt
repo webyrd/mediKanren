@@ -232,6 +232,16 @@
   (define robokop-target-gene-concept-ENSEMBL-IDs
     (regexp-match* #rx"ENSEMBL:[A-Z0-9]+" robokop-target-gene-concept-equivalent-identifiers))
   (printf "Extracted ENSMBL equivalent identifiers:\n~s\n\n" robokop-target-gene-concept-ENSEMBL-IDs)
+
+  (printf "Extracting HGNC equivalent identifiers...\n") 
+  (define robokop-target-gene-concept-HGNC-IDs
+    (regexp-match* #rx"HGNC:[A-Z0-9]+" robokop-target-gene-concept-equivalent-identifiers))
+  (printf "Extracted HGNC equivalent identifiers:\n~s\n\n" robokop-target-gene-concept-HGNC-IDs)
+
+  (printf "Extracting OMIM equivalent identifiers...\n") 
+  (define robokop-target-gene-concept-OMIM-IDs
+    (regexp-match* #rx"OMIM:[A-Z0-9]+" robokop-target-gene-concept-equivalent-identifiers))
+  (printf "Extracted OMIM equivalent identifiers:\n~s\n\n" robokop-target-gene-concept-OMIM-IDs)
   
   (printf "Extracting UniProtKB equivalent identifiers...\n")
   (define robokop-target-gene-concept-UniProtKB-IDs
