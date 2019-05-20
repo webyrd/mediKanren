@@ -86,3 +86,17 @@ orange doesn't seem to contain UniProtKB synonyms
 (define op (open-output-file "uniprotkb-hash.rkt"))
 (write uniprotkb-ht op)
 (close-output-port op)
+
+
+#|
+> (hash-count uniprotkb-ht)
+89196
+> (hash-ref uniprotkb-ht "P36404" #f)
+'((robokop . 166967) (rtx . 4))
+> (hash-ref uniprotkb-ht "11016" #f)
+#f
+> (hash-ref uniprotkb-ht "A0A024R824" #f)
+'((robokop . 20027))
+> (hash-ref uniprotkb-ht "O15431" #f)
+'((robokop . 20027) (rtx . 5771) (semmed . 244))
+|#
