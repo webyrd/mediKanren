@@ -24,7 +24,7 @@
   )
 
 (define (save-hgnc-ht!)
-  (save-hashtable! hgnce-ht hgnc-ht-file-path))
+  (save-hashtable! hgnc-ht hgnc-ht-file-path))
 
 (define (load-hgnc-ht)
   (load-hashtable hgnc-ht-file-path))
