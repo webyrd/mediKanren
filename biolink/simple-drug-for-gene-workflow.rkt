@@ -218,15 +218,8 @@
 
   (define robokop-target-gene-concept-HGNC-ID robokop-target-gene-concept-CUI)
 
-  ;; make sure we no longer use old variable value
-  (set! robokop-target-gene-concept-CUI #f)
-
   (define robokop-target-gene-concept-property-list (cadr robokop-target-gene-concept-CUI/props))
-
-  ;; make sure we no longer use the old variable
-  (set! robokop-target-gene-concept-CUI/props #f)
- 
-  
+   
   (printf "Looking up ~s list in Robokop target gene property list:\n\n~s\n\n" ROBOKOP_EQUIVALENT_IDENTIFIERS_KEY robokop-target-gene-concept-property-list)
 
   (define robokop-target-gene-concept-equivalent-identifiers
