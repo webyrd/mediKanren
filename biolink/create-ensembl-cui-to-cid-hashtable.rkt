@@ -6,7 +6,6 @@
 (provide
   (all-defined-out))
 
-
 (define ensembl-ht (make-hash))
 (define ensembl-ht-file-path (build-path HASHTABLE_SAVE_DIRECTORY "ensembl-hash.rkt"))
 
@@ -23,8 +22,8 @@
 
   )
 
-(define (save-ensemble-ht!)
-  (save-hashtable! ensemble-ht ensembl-ht-file-path))
+(define (save-ensembl-ht!)
+  (save-hashtable! ensembl-ht ensembl-ht-file-path))
 
 (define (load-ensembl-ht)
   (load-hashtable ensembl-ht-file-path))
