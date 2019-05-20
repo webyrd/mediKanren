@@ -264,10 +264,14 @@
  'robokop
  hgnc-ht
  (lambda (data)
-   (let ((CUI-string (vector-ref data 0)))
-     (and (string-prefix? CUI-string "HGNC:")
-          (let ((key CUI-string))
-            key)))))
+   (let ((props (vector-ref data 3)))
+     (let ((pr (assoc "equivalent_identifiers" props)))
+       (and pr
+            (let ((equivalent-identifiers-string (cdr pr)))
+              (let ((m* (regexp-match #rx"(HGNC:[0-9]+)" equivalent-identifiers-string)))
+                (and m*
+                     (let ((key (car m*)))
+                       key)))))))))
 
 (add-concept-key/cid-associations-to-hashtable
  "data/orange/concepts.scm"
