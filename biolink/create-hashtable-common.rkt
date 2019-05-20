@@ -8,6 +8,7 @@
   RTX
   ROBOKOP
   ORANGE
+  HASHTABLE_SAVE_DIRECTORY
   filled-hashtable?
   add-concept-key/cid-associations-to-hashtable!
   save-hashtable!
@@ -19,6 +20,8 @@
 (define RTX 'rtx)
 (define ROBOKOP 'robokop)
 (define ORANGE 'orange)
+
+(define HASHTABLE_SAVE_DIRECTORY "tmp")
 
 (define DB/concept-file-alist
   '((semmed . "data/semmed/concepts.scm")

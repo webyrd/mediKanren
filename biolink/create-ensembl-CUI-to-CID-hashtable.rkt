@@ -8,6 +8,7 @@
 
 
 (define ensembl-ht (make-hash))
+(define ensembl-ht-file-path (build-path HASHTABLE_SAVE_DIRECTORY "ensembl-hash.rkt"))
 
 (define (fill-ensembl-ht!)
 
@@ -23,12 +24,17 @@
   )
 
 (define (save-ensemble-ht!)
+  (save-hashtable! ensemble-ht ensembl-ht-file-path))
 
-  (define op (open-output-file "ensembl-hash.rkt"))
-  (write ensembl-ht op)
-  (close-output-port op)
-  
-  )
+(define (load-ensembl-ht)
+  (load-hashtable ensembl-ht-file-path))
+
+(define (load-or-create/save-ensembl-ht!)
+  (load-or-create/save-hashtable!
+    'ensembl
+    load-ensembl-ht
+    fill-ensembl-ht!
+    save-ensembl-ht!))
 
 
 

@@ -8,7 +8,7 @@
 
 
 (define uniprotkb-ht (make-hash))
-(define uniprotkb-ht-file-name "uniprotkb-hash.rkt")
+(define uniprotkb-ht-file-path (build-path HASHTABLE_SAVE_DIRECTORY "uniprotkb-hash.rkt"))
 
 (define (fill-uniprotkb-ht!)
 
@@ -24,10 +24,10 @@
   )
 
 (define (save-uniprotkb-ht!)
-  (save-hashtable! uniprotkb-ht uniprotkb-ht-file-name))
+  (save-hashtable! uniprotkb-ht uniprotkb-ht-file-path))
 
 (define (load-uniprotkb-ht)
-  (load-hashtable uniprotkb-ht-file-name))
+  (load-hashtable uniprotkb-ht-file-path))
 
 (define (load-or-create/save-uniprotkb-ht!)
   (load-or-create/save-hashtable!
