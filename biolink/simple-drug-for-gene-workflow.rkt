@@ -92,7 +92,13 @@
 (displayln "loading HGNC-ID-to-concepts hashtable")
 (define hgnc-ip (open-input-file "hgnc-hash.rkt"))
 (define hgnc-ht (read hgnc-ip))
+(printf "loaded HGNC-ID-to-concepts hashtable, with ~s entries\n" (hash-count hgnc-ht))
+(if (zero? (hash-count hgnc-ht))
+    (error "ERROR  HGNC-ID-to-concepts hashtable is empty!")
+    (printf "HGNC-ID-to-concepts hashtable is non-empty, as expected.  Continuing...\n\n"))
 (close-input-port hgnc-ip)
+
+
 
 (displayln "loading semmed knowledge graph")
 (define semmed (make-db "data/semmed"))
