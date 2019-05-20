@@ -86,7 +86,7 @@
 (define ROBOKOP_EQUIVALENT_IDENTIFIERS_KEY "equivalent_identifiers")
 
 
-(define VERSION_STRING "mediKanren Simple Drug-for-Gene Workflow 0.1.0")
+(define VERSION_STRING "mediKanren Simple Drug-for-Gene Workflow (Marvin Prototype) 0.1.0")
 (displayln VERSION_STRING)
 
 (displayln "loading HGNC-ID-to-concepts hashtable")
