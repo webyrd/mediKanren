@@ -61,17 +61,28 @@
                      (lambda (key)
                        (let ((entry (hash-ref ht key '())))
                          (hash-set! ht key (cons (cons db-name cid) entry))))
-                     (remove-duplicates keys))))
+                     keys)))
                (loop (add1 cid) (read ip))])))))))
 
 (define (make-prop-lookup props-key key-regex)
   (lambda (data)
     (let ((props (vector-ref data 3)))
-      (let ((pr (assoc props-key props)))
-        (and pr
+      ;; all the KG's have an 'id' entry with the CUI for the concept, which we should also include
+      (define (find-cids-by-prop-list-key prop-list-key)
+        (cond
+          ((assoc prop-list-key props)
+           =>
+           (lambda (pr)
              (let ((str (cdr pr)))
                (let ((keys (regexp-match* key-regex str #:match-select cadr)))
-                 keys)))))))
+                 keys))))
+          (else '())))
+      (define id-keys (find-cids-by-prop-list-key "id"))
+      (define equivalent-keys (find-cids-by-prop-list-key props-key))
+      (set->list
+        (set-union
+          (list->set id-keys)
+          (list->set equivalent-keys))))))
 
 (define (save-hashtable! ht ht-file-name)
   (define op (open-output-file ht-file-name #:exists 'replace))

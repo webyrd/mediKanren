@@ -39,4 +39,10 @@
 
 #|
 
+Need to recognize occurrences of the CUI in the "id" field as well as the "same_as"/"xrefs" type fields:
+
+(orange 13749 "OMIM:PS601462" "Myasthenic syndrome, congenital" (2 . "(\"named thing\")") (("iri" . "http://purl.obolibrary.org/obo/OMIM_PS601462") ("provided_by" . "(\"omim.ttl\")") ("id" . "OMIM:PS601462")))
+
+(robokop 172408 "OMIM:607514" "BODY MASS INDEX QUANTITATIVE TRAIT LOCUS 10" (3 . "(\"named_thing\" \"disease\")") (("id" . "OMIM:607514") ("equivalent_identifiers" . "(\"UMLS:C2675659\" \"OMIM:607514\")")))
+
 |#
