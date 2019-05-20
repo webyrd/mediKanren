@@ -16,10 +16,10 @@
 
   (define add-to-ht! (add-concept-key/cid-associations-to-hashtable! hgnc-ht))
 
-  (add-to-ht! SEMMED #rx"HGNC:([A-Z0-9]+)")
+  (add-to-ht! SEMMED #rx"HGNC:([0-9]+)")
   ;; apparently rtx doesn't have HGNC synonyms 
-  (add-to-ht! ROBOKOP #rx"HGNC:([A-Z0-9]+)")
-  (add-to-ht! ORANGE #rx"HGNC:([A-Z0-9]+)")
+  (add-to-ht! ROBOKOP #rx"HGNC:([0-9]+)")
+  (add-to-ht! ORANGE #rx"HGNC:([0-9]+)")
 
   )
 

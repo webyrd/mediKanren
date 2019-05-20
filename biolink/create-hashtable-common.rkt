@@ -61,7 +61,7 @@
                      (lambda (key)
                        (let ((entry (hash-ref ht key '())))
                          (hash-set! ht key (cons (cons db-name cid) entry))))
-                     keys)))
+                     (remove-duplicates keys))))
                (loop (add1 cid) (read ip))])))))))
 
 (define (make-prop-lookup props-key key-regex)
