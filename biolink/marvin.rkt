@@ -453,4 +453,8 @@
   )
 
 (simple-drug-for-gene-workflow "KRAS" DECREASE)
+
+;; RTX has many BRCA1-related concepts, such as
+;; 'BRCA1/BRCA2-containing complex subunit 3'.  How many of these
+;; would be relevant for increase/decrease queries?
 (simple-drug-for-gene-workflow "BRCA1" DECREASE)
