@@ -285,6 +285,29 @@
   (define CIDs-for-single-HGNCI-CUI
     (find-CIDs-for-CUI robokop-target-gene-concept-CUI hgnc-ht #rx"^HGNC:([0-9]+)$"))
 
+  (printf "finding concepts for concept IDs ~s...\n" CIDs-for-single-HGNCI-CUI)
+  (define concepts-for-single-HGNCI-CUI
+    (apply append
+           (map
+            (lambda (db-key/cid)
+              (let ((db-key (car db-key/cid))
+                    (cid (cdr db-key/cid)))
+                (let ((db (case db-key
+                            ((semmed) semmed)
+                            ((rtx) rtx)
+                            ((robokop) robokop)
+                            ((orange) orange))))
+                  (let ((raw-concept-vector (db:cid->concept db cid)))
+                    (let ((cui (vector-ref raw-concept-vector 0)))
+                      (map
+                        (lambda (c) (cons db-key c))
+                        (run* (concept)
+                          (db:~cui-concepto db cui concept))))))))
+            CIDs-for-single-HGNCI-CUI)))
+  (printf "found these concepts for concept IDs ~s\n~s\n"
+          CIDs-for-single-HGNCI-CUI
+          concepts-for-single-HGNCI-CUI)
+  
   
   (printf "finding concept IDs for ENSEMBL equivalents...\n")
   (define CIDs-for-ENSEMBL-CUIs
