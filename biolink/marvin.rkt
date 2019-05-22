@@ -376,7 +376,7 @@
          semmed
          (list semmed-wt-allele-name)
          concept))))
-  (printf "<gene> wt Allele (~s) concepts in semmed:\n~s\n" semmed-wt-allele-name)
+  (printf "<gene> wt Allele (~s) concepts in semmed:\n" semmed-wt-allele-name)
   (for-each (lambda (c) (printf "~s\n" c)) semmed-wt-allele-concepts)
   (newline)
 
