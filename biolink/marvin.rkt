@@ -297,16 +297,15 @@
                             ((rtx) rtx)
                             ((robokop) robokop)
                             ((orange) orange))))
-                  (let ((raw-concept-vector (db:cid->concept db cid)))
-                    (let ((cui (vector-ref raw-concept-vector 0)))
-                      (map
-                        (lambda (c) (cons db-key c))
-                        (run* (concept)
-                          (db:~cui-concepto db cui concept))))))))
+                  (map (lambda (c) (cons db-key c))
+                       (run* (concept)
+                         (fresh (rest)
+                           (== `(,cid . ,rest) concept)
+                           (db:concepto db concept)))))))
             CIDs-for-single-HGNCI-CUI)))
-  (printf "found these concepts for concept IDs ~s\n~s\n"
-          CIDs-for-single-HGNCI-CUI
-          concepts-for-single-HGNCI-CUI)
+  (printf "found these concepts for concept IDs ~s:\n" CIDs-for-single-HGNCI-CUI)
+  (for-each (lambda (c) (printf "~s\n" c)) concepts-for-single-HGNCI-CUI)
+  (newline)
   
   
   (printf "finding concept IDs for ENSEMBL equivalents...\n")
