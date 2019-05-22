@@ -408,6 +408,29 @@
   (printf "'<gene> wt Allele' (~s) concepts in semmed:\n" semmed-wt-allele-name)
   (for-each (lambda (c) (printf "~s\n" c)) semmed-wt-allele-concepts)
   (newline)
+
+  (define semmed-gene-mutation-name (string-append gene-symbol-string " gene mutation"))
+  (printf "looking for '<gene> gene mutation' (~s) concept name in semmed...\n" semmed-gene-mutation-name)
+  (define semmed-gene-mutation-concepts
+    (map
+      (lambda (c) (cons 'semmed c))
+      (filter
+        (lambda (c)
+          (match c
+            [`(,cid ,cui ,name (,catid . ,cat) ,props)
+             (string=? (string-downcase name)
+                       (string-downcase semmed-gene-mutation-name))]))
+        (run* (concept)
+          (db:~name*-concepto/options
+           #f ;;case-sensitive?
+           "" ;; chars:ignore
+           "" ;; chars:split
+           semmed
+           (list semmed-gene-mutation-name)
+           concept)))))
+  (printf "'<gene> gene mutation' (~s) concepts in semmed:\n" semmed-gene-mutation-name)
+  (for-each (lambda (c) (printf "~s\n" c)) semmed-gene-mutation-concepts)
+  (newline)
   
   
   (define all-concepts-under-consideration-from-original-gene-name
@@ -415,7 +438,8 @@
       (set-union
         (list->set all-concepts-from-original-robokop-concept)
         (list->set semmed-protein-concepts)
-        (list->set semmed-wt-allele-concepts))))
+        (list->set semmed-wt-allele-concepts)
+        (list->set semmed-gene-mutation-concepts))))
   (printf "all concepts under consideration from original gene symbol name (~s):\n" gene-symbol-string)
   (for-each (lambda (c) (printf "~s\n" c)) all-concepts-under-consideration-from-original-gene-name)
   (newline)
@@ -428,4 +452,5 @@
   (newline)
   )
 
-(simple-drug-for-gene-workflow "KRAS" DECREASE)
+;; (simple-drug-for-gene-workflow "KRAS" DECREASE)
+(simple-drug-for-gene-workflow "BRCA1" DECREASE)
