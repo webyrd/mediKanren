@@ -363,28 +363,58 @@
 
   (printf "looking for equivalent semmed concepts, by concept name...\n")
 
+  (define semmed-protein-name (string-append gene-symbol-string " Protein"))
+  (printf "looking for '<gene> Protein' (~s) concept name in semmed...\n" semmed-protein-name)
+  (define semmed-protein-concepts
+    (map
+      (lambda (c) (cons 'semmed c))
+      (filter
+        (lambda (c)
+          (match c
+            [`(,cid ,cui ,name (,catid . ,cat) ,props)
+             (string=? (string-downcase name)
+                       (string-downcase semmed-protein-name))]))
+        (run* (concept)
+          (db:~name*-concepto/options
+           #f ;;case-sensitive?
+           "" ;; chars:ignore
+           "" ;; chars:split
+           semmed
+           (list semmed-protein-name)
+           concept)))))
+  (printf "'<gene> Protein' (~s) concepts in semmed:\n" semmed-protein-name)
+  (for-each (lambda (c) (printf "~s\n" c)) semmed-protein-concepts)
+  (newline)
+
   (define semmed-wt-allele-name (string-append gene-symbol-string " wt Allele"))
   (printf "looking for '<gene> wt Allele' (~s) concept name in semmed...\n" semmed-wt-allele-name)
   (define semmed-wt-allele-concepts
     (map
       (lambda (c) (cons 'semmed c))
-      (run* (concept)
-        (db:~name*-concepto/options
-         #f ;;case-sensitive?
-         "" ;; chars:ignore
-         "" ;; chars:split
-         semmed
-         (list semmed-wt-allele-name)
-         concept))))
-  (printf "<gene> wt Allele (~s) concepts in semmed:\n" semmed-wt-allele-name)
+      (filter
+        (lambda (c)
+          (match c
+            [`(,cid ,cui ,name (,catid . ,cat) ,props)
+             (string=? (string-downcase name)
+                       (string-downcase semmed-wt-allele-name))]))
+        (run* (concept)
+          (db:~name*-concepto/options
+           #f ;;case-sensitive?
+           "" ;; chars:ignore
+           "" ;; chars:split
+           semmed
+           (list semmed-wt-allele-name)
+           concept)))))
+  (printf "'<gene> wt Allele' (~s) concepts in semmed:\n" semmed-wt-allele-name)
   (for-each (lambda (c) (printf "~s\n" c)) semmed-wt-allele-concepts)
   (newline)
-
+  
   
   (define all-concepts-under-consideration-from-original-gene-name
     (set->list
       (set-union
         (list->set all-concepts-from-original-robokop-concept)
+        (list->set semmed-protein-concepts)
         (list->set semmed-wt-allele-concepts))))
   (printf "all concepts under consideration from original gene symbol name (~s):\n" gene-symbol-string)
   (for-each (lambda (c) (printf "~s\n" c)) all-concepts-under-consideration-from-original-gene-name)
