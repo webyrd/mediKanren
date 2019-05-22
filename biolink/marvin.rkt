@@ -104,6 +104,10 @@
 (displayln "loading orange knowledge graph")
 (define orange (make-db "data/orange"))
 
+
+(printf "Marvin online.\n")
+
+
 (define (simple-drug-for-gene-workflow gene-symbol-string direction)
   (printf "Running simple-drug-for-target-gene-workflow for gene ~s in direction ~s\n" gene-symbol-string direction)
   (printf "Trying to find a drug or biological entity that will budge target gene ~s in direction ~s\n" gene-symbol-string direction)
@@ -451,6 +455,10 @@
   (newline)
   (newline)
   )
+
+
+
+
 
 (simple-drug-for-gene-workflow "KRAS" DECREASE)
 
