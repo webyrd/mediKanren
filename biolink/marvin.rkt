@@ -452,5 +452,5 @@
   (newline)
   )
 
-;; (simple-drug-for-gene-workflow "KRAS" DECREASE)
+(simple-drug-for-gene-workflow "KRAS" DECREASE)
 (simple-drug-for-gene-workflow "BRCA1" DECREASE)
