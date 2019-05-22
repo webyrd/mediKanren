@@ -271,7 +271,8 @@
       (cond
         ((null? CUI*)
          (let ((CID* (set->list CID*)))
-           (printf "in aggregate, found these CIDs for all CUIs:\n~s\n\n" CID*)))
+           (printf "in aggregate, found these CIDs for all CUIs:\n~s\n\n" CID*)
+           CID*))
         (else (let ((CUI (car CUI*))
                     (rest (cdr CUI*)))
                 (printf "looking up CIDs for CUI ~s...\n" CUI)
@@ -279,33 +280,39 @@
                   (printf "found these CIDs for CUI ~s:\n~s\n" CUI res)
                   (loop rest
                         (set-union (list->set res) CID*))))))))
+
+  (define (find-concepts-for-CIDs CID*)
+    (printf "finding concepts for concept IDs ~s...\n" CID*)
+    (define concepts
+      (apply append
+             (map
+              (lambda (db-key/cid)
+                (let ((db-key (car db-key/cid))
+                      (cid (cdr db-key/cid)))
+                  (let ((db (case db-key
+                              ((semmed) semmed)
+                              ((rtx) rtx)
+                              ((robokop) robokop)
+                              ((orange) orange))))
+                    (map (lambda (c) (cons db-key c))
+                         (run* (concept)
+                           (fresh (rest)
+                             (== `(,cid . ,rest) concept)
+                             (db:concepto db concept)))))))
+              CID*)))
+    (printf "found these concepts for concept IDs ~s:\n" CID*)
+    (for-each (lambda (c) (printf "~s\n" c)) concepts)
+    (newline)
+    concepts)
   
   ;; special case: single HGNCI CUI as the Robokop main CUI
   (printf "finding concept IDs for canonical Robolop HGNC CUI...\n")
   (define CIDs-for-single-HGNCI-CUI
     (find-CIDs-for-CUI robokop-target-gene-concept-CUI hgnc-ht #rx"^HGNC:([0-9]+)$"))
 
-  (printf "finding concepts for concept IDs ~s...\n" CIDs-for-single-HGNCI-CUI)
   (define concepts-for-single-HGNCI-CUI
-    (apply append
-           (map
-            (lambda (db-key/cid)
-              (let ((db-key (car db-key/cid))
-                    (cid (cdr db-key/cid)))
-                (let ((db (case db-key
-                            ((semmed) semmed)
-                            ((rtx) rtx)
-                            ((robokop) robokop)
-                            ((orange) orange))))
-                  (map (lambda (c) (cons db-key c))
-                       (run* (concept)
-                         (fresh (rest)
-                           (== `(,cid . ,rest) concept)
-                           (db:concepto db concept)))))))
-            CIDs-for-single-HGNCI-CUI)))
-  (printf "found these concepts for concept IDs ~s:\n" CIDs-for-single-HGNCI-CUI)
-  (for-each (lambda (c) (printf "~s\n" c)) concepts-for-single-HGNCI-CUI)
-  (newline)
+    (find-concepts-for-CIDs CIDs-for-single-HGNCI-CUI))
+
   
   
   (printf "finding concept IDs for ENSEMBL equivalents...\n")
@@ -314,7 +321,11 @@
       robokop-target-gene-concept-ENSEMBL-CUIs
       ensembl-ht
       #rx"^ENSEMBL:([A-Z0-9]+)$"))
+  
+  (define concepts-for-ENSEMBL-CUIs
+    (find-concepts-for-CIDs CIDs-for-ENSEMBL-CUIs))
 
+  
   (printf "finding concept IDs for HGNC equivalents...\n")
   (define CIDs-for-HGNC-CUIs
     (find-CIDs-for-multiple-CUIs
@@ -322,13 +333,31 @@
       hgnc-ht
       #rx"^HGNC:([0-9]+)$"))
 
+  (define concepts-for-HGNC-CUIs
+    (find-concepts-for-CIDs CIDs-for-HGNC-CUIs))
+
+  
   (printf "finding concept IDs for UniProtKB equivalents...\n")
   (define CIDs-for-UniProtKB-CUIs
     (find-CIDs-for-multiple-CUIs
       robokop-target-gene-concept-UniProtKB-CUIs
       uniprotkb-ht
       #rx"^UniProtKB:([A-Z0-9]+)$"))
-  
+
+  (define concepts-for-UniProtKB-CUIs
+    (find-concepts-for-CIDs CIDs-for-UniProtKB-CUIs))
+
+
+  (define all-concepts-from-original-robokop-concept
+    (set->list
+      (set-union
+        (list->set concepts-for-single-HGNCI-CUI)
+        (list->set concepts-for-ENSEMBL-CUIs)
+        (list->set concepts-for-HGNC-CUIs)
+        (list->set concepts-for-UniProtKB-CUIs))))
+  (printf "all concepts equivalent to original Robokop concepts:\n")
+  (for-each (lambda (c) (printf "~s\n" c)) all-concepts-from-original-robokop-concept)
+  (newline)
   
   
   (newline)
