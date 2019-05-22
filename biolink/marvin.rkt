@@ -351,12 +351,43 @@
   (define all-concepts-from-original-robokop-concept
     (set->list
       (set-union
+        (set (cons 'robokop robokop-target-gene-concept))
         (list->set concepts-for-single-HGNCI-CUI)
         (list->set concepts-for-ENSEMBL-CUIs)
         (list->set concepts-for-HGNC-CUIs)
         (list->set concepts-for-UniProtKB-CUIs))))
-  (printf "all concepts equivalent to original Robokop concepts:\n")
+  (printf "all concepts equivalent to original Robokop concept:\n")
   (for-each (lambda (c) (printf "~s\n" c)) all-concepts-from-original-robokop-concept)
+  (newline)
+
+
+  (printf "looking for equivalent semmed concepts, by concept name...\n")
+
+  (define semmed-wt-allele-name (string-append gene-symbol-string " wt Allele"))
+  (printf "looking for '<gene> wt Allele' (~s) concept name in semmed...\n" semmed-wt-allele-name)
+  (define semmed-wt-allele-concepts
+    (map
+      (lambda (c) (cons 'semmed c))
+      (run* (concept)
+        (db:~name*-concepto/options
+         #f ;;case-sensitive?
+         "" ;; chars:ignore
+         "" ;; chars:split
+         semmed
+         (list semmed-wt-allele-name)
+         concept))))
+  (printf "<gene> wt Allele (~s) concepts in semmed:\n~s\n" semmed-wt-allele-name)
+  (for-each (lambda (c) (printf "~s\n" c)) semmed-wt-allele-concepts)
+  (newline)
+
+  
+  (define all-concepts-under-consideration-from-original-gene-name
+    (set->list
+      (set-union
+        (list->set all-concepts-from-original-robokop-concept)
+        (list->set semmed-wt-allele-concepts))))
+  (printf "all concepts under consideration from original gene symbol name (~s):\n" gene-symbol-string)
+  (for-each (lambda (c) (printf "~s\n" c)) all-concepts-under-consideration-from-original-gene-name)
   (newline)
   
   
