@@ -16,7 +16,7 @@
 
   (define add-to-ht! (add-concept-key/cid-associations-to-hashtable! doid-ht))
 
-  (add-to-ht! SEMMED #rx"DOID:HP:([0-9]+)")
+  (add-to-ht! SEMMED #rx"DOID:([0-9]+)")
   (add-to-ht! RTX #rx"DOID:([0-9]+)")
   (add-to-ht! ROBOKOP #rx"DOID:([0-9]+)")
   (add-to-ht! ORANGE #rx"DOID:([0-9]+)")

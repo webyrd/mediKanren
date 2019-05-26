@@ -8,6 +8,7 @@
   "create-hpo-cui-to-cid-hashtable.rkt"
   "create-mondo-cui-to-cid-hashtable.rkt"
   "create-omim-cui-to-cid-hashtable.rkt"
+  "create-umls-cui-to-cid-hashtable.rkt"
   "create-uniprotkb-cui-to-cid-hashtable.rkt")
 
 (provide
@@ -19,6 +20,7 @@
 (define hpo-ht #f)
 (define omim-ht #f)
 (define mondo-ht #f)
+(define umls-ht #f)
 (define uniprotkb-ht #f)
 
 (define (load-or-create/save-all-hashtables!)
@@ -29,6 +31,7 @@
   (set! hpo-ht (load-or-create/save-hpo-ht!))
   (set! mondo-ht (load-or-create/save-mondo-ht!))
   (set! omim-ht (load-or-create/save-omim-ht!))
+  (set! umls-ht (load-or-create/save-umls-ht!))    
   (set! uniprotkb-ht (load-or-create/save-uniprotkb-ht!))
-  
+
   )
