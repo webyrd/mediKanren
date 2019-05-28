@@ -10,6 +10,7 @@
 * Clone this repo.
 * Clone the kgx repo: https://github.com/NCATS-Tangerine/kgx
 * Checkout the `source-sink` branch in kgx: `git checkout origin/source-sink`
+* Install dependencies via: `pip3 install -r requirements.txt`
 
 
 ## Ingesting new data sources
