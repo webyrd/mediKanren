@@ -18,8 +18,8 @@
 
 * Obtain username, password, host, and port of the neo4j instance.
 * `cd` to the kgx repo.
-* Modify `config.yml` to use the instance information you obtained.  Define an appropriate `outputname` here.
-* Run the download script via python3, likely with this command: `python3 neo4j_download.py` (For a typical data source, the download may take an hour or so.)
+* Modify `config.yml` to use the instance information you obtained.  Set the `outputname` here to describe your data source, e.g., `robokop`.
+* Run the download script via `python3`, likely with this command: `python3 neo4j_download.py` (For a typical data source, the download may take an hour or so.)
 
 ### Converting CSVs to mediKanren format
 
