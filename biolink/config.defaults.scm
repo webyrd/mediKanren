@@ -59,7 +59,7 @@
    "increases_transport_of"
    "increases_uptake_of"
    "decreases_degradation_of"
-   "posetively_regulates" ;;; robokop typo??
+   "posetively_regulates" ;;; robokop typo--now fixed, but keep it for compatibility with old data
    ;; "positively_regulates__entity_to_entity"
    ;; "increases_molecular_modification_of"
    ;; "increases_localization_of"
