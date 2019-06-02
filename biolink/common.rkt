@@ -1,5 +1,7 @@
 #lang racket/base
 (provide
+  find-concepts
+
   membero
 
   ~name*-concepto
@@ -240,3 +242,30 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
       [(< pc1 pc2) #t]
       [else #f])))
 (define (sort-paths paths) (sort paths path-confidence<?))
+
+(define (find-concepts subject? object? isa-count via-cui? strings)
+  ;; subject? and object? insist that a concept participate in a certain role.
+  ;; TODO: If via-cui? then strings is an OR-list of CUIs to consider.
+  ;; Otherwise, strings is an AND-list of fragments the name must contain.
+  (let* ((ans (run* (c) (~name*-concepto strings c)))
+         (isa-ans (remove-duplicates
+                    (run isa-count (s/db)
+                      (fresh (o/db)
+                        (membero o/db ans)
+                        (isao s/db o/db)))))
+         (ans (if (null? isa-ans) ans
+                (remove-duplicates (append ans isa-ans))))
+         (ans (filter  ;; Only include concepts with at least one predicate.
+                (lambda (concept)
+                  (define (? cpo) (not (null? (run 1 (p) (cpo concept p)))))
+                  (and (or (not subject?) (? subject-predicateo))
+                       (or (not object?) (? object-predicateo))))
+                ans)))
+    (sort ans (lambda (a1 a2)
+                (let ((dbname1 (symbol->string (car a1)))
+                      (cui1 (caddr a1))
+                      (dbname2 (symbol->string (car a2)))
+                      (cui2 (caddr a2)))
+                  (or (string>? dbname1 dbname2)
+                      (and (string=? dbname1 dbname2)
+                           (string<? cui1 cui2))))))))

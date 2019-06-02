@@ -408,36 +408,17 @@ edge format, with dbname at front (as used in edgeo):
                                               ])))))
 
   (define (mk-run)
-    (let* ((name-parts (split-name-string current-name))
+    (let* ((isa-count (if current-isa 50 0))  ;; Only grab the first 50.  50 should probably be a parameter.
+           (subject? (case edge-type
+                       [(out-edge) #t]
+                       [(in-edge)  #f]))
+           (object? (case edge-type
+                      [(out-edge) #f]
+                      [(in-edge)  #t]))
+           (name-parts (split-name-string current-name))
            (ans (if (null? name-parts) '()
                   (begin (printf "searching for: ~s\n" current-name)
-                         (time (run* (c) (~name*-concepto name-parts c))))))
-           ;; Only grab the first 50.  50 should probably be a parameter.
-           (isa-count (if current-isa 50 0))
-           (isa-ans (remove-duplicates
-                      (run isa-count (s/db)
-                        (fresh (o/db)
-                          (membero o/db ans)
-                          (isao s/db o/db)))))
-           (ans (if (null? isa-ans) ans
-                  (remove-duplicates (append ans isa-ans))))
-           (ans (filter ;; only include concepts with at least one predicate
-                  (lambda (concept)
-                    (define concept-predicateo
-                      (case edge-type
-                        [(out-edge) subject-predicateo]
-                        [(in-edge)  object-predicateo]))
-                    (not (null? (run 1 (pred)
-                                  (concept-predicateo concept pred)))))
-                  ans))
-           (ans (sort ans (lambda (a1 a2)
-                            (let ((dbname1 (symbol->string (car a1)))
-                                  (cui1 (caddr a1))
-                                  (dbname2 (symbol->string (car a2)))
-                                  (cui2 (caddr a2)))
-                              (or (string>? dbname1 dbname2)
-                                  (and (string=? dbname1 dbname2)
-                                       (string<? cui1 cui2))))))))
+                         (time (find-concepts subject? object? isa-count #f name-parts))))))
       (set-box! choices ans)
       (send concept-listbox
             set
