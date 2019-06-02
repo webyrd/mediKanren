@@ -367,18 +367,13 @@ edge format, with dbname at front (as used in edgeo):
                                               (define selected-concepts (foldr (lambda (i l) (cons (list-ref (unbox choices) i) l)) '() selections))
                                               (when *verbose*
                                                 (printf "selected concepts:\n~s\n" selected-concepts))
-                                              (define concept-predicateo
-                                                (case edge-type
-                                                  [(in-edge)  object-predicateo]
-                                                  [(out-edge) subject-predicateo]
-                                                  [else       (error 'concept-listbox/predicates)]))
+                                              (define preds-by-concept
+                                                (time (case edge-type
+                                                        [(in-edge)  (map caddr (find-predicates/concepts #f #t selected-concepts))]
+                                                        [(out-edge) (map cadr (find-predicates/concepts #t #f selected-concepts))]
+                                                        [else       (error 'concept-listbox/predicates)])))
                                               (define predicates
-                                                (sort (remove-duplicates
-                                                       (time (run* (predicate)
-                                                               (fresh (dbname pid c)
-                                                                 (membero c selected-concepts)
-                                                                 (concept-predicateo c `(,dbname ,pid . ,predicate))))))
-                                                      string<?))
+                                                (sort (remove-duplicates (map cddr (append* preds-by-concept))) string<?))
                                               (define (create-increase/decrease-syn-pred-list
                                                        syn-pred-prefix predicate-names selected-predicates)
                                                 (let ((inter (sort (set-intersect predicate-names selected-predicates)

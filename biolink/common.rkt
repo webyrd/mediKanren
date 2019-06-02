@@ -1,6 +1,7 @@
 #lang racket/base
 (provide
   find-concepts
+  find-predicates/concepts
 
   membero
 
@@ -269,3 +270,12 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
                   (or (string>? dbname1 dbname2)
                       (and (string=? dbname1 dbname2)
                            (string<? cui1 cui2))))))))
+
+(define (find-predicates/concepts subject? object? concepts)
+  (map (lambda (c)
+         (define subject-predicates
+           (and subject? (run* (p) (subject-predicateo c p))))
+         (define object-predicates
+           (and object? (run* (p) (object-predicateo c p))))
+         (list c subject-predicates object-predicates))
+       concepts))
