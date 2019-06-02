@@ -421,13 +421,10 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                              current-isa)
                       ;; only grab the first 50
                       (remove-duplicates
-                        (run 50 (s-with-dbname) ;; 50 should probably be a parameter
-                          (fresh (o-with-dbname dbname o s eid pid eprops e)
-                            (membero o-with-dbname ans)
-                            (== `(,dbname . ,o) o-with-dbname)
-                            (== `(,dbname ,eid ,s ,o (,pid . "subclass_of") ,eprops) e)
-                            (== `(,dbname . ,s) s-with-dbname)
-                            (edgeo e))))
+                        (run 50 (s/db)  ;; 50 should probably be a parameter.
+                          (fresh (o/db)
+                            (membero o/db ans)
+                            (isao s/db o/db))))
                       '()))
            (ans (if (null? isa-ans) ans
                   (remove-duplicates (append ans isa-ans))))
