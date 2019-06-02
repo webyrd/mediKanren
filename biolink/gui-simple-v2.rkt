@@ -536,6 +536,8 @@ edge format, with dbname at front (as used in edgeo):
                          concept-2-selected-concepts
                          predicate-1-selected-predicates
                          predicate-2-selected-predicates
+                         (unbox *predicate-1-choices*)
+                         (unbox *predicate-2-choices*)
                          concept-X-list-box
                          running-status-description
                          full-path-list-box
@@ -679,9 +681,8 @@ edge format, with dbname at front (as used in edgeo):
                                                            (printf "predicate-1* ~s\n" predicate-1*)
                                                            (printf "predicate-2* ~s\n" predicate-2*)
 
-
-                                                           (define atomic/synthetic-predicate-1* (split-atomic/synthetic-predicates predicate-1*))
-                                                           (define atomic/synthetic-predicate-2* (split-atomic/synthetic-predicates predicate-2*))
+                                                           (define atomic/synthetic-predicate-1* (split-atomic/synthetic-predicates (unbox *predicate-1-choices*) predicate-1*))
+                                                           (define atomic/synthetic-predicate-2* (split-atomic/synthetic-predicates (unbox *predicate-2-choices*) predicate-2*))
 
                                                            (define atomic-predicate-1* (car atomic/synthetic-predicate-1*))
                                                            (define atomic-predicate-2* (car atomic/synthetic-predicate-2*))
@@ -1028,49 +1029,39 @@ edge format, with dbname at front (as used in edgeo):
     ))
 
 
-(define (split-atomic/synthetic-predicates predicate*)
+(define (split-atomic/synthetic-predicates choices predicate*)
+  (define (synthetic? pred)
+    (memf (lambda (syn-prefix) (string-prefix? pred syn-prefix))
+          SYNTHETIC_PREDICATE_PREFIXES))
 
-  (define atomic-predicate* predicate*)
-  (define synthetic-predicate* '())
-
-  (set! synthetic-predicate* (filter (lambda (pred)
-                                       (memf (lambda (syn-prefix) (string-prefix? pred syn-prefix))
-                                             SYNTHETIC_PREDICATE_PREFIXES))
-                                     atomic-predicate*))
+  (define atomic-predicate* (filter-not synthetic? predicate*))
+  (define synthetic-predicate* (filter synthetic? predicate*))
 
   (when (memf (lambda (pred) (string-prefix? pred DECREASES_PREDICATE_PREFIX_STRING))
-              atomic-predicate*)
-    (set! atomic-predicate* (append DECREASES_PREDICATE_NAMES atomic-predicate*))
-    (set! synthetic-predicate* (remove DECREASES_PREDICATE_STRING synthetic-predicate*)))
+              synthetic-predicate*)
+    (set! atomic-predicate* (append DECREASES_PREDICATE_NAMES atomic-predicate*)))
 
   (when (memf (lambda (pred) (string-prefix? pred INCREASES_PREDICATE_PREFIX_STRING))
-              atomic-predicate*)
-    (set! atomic-predicate* (append INCREASES_PREDICATE_NAMES atomic-predicate*))
-    (set! synthetic-predicate* (remove INCREASES_PREDICATE_STRING synthetic-predicate*)))
+              synthetic-predicate*)
+    (set! atomic-predicate* (append INCREASES_PREDICATE_NAMES atomic-predicate*)))
 
-  (set! atomic-predicate* (filter (lambda (pred)
-                                    (not (memf (lambda (syn-prefix) (string-prefix? pred syn-prefix))
-                                               SYNTHETIC_PREDICATE_PREFIXES))) 
-                                  atomic-predicate*))
-
-  (set! atomic-predicate* (remove-duplicates atomic-predicate*))
+  (set! atomic-predicate* (set-intersect choices (remove-duplicates atomic-predicate*)))
 
   (printf "atomic-predicate*: ~s\n" atomic-predicate*)
   (printf "synthetic-predicate*: ~s\n" synthetic-predicate*)
 
-  (list atomic-predicate* synthetic-predicate*)
-  )
+  (list atomic-predicate* synthetic-predicate*))
 
 
-(define (find-X-concepts concept-1* concept-2* predicate-1* predicate-2* concept-X-list-box running-status-description full-path-list-box subject-properties-list-box edge-properties-list-box object-properties-list-box pubmed-list-box)
+(define (find-X-concepts concept-1* concept-2* predicate-1* predicate-2* predicate-1-choices predicate-2-choices concept-X-list-box running-status-description full-path-list-box subject-properties-list-box edge-properties-list-box object-properties-list-box pubmed-list-box)
 
   (define start-time (current-milliseconds))
 
   (printf "\nfinding concepts X for which\n[C1] -> P1 -> [X] -> P2 -> [C2]\n")
   (printf "=============================\n")
 
-  (define atomic/synthetic-predicate-1* (split-atomic/synthetic-predicates predicate-1*))
-  (define atomic/synthetic-predicate-2* (split-atomic/synthetic-predicates predicate-2*))
+  (define atomic/synthetic-predicate-1* (split-atomic/synthetic-predicates predicate-1-choices predicate-1*))
+  (define atomic/synthetic-predicate-2* (split-atomic/synthetic-predicates predicate-2-choices predicate-2*))
 
   (define atomic-predicate-1* (car atomic/synthetic-predicate-1*))
   (define atomic-predicate-2* (car atomic/synthetic-predicate-2*))
