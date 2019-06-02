@@ -52,7 +52,7 @@ concept format (subject or object), without dbname at front:
 
 `(,cid ,cui ,name (,catid . ,cat) ,props)
 
-concept format (subject or object), with dbname at front (as used in fuzzy-concepto):
+concept format (subject or object), with dbname at front:
 
 `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
 
@@ -72,12 +72,6 @@ edge format, with dbname at front (as used in edgeo):
 
 (define (split-name-string name)
   (string-split name #px"\\s+"))
-
-#|
-concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
-|#
-(define (fuzzy-concepto n c)
-  (~name*-concepto (split-name-string n) c))
 
 (define *verbose* #t)
 
@@ -414,9 +408,10 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                                               ])))))
 
   (define (mk-run)
-    (let* ((ans (if (null? (split-name-string current-name)) '()
+    (let* ((name-parts (split-name-string current-name))
+           (ans (if (null? name-parts) '()
                   (begin (printf "searching for: ~s\n" current-name)
-                         (time (run* (q) (fuzzy-concepto current-name q))))))
+                         (time (run* (c) (~name*-concepto name-parts c))))))
            (isa-ans (if (and (not (null? (split-name-string current-name)))
                              current-isa)
                       ;; only grab the first 50
