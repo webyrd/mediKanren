@@ -412,30 +412,23 @@ edge format, with dbname at front (as used in edgeo):
            (ans (if (null? name-parts) '()
                   (begin (printf "searching for: ~s\n" current-name)
                          (time (run* (c) (~name*-concepto name-parts c))))))
-           (isa-ans (if (and (not (null? (split-name-string current-name)))
-                             current-isa)
-                      ;; only grab the first 50
-                      (remove-duplicates
-                        (run 50 (s/db)  ;; 50 should probably be a parameter.
-                          (fresh (o/db)
-                            (membero o/db ans)
-                            (isao s/db o/db))))
-                      '()))
+           ;; Only grab the first 50.  50 should probably be a parameter.
+           (isa-count (if current-isa 50 0))
+           (isa-ans (remove-duplicates
+                      (run isa-count (s/db)
+                        (fresh (o/db)
+                          (membero o/db ans)
+                          (isao s/db o/db)))))
            (ans (if (null? isa-ans) ans
                   (remove-duplicates (append ans isa-ans))))
            (ans (filter ;; only include concepts with at least one predicate
-                  (lambda (x)
-                    (match x
-                      [`(,dbname . ,concept)
-                        (let ((preds
-                                (run 1 (pred)
-                                  (fresh (o s eid eprops e)
-                                    (case edge-type
-                                      [(out-edge) (== concept s)]
-                                      [(in-edge) (== concept o)])
-                                    (== `(,dbname ,eid ,s ,o ,pred ,eprops) e)
-                                    (edgeo e)))))
-                          (not (null? preds)))]))
+                  (lambda (concept)
+                    (define concept-predicateo
+                      (case edge-type
+                        [(out-edge) subject-predicateo]
+                        [(in-edge)  object-predicateo]))
+                    (not (null? (run 1 (pred)
+                                  (concept-predicateo concept pred)))))
                   ans))
            (ans (sort ans (lambda (a1 a2)
                             (let ((dbname1 (symbol->string (car a1)))
