@@ -2,6 +2,7 @@
 (provide
   find-concepts
   find-predicates/concepts
+  find-Xs
 
   membero
 
@@ -279,3 +280,54 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
            (and object? (run* (p) (object-predicateo c p))))
          (list c subject-predicates object-predicates))
        concepts))
+
+(define (find-Xs subjects? objects?)
+  ;; subjects?: #f | ((concept (predicate ...) #f) ...)
+  ;; objects?:  #f | ((concept #f (predicate ...)) ...)
+  (define (group-by-X edges)
+    (foldl (lambda (edge groups)
+             (define db        (car edge))
+             (define X         (cons db (cadr edge)))
+             (define concept   (cons db (caddr edge)))
+             (define predicate (cons db (cadddr edge)))
+             (define einfo     (cons db (cddddr edge)))
+             (define X-groups  (hash-ref groups X (hash)))
+             (define c-group   (hash-ref X-groups concept (list)))
+             (define c-group^  (cons (list predicate einfo) c-group))
+             (hash-set groups X (hash-set X-groups concept c-group^)))
+           (hash) edges))
+  (define (groups-flatten groups)
+    (and groups (foldl (lambda (kv groups)
+                         (define X        (car kv))
+                         (define X-groups (cdr kv))
+                         (cons (list X (hash->list X-groups)) groups))
+                       '() (hash->list groups))))
+  (define (groups-intersect gS gO)
+    (foldl (lambda (kv groups)
+             (define X          (car kv))
+             (define o-X-groups (cdr kv))
+             (define s-X-groups (hash-ref gS X #f))
+             (if s-X-groups
+               (cons (list X (hash->list s-X-groups) (hash->list o-X-groups))
+                     groups)
+               groups))
+           '() (hash->list gO)))
+  (define subject-edges?
+    (and subjects?
+         (group-by-X (run* (q)
+                       (fresh (dbname eid s m predicates p eprops _)
+                         (== (list dbname m s p eid eprops) q)
+                         (membero `((,dbname . ,s) ,predicates ,_) subjects?)
+                         (membero `(,dbname . ,p) predicates)
+                         (edgeo `(,dbname ,eid ,s ,m ,p ,eprops)))))))
+  (define object-edges?
+    (and objects?
+         (group-by-X (run* (q)
+                       (fresh (dbname eid o m predicates p eprops _)
+                         (== (list dbname m o p eid eprops) q)
+                         (membero `((,dbname . ,o) ,_ ,predicates) objects?)
+                         (membero `(,dbname . ,p) predicates)
+                         (edgeo `(,dbname ,eid ,m ,o ,p ,eprops)))))))
+  (if (and subject-edges? object-edges?)
+    (groups-intersect subject-edges? object-edges?)
+    (groups-flatten (or subject-edges? object-edges?))))
