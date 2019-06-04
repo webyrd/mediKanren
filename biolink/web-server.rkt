@@ -4,6 +4,7 @@
   racket/match
   racket/port
   racket/pretty
+  racket/string
   web-server/servlet
   web-server/servlet-env
   web-server/managers/none
@@ -104,16 +105,77 @@
                 (body (p "TODO: Build a user interface.")))))
 
 (define index.js
-  "")
+  '("window.addEventListener('load', function(){"
+    "var display = document.getElementById('display');"
+    "var formC = document.getElementById('form:concept');"
+    "var formX = document.getElementById('form:X');"
+    "var textC = document.getElementById('text:concept');"
+    "var textX = document.getElementById('text:X');"
+    "var submitC = document.getElementById('submit:concept');"
+    "var submitX = document.getElementById('submit:X');"
+    "var buttonClear = document.getElementById('button:clear');"
+
+    "function show(data) {"
+    ;"  display.innerText = data;"
+    "  var p = document.createElement('pre');"
+    "  var text = document.createTextNode(data);"
+    "  p.appendChild(text);"
+    "  display.appendChild(p);"
+    "}"
+    "function clearDisplay() {"
+    "  while (display.lastChild) {"
+    "    display.removeChild(display.lastChild);"
+    "  }"
+    "}"
+
+    "function query(data) {"
+    "  var xhr = new XMLHttpRequest();"
+    "  xhr.addEventListener('load', function(event){"
+    "    show(xhr.responseText);"
+    "  });"
+    "  xhr.addEventListener('error', function(event){"
+    "    show('POST error');"
+    "  });"
+    "  xhr.open('POST', '/query');"
+    "  xhr.setRequestHeader('Content-Type', 'text/plain;charset=utf-8');"
+    "  xhr.send(data);"
+    "}"
+
+    "formC.addEventListener('submit', function(event){"
+    "  event.preventDefault();"
+    "  query(textC.value);"
+    "}, false);"
+    "formX.addEventListener('submit', function(event){"
+    "  event.preventDefault();"
+    "  query(textX.value);"
+    "}, false);"
+    "buttonClear.addEventListener('click', function(){"
+    "  clearDisplay();"
+    "}, false);"
+    "});"
+    ))
 (define index.html
   `(html (head (title "mediKanren"))
-         (body (div (p "Databases loaded:") .
+         (body (script ,(string-join index.js "\n"))
+               (div (p "Databases loaded:") .
                     ,(map (lambda (dbname) `(p (pre ,(symbol->string dbname))))
                           (config-ref 'databases)))
                (p "Use the " (a ((href "/ui")) "Interface"))
                (p "Or POST to /query using a form:")
-               ;; TODO: Support web form POST for manual testing.
-               )))
+               (form ((method "post") (action "/query") (id "form:concept"))
+                     (div (input ((type "text")
+                                  (id "text:concept")
+                                  (value "(concept ...)"))))
+                     (div (button ((type "submit") (id "submit:concept"))
+                                  "Find concepts")))
+               (form ((method "post") (action "/query") (id "form:X"))
+                     (div (input ((type "text")
+                                  (id "text:X")
+                                  (value "(X ...)"))))
+                     (div (button ((type "submit") (id "submit:X"))
+                                  "Find Xs")))
+               (button ((id "button:clear")) "Clear")
+               (div ((id "display"))))))
 (define (index req) (xe200 index.html))
 
 (define (method-not-allowed req)
