@@ -96,16 +96,25 @@
                    (_ (e400 "Invalid query")))))))
         (else (e400 "Bad POST s-expression format"))))
 
-;; TODO: show config options, starting with config.defaults.
+(define (xe200 xexpr)
+  (respond 200 "OK" '() mime:text/html (xexpr->html-string xexpr)))
+
+(define (/ui req)
+  (xe200 `(html (head (title "mediKanren User Interface"))
+                (body (p "TODO: Build a user interface.")))))
 
 (define index.js
   "")
 (define index.html
-  `(html (head (title "mediKanren Web UI"))
-         ;; TODO: Support web form POST for manual testing.
-         (body (p "POST to /query"))))
-(define (index req)
-  (respond 200 "ok" '() mime:text/html (xexpr->html-string index.html)))
+  `(html (head (title "mediKanren"))
+         (body (div (p "Databases loaded:") .
+                    ,(map (lambda (dbname) `(p (pre ,(symbol->string dbname))))
+                          (config-ref 'databases)))
+               (p "Use the " (a ((href "/ui")) "Interface"))
+               (p "Or POST to /query using a form:")
+               ;; TODO: Support web form POST for manual testing.
+               )))
+(define (index req) (xe200 index.html))
 
 (define (method-not-allowed req)
   (respond 405 "Method Not Allowed" '() mime:text/html
@@ -128,7 +137,10 @@
   (dispatch-rules
     (("")      #:method "get"         index)
     (("query") #:method "post"        /query)
+    (("ui")    #:method "get"         /ui)
+    (("")      #:method (regexp ".*") method-not-allowed)
     (("query") #:method (regexp ".*") method-not-allowed)
+    (("ui")    #:method (regexp ".*") method-not-allowed)
     (else                             not-found)))
 
 (serve/servlet dispatcher
