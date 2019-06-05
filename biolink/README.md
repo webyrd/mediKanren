@@ -52,6 +52,12 @@ Within racket, running this should produce sensible results:
 
 ## TODO
 
+* reorganize directory structure
+  * lift biolink to main directory, moving current main contents somewhere else
+  * keep configs, logs,  and user programs (such as gui, web-server...) in main directory
+  * move library and data processing code to a new subdirectory
+  * move tests and examples into their own subdirectories
+
 * map Robokop pubmed ids to edge ids
 * index edges by predicate
 * index concepts by CUI, including synonyms
