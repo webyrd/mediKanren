@@ -49,6 +49,17 @@
                  (current-seconds) mime-type headers
                  (list (string->bytes/utf-8 body))))
 
+(define (css->string cexprs)
+  (string-append*
+    (map (lambda (cexpr)
+           (define selector (car cexpr))
+           (define attrs
+             (map (lambda (a) (format "~a: ~a;\n" (car a) (cadr a)))
+                  (cdr cexpr)))
+           (format "~a {\n~a}\n" selector (string-append* attrs)))
+         cexprs)))
+(define (js->string jsexpr) (string-join jsexpr "\n"))
+
 (define (read*/string s)
   (define (read*)
     (define datum (read))
@@ -100,9 +111,99 @@
 (define (xe200 xexpr)
   (respond 200 "OK" '() mime:text/html (xexpr->html-string xexpr)))
 
-(define (/ui req)
-  (xe200 `(html (head (title "mediKanren User Interface"))
-                (body (p "TODO: Build a user interface.")))))
+;; TODO: define simple read/write for s-expressions.
+(define ui.js
+  '("window.addEventListener('load', function(){"
+    "function query(show, data) {"
+    "  var xhr = new XMLHttpRequest();"
+    "  xhr.addEventListener('load', function(event){"
+    "    show(xhr.responseText);"
+    "  });"
+    "  xhr.addEventListener('error', function(event){"
+    "    alert('Server communication failure: ' + xhr.status + ' ' + xhr.statusText);"
+    "  });"
+    "  xhr.open('POST', '/query');"
+    "  xhr.setRequestHeader('Content-Type', 'text/plain;charset=utf-8');"
+    "  xhr.send(data);"
+    "}"
+
+    "function displayClear(display) {"
+    "  while (display.lastChild) {"
+    "    display.removeChild(display.lastChild);"
+    "  }"
+    "}"
+    "function displayShow(display, data) {"
+    "  displayClear(display);"
+    "  var option = document.createElement('option');"
+    "  var text = document.createTextNode(data);"
+    "  option.appendChild(text);"
+    "  option.setAttribute('value', data);"
+    "  display.appendChild(option);"
+    "}"
+
+    "var subjectSearch = document.getElementById('subject:text-search');"
+    "var subjectC = document.getElementById('subject:concepts');"
+    "var subjectP = document.getElementById('subject:predicates');"
+    "var objectSearch = document.getElementById('object:text-search');"
+    "var objectC = document.getElementById('object:concepts');"
+    "var objectP = document.getElementById('object:predicates');"
+
+    "subjectSearch.addEventListener('change', function(event){"
+    "  var strings = subjectSearch.value.split(/(\\s+)/);"
+    "  var joined = '\"' + strings.join('\" \"') + '\"';"
+    "  var qdatum = '(concept #t #f 0 #f (' + joined + '))'"
+    "  query(function(data){displayShow(subjectC,data);}, qdatum);"
+    "}, false);"
+    "objectSearch.addEventListener('change', function(event){"
+    "  var strings = objectSearch.value.split(/(\\s+)/);"
+    "  var joined = '\"' + strings.join('\" \"') + '\"';"
+    "  var qdatum = '(concept #f #t 0 #f (' + joined + '))'"
+    "  query(function(data){displayShow(objectC,data);}, qdatum);"
+    "}, false);"
+    "});"))
+(define ui.css
+  '(("body"
+      (font-family "'Lucida Grande', Verdana, Helvetica, sans-serif")
+      (font-size   "80%")
+      (line-height "120%"))
+    (".concept-box label"
+     (vertical-align "top"))
+    (".result-box label"
+     (vertical-align "top"))
+    ))
+(define ui.html
+  `(html (head (title "mediKanren User Interface"))
+         (body (script ,(js->string ui.js))
+               (style ,(css->string ui.css))
+               ;; TODO: label these.
+               (div (input ((id "subject:text-search") (type "text") (autocomplete "off")))
+                    (input ((id "subject:isa") (type "checkbox")))
+                    (label "Include ISA-related concepts"))
+               (div ((class "concept-box"))
+                    (label "Concept 1")
+                    (select ((id "subject:concepts") (multiple "") (size "15"))
+                            (option ((value "c1")) "concept 1"))
+                    (label "Predicate 1")
+                    (select ((id "subject:predicates") (multiple "") (size "15"))
+                            (option ((value "p1")) "predicate 1")))
+               (div (label "Concept 1 -> Predicate 1 -> [X] -> Predicate 2 -> Concept 2"))
+               (div (input ((id "object:text-search") (type "text") (autocomplete "off")))
+                    (input ((id "object:isa") (type "checkbox")))
+                    (label "Include ISA-related concepts"))
+               (div ((class "concept-box"))
+                    (label "Predicate 2")
+                    (select ((id "object:predicates") (multiple "") (size "15"))
+                            (option ((value "p2")) "predicate 2"))
+                    (label "Concept 2")
+                    (select ((id "object:concepts") (multiple "") (size "15"))
+                            (option ((value "c2")) "concept 2")))
+               (div (label "Found Xs"))
+               (div ((class "result-box"))
+                    (label "X")
+                    (select ((id "X:concepts") (multiple ""))
+                            (option ((value "X1")) "Subject - X1 - Object"))))))
+
+(define (/ui req) (xe200 ui.html))
 
 (define index.js
   '("window.addEventListener('load', function(){"
@@ -156,7 +257,7 @@
     ))
 (define index.html
   `(html (head (title "mediKanren"))
-         (body (script ,(string-join index.js "\n"))
+         (body (script ,(js->string index.js))
                (div (p "Databases loaded:") .
                     ,(map (lambda (dbname) `(p (pre ,(symbol->string dbname))))
                           (config-ref 'databases)))
