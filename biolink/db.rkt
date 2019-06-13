@@ -27,6 +27,8 @@
 
   chars:ignore-typical
   chars:split-typical
+
+  smart-string-matches?
   )
 
 (require
@@ -165,8 +167,7 @@
 (define chars:ignore-typical "-")
 (define chars:split-typical "\t\n\v\f\r !\"#$%&'()*+,./:;<=>?@\\[\\\\\\]\\^_`{|}~")
 
-(define (~string*->offset&value*
-          case-sensitive? chars:ignore chars:split offset&value* str* v->str)
+(define (smart-string-matches? case-sensitive? chars:ignore chars:split str* hay)
   (define re:ignore (and (non-empty-string? chars:ignore)
                          (pregexp (string-append "[" chars:ignore "]"))))
   (define re:split (and (non-empty-string? chars:split)
@@ -180,17 +181,22 @@
   (define needles
     (map (lambda (v case-sensitive?) (normalize v case-sensitive?))
          str* case-sensitive?*))
+  (printf "needles: ~s\n" needles)
+  (and hay
+       (andmap
+        (if re:split
+            (lambda (n case-sensitive?)
+              (ormap (lambda (s) (string=? s n))
+                     (string-split (normalize hay case-sensitive?) re:split)))
+            (lambda (n case-sensitive?)
+              (string-contains? (normalize hay case-sensitive?) n)))
+        needles case-sensitive?*)))
+
+(define (~string*->offset&value*
+          case-sensitive? chars:ignore chars:split offset&value* str* v->str)
   (define (p? v)
     (define hay (v->str (cdr v)))
-    (and hay
-         (andmap
-           (if re:split
-             (lambda (n case-sensitive?)
-               (ormap (lambda (s) (string=? s n))
-                      (string-split (normalize hay case-sensitive?) re:split)))
-             (lambda (n case-sensitive?)
-               (string-contains? (normalize hay case-sensitive?) n)))
-           needles case-sensitive?*)))
+    (smart-string-matches? case-sensitive? chars:ignore chars:split str* hay))
   (stream-filter p? offset&value*))
 
 (define (simple~string->offset&value* offset&value* str v->str)

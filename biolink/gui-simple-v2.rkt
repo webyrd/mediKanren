@@ -17,7 +17,7 @@
 (provide
   launch-gui)
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.24")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.25")
 
 (define argv (current-command-line-arguments))
 (define argv-optional '#(CONFIG_FILE))
@@ -72,6 +72,9 @@ edge format, with dbname at front (as used in edgeo):
 
 (define (split-name-string name)
   (string-split name #px"\\s+"))
+
+(define (empty-string? str)
+  (not (not (regexp-match #px"^[\\s]*$" str))))
 
 (define *verbose* #t)
 
@@ -192,6 +195,117 @@ edge format, with dbname at front (as used in edgeo):
 (define *solution-predicate-1-choices* (box '()))
 (define *solution-predicate-2-choices* (box '()))
 
+(define handle-search-in-Xs
+  (lambda (search-in-Xs-field
+           concept-X-list-box
+           search-in-Xs-previous-button
+           search-in-Xs-next-button
+           . rest)
+    (printf "search callback\n")
+    (printf "rest: ~s\n" rest)
+    (define direction (if (and (list? rest) (= (length rest) 1)) (car rest) #f))
+    (define search-str (send search-in-Xs-field get-value))
+    (printf "search-str: ~s\n" search-str)
+
+    (define current-selection (send concept-X-list-box get-selection))
+    (printf "current-selection: ~s\n" current-selection)
+
+    (cond
+      [direction
+
+       (define count (send concept-X-list-box get-number))
+       (printf "count: ~s\n" count)
+
+       (define add1/sub1 (case direction
+                           [(previous) sub1]
+                           [(next) add1]
+                           [else (error 'add1/sub1 "unknown direction in inc/dec")]))
+       
+       (define found-selection
+         (and (> count 0)
+              (let loop ((i (add1/sub1 current-selection)))
+                (printf "i: ~s\n" i)
+                (cond
+                  [(>= i count) (loop 0)]
+                  [(< i 0) (loop (- count 1))]
+                  [else
+                   (define data (send concept-X-list-box get-data i))
+                   (define name-str (list-ref data 3))
+                   (printf "name-str: ~s\n" name-str)
+                   (define matches?
+                     (smart-string-matches? #f
+                                            chars:ignore-typical
+                                            ""
+                                            (string-split search-str " ")
+                                            name-str))
+                   (printf "matches?: ~s\n" matches?)
+                   (cond
+                     [matches? i]
+                     [(= i current-selection)
+                      ;; wrapped around without a match
+                      #f]
+                     [else (loop (add1/sub1 i))])]))))
+
+       (printf "found-selection: ~s\n" found-selection)
+
+       (if found-selection
+           (when (not (equal? found-selection current-selection))
+             (when current-selection
+               (send concept-X-list-box select current-selection #f))
+             (send concept-X-list-box select found-selection #t)
+             (send concept-X-list-box set-first-visible-item found-selection))
+           (begin
+             (when current-selection
+               (send concept-X-list-box select current-selection #f))))]
+      [(empty-string? search-str)
+       (when current-selection
+         (send concept-X-list-box select current-selection #f))          
+       (send search-in-Xs-previous-button enable #f)
+       (send search-in-Xs-next-button enable #f)]
+      [else
+       (define count (send concept-X-list-box get-number))
+       (printf "count: ~s\n" count)
+       (define found-selection
+         (and (> count 0)
+              (let loop ((i 0))
+                (printf "i: ~s\n" i)
+                (cond
+                  [(>= i count) #f]
+                  [else
+                   (define data (send concept-X-list-box get-data i))
+                   (define name-str (list-ref data 3))
+                   (printf "name-str: ~s\n" name-str)
+                   (define matches?
+                     (smart-string-matches? #f
+                                            chars:ignore-typical
+                                            ""
+                                            (string-split search-str " ")
+                                            name-str))
+                   (printf "matches?: ~s\n" matches?)
+                   (if matches?
+                       i
+                       (loop (add1 i)))]))))
+
+       (if found-selection
+           (begin
+             (send search-in-Xs-previous-button enable #t)
+             (send search-in-Xs-next-button enable #t))
+           (begin
+             (send search-in-Xs-previous-button enable #f)
+             (send search-in-Xs-next-button enable #f)))
+    
+       (printf "found-selection: ~s\n" found-selection)
+          
+       (if found-selection
+           (when (not (equal? found-selection current-selection))
+             (when current-selection
+               (send concept-X-list-box select current-selection #f))
+             (send concept-X-list-box select found-selection #t)
+             (send concept-X-list-box set-first-visible-item found-selection))
+           (begin
+             (when current-selection
+               (send concept-X-list-box select current-selection #f))))])))
+
 (define (convert-concept-1/2-to-list-box-format concept)
   (match concept
     [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
@@ -264,11 +378,25 @@ edge format, with dbname at front (as used in edgeo):
           (map (lambda (e) (list-ref e 8)) formatted-concepts))))
 
 (define (handle-sort-by-column-header-click event
+                                            list-box
                                             last-column-clicked-for-sorting-box
                                             column-sort-order-vector
                                             choices-box
                                             convert-values-to-column-sorting-format
                                             send-values-to-list-box)
+
+  (printf "handle-sort-by-column-header-click called\n")
+  
+  ;; get previously selected choice's data, if any
+  (define current-selection (send list-box get-selection))
+  (printf "current-selection: ~s\n" current-selection)
+  (define current-selection-data (and current-selection
+                                      (send list-box get-data current-selection)))
+  (printf "current-selection-data: ~s\n" current-selection-data)
+
+  (when current-selection
+    (send list-box select current-selection #f))
+  
   ;; sort by column
   (define column-clicked (send event get-column))
   (define last-column-clicked (unbox last-column-clicked-for-sorting-box))
@@ -313,6 +441,39 @@ edge format, with dbname at front (as used in edgeo):
   (set-box! choices-box sorted-choices)
 
   (send-values-to-list-box sorted-choices)
+
+  ;; add choice data to each list-box entry
+  (define len (length sorted-choices))
+  (let loop ((i 0)
+             (c* sorted-choices))
+    (cond
+      [(= len i) (void)]
+      [else
+       (send list-box set-data i (car c*))
+       (loop (add1 i)
+             (cdr c*))]))
+  
+  ;; select previously selected choice in its new location, if any
+  (when (and current-selection current-selection-data)
+    (define count (send list-box get-number))
+    (printf "count: ~s\n" count)
+    (define new-selection
+      (let loop ((i 0))
+        (cond
+          [(>= i count) #f]
+          [else
+           (let ((d (send list-box get-data i)))
+             (printf "--------\n")
+             (printf "d: ~s\n" d)
+             (printf "(equal? d current-selection-data): ~s\n" (equal? d current-selection-data))
+             (if (equal? d current-selection-data)
+                 i
+                 (loop (add1 i))))])))
+    (printf "new-selection: ~s\n" new-selection)
+    (when new-selection
+      (send list-box select new-selection #t)
+      (send list-box set-first-visible-item new-selection)))
+  
   (void))
 
 (define (concept-list parent
@@ -357,6 +518,7 @@ edge format, with dbname at front (as used in edgeo):
                                              [(eqv? event-type 'list-box-column)                                              
                                               (handle-sort-by-column-header-click
                                                     event
+                                                    concept-listbox
                                                     last-column-clicked-for-sorting-box
                                                     column-sort-order-vector
                                                     choices-box
@@ -442,6 +604,18 @@ edge format, with dbname at front (as used in edgeo):
                      [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
                        (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
                  ans))
+
+      ;; add choice data to each list-box entry
+      (define len (length (unbox choices)))
+      (let loop ((i 0)
+                 (c* (unbox choices)))
+        (cond
+          [(= len i) (void)]
+          [else
+           (send concept-listbox set-data i (car c*))
+           (loop (add1 i)
+                 (cdr c*))]))
+      
       ;; unselect all items
       (for ([i (length ans)])
            (send concept-listbox select i #f))))
@@ -544,7 +718,10 @@ edge format, with dbname at front (as used in edgeo):
                          subject-properties-list-box
                          edge-properties-list-box
                          object-properties-list-box
-                         pubmed-list-box)
+                         pubmed-list-box
+                         search-in-Xs-field
+                         search-in-Xs-previous-button
+                         search-in-Xs-next-button)
 
         ))
 
@@ -619,10 +796,48 @@ edge format, with dbname at front (as used in edgeo):
                                              convert-concept-1/2-to-column-sorting-format
                                              (make-send-concepts-to-concept-1/2-list-box (lambda () concept-2-list-box))))
 
+    (define running-status-description/search-in-Xs-panel
+      (new
+       horizontal-panel%
+       (parent concept-2-overall-pane)
+       (alignment '(left center))
+       (stretchable-height #f)))
+    
     (define running-status-description (new message%
-                                            (parent concept-2-overall-pane)
+                                            (parent running-status-description/search-in-Xs-panel)
                                             (label "                                                                ")))
+    
+    (define search-in-Xs-field (new text-field%
+                                    (label "Find in X's")
+                                    (parent running-status-description/search-in-Xs-panel)
+                                    (init-value "")
+                                    (callback (lambda (self event)                                                
+                                                (handle-search-in-Xs self
+                                                                     concept-X-list-box
+                                                                     search-in-Xs-previous-button
+                                                                     search-in-Xs-next-button
+                                                                     )))))
+    
+    (define search-in-Xs-previous-button (new button%
+                                              (parent running-status-description/search-in-Xs-panel)
+                                              (label "Previous")
+                                              (callback (lambda (self event)
+                                                          (handle-search-in-Xs search-in-Xs-field
+                                                                               concept-X-list-box
+                                                                               search-in-Xs-previous-button
+                                                                               search-in-Xs-next-button
+                                                                               'previous)))))
 
+    (define search-in-Xs-next-button (new button%
+                                          (parent running-status-description/search-in-Xs-panel)
+                                          (label "Next")
+                                          (callback (lambda (self event)
+                                                      (handle-search-in-Xs search-in-Xs-field
+                                                                           concept-X-list-box
+                                                                           search-in-Xs-previous-button
+                                                                           search-in-Xs-next-button
+                                                                           'next)))))
+    
     (define concept-X-list-box (new smart-column-width-list-box%
                                     (label "X")
                                     (choices (unbox *concept-X-choices*))
@@ -635,6 +850,7 @@ edge format, with dbname at front (as used in edgeo):
                                                   [(eqv? event-type 'list-box-column)
                                                    (handle-sort-by-column-header-click
                                                     event
+                                                    concept-X-list-box
                                                     *last-concept-X-column-clicked-for-sorting*
                                                     *concept-X-column-sort-order*
                                                     *concept-X-choices*
@@ -656,6 +872,10 @@ edge format, with dbname at front (as used in edgeo):
                                                    (printf "concept name: ~s\n" concept-name)
                                                    (send the-clipboard set-clipboard-string concept-name time-stamp)]
                                                   [else
+
+                                                   ;; empty the entries in the full-path-list-box
+                                                   (send full-path-list-box set '() '() '() '() '() '() '() '())
+                                                   
                                                    ;; empty the entries in the properties list-boxes
                                                    (send subject-properties-list-box set '() '())
                                                    (send edge-properties-list-box set '() '())
@@ -989,6 +1209,10 @@ edge format, with dbname at front (as used in edgeo):
    
     ;; trigger reflowing of object sizes
     (send frame reflow-container)
+
+    ;; disable previous and next buttons by default
+    (send search-in-Xs-previous-button enable #f)
+    (send search-in-Xs-next-button enable #f)
     
     (set-default-column-widths concept-1-list-box)
     (set-default-column-widths concept-2-list-box)
@@ -1053,7 +1277,7 @@ edge format, with dbname at front (as used in edgeo):
   (list atomic-predicate* synthetic-predicate*))
 
 
-(define (find-X-concepts concept-1* concept-2* predicate-1* predicate-2* predicate-1-choices predicate-2-choices concept-X-list-box running-status-description full-path-list-box subject-properties-list-box edge-properties-list-box object-properties-list-box pubmed-list-box)
+(define (find-X-concepts concept-1* concept-2* predicate-1* predicate-2* predicate-1-choices predicate-2-choices concept-X-list-box running-status-description full-path-list-box subject-properties-list-box edge-properties-list-box object-properties-list-box pubmed-list-box search-in-Xs-field search-in-Xs-previous-button search-in-Xs-next-button)
 
   (define start-time (current-milliseconds))
 
@@ -1099,7 +1323,6 @@ edge format, with dbname at front (as used in edgeo):
             (append all-X-concepts-with-edges
                     (run* (q)
                       (fresh (dbname eid s o pid pred eprops e)
-                        ;; TODO FIXME -- epropos may contain pubmed ids--how to extract it, or other evidence?
                         (== (list dbname s (list eprops) (list e)) q)
                         (== `(,dbname ,eid ,s ,o (,pid . ,pred) ,eprops) e)
                         (membero `(,dbname . ,o) concept-2*)
@@ -1114,7 +1337,6 @@ edge format, with dbname at front (as used in edgeo):
             (append all-X-concepts-with-edges
                     (run* (q)
                       (fresh (dbname eid s o pid pred eprops e)
-                        ;; TODO FIXME -- epropos may contain pubmed ids--how to extract it, or other evidence?
                         (== (list dbname o (list eprops) (list e)) q)
                         (== `(,dbname ,eid ,s ,o (,pid . ,pred) ,eprops) e)
                         (membero `(,dbname . ,s) concept-1*)
@@ -1405,6 +1627,21 @@ edge format, with dbname at front (as used in edgeo):
   (for ([i (length all-X-concepts)])
        (send concept-X-list-box select i #f))
 
+  ;; add X concept data for each list-box entry
+  (let loop ((i 0)
+             (c* all-X-concepts))
+    (cond
+      [(null? c*) (void)]
+      [else
+       (send concept-X-list-box set-data i (car c*))
+       (loop (add1 i)
+             (cdr c*))]))
+
+  ;; empty the search in X's field, and disable the previous/next buttons
+  (send search-in-Xs-field set-value "")
+  (send search-in-Xs-previous-button enable #f)
+  (send search-in-Xs-next-button enable #f)
+  
   ;; empty the entries in the full-path-list-box
   (send full-path-list-box set '() '() '() '() '() '() '() '())
 
