@@ -17,7 +17,7 @@
 (provide
   launch-gui)
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.25")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.26")
 
 (define argv (current-command-line-arguments))
 (define argv-optional '#(CONFIG_FILE))
@@ -509,7 +509,7 @@ edge format, with dbname at front (as used in edgeo):
   (define concept-listbox (new smart-column-width-list-box%
                                (label label)
                                (choices '())
-                               (columns '("DB" "CID" "CUI" "Category" "Name"))
+                               (columns '("DB" "CID" "CURIE" "Category" "Name"))
                                (parent parent-list-boxes-panel)
                                (style '(column-headers clickable-headers reorderable-headers extended))
                                (callback (lambda (self event)
@@ -841,7 +841,7 @@ edge format, with dbname at front (as used in edgeo):
     (define concept-X-list-box (new smart-column-width-list-box%
                                     (label "X")
                                     (choices (unbox *concept-X-choices*))
-                                    (columns '("DB" "CID" "CUI" "Category" "Name" "Max PubMed #" "Min PubMed #" "Path Length" "Path Confidence"))
+                                    (columns '("DB" "CID" "CURIE" "Category" "Name" "Max PubMed #" "Min PubMed #" "Path Length" "Path Confidence"))
                                     (parent lower-pane)
                                     (style '(column-headers clickable-headers reorderable-headers single))
                                     (callback (lambda (self event)
@@ -1240,7 +1240,7 @@ edge format, with dbname at front (as used in edgeo):
     (define gene-listbox (new smart-column-width-list-box%
                               (label "Gene")
                               (choices '())
-                              (columns '("DB" "CID" "CUI" "Category" "Name"))
+                              (columns '("DB" "CID" "CURIE" "Category" "Name"))
                               (parent frame)
                               (style '(column-headers reorderable-headers extended))
                               (callback (lambda (self event)
