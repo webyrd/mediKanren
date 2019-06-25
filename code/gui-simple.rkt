@@ -15,6 +15,13 @@
 (provide
   launch-gui)
 
+(displayln "Starting mediKanren...")
+(newline)
+(displayln "************************************************")
+(displayln "*** mediKanren is for research purposes only ***")
+(displayln "************************************************")
+(newline)
+
 (displayln
   "Finished loading mk-db.rkt")
 
