@@ -17,7 +17,7 @@
 (provide
   launch-gui)
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.26")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.27")
 
 (define argv (current-command-line-arguments))
 (define argv-optional '#(CONFIG_FILE))
@@ -26,6 +26,11 @@
   (error "optional arguments ~s; given ~s" argv-optional argv))
 
 (displayln "Starting mediKanren Explorer...")
+(newline)
+(displayln "************************************************")
+(displayln "*** mediKanren is for research purposes only ***")
+(displayln "************************************************")
+(newline)
 (displayln MEDIKANREN_VERSION_STRING)
 ;; Loading will occur at first use if not explicitly forced like this.
 (load-config #t (and (<= 1 (vector-length argv)) (vector-ref argv 0)))
