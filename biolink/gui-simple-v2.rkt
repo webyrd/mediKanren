@@ -171,6 +171,7 @@ edge format, with dbname at front (as used in edgeo):
           SORT_COLUMN_DECREASING
           SORT_COLUMN_DECREASING
           SORT_COLUMN_DECREASING
+          SORT_COLUMN_DECREASING
           SORT_COLUMN_DECREASING))
 (define *last-concept-X-column-clicked-for-sorting* (box -1))
 
@@ -306,7 +307,7 @@ edge format, with dbname at front (as used in edgeo):
 
 (define (convert-X-concept-to-list-box-format concept)
   (match concept
-    [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props ,max-pubmed-count ,min-pubmed-count ,path-length ,confidence)
+    [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props ,max-pubmed-count ,min-pubmed-count ,pred-names ,path-length ,confidence)
      (list (format "~a" dbname)
            (format "~a" cid)
            (format "~a" cui)
@@ -314,6 +315,7 @@ edge format, with dbname at front (as used in edgeo):
            (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")
            (format "~a" max-pubmed-count)
            (format "~a" min-pubmed-count)
+           (string-join pred-names ", ")
            (format "~a" path-length)
            (format "~a" confidence))]))
 
@@ -328,7 +330,7 @@ edge format, with dbname at front (as used in edgeo):
 
 (define (convert-X-concept-to-column-sorting-format concept)
   (match concept
-    [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props ,max-pubmed-count ,min-pubmed-count ,path-length ,confidence)
+    [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props ,max-pubmed-count ,min-pubmed-count ,pred-names ,path-length ,confidence)
      (list (format "~a" dbname)
            cid
            (format "~a" cui)
@@ -336,6 +338,7 @@ edge format, with dbname at front (as used in edgeo):
            (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")
            max-pubmed-count
            min-pubmed-count
+           (string-join pred-names ", ")
            path-length
            confidence)]))
 
@@ -364,7 +367,8 @@ edge format, with dbname at front (as used in edgeo):
           (map (lambda (e) (list-ref e 5)) formatted-concepts)
           (map (lambda (e) (list-ref e 6)) formatted-concepts)
           (map (lambda (e) (list-ref e 7)) formatted-concepts)
-          (map (lambda (e) (list-ref e 8)) formatted-concepts))))
+          (map (lambda (e) (list-ref e 8)) formatted-concepts)
+          (map (lambda (e) (list-ref e 9)) formatted-concepts))))
 
 (define (handle-sort-by-column-header-click event
                                             list-box
@@ -830,7 +834,7 @@ edge format, with dbname at front (as used in edgeo):
     (define concept-X-list-box (new smart-column-width-list-box%
                                     (label "X")
                                     (choices (unbox *concept-X-choices*))
-                                    (columns '("DB" "CID" "CURIE" "Category" "Name" "Max PubMed #" "Min PubMed #" "Path Length" "Path Confidence"))
+                                    (columns '("DB" "CID" "CURIE" "Category" "Name" "Max PubMed #" "Min PubMed #" "Predicates" "Path Length" "Path Confidence"))
                                     (parent lower-pane)
                                     (style '(column-headers clickable-headers reorderable-headers single))
                                     (callback (lambda (self event)
@@ -854,7 +858,7 @@ edge format, with dbname at front (as used in edgeo):
                                                        (if (= (length sel*) 1)
                                                            (let ((selected-X (list-ref (unbox *concept-X-choices*) (car sel*))))
                                                              (match selected-X
-                                                               [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props ,max-pubmed-count ,min-pubmed-count ,path-count ,confidence)
+                                                               [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props ,max-pubmed-count ,min-pubmed-count ,pred-names ,path-count ,confidence)
                                                                 name]
                                                                [else ""]))
                                                            "")))
@@ -878,7 +882,7 @@ edge format, with dbname at front (as used in edgeo):
                                                        (let ((selected-X (list-ref (unbox *concept-X-choices*) (car sel*))))
                                                          (let ((selected-X
                                                                 (match selected-X
-                                                                  [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props ,max-pubmed-count ,min-pubmed-count ,path-count ,confidence)
+                                                                  [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props ,max-pubmed-count ,min-pubmed-count ,pred-names ,path-count ,confidence)
                                                                    `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)])))
                                                            (printf "selected ~s\n" selected-X)
                                                            (define concept-1* (unbox *solution-concept-1-choices*))
@@ -1365,6 +1369,21 @@ edge format, with dbname at front (as used in edgeo):
           [`((,_ ,_ ,_ ,e1*) (,_ ,_ ,_ ,e2*))
            (not (path-confidence<? e1* e2*))]))))
 
+
+  (define db/cui-to-pred-names-hash-table (make-hash))
+  (let loop ([c* all-X-concepts-with-edges])
+    (cond
+      [(null? c*) (void)]
+      [else (match (car c*)
+              [`(,dbname (,cid ,cui ,name (,catid . ,cat) ,props) ,whatever ,e*)                  
+               (let ((pred-names (get-pred-names e*)))
+                 (let ((key (list dbname cui)))
+                   (let ((current-v (hash-ref db/cui-to-pred-names-hash-table key #f)))
+                     (if current-v
+                         (hash-set! db/cui-to-pred-names-hash-table key (set-union pred-names current-v))
+                         (hash-set! db/cui-to-pred-names-hash-table key pred-names))
+                     (loop (cdr c*)))))])]))
+  
   (define all-X-concepts '())
   (set! all-X-concepts
         (let loop ([ls all-X-concepts-with-edges])
@@ -1373,19 +1392,33 @@ edge format, with dbname at front (as used in edgeo):
             [else
              (match (car ls)
                [`(,dbname (,cid ,cui ,name (,catid . ,cat) ,props) ,whatever ,e*)
-                (let ((pubmed-count* (map pubmed-count e*)))
+                (let ((pubmed-count* (map pubmed-count e*))
+                      (pred-names (sort (hash-ref db/cui-to-pred-names-hash-table (list dbname cui) '()) string<?)))
                   (let ((max-pubmed-count (apply max pubmed-count*))
                         (min-pubmed-count (apply min pubmed-count*))
                         (path-length (length pubmed-count*))
                         (confidence (path-confidence e*)))
-                    (cons `(,dbname (,cid ,cui ,name (,catid . ,cat) ,props ,max-pubmed-count ,min-pubmed-count ,path-length ,confidence) ,whatever ,e*)
+                    (cons `(,dbname
+                            (,cid
+                             ,cui
+                             ,name
+                             (,catid . ,cat)
+                             ,props
+                             ,max-pubmed-count
+                             ,min-pubmed-count
+                             ,pred-names
+                             ,path-length
+                             ,confidence)
+                            ,whatever
+                            ,e*)
                           (loop (remf* (lambda (x)
                                          (match x
                                            [`(,dbname-x (,cid-x ,cui-x ,name-x (,catid-x . ,cat-x) ,props-x) . ,rest-x)
                                             (and (equal? dbname dbname-x)
                                                  (equal? cid cid-x)
                                                  (equal? cui cui-x))]))
-                                       (cdr ls))))))])])))
+                                       (cdr ls))))))])]))
+        )
   (set! all-X-concepts (map (lambda (e) (cons (car e) (cadr e))) all-X-concepts))
 
   (newline)

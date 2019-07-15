@@ -22,6 +22,8 @@
   path-confidence<?
   sort-paths
 
+  get-pred-names
+  
   databases
   load-databases
   conde/databases
@@ -216,6 +218,23 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
 
 (define (pubmed-count e)
   (length (pubmed-URLs-from-edge e)))
+
+(define (get-pred-names e*)
+  (let loop ([e* e*]
+             [pred-names '()])
+    (cond
+      [(null? e*) pred-names]
+      [else
+       (let ((edge (car e*))
+             (rest (cdr e*)))
+         (match edge
+           ['path-separator
+            (loop rest pred-names)]
+           [`(,dbname ,eid ,subj ,obj (,pid . ,p-name) ,eprops)
+            (loop rest (if (member p-name pred-names)
+                           pred-names
+                           (cons p-name pred-names)))]
+           [else (error 'get-pred-names (format "unmatched edge ~s\n" edge))]))])))
 
 (define (path-confidence p)
   (define (weight-linear+1 n) (+ 1 n))
