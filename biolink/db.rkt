@@ -181,7 +181,6 @@
   (define needles
     (map (lambda (v case-sensitive?) (normalize v case-sensitive?))
          str* case-sensitive?*))
-  (printf "needles: ~s\n" needles)
   (and hay
        (andmap
         (if re:split

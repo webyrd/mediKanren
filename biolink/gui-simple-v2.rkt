@@ -17,7 +17,7 @@
 (provide
   launch-gui)
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.27")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.28")
 
 (define argv (current-command-line-arguments))
 (define argv-optional '#(CONFIG_FILE))
@@ -206,20 +206,15 @@ edge format, with dbname at front (as used in edgeo):
            search-in-Xs-previous-button
            search-in-Xs-next-button
            . rest)
-    (printf "search callback\n")
-    (printf "rest: ~s\n" rest)
     (define direction (if (and (list? rest) (= (length rest) 1)) (car rest) #f))
     (define search-str (send search-in-Xs-field get-value))
-    (printf "search-str: ~s\n" search-str)
 
     (define current-selection (send concept-X-list-box get-selection))
-    (printf "current-selection: ~s\n" current-selection)
 
     (cond
       [direction
 
        (define count (send concept-X-list-box get-number))
-       (printf "count: ~s\n" count)
 
        (define add1/sub1 (case direction
                            [(previous) sub1]
@@ -229,29 +224,24 @@ edge format, with dbname at front (as used in edgeo):
        (define found-selection
          (and (> count 0)
               (let loop ((i (add1/sub1 current-selection)))
-                (printf "i: ~s\n" i)
                 (cond
                   [(>= i count) (loop 0)]
                   [(< i 0) (loop (- count 1))]
                   [else
                    (define data (send concept-X-list-box get-data i))
                    (define name-str (list-ref data 3))
-                   (printf "name-str: ~s\n" name-str)
                    (define matches?
                      (smart-string-matches? #f
                                             chars:ignore-typical
                                             ""
                                             (string-split search-str " ")
                                             name-str))
-                   (printf "matches?: ~s\n" matches?)
                    (cond
                      [matches? i]
                      [(= i current-selection)
                       ;; wrapped around without a match
                       #f]
                      [else (loop (add1/sub1 i))])]))))
-
-       (printf "found-selection: ~s\n" found-selection)
 
        (if found-selection
            (when (not (equal? found-selection current-selection))
@@ -269,24 +259,20 @@ edge format, with dbname at front (as used in edgeo):
        (send search-in-Xs-next-button enable #f)]
       [else
        (define count (send concept-X-list-box get-number))
-       (printf "count: ~s\n" count)
        (define found-selection
          (and (> count 0)
               (let loop ((i 0))
-                (printf "i: ~s\n" i)
                 (cond
                   [(>= i count) #f]
                   [else
                    (define data (send concept-X-list-box get-data i))
                    (define name-str (list-ref data 3))
-                   (printf "name-str: ~s\n" name-str)
                    (define matches?
                      (smart-string-matches? #f
                                             chars:ignore-typical
                                             ""
                                             (string-split search-str " ")
                                             name-str))
-                   (printf "matches?: ~s\n" matches?)
                    (if matches?
                        i
                        (loop (add1 i)))]))))
@@ -298,8 +284,6 @@ edge format, with dbname at front (as used in edgeo):
            (begin
              (send search-in-Xs-previous-button enable #f)
              (send search-in-Xs-next-button enable #f)))
-    
-       (printf "found-selection: ~s\n" found-selection)
           
        (if found-selection
            (when (not (equal? found-selection current-selection))
@@ -816,7 +800,7 @@ edge format, with dbname at front (as used in edgeo):
                                     (label "Find in X's")
                                     (parent running-status-description/search-in-Xs-panel)
                                     (init-value "")
-                                    (callback (lambda (self event)                                                
+                                    (callback (lambda (self event)
                                                 (handle-search-in-Xs self
                                                                      concept-X-list-box
                                                                      search-in-Xs-previous-button
