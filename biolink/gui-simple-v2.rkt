@@ -502,7 +502,7 @@ edge format, with dbname at front (as used in edgeo):
   (define concept-listbox (new smart-column-width-list-box%
                                (label label)
                                (choices '())
-                               (columns '("DB" "CID" "CURIE" "Category" "Name"))
+                               (columns '("KG" "CID" "CURIE" "Category" "Name"))
                                (parent parent-list-boxes-panel)
                                (style '(column-headers clickable-headers reorderable-headers extended))
                                (callback (lambda (self event)
@@ -834,7 +834,7 @@ edge format, with dbname at front (as used in edgeo):
     (define concept-X-list-box (new smart-column-width-list-box%
                                     (label "X")
                                     (choices (unbox *concept-X-choices*))
-                                    (columns '("DB" "CID" "CURIE" "Category" "Name" "Max PubMed #" "Min PubMed #" "Predicates" "Path Length" "Path Confidence"))
+                                    (columns '("KG" "CID" "CURIE" "Category" "Name" "Max PubMed #" "Min PubMed #" "Predicates" "Path Length" "Path Confidence"))
                                     (parent lower-pane)
                                     (style '(column-headers clickable-headers reorderable-headers single))
                                     (callback (lambda (self event)
@@ -1081,7 +1081,7 @@ edge format, with dbname at front (as used in edgeo):
     (define full-path-list-box (new smart-column-width-list-box%
                                     (label "Paths")
                                     (choices (unbox *full-path-choices*))
-                                    (columns '("DB" "EID" "Subject" "Predicate" "Object" "Subj Cat" "Obj Cat" "PubMed #"))
+                                    (columns '("KG" "EID" "Subject" "Predicate" "Object" "Subj Cat" "Obj Cat" "PubMed #"))
                                     (parent lower-pane)
                                     (style '(column-headers reorderable-headers extended))
                                     (callback (lambda (self event)
@@ -1233,7 +1233,7 @@ edge format, with dbname at front (as used in edgeo):
     (define gene-listbox (new smart-column-width-list-box%
                               (label "Gene")
                               (choices '())
-                              (columns '("DB" "CID" "CURIE" "Category" "Name"))
+                              (columns '("KG" "CID" "CURIE" "Category" "Name"))
                               (parent frame)
                               (style '(column-headers reorderable-headers extended))
                               (callback (lambda (self event)
@@ -1568,7 +1568,7 @@ edge format, with dbname at front (as used in edgeo):
               
               "PubMed URL"
               
-              "DB Name")
+              "KG Name")
       (for-each
         (lambda (entry index)
           (match entry
