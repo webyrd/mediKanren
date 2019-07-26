@@ -26,3 +26,21 @@ To backup the CSV->mediKanren work:
 cd data
 zip -r robokop.db.zip robokop
 ```
+
+
+# Freeing up space once you are finished
+
+If you installed neo4j using homebrew:
+
+```
+neo4j stop
+rm -rf /usr/local/Cellar/neo4j/VERSION/libexec/data/databases/*
+```
+
+Supposedly this query should also work, but I get a memory error:
+
+```
+neo4j start
+cypher-shell -u YOURUSERNAME -p YOURPASSWORD --non-interactive 'MATCH(n) DETACH DELETE n'
+neo4j stop
+```
