@@ -36,7 +36,10 @@ If you installed neo4j using homebrew:
 
 ```
 neo4j stop
+# Your data might live here.
 rm -rf /usr/local/Cellar/neo4j/VERSION/libexec/data/databases/*
+# Or it might live here.
+rm -rf /usr/local/var/neo4j/data/databases/*
 ```
 
 Supposedly this query should also work, but I get a memory error:
