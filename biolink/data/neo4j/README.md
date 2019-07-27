@@ -13,6 +13,8 @@ neo4j stop
 
 Then follow the instructions in `mediKanren/biolink/README.md` for converting the CSVs to mediKanren format.
 
+(If you've just set neo4j up for the first time and kgx failed due to authorization, try visiting localhost:7474 in the browser, and logging in with username=neo4j password=neo4j.  You'll be prompted to set a new password.  Set it to be consistent with the password in your kgx config file.)
+
 If CSVs are downloaded from a remote source, then after the CSVs are grouped in a directory, yet before running racket conversion scripts, first create a zip for backup:
 ```
 cd data
