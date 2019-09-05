@@ -32,7 +32,9 @@ if __name__ == '__main__':
   import sys
   m = 'example1' if len(sys.argv)<2 else sys.argv[1]
   r = yaml.load(open(m+'.yaml'))
-  print('(define '+m)
+  import ntpath
+  k = ntpath.basename(m)
+  print('(define '+k)
   print("'", end='')
   sexp(r)
   print(')')
