@@ -1,14 +1,16 @@
-def sexp(r, indent=0, dot='. '):
+def sexp(r, indent=0, dot=''):
   i = indent*' '
   j = (indent+2)*' '
   if type(r) == dict:
-    print(i+'(')
+    if dot=='':
+      print(i+'(')
     for k,v in r.items():
       print(j+'(')
       sexp(k, indent+4, '')
-      sexp(v, indent+4)
+      sexp(v, indent+4, '. ')
       print(j+')')
-    print(i+')')
+    if dot=='':
+      print(i+')')
   elif type(r) == list:
     if dot=='':
       print(i+'(')
