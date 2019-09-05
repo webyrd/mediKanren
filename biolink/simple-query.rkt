@@ -61,3 +61,45 @@ edge format, with dbname at front (as used in edgeo):
 
 (printf "\n\nfull orange edge:\n")
 (run 1 (edge) (db:edgeo robokop edge))
+
+(printf "\n\nTyped query 1:\n")
+(run 1 (q)
+  (fresh (edge1
+          eid1 scid1 scui1 sname1 scatid1 scat1 sprops1
+          ocid1 ocui1 oname1 ocatid1 ocat1 oprops1
+          pid1 pred1 eprops1)
+    (== `(,eid1 (,scid1 ,scui1 ,sname1 (,scatid1 . ,scat1) . ,sprops1)
+                (,ocid1 ,ocui1 ,oname1 (,ocatid1 . ,ocat1) . ,oprops1)
+                (,pid1 . ,pred1) . ,eprops1)
+        edge1)
+    (== `(,sname1 ,pred1 ,oname1) q)
+    (db:edgeo semmed edge1)))
+
+(printf "\n\nTyped query 2:\n")
+(run 1 (q)
+  (fresh (edge1
+          eid1 scid1 scui1 sname1 scatid1 scat1 sprops1
+          ocid1 ocui1 oname1 ocatid1 ocat1 oprops1
+          pid1 pred1 eprops1)
+    (== `(,eid1 (,scid1 ,scui1 ,sname1 (,scatid1 . ,scat1) . ,sprops1)
+                (,ocid1 ,ocui1 ,oname1 (,ocatid1 . ,ocat1) . ,oprops1)
+                (,pid1 . ,pred1) . ,eprops1)
+        edge1)
+    (== '(5 . "chemical_substance") `(,scatid1 . ,scat1))
+    (== `(,sname1 ,pred1 ,oname1) q)
+    (db:edgeo semmed edge1)))
+
+(printf "\n\nTyped query 3:\n")
+(run 1 (q)
+  (fresh (edge1
+          eid1 scid1 scui1 sname1 scatid1 scat1 sprops1
+          ocid1 ocui1 oname1 ocatid1 ocat1 oprops1
+          pid1 pred1 eprops1)
+    (== `(,eid1 (,scid1 ,scui1 ,sname1 (,scatid1 . ,scat1) . ,sprops1)
+                (,ocid1 ,ocui1 ,oname1 (,ocatid1 . ,ocat1) . ,oprops1)
+                (,pid1 . ,pred1) . ,eprops1)
+        edge1)
+    (== '(5 . "chemical_substance") `(,scatid1 . ,scat1))
+    (== '(1 . "treats") `(,pid1 . ,pred1))
+    (== `(,sname1 ,pred1 ,oname1) q)
+    (db:edgeo semmed edge1)))
