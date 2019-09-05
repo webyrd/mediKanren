@@ -138,3 +138,19 @@
       "molecularly interacts with"
       "molecular entity"
       "sequence variant"))))
+
+(test "mol-sub-1"
+  (length (run* (q)
+            (fresh (x)
+              (== "molecular entity" x)
+              (=/= x q)
+              (categories-subo q x))))
+  25)
+
+(test "gtga-1"
+  (run* (q)
+    (fresh (x)
+      (== "gene to gene association" x)
+      (categories-subo x q)))
+  '(("gene to gene association")
+    ("association")))
