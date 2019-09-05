@@ -1,19 +1,23 @@
-def sexp(r, indent=0, dot='. '):
+def sexp(r, indent=0, dot=''):
   i = indent*' '
   j = (indent+2)*' '
   if type(r) == dict:
-    print(i+'(')
+    if dot=='':
+      print(i+'(')
     for k,v in r.items():
       print(j+'(')
       sexp(k, indent+4, '')
-      sexp(v, indent+4)
+      sexp(v, indent+4, '. ')
       print(j+')')
-    print(i+')')
+    if dot=='':
+      print(i+')')
   elif type(r) == list:
-    print(i+'(')
+    if dot=='':
+      print(i+'(')
     for x in r:
       sexp(x,indent+2,'')
-    print(i+')')
+    if dot=='':
+      print(i+')')
   elif type(r) == bool:
     if r:
       print(i+dot+'#t')
@@ -28,7 +32,9 @@ if __name__ == '__main__':
   import sys
   m = 'example1' if len(sys.argv)<2 else sys.argv[1]
   r = yaml.load(open(m+'.yaml'))
-  print('(define '+m)
+  import ntpath
+  k = ntpath.basename(m)
+  print('(define '+k)
   print("'", end='')
   sexp(r)
   print(')')
