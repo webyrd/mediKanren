@@ -87,7 +87,7 @@
 
 (test "valid-2"
   (run* (q p) (valid-typeo q "homologous to" p))
-  '((_.0 _.1)))
+  '(((_.0 _.1))))
 
 (test "valid-sub-1"
   (run* (s v o)
