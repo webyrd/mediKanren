@@ -33,10 +33,8 @@
   `(define (,name s u)
      (conde
        ,@(map (lambda (cs) `((== s ,(car cs))
-                        ,(if (not (null? (cdr cs)))
-                             `(conde
-                                ,@(map (lambda (c) `((== u ,c))) (cdr cs)))
-                              'fail)))
+                        ,`(conde
+                            ,@(map (lambda (c) `((== u ,c))) cs))))
               subs))))
 
 (load "../code/mk/mk.scm")
@@ -46,19 +44,97 @@
 
 (test "sub-1"
   (run* (q) (categories-subo q "pathway"))
-  '())
+  '(("pathways")))
 (test "sub-2"
   (run* (q) (categories-subo q "gene or gene product"))
-  '(("gene") ("gene product") ("protein") ("gene product isoform")
+  '(("gene or gene product")
+    ("gene") ("gene product") ("protein") ("gene product isoform")
     ("protein isoform") ("RNA product") ("RNA product isoform")
     ("noncoding RNA product") ("microRNA")))
 (test "super-1"
   (run* (q) (categories-subo "protein" q))
-  '(("gene product") ("gene or gene product") ("macromolecular machine")
+  '(("protein")
+    ("gene product") ("gene or gene product") ("macromolecular machine")
     ("genomic entity") ("molecular entity")
     ("biological entity") ("named thing")))
 (test "super-2"
   (run* (q) (predicates-subo "regulates" q))
-  '(("affects") ("related to")))
+  '(("regulates") ("affects") ("related to")))
+(test "super-3"
+  (run* (q) (predicates-subo q "homologous to"))
+  '(("homologous to")
+    ("paralogous to")
+    ("orthologous to")
+    ("xenologous to")))
 
+(define (mk-valid-type name name_csubo name_psubo)
+  `(define (,name subject verb object)
+     (conde
+       ,@(map (lambda (pd pr)
+                (assert (equal? (car pd) (car pr)))
+                (filter (lambda (x) x)
+                        (list
+                         `(== verb ,(car pd))
+                         (if (cdr pd) `(== subject ,(cdr pd)) #f)
+                         (if (cdr pr) `(== object ,(cdr pr)) #f))))
+              predicates-domain predicates-range))))
 
+(eval (mk-valid-type 'valid-typeo 'categories-subo 'predicates-subo))
+
+(test "valid-1"
+  (run* (q) (valid-typeo "pathway" "regulates" "disease"))
+  '((_.0)))
+
+(test "valid-2"
+  (run* (q p) (valid-typeo q "homologous to" p))
+  '((_.0 _.1)))
+
+(test "valid-sub-1"
+  (run* (s v o)
+    (predicates-subo v "homologous to")
+    (valid-typeo s v o))
+  '(((_.0 "homologous to" _.1))
+    ((_.0 "paralogous to" _.1))
+    ((_.0 "orthologous to" _.1))
+    ((_.0 "xenologous to" _.1))))
+
+(test "valid-sub-2"
+  (run* (s v o)
+    (predicates-subo "homologous to" v)
+    (valid-typeo s v o))
+  '(((_.0 "homologous to" _.1))
+    (("named thing" "related to" "named thing"))))
+
+(test "valid-sub-3"
+  (run* (s s1 v o o1)
+    (predicates-subo v "genetically interacts with")
+    (valid-typeo s v o)
+    (categories-subo s1 s)
+    (categories-subo o1 o))
+  '((("gene" "gene" "genetically interacts with" "gene" "gene"))))
+
+(test "valid-4"
+  (run* (s v o)
+    (== "molecularly interacts with" v)
+    (valid-typeo s v o))
+  '((("molecular entity"
+    "molecularly interacts with"
+    "molecular entity"))))
+
+(test "valid-sub-4"
+  (length (run* (s v o o1)
+            (== "molecularly interacts with" v)
+            (valid-typeo s v o)
+            (categories-subo o1 o)))
+  26)
+
+(test "valid-sub-5"
+  (run* (s v o o1)
+    (== "molecularly interacts with" v)
+    (== o1 "sequence variant")
+    (valid-typeo s v o)
+    (categories-subo o1 o))
+  '((("molecular entity"
+      "molecularly interacts with"
+      "molecular entity"
+      "sequence variant"))))
