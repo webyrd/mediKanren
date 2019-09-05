@@ -31,9 +31,7 @@
   )
   (
     "default_curi_maps"
-    (
       "semweb_context"
-    )
   )
   (
     "default_range"
@@ -95,14 +93,12 @@
           )
           (
             "slots"
-            (
               "id"
               "first name"
               "last name"
               "age"
               "living"
               "knows"
-            )
           )
         )
       )
@@ -198,9 +194,7 @@
           )
           (
             "comments"
-            (
               "unspecified means unknown"
-            )
           )
         )
       )

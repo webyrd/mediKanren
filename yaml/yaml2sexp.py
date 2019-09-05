@@ -10,10 +10,12 @@ def sexp(r, indent=0, dot='. '):
       print(j+')')
     print(i+')')
   elif type(r) == list:
-    print(i+'(')
+    if dot=='':
+      print(i+'(')
     for x in r:
       sexp(x,indent+2,'')
-    print(i+')')
+    if dot=='':
+      print(i+')')
   elif type(r) == bool:
     if r:
       print(i+dot+'#t')
