@@ -177,11 +177,16 @@
 ;;; )
 
 
+;;; Broken!
+;;; q and p should both be "named thing",
+;;; since "homologous to" is_a "related to",
+;;; which has actual domain and range
 (test "broken-1"
   (run* (q p)
     (valid-typeo q "homologous to" p))
   '(((_.0 _.1))))
 
+;;; Okay
 (test "broken-2"
   (run* (q)
     (fresh (pred)
@@ -190,15 +195,19 @@
       (predicates-subo pred q)))
   '(("related to")))
 
+;;; Okay
 (test "broken-3"
   (run* (x y)
     (valid-typeo x "related to" y))
   '((("named thing" "named thing"))))
 
+;;; Okay
 (test "broken-4"
   (run* (q) (categories-subo "named thing" q))
   '(("named thing")))
 
+;;; Broken!
+;;; ((_.0 _.1)) is bogus, since we want only the single most specific type.
 (test "broken-5"
   (run* (q p)
     (fresh (r)
