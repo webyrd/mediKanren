@@ -44,7 +44,7 @@
 
 (test "sub-1"
   (run* (q) (categories-subo q "pathway"))
-  '(("pathways")))
+  '(("pathway")))
 (test "sub-2"
   (run* (q) (categories-subo q "gene or gene product"))
   '(("gene or gene product")
@@ -67,42 +67,54 @@
     ("orthologous to")
     ("xenologous to")))
 
+(define (find-spec domain p)
+  (if p
+      (if (cdr p)
+          (cdr p)
+          (let ((parent (assoc (car p) predicates-is-a)))
+            (if parent
+                (find-spec domain (assoc (cdr parent) domain))
+                (error 'find-spec "no parent" (car p)))))
+      #f))
+
 (define (mk-valid-type name name_csubo name_psubo)
   `(define (,name subject verb object)
      (conde
        ,@(map (lambda (pd pr)
                 (assert (equal? (car pd) (car pr)))
-                (filter (lambda (x) x)
-                        (list
-                         `(== verb ,(car pd))
-                         (if (cdr pd) `(== subject ,(cdr pd)) #f)
-                         (if (cdr pr) `(== object ,(cdr pr)) #f))))
+                `((== verb ,(car pd))
+                  (== subject ,(find-spec predicates-domain pd))
+                  (== object ,(find-spec predicates-range pr))))
               predicates-domain predicates-range))))
 
 (eval (mk-valid-type 'valid-typeo 'categories-subo 'predicates-subo))
 
 (test "valid-1"
-  (run* (q) (valid-typeo "pathway" "regulates" "disease"))
+  (run* (q)
+    (fresh (a b)
+      (valid-typeo a "regulates" b)
+      (categories-subo "pathway" a)
+      (categories-subo "disease" b)))
   '((_.0)))
 
 (test "valid-2"
   (run* (q p) (valid-typeo q "homologous to" p))
-  '(((_.0 _.1))))
+  '((("named thing" "named thing"))))
 
 (test "valid-sub-1"
   (run* (s v o)
     (predicates-subo v "homologous to")
     (valid-typeo s v o))
-  '(((_.0 "homologous to" _.1))
-    ((_.0 "paralogous to" _.1))
-    ((_.0 "orthologous to" _.1))
-    ((_.0 "xenologous to" _.1))))
+  '((("named thing" "homologous to" "named thing"))
+    (("named thing" "paralogous to" "named thing"))
+    (("named thing" "orthologous to" "named thing"))
+    (("named thing" "xenologous to" "named thing"))))
 
 (test "valid-sub-2"
   (run* (s v o)
     (predicates-subo "homologous to" v)
     (valid-typeo s v o))
-  '(((_.0 "homologous to" _.1))
+  '((("named thing" "homologous to" "named thing"))
     (("named thing" "related to" "named thing"))))
 
 (test "valid-sub-3"
@@ -181,10 +193,11 @@
 ;;; q and p should both be "named thing",
 ;;; since "homologous to" is_a "related to",
 ;;; which has actual domain and range
+;;; now OK!
 (test "broken-1"
   (run* (q p)
     (valid-typeo q "homologous to" p))
-  '(((_.0 _.1))))
+  '((("named thing" "named thing"))))
 
 ;;; Okay
 (test "broken-2"
@@ -208,12 +221,13 @@
 
 ;;; Broken!
 ;;; ((_.0 _.1)) is bogus, since we want only the single most specific type.
+;;; now better!
 (test "broken-5"
   (run* (q p)
     (fresh (r)
       (predicates-subo "homologous to" r)
       (valid-typeo q r p)))
-  '(((_.0 _.1))
+  '((("named thing" "named thing"))
     (("named thing" "named thing"))))
 
 
