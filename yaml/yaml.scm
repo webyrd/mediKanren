@@ -216,9 +216,9 @@
   '(((_.0 _.1))
     (("named thing" "named thing"))))
 
+#!eof
 
 ;;; Tricky case from Chris Mungall:
-#|
 gene_to_gene_association
    is_a association
    defining_slots [ subject : gene
@@ -237,4 +237,11 @@ protein_coding_gene is_a gene
 =>  (implies)
 
 gene_to_gene_association(x)
-|#
+
+
+
+(test "Chris-1"
+  (run* (pred)
+    (most-specific-predo "protein coding gene" "association" "protein coding gene" pred))
+  '((("gene to gene association"))))
+
