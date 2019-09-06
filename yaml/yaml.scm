@@ -215,3 +215,26 @@
       (valid-typeo q r p)))
   '(((_.0 _.1))
     (("named thing" "named thing"))))
+
+
+;;; Tricky case from Chris Mungall:
+#|
+gene_to_gene_association
+   is_a association
+   defining_slots [ subject : gene
+                    object : gene ]
+   slot_usage [ subject.range = gene
+                object.range = gene ]
+
+
+
+x = association
+x.subject = protein_coding_gene
+x.object = protein_coding_gene
+
+protein_coding_gene is_a gene
+
+=>  (implies)
+
+gene_to_gene_association(x)
+|#
