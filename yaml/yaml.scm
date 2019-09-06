@@ -198,3 +198,11 @@
 (test "broken-4"
   (run* (q) (categories-subo "named thing" q))
   '(("named thing")))
+
+(test "broken-5"
+  (run* (q p)
+    (fresh (r)
+      (predicates-subo "homologous to" r)
+      (valid-typeo q r p)))
+  '(((_.0 _.1))
+    (("named thing" "named thing"))))
