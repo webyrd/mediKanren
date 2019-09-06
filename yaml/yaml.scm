@@ -191,6 +191,17 @@
 (eval (mk-slot-table 'categories-subjecto "subject"))
 (eval (mk-slot-table 'categories-objecto "object"))
 
+(test "slot-challenge-0"
+  (run* (b)
+    (categories-subo "protein" b))
+  '(("protein")
+    ("gene product")
+    ("gene or gene product")
+    ("macromolecular machine")
+    ("genomic entity")
+    ("molecular entity")
+    ("biological entity")
+    ("named thing")))
 
 (test "slot-challenge-1"
   (run 1 (a b)
