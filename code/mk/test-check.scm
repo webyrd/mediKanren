@@ -6,5 +6,5 @@
        (let* ((expected expected-result)
               (produced tested-expression))
          (or (equal? expected produced)
-             (printf "Failed: ~a~%Expected: ~a~%Computed: ~a~%"
+             (printf "Failed: ~s\nExpected: ~s\nComputed: ~s\n"
                      'tested-expression expected produced)))))))
