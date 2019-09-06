@@ -22,6 +22,9 @@
 (define categories-is-a (rel "classes" "is_a"))
 (define categories-subs (refl-trans-closure categories-is-a))
 
+(define categories-slots (filter (lambda (x) (cdr x)) (rel "classes" "slots")))
+(define categories-slot_usage (filter (lambda (x) (cdr x)) (rel "classes" "slot_usage")))
+
 (define predicates-is-a (rel "slots" "is_a"))
 (define predicates-subs (refl-trans-closure predicates-is-a))
 
@@ -167,7 +170,66 @@
   '(("gene to gene association")
     ("association")))
 
+(assoc "range" (cdr (assoc "subject" (cdr (assoc "gene to gene association" categories-slot_usage)))))
 
+(define (mk-slot-table name slot)
+  `(define (,name category slot)
+     (conde
+       ,@(filter (lambda (x) x)
+                 (map
+                  (lambda (c)
+                    (let ((s (assoc slot (cdr c))))
+                      (if s
+                          (let ((r (assoc "range" (cdr s))))
+                            (if r
+                                `((== category ,(car c))
+                                  (== slot ,(cdr r)))
+                                #f))
+                          #f)))
+                  categories-slot_usage)))))
+
+(eval (mk-slot-table 'categories-subjecto "subject"))
+(eval (mk-slot-table 'categories-objecto "object"))
+
+
+(test "slot-challenge-1"
+  (run 1 (a b)
+    (categories-subo a "association")
+    (categories-subo "protein" b)
+    (categories-subjecto a b))
+  '((("gene to gene association" "gene or gene product"))))
+
+(test "slot-challenge-2"
+  (run 1 (a b)
+    (categories-subo a "association")
+    (categories-subo "protein" b)
+    (categories-objecto a b))
+  '((("gene to gene association" "gene or gene product"))))
+
+(define (specific-predo s1 v1 o1 s2 v2 o2)
+  (fresh ()
+    (categories-subo v2 v1)
+    (categories-subjecto v2 s2)
+    (categories-objecto v2 o2)
+    (categories-subo s1 s2)
+    (categories-subo o1 o2)))
+
+(test "slot-challenge-3"
+  (run 1 (a b c)
+    (specific-predo "protein" "association" "protein" a b c))
+  '((("gene or gene product"
+      "gene to gene association"
+      "gene or gene product"))))
+
+(test "slot-challenge-4"
+  (run* (b)
+    (fresh (a c)
+      (specific-predo "protein" "association" "protein" a b c)))
+  '(("gene to gene association")
+    ("pairwise interaction association")
+    ("genomic sequence localization")
+    ("sequence feature relationship")
+    ("gene regulatory relationship")))
 
 ;;; "homologous to" should inherit the range and domain
 ;;;
@@ -258,4 +320,3 @@ gene_to_gene_association(x)
   (run* (pred)
     (most-specific-predo "protein coding gene" "association" "protein coding gene" pred))
   '((("gene to gene association"))))
-
