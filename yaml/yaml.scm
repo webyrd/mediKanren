@@ -1,3 +1,12 @@
+#|
+
+TODOs
+
+* handle 'abstract' or 'mixin' associations -- mixin and abstract classes can never be instantiated!
+
+|#
+
+
 (load "biolink-model.scm")
 (define model biolink-model)
 
@@ -337,10 +346,11 @@
   (run* (a b c)
     (specific-predo "protein" "association" "protein" a b c))
   '((("gene or gene product" "gene to gene association" "gene or gene product"))
-    (("molecular entity" "pairwise interaction association" "molecular entity"))
+    (("molecular entity" "pairwise interaction association" "molecular entity")) ;; abstract!  shouldn't exist
     (("genomic entity" "genomic sequence localization" "genomic entity"))
     (("genomic entity" "sequence feature relationship" "genomic entity"))
-    (("gene or gene product" "gene regulatory relationship" "gene or gene product"))))
+    (("gene or gene product" "gene regulatory relationship" "gene or gene product")) ;; does this association apply for a protein?
+    ))
 
 
 ;;; "homologous to" should inherit the range and domain
