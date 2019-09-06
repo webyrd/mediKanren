@@ -48,12 +48,21 @@
                             ,@(map (lambda (c) `((== u ,c))) cs))))
               subs))))
 
+(define (mk-=/=-sub name subs)
+  `(define (,name s u)
+     (conde
+       ,@(map (lambda (cs) (cons `(== s ,(car cs))
+                            (map (lambda (c) `(=/= u ,c)) cs)))
+              subs))))
+
 (load "../code/mk/mk.scm")
 (load "../code/mk/test-check.scm")
 (eval (mk-sub 'categories-subo categories-subs))
 (eval (mk-sub 'predicates-subo predicates-subs))
 (eval (mk-sub 'complement-categories-subo complement-categories-subs))
 (eval (mk-sub 'complement-predicates-subo complement-predicates-subs))
+(eval (mk-=/=-sub 'not-categories-subo categories-subs))
+(eval (mk-=/=-sub 'not-predicates-subo predicates-subs))
 
 (test "sub-1"
   (run* (q) (categories-subo q "pathway"))
@@ -61,6 +70,18 @@
 (test "complement-sub-1"
   (length (run* (q) (complement-categories-subo q "pathway")))
   153)
+(test "complement-sub-1b"
+  (length (run* (q) (complement-categories-subo "pathway" q)))
+  149)
+(test "not-sub-1"
+  (length (run* (q) (not-categories-subo q "pathway")))
+  151)
+(test "not-sub-1b"
+  (run* (q) (not-categories-subo "pathway" q))
+  '((_.0 (=/= ((_.0 "biological entity"))
+           ((_.0 "biological process or activity"))
+           ((_.0 "biological process")) ((_.0 "named thing"))
+           ((_.0 "pathway"))))))
 (test "sub-2"
   (run* (q) (categories-subo q "gene or gene product"))
   '(("gene or gene product")
