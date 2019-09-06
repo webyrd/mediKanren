@@ -260,6 +260,40 @@
     ("anatomical entity to anatomical entity part of association")
     ("anatomical entity to anatomical entity ontogenic association")))
 
+(test "slot-challenge-0c"
+  (run* (b)
+    (categories-subjecto "gene to gene association" b))
+  '(("gene or gene product")))
+
+(test "slot-challenge-0d"
+  (run* (a)
+    (categories-subjecto a "gene or gene product"))
+  '(("gene to gene association")
+    ("gene to thing association")
+    ("gene to phenotypic feature association")
+    ("gene to disease association")
+    ("gene as a model of disease association")
+    ("gene has variant that contributes to disease association")
+    ("gene to expression site association")
+    ("gene regulatory relationship")))
+
+(test "slot-challenge-0e"
+  (run* (a)
+    (categories-objecto a "gene or gene product"))
+  '(("gene to gene association")
+    ("chemical to gene association")
+    ("gene regulatory relationship")))
+
+(test "slot-challenge-0f"
+  (run* (q)
+    (fresh (a)
+      (conde
+        ((categories-subjecto "chemical to gene association" a)
+         (== `(categories-subjecto ,a) q))
+        ((categories-objecto "chemical to gene association" a)
+         (== `(categories-objecto ,a) q)))))
+  '(((categories-objecto "gene or gene product"))))
+
 (test "slot-challenge-1"
   (run 1 (a b)
     (categories-subo a "association")
