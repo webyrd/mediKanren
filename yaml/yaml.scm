@@ -154,3 +154,47 @@
       (categories-subo x q)))
   '(("gene to gene association")
     ("association")))
+
+
+
+;;; "homologous to" should inherit the range and domain
+;;;
+;;; "homologous to" "is_a" "related to"
+;;;
+;;; related to
+;;;
+;;; (
+;;;   "domain"
+;;;   . "named thing"
+;;; )
+;;; (
+;;;   "range"
+;;;   . "named thing"
+;;; )
+;;; (
+;;;   "multivalued"
+;;;   . #t
+;;; )
+
+
+(test "broken-1"
+  (run* (q p)
+    (valid-typeo q "homologous to" p))
+  '(((_.0 _.1))))
+
+(test "broken-2"
+  (run* (q)
+    (fresh (pred)
+      (== "homologous to" pred)
+      (=/= pred q)
+      (predicates-subo pred q)))
+  '(("related to")))
+
+(test "broken-3"
+  (run* (x y)
+    (valid-typeo x "related to" y))
+  '((("named thing" "named thing"))))
+
+(test "broken-4"
+  (run* (q) (categories-subo "named thing" q))
+  '(("named thing")))
