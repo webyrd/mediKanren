@@ -133,8 +133,8 @@
     (== "molecularly interacts with" v)
     (valid-typeo s v o))
   '((("molecular entity"
-    "molecularly interacts with"
-    "molecular entity"))))
+      "molecularly interacts with"
+      "molecular entity"))))
 
 (test "valid-sub-4"
   (length (run* (s v o o1)
@@ -332,6 +332,16 @@
     ("genomic sequence localization")
     ("sequence feature relationship")
     ("gene regulatory relationship")))
+
+(test "slot-challenge-5"
+  (run* (a b c)
+    (specific-predo "protein" "association" "protein" a b c))
+  '((("gene or gene product" "gene to gene association" "gene or gene product"))
+    (("molecular entity" "pairwise interaction association" "molecular entity"))
+    (("genomic entity" "genomic sequence localization" "genomic entity"))
+    (("genomic entity" "sequence feature relationship" "genomic entity"))
+    (("gene or gene product" "gene regulatory relationship" "gene or gene product"))))
+
 
 ;;; "homologous to" should inherit the range and domain
 ;;;
