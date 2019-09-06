@@ -18,15 +18,23 @@
               '()))))
 (define (refl-trans-closure r)
   (map (lambda (p) (chain (car p) r)) r))
+(define (complement w r)
+  (if (null? r) w (complement (remove (car r) w) (cdr r))))
+(define (r-complement w r)
+  (map (lambda (p) (cons (car p) (complement w (cdr p)))) r))
 
+(define categories (cat "classes"))
 (define categories-is-a (rel "classes" "is_a"))
 (define categories-subs (refl-trans-closure categories-is-a))
+(define complement-categories-subs (r-complement categories categories-subs))
 
 (define categories-slots (filter (lambda (x) (cdr x)) (rel "classes" "slots")))
 (define categories-slot_usage (filter (lambda (x) (cdr x)) (rel "classes" "slot_usage")))
 
+(define predicates (cat "slots"))
 (define predicates-is-a (rel "slots" "is_a"))
 (define predicates-subs (refl-trans-closure predicates-is-a))
+(define complement-predicates-subs (r-complement predicates predicates-subs))
 
 (define predicates-domain (rel "slots" "domain"))
 
@@ -44,10 +52,15 @@
 (load "../code/mk/test-check.scm")
 (eval (mk-sub 'categories-subo categories-subs))
 (eval (mk-sub 'predicates-subo predicates-subs))
+(eval (mk-sub 'complement-categories-subo complement-categories-subs))
+(eval (mk-sub 'complement-predicates-subo complement-predicates-subs))
 
 (test "sub-1"
   (run* (q) (categories-subo q "pathway"))
   '(("pathway")))
+(test "complement-sub-1"
+  (length (run* (q) (complement-categories-subo q "pathway")))
+  153)
 (test "sub-2"
   (run* (q) (categories-subo q "gene or gene product"))
   '(("gene or gene product")
