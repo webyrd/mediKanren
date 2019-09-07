@@ -25,6 +25,8 @@
 
 (define categories (cat "classes"))
 (define categories-is-a (rel "classes" "is_a"))
+(define categories-mixin (rel "classes" "mixin"))
+(define categories-abstract (rel "classes" "abstract"))
 (define categories-subs (refl-trans-closure categories-is-a))
 (define complement-categories-subs (r-complement categories categories-subs))
 
@@ -33,6 +35,8 @@
 
 (define predicates (cat "slots"))
 (define predicates-is-a (rel "slots" "is_a"))
+(define predicates-mixin (rel "slots" "mixin"))
+(define predicates-abstract (rel "slots" "abstract"))
 (define predicates-subs (refl-trans-closure predicates-is-a))
 (define complement-predicates-subs (r-complement predicates predicates-subs))
 
@@ -55,6 +59,13 @@
                             (map (lambda (c) `(=/= u ,c)) cs)))
               subs))))
 
+(define (mk-pred name r)
+  `(define (,name s u)
+     (conde
+       ,@(map (lambda (cs) `((== s ,(car cs))
+                        (== u ,(cdr cs))))
+              r))))
+
 (load "../code/mk/mk.scm")
 (load "../code/mk/test-check.scm")
 (eval (mk-sub 'categories-subo categories-subs))
@@ -63,6 +74,10 @@
 (eval (mk-sub 'complement-predicates-subo complement-predicates-subs))
 (eval (mk-=/=-sub 'not-categories-subo categories-subs))
 (eval (mk-=/=-sub 'not-predicates-subo predicates-subs))
+(eval (mk-pred 'categories-mixino categories-mixin))
+(eval (mk-pred 'categories-abstracto categories-abstract))
+(eval (mk-pred 'predicates-mixino predicates-mixin))
+(eval (mk-pred 'predicates-abstracto predicates-abstract))
 
 (test "sub-1"
   (run* (q) (categories-subo q "pathway"))
@@ -372,6 +387,17 @@
     (specific-predo "protein" "association" "protein" a b c))
   '((("gene or gene product" "gene to gene association" "gene or gene product"))
     (("molecular entity" "pairwise interaction association" "molecular entity"))
+    (("genomic entity" "genomic sequence localization" "genomic entity"))
+    (("genomic entity" "sequence feature relationship" "genomic entity"))
+    (("gene or gene product" "gene regulatory relationship" "gene or gene product"))))
+
+(test "slot-challenge-6"
+  (run* (a b c)
+    (specific-predo "protein" "association" "protein" a b c)
+    (categories-mixino a #f)
+    (categories-mixino b #f)
+    (categories-mixino c #f))
+  '((("gene or gene product" "gene to gene association" "gene or gene product"))
     (("genomic entity" "genomic sequence localization" "genomic entity"))
     (("genomic entity" "sequence feature relationship" "genomic entity"))
     (("gene or gene product" "gene regulatory relationship" "gene or gene product"))))
