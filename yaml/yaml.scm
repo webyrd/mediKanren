@@ -8,12 +8,15 @@
   (map (lambda (c) (cons (car c)
                     (let ((p (assoc l2 (cdr c))))
                       (if p (cdr p) #f))))
-       (cdr (assoc l1 model))))
+       (filter (lambda (c) (not
+                       (let ((p (assoc "mixin" (cdr c))))
+                         (if p (cdr p) #f))))
+               (cdr (assoc l1 model)))))
 
 (define (chain k r)
   (cons k
         (let ((p (assoc k r)))
-          (if (cdr p)
+          (if (and p (cdr p))
               (chain (cdr p) r)
               '()))))
 (define (refl-trans-closure r)
@@ -25,7 +28,7 @@
 
 (define categories (cat "classes"))
 (define categories-is-a (rel "classes" "is_a"))
-(define categories-mixin (rel "classes" "mixin"))
+;;(define categories-mixin (rel "classes" "mixin"))
 (define categories-abstract (rel "classes" "abstract"))
 (define categories-subs (refl-trans-closure categories-is-a))
 ;;(define complement-categories-subs (r-complement categories categories-subs))
@@ -35,7 +38,7 @@
 
 (define predicates (cat "slots"))
 (define predicates-is-a (rel "slots" "is_a"))
-(define predicates-mixin (rel "slots" "mixin"))
+;;(define predicates-mixin (rel "slots" "mixin"))
 (define predicates-abstract (rel "slots" "abstract"))
 (define predicates-subs (refl-trans-closure predicates-is-a))
 ;;(define complement-predicates-subs (r-complement predicates predicates-subs))
@@ -74,9 +77,9 @@
 ;;(eval (mk-sub 'complement-predicates-subo complement-predicates-subs))
 (eval (mk-=/=-sub 'not-categories-subo categories-subs))
 (eval (mk-=/=-sub 'not-predicates-subo predicates-subs))
-(eval (mk-pred 'categories-mixino categories-mixin))
+;;(eval (mk-pred 'categories-mixino categories-mixin))
 (eval (mk-pred 'categories-abstracto categories-abstract))
-(eval (mk-pred 'predicates-mixino predicates-mixin))
+;;(eval (mk-pred 'predicates-mixino predicates-mixin))
 (eval (mk-pred 'predicates-abstracto predicates-abstract))
 
 (test "sub-1"
@@ -261,7 +264,6 @@
     ("genotype to variant association")
     ("gene to gene association")
     ("gene to gene homology association")
-    ("pairwise interaction association")
     ("pairwise gene to gene interaction")
     ("cell line to thing association")
     ("cell line to disease or phenotypic feature association")
@@ -282,7 +284,6 @@
     ("disease to phenotypic feature association")
     ("case to phenotypic feature association")
     ("gene to thing association")
-    ("variant to thing association")
     ("gene to phenotypic feature association")
     ("gene to disease association")
     ("variant to population association")
@@ -377,7 +378,6 @@
     (fresh (a c)
       (specific-predo "protein" "association" "protein" a b c)))
   '(("gene to gene association")
-    ("pairwise interaction association")
     ("genomic sequence localization")
     ("sequence feature relationship")
     ("gene regulatory relationship")))
@@ -386,22 +386,9 @@
   (run* (a b c)
     (specific-predo "protein" "association" "protein" a b c))
   '((("gene or gene product" "gene to gene association" "gene or gene product"))
-    (("molecular entity" "pairwise interaction association" "molecular entity"))
     (("genomic entity" "genomic sequence localization" "genomic entity"))
     (("genomic entity" "sequence feature relationship" "genomic entity"))
     (("gene or gene product" "gene regulatory relationship" "gene or gene product"))))
-
-(test "slot-challenge-6"
-  (run* (a b c)
-    (specific-predo "protein" "association" "protein" a b c)
-    (categories-mixino a #f)
-    (categories-mixino b #f)
-    (categories-mixino c #f))
-  '((("gene or gene product" "gene to gene association" "gene or gene product"))
-    (("genomic entity" "genomic sequence localization" "genomic entity"))
-    (("genomic entity" "sequence feature relationship" "genomic entity"))
-    (("gene or gene product" "gene regulatory relationship" "gene or gene product"))))
-
 
 ;;; "homologous to" should inherit the range and domain
 ;;;
