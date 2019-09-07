@@ -37,7 +37,7 @@ TODOs
 (define categories-mixin (rel "classes" "mixin"))
 (define categories-abstract (rel "classes" "abstract"))
 (define categories-subs (refl-trans-closure categories-is-a))
-(define complement-categories-subs (r-complement categories categories-subs))
+;;(define complement-categories-subs (r-complement categories categories-subs))
 
 (define categories-slots (filter (lambda (x) (cdr x)) (rel "classes" "slots")))
 (define categories-slot_usage (filter (lambda (x) (cdr x)) (rel "classes" "slot_usage")))
@@ -47,7 +47,7 @@ TODOs
 (define predicates-mixin (rel "slots" "mixin"))
 (define predicates-abstract (rel "slots" "abstract"))
 (define predicates-subs (refl-trans-closure predicates-is-a))
-(define complement-predicates-subs (r-complement predicates predicates-subs))
+;;(define complement-predicates-subs (r-complement predicates predicates-subs))
 
 (define predicates-domain (rel "slots" "domain"))
 
@@ -79,8 +79,8 @@ TODOs
 (load "../code/mk/test-check.scm")
 (eval (mk-sub 'categories-subo categories-subs))
 (eval (mk-sub 'predicates-subo predicates-subs))
-(eval (mk-sub 'complement-categories-subo complement-categories-subs))
-(eval (mk-sub 'complement-predicates-subo complement-predicates-subs))
+;;(eval (mk-sub 'complement-categories-subo complement-categories-subs))
+;;(eval (mk-sub 'complement-predicates-subo complement-predicates-subs))
 (eval (mk-=/=-sub 'not-categories-subo categories-subs))
 (eval (mk-=/=-sub 'not-predicates-subo predicates-subs))
 (eval (mk-pred 'categories-mixino categories-mixin))
@@ -91,12 +91,12 @@ TODOs
 (test "sub-1"
   (run* (q) (categories-subo q "pathway"))
   '(("pathway")))
-(test "complement-sub-1"
-  (length (run* (q) (complement-categories-subo q "pathway")))
-  153)
-(test "complement-sub-1b"
-  (length (run* (q) (complement-categories-subo "pathway" q)))
-  149)
+;; (test "complement-sub-1"
+;;   (length (run* (q) (complement-categories-subo q "pathway")))
+;;   153)
+;; (test "complement-sub-1b"
+;;   (length (run* (q) (complement-categories-subo "pathway" q)))
+;;   149)
 (test "not-sub-1"
   (length (run* (q) (not-categories-subo q "pathway")))
   151)
