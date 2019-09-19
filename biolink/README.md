@@ -79,3 +79,81 @@ Within racket, running this should produce sensible results:
   * web client corresponding to GUI
 
 * try automatic goal reordering based on cardinality statistics
+
+
+### bottom-up explorer and graph builder ideas
+* organization
+  * all work persistsed in a single environment/repo/version-DAG
+  * workspaces: can have multiple pointers/views/HEADs into the environment
+    * expressed as separate workspaces/tabs/splits to support concurrent
+      activities
+      * not a perfect analogy since you might want multiple visual windows
+        into the same workspace for UI convenience
+    * manipulating multiple workspaces is analogous to branching
+      * opening a new empty workspace is analogous to creating a new branch
+        at the (empty) "initial commit"
+  * while "branches" are mutable in the sense that they update/repoint as
+    manipulations are performed, data itself is stateless/versionless: may
+    copy/reference data across worksapces
+  * environment is version-controlled at two levels
+    * fine-grained event log recording all user manipulations automatically
+      * raw diffs: show true manipulation history
+      * algebraically simplified diffs: show only effective manipulations
+        * if user flips back and forth between two states, cancel them out
+      * filtered diffs (raw or simplified): only show manipulations relevant
+        to a subset of workspace components
+    * course-grained commits/tags/bookmarks that the user explicitly creates
+    * support rebase/merge/cherry-picking, with optional component filtering
+
+* data
+  * concept sets
+    * start with universe or union/intersection/difference of other sets
+    * filter if a text search query is given
+    * filter if known category
+    * filter if constrained as source/target with given predicates/relations
+    * filter by user selections
+  * predicate/relation sets (e.g., increases, decreases)
+    * start with universe or union/intersection/difference of other sets
+    * filter if a text search query is given
+    * filter if known parent class(es)
+    * filter if constrained by given source/target concepts
+    * filter by user selections
+  * graphs
+    * concept nodes and predicate/relation edges
+      * metadata: unique ID, optional name, UI, or visualization preferences
+      * underlying concept/predicate/relation set computation
+    * subgraphs
+      * metadata
+      * collection of nodes and edges
+      * may compute as union/intersection/difference of other subgraphs
+
+* basic graph building manipulations
+  * update node/edge metadata
+    * node/edge attributes, UI position, other preferences
+  * create new node/edge
+  * duplicate subgraph
+    * alpha rename components (maintain unique ID invariant)
+    * retain dependencies on external component
+      * i.e., computations and constraints
+    * create new internal dependencies that preserve relationships between
+      subgraph components
+  * connect nodes and edges
+  * add/remove node/edge constraints
+    * choose a set of categories/relation-classes
+    * compute any union/intersection/difference operations
+    * search for text (across name, CURIE, description, etc.)
+    * manually select entries from a list
+
+* more advanced graph building manipulation ideas
+  * multi-hop path-finding between concepts, discovering concepts in between
+  * concept discovery/introduction prioritized via relevance to a background
+    context
+    * background context specified with concept sets
+    * introduced concepts prioritized by the presence of more/better
+      connections to context concepts
+
+* UI
+  * a text-based interface usable from the command-line
+    * workspace could be a directory structure of subgraphs
+  * a (web-based?) graphical interface
+    * clicking/dragging and spatial visualization
