@@ -58,6 +58,9 @@ Within racket, running this should produce sensible results:
   * move library and data processing code to a new subdirectory
   * move tests and examples into their own subdirectories
 
+* support data sources with more categories and/or predicates
+  * add additional byte in edge representation
+
 * map Robokop pubmed ids to edge ids
 * index edges by predicate
 * index concepts by CUI, including synonyms
