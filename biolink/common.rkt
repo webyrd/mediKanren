@@ -11,6 +11,7 @@
   ~cui-concepto
   ~categoryo
   ~predicateo
+  concepto
   edgeo
   pmid-edgeo
   subject-predicateo
@@ -153,6 +154,13 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
     (lambda (dbname db)
       (fresh (c) (== `(,dbname . ,c) concept)
         (db:~cui-concepto db ~cui c)))))
+(define (concepto concept)
+  (conde/databases
+    (lambda (dbname db)
+      (fresh (c)
+        (== `(,dbname . ,c) concept)
+        (db:concepto db c)))))
+
 (define (~categoryo ~category-name category)
   (conde/databases
     (lambda (dbname db)
