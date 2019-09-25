@@ -17,6 +17,11 @@
   edge->bytes
   bytes->edge
 
+  string-key->bytes
+  bytes->string-key
+  write-string-keys
+  port->string-keys
+
   suffix-key->bytes
   bytes->suffix-key
   write-suffix-keys
@@ -74,6 +79,21 @@
           (+ (bref-to 2 16) (bref-to 3 8) (bref-to 4 0))
           (+ (bref-to 5 24) (bref-to 6 16) (bref-to 7 8) (bref-to 8 0))))
 (define (read-edge-bytes in) (read-bytes edge-byte-size in))
+
+(define string-key-byte-size 4)
+(define (string-key->bytes cid)
+  (bytes (byte-at -24 cid) (byte-at -16 cid) (byte-at -8 cid) (byte-at 0 cid)))
+(define (bytes->string-key bs)
+  (define (bref-to pos offset) (arithmetic-shift (bytes-ref bs pos) offset))
+  (+ (bref-to 0 24) (bref-to 1 16) (bref-to 2 8) (bref-to 3 0)))
+(define (read-string-key-bytes in) (read-bytes string-key-byte-size in))
+(define (write-string-keys out v)
+  (for ((s (in-vector v))) (write-bytes (string-key->bytes s) out)))
+(define (port->string-keys in)
+  (define end (begin (file-position in eof) (file-position in)))
+  (file-position in 0)
+  (for/vector ((_ (in-range (/ end string-key-byte-size))))
+              (bytes->string-key (read-string-key-bytes in))))
 
 (define suffix-key-byte-size (+ 4 2))
 (define (suffix-key->bytes s)
