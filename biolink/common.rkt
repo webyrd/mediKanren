@@ -3,6 +3,7 @@
   find-concepts
   find-predicates/concepts
   find-Xs
+  find-graph
 
   membero
 
@@ -23,7 +24,7 @@
   sort-paths
 
   get-pred-names
-  
+
   databases
   load-databases
   conde/databases
@@ -32,6 +33,7 @@
   config-ref
   load-config
 
+  keep
   read/file
   read/string
 
@@ -42,13 +44,20 @@
   path:root)
 
 (require
+  "db.rkt"
   "mk-db.rkt"
+  "repr.rkt"
   racket/format
   racket/list
   (except-in racket/match ==)
   racket/runtime-path
-  racket/port)
+  racket/port
+  racket/set
+  racket/stream)
 
+(define (keep n xs)
+  (if (or (and n (= n 0)) (null? xs)) '()
+    (cons (car xs) (keep (and n (- n 1)) (cdr xs)))))
 (define (read/file path)  (with-input-from-file  path (lambda () (read))))
 (define (read/string str) (with-input-from-string str (lambda () (read))))
 
@@ -350,3 +359,132 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
   (if (and subject-edges? object-edges?)
     (groups-intersect subject-edges? object-edges?)
     (groups-flatten (or subject-edges? object-edges?))))
+
+(define (find-graph concept=>set concept=>cx predicate=>cx edges)
+  (define-syntax-rule (set!/combine hash-name key value default combine)
+                      (let* ((current (hash-ref hash-name key default))
+                             (new (if current (combine current value) value)))
+                        (set! hash-name (hash-set hash-name key new))
+                        (and (not (equal? current new)) new)))
+  (define-syntax-rule (set!/add hash-name key value)
+                      (set!/combine hash-name key value (set) set-add))
+  (define-syntax-rule (set!/intersect hash-name key value)
+                      (set!/combine hash-name key value #f set-intersect))
+  (define edge=>set      (hash))
+  (define concept=>edges (hash))
+  (define (concept->set   name) (hash-ref concept=>set   name #f))
+  (define (concept->cx    name) (hash-ref concept=>cx    name #f))
+  (define (predicate->cx  name) (hash-ref predicate=>cx  name #f))
+  (define (edge->set      name) (hash-ref edge=>set      name #f))
+  (define (concept->edges name) (hash-ref concept=>edges name (set)))
+
+  (define (?min x y) (or (and x (or (and y (min (set-count x) (set-count y)))
+                                    (set-count x)))
+                         (and y (set-count y))))
+  (define (?< x y)   (or (and x y (< x y)) x))
+  (define/match (edge<? e1 e2)
+    ((`(,s1 ,p1 ,o1) `(,s2 ,p2 ,o2))
+     (define min1 (?min (concept->set s1) (concept->set o1)))
+     (define min2 (?min (concept->set s2) (concept->set o2)))
+     (or (?< min1 min2)
+         (and (not (?< min2 min1))
+              (let ((min1 (?min (concept->cx s1) (concept->cx o1)))
+                    (min2 (?min (concept->cx s2) (concept->cx o2))))
+                (or (?< min1 min2)
+                    (and (not ?< min2 min1)
+                         (let ((pcx1 (predicate->cx p1))
+                               (pcx2 (predicate->cx p2)))
+                           (?< (and pcx1 (set-count pcx1))
+                               (and pcx2 (set-count pcx2)))))))))))
+
+  (define (update-edge! e s o id-edges)
+    (define enew? (set!/intersect edge=>set e id-edges))
+    (when enew?
+      (define id-subjects
+        (set-map (match-lambda ((list dbname iedge isubject iobject)
+                                (cons dbname isubject)))
+                 enew?))
+      (define id-objects
+        (set-map (match-lambda ((list dbname iedge isubject iobject)
+                                (cons dbname iobject)))
+                 enew?))
+      (define snew? (set!/intersect concept=>set s id-subjects))
+      (define onew? (set!/intersect concept=>set o id-objects))
+      (define (propagate! c cnew?)
+        (when cnew?
+          (set-for-each
+            (match-lambda ((list ename sname oname)
+                           (constrain-edge! ename sname oname)))
+            (concept->edges c))))
+      (propagate! s snew?)
+      (propagate! o onew?)))
+  (define (constrain-edge! e s o)
+    (define sids (concept->set s))
+    (define oids (concept->set o))
+    (define id-edges
+      (list->set (filter (match-lambda
+                           ((list dbname iedge isubject iobject)
+                            (and (set-member? sids (cons dbname isubject))
+                                 (set-member? oids (cons dbname iobject)))))
+                         (set->list (edge->set e)))))
+    (update-edge! e s o id-edges))
+
+  (let loop ((pending edges))
+    (unless (null? pending)
+      (define edges (sort pending edge<?))
+      (define edge (car edges))
+      (match-define `(,e ,s ,o) edge)
+      (set!/add concept=>edges s edge)
+      (set!/add concept=>edges o edge)
+      (define ss  (concept->set s))
+      (define os  (concept->set o))
+      ;; TODO: improve these constraints when adjacent concepts are available.
+      (define pcx (predicate->cx e))
+      (define (find-edges/db db stream-edges srcs pids cats dsts)
+        (define srcids
+          (sort
+            (if srcs srcs
+              (run* (src)
+                (fresh (src cui cname catid catname cprops)
+                  (if cats (membero catid cats) (== #t #t))
+                  (db:concepto
+                    db `(,src ,cui ,cname (,catid . ,catname) ,cprops)))))
+            <))
+        (define (src->eids src)
+          (define (stream/pid pid)
+            (cond (dsts (append* (map (lambda (dst)
+                                        (stream->list
+                                          (stream-edges src pid #f dst)))
+                                      dsts)))
+                  (cats (append* (map (lambda (cat)
+                                        (stream->list
+                                          (stream-edges src pid cat #f)))
+                                      cats)))
+                  (else (stream->list (stream-edges src pid #f #f)))))
+          (if pids (append* (map stream/pid pids)) (stream/pid #f)))
+        (map (lambda (eid)
+               (define e/p (db:eid->edge db eid))
+               (list eid (edge/props-subject e/p) (edge/props-object e/p)))
+             (append* (map src->eids srcids))))
+      (define (find-edges stream-edges/db srcs cats dsts)
+        (map (lambda (dbdesc)
+               (define dbname (car dbdesc))
+               (define db     (cdr dbdesc))
+               (define (filter/db xs)
+                 (map cdr (filter (lambda (? x) (equal? dbname (car x))) xs)))
+               (map (lambda (e) (cons dbname e))
+                    (find-edges/db db (stream-edges/db db)
+                                   (and srcs (filter/db (set->list srcs)))
+                                   (and pcx  (filter/db (set->list pcx)))
+                                   (and cats (filter/db (set->list cats)))
+                                   (and dsts (filter/db (set->list dsts))))))
+             (databases)))
+      (define id-edges
+        (if (and os (= (set-count os) (?min ss os)))
+          (find-edges db:object->edge-stream os (concept->cx s) ss)
+          (find-edges db:subject->edge-stream ss (concept->cx o) os)))
+      (update-edge! e s o (list->set id-edges))
+      (loop (cdr edges))))
+  (cons concept=>set edge=>set))
+
+;; TODO: run/graph
