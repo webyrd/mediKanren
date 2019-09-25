@@ -11,6 +11,7 @@
   db:subject-predicateo
   db:object-predicateo
 
+  db:~cui*-concepto
   db:~cui-concepto
   db:~name-concepto
   db:~predicateo
@@ -45,6 +46,10 @@
           ((== `(,(car i&v) . ,(cdr i&v)) iv))
           ((loop (stream-rest i&v*))))))))
 
+(define (db:~cui*-concepto db ~cui* concept)
+  (project (~cui*)
+    (stream-refo
+      (stream-map (i&v->i&d db) (db:~cui*->cid&concept* db ~cui*)) concept)))
 (define (db:~cui-concepto db ~cui concept)
   (project (~cui)
     (stream-refo

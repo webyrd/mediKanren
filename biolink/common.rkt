@@ -11,6 +11,7 @@
   membero
 
   ~name*-concepto
+  ~cui*-concepto
   ~cui-concepto
   ~categoryo
   ~predicateo
@@ -152,6 +153,11 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
           "" ;; ignored characters ('chars:ignore-typical' is pre-defined)
           "" ;; characters to split target name on for exact matching ('chars:split-typical' is pre-defined)
           db ~name* c)))))
+(define (~cui*-concepto ~cui* concept)
+  (conde/databases
+    (lambda (dbname db)
+      (fresh (c) (== `(,dbname . ,c) concept)
+        (db:~cui*-concepto db ~cui* c)))))
 (define (~cui-concepto ~cui concept)
   (conde/databases
     (lambda (dbname db)
@@ -286,9 +292,11 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
 
 (define (find-concepts subject? object? isa-count via-cui? strings)
   ;; subject? and object? insist that a concept participate in a certain role.
-  ;; TODO: If via-cui? then strings is an OR-list of CUIs to consider.
+  ;; If via-cui? then strings is an OR-list of CUIs to consider.
   ;; Otherwise, strings is an AND-list of fragments the name must contain.
-  (let* ((ans (run* (c) (~name*-concepto strings c)))
+  (let* ((ans (if via-cui?
+                (run* (c) (~cui*-concepto strings c))
+                (run* (c) (~name*-concepto strings c))))
          (isa-ans (remove-duplicates
                     (run isa-count (s/db)
                       (fresh (o/db)
