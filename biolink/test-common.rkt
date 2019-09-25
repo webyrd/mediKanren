@@ -3,6 +3,60 @@
          (all-from-out "common.rkt" "mk-db.rkt"))
 (require "common.rkt" "mk-db.rkt")
 
+(define decreases
+  (find-predicates
+    '("negatively_regulates"
+      "prevents"
+      "treats"
+      "disrupts"
+      "increases_degradation_of"
+      "decreases_activity_of"
+      "decreases_expression_of")))
+
+(define increases
+  (find-predicates
+    '("positively_regulates"
+      "produces"
+      "causes"
+      "causes_condition"
+      "causally_related_to"
+      "contributes_to"
+      "gene_associated_with_condition"
+      "gene_mutations_contribute_to"
+      "decreases_degradation_of"
+      "increases_activity_of"
+      "increases_expression_of")))
+
+(define S (keep 1 (find-concepts #t #f 0 #f (list "imatin"))))
+(define O (keep 1 (find-concepts #f #t 0 #f (list "asthma"))))
+
+(match-define
+  (list name=>concepts name=>edges)
+  (run/graph
+    ((X #f)
+     (S S)
+     (O O))
+
+    ((S->X decreases)
+     (X->O increases))
+
+    (S S->X X X->O O)))
+
+(displayln "concepts by name:")
+(pretty-print name=>concepts)
+(newline)
+(displayln "edges by name:")
+(pretty-print name=>edges)
+(newline)
+
+(define (summary name=>xs)
+  (hash-map name=>xs (lambda (name xs) (cons name (length xs)))))
+(displayln "summary:")
+(pretty-print `((concepts: . ,(summary name=>concepts))
+                (edges:    . ,(summary name=>edges))))
+
+
+;; Old testing of find-Xs
 (define (test-find-Xs)
   (define (decreases? p)
     (member (cddr p) '("negatively_regulates"
@@ -51,94 +105,3 @@
   (newline)
   (displayln 'O-edges:)
   (pretty-print (caddr x-bcr)))
-
-
-(define (predicates/name names)
-  (list->set (map (lambda (p) (cons (car p) (cadr p)))
-                  (run* (p) (fresh (name)
-                              (membero name names)
-                              (~predicateo name p))))))
-
-(define decreases
-  (predicates/name
-    '("negatively_regulates"
-      "prevents"
-      "treats"
-      "disrupts"
-      "increases_degradation_of"
-      "decreases_activity_of"
-      "decreases_expression_of")))
-
-(define increases
-  (predicates/name
-    '("positively_regulates"
-      "produces"
-      "causes"
-      "causes_condition"
-      "causally_related_to"
-      "contributes_to"
-      "gene_associated_with_condition"
-      "gene_mutations_contribute_to"
-      "decreases_degradation_of"
-      "increases_activity_of"
-      "increases_expression_of")))
-
-(define S (keep 1 (find-concepts #t #f 0 #f  (list "imatin"))))
-(define O (keep 1 (find-concepts #f #t 0 #f  (list "asthma"))))
-
-(define concept=>set
-  (make-immutable-hash
-    (map cons '(S O)
-         (map (lambda (c) (set (cons (car c) (cadr c)))) (append S O)))))
-
-(define predicate=>cx
-  (make-immutable-hash
-    (list (cons 'S->X decreases)
-          (cons 'X->O increases))))
-
-(pretty-print concept=>set)
-(pretty-print predicate=>cx)
-
-(match-define (cons concept-sets edge=>set)
-              (find-graph concept=>set (hash) predicate=>cx
-                          '((S->X S X) (X->O X O))))
-
-(define (report-concept c)
-  (define dbname (car c))
-  (define cid (cdr c))
-  (car (run* (concept)
-         (fresh (cui name catid cat props)
-           (== concept `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props))
-           (concepto concept)))))
-(define (report-edge e)
-  (define dbname (car e))
-  (define eid (cadr e))
-  (define scid (caddr e))
-  (define ocid (cadddr e))
-  (car (run* (edge)
-         (fresh (scui sname scatid scat sprops
-                 ocui oname ocatid ocat oprops
-                 pid pred eprops)
-           (== edge `(,dbname ,eid
-                      (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
-                      (,ocid ,ocui ,oname (,ocatid . ,ocat) ,oprops)
-                      (,pid . ,pred) ,eprops))
-           (edgeo edge)))))
-
-(define report-concepts
-  (map (lambda (kv)
-         (define cname (car kv))
-         (cons cname (map report-concept (set->list (cdr kv)))))
-       (hash->list concept-sets)))
-(define report-edges
-  (map (lambda (kv)
-         (define ename (car kv))
-         (cons ename
-               (map report-edge (set->list (cdr kv)))))
-       (hash->list edge=>set)))
-
-(displayln "concepts by name:")
-(pretty-print report-concepts)
-(newline)
-(displayln "edges by name:")
-(pretty-print report-edges)

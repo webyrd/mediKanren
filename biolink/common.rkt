@@ -6,6 +6,7 @@
   find-categories
   find-Xs
   find-graph
+  run/graph
 
   membero
 
@@ -507,4 +508,91 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
       (loop (cdr edges))))
   (cons concept=>set edge=>set))
 
-;; TODO: run/graph
+(define (constraints? xs)
+  (or (not xs) (and (pair? xs)
+                    (not (list? (cdr (car xs))))
+                    (not (number? (cdr (car xs)))))))
+(define (constraint-sets kvs)
+  (make-immutable-hash
+    (map (match-lambda
+            ((cons name cxs)
+            (cons name (list->set
+                          (map (lambda (c) (cons (car c) (cadr c)))
+                              cxs)))))
+          (filter (match-lambda
+                    ((cons name value) (and value (constraints? value))))
+                  kvs))))
+(define (path->edges path)
+  (if (null? (cdr path)) '()
+    (cons (list (cadr path) (car path) (caddr path))
+          (path->edges (cddr path)))))
+(define (path*-valid? paths cnames enames)
+  (define (path-valid? path)
+    (and (pair? path)
+          (pair? (cdr path))
+          (pair? (cddr path))
+          (member (car path) cnames)
+          (member (cadr path) enames)
+          (member (caddr path) cnames)
+          (or (null? (cdddr path)) (path-valid? (cddr path)))))
+  (andmap path-valid? paths))
+(define (report-concept c)
+  (define dbname (car c))
+  (define cid (cdr c))
+  (car (run* (concept)
+          (fresh (cui name catid cat props)
+            (== concept `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props))
+            (concepto concept)))))
+(define (report-edge e)
+  (define dbname (car e))
+  (define eid (cadr e))
+  (define scid (caddr e))
+  (define ocid (cadddr e))
+  (car (run* (edge)
+          (fresh (scui sname scatid scat sprops
+                      ocui oname ocatid ocat oprops
+                      pid pred eprops)
+            (== edge `(,dbname ,eid
+                       (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
+                       (,ocid ,ocui ,oname (,ocatid . ,ocat) ,oprops)
+                       (,pid . ,pred) ,eprops))
+            (edgeo edge)))))
+(define (report report-x x=>set)
+  (make-immutable-hash
+    (map (lambda (kv)
+            (define name (car kv))
+            (cons name (map report-x (set->list (cdr kv)))))
+          (hash->list x=>set))))
+(define-syntax run/graph
+  (syntax-rules ()
+    ((_ ((cname cexpr) ...) ((ename pexpr) ...) path* ...)
+     (let* ((concepts (list (cons 'cname cexpr) ...))
+            (edges    (list (cons 'ename pexpr) ...))
+            (paths    '(path* ...))
+            (_ (unless (path*-valid?
+                         paths (map car concepts) (map car edges))
+                 (error "invalid paths; check structure and spelling:"
+                        (cons 'paths: paths)
+                        (cons 'concepts: (map car concepts))
+                        (cons 'edges: (map car edges)))))
+            (concept=>set
+              (make-immutable-hash
+                (map (match-lambda
+                       ((cons name concepts)
+                        (cons name (list->set
+                                     (map (lambda (c)
+                                            (cons (car c)
+                                                  (if (number? (cdr c)) (cdr c)
+                                                    (cadr c))))
+                                          concepts)))))
+                     (filter
+                       (match-lambda
+                         ((cons name value) (not (constraints? value))))
+                       concepts))))
+            (concept=>cx (constraint-sets concepts))
+            (predicate=>cx (constraint-sets edges))
+            (edges (append* (map path->edges paths))))
+       (match-define (cons concept-sets edge=>set)
+                     (find-graph concept=>set concept=>cx predicate=>cx edges))
+       (list (report report-concept concept-sets)
+             (report report-edge    edge=>set))))))
