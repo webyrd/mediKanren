@@ -28,7 +28,12 @@
       "increases_expression_of")))
 
 (define S (keep 1 (find-concepts #t #f 0 #f (list "imatin"))))
-(define O (keep 1 (find-concepts #f #t 0 #f (list "asthma"))))
+;; Alternatively, fuzzy search by name.
+;(define O (keep 1 (find-concepts #f #t 0 #f (list "asthma"))))
+(define O (keep 1 (find-concepts #f #t 0 #t (list "UMLS:C0004096"
+                                                  "DOID:2841"
+                                                  "HP:0002099"
+                                                  "MONDO:0004979"))))
 
 (match-define
   (list name=>concepts name=>edges)
