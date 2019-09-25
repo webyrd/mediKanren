@@ -16,6 +16,8 @@
   ~categoryo
   ~predicateo
   concepto
+  categoryo
+  predicateo
   edgeo
   pmid-edgeo
   subject-predicateo
@@ -182,6 +184,19 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
       (fresh (p)
         (== `(,dbname . ,p) predicate)
         (db:~predicateo db ~predicate-name p)))))
+
+(define (categoryo category)
+  (conde/databases
+    (lambda (dbname db)
+      (fresh (c)
+        (== `(,dbname . ,c) category)
+        (db:categoryo db c)))))
+(define (predicateo predicate)
+  (conde/databases
+    (lambda (dbname db)
+      (fresh (p)
+        (== `(,dbname . ,p) predicate)
+        (db:predicateo db p)))))
 
 #|
 edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
