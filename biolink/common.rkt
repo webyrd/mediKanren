@@ -2,6 +2,8 @@
 (provide
   find-concepts
   find-predicates/concepts
+  find-predicates
+  find-categories
   find-Xs
   find-graph
 
@@ -316,6 +318,11 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
            (and object? (run* (p) (object-predicateo c p))))
          (list c subject-predicates object-predicates))
        concepts))
+
+(define (find-predicates names)
+  (append* (map (lambda (name) (run* (x) (~predicateo name x))) names)))
+(define (find-categories names)
+  (append* (map (lambda (name) (run* (x) (~categoryo name x))) names)))
 
 (define (find-Xs subjects? objects?)
   ;; subjects?: #f | ((concept (predicate ...) #f) ...)
