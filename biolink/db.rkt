@@ -39,6 +39,8 @@
   racket/vector)
 
 (define fnin-concepts             "concepts.scm")
+(define fnin-concept-cui-corpus   "concept-cui-corpus.scm")
+(define fnin-concept-cui-index    "concept-cui-index.bytes")
 (define fnin-concept-name-corpus  "concept-name-corpus.scm")
 (define fnin-concept-name-index   "concept-name-index.bytes")
 (define fnin-categories           "categories.scm")
@@ -215,8 +217,8 @@
   (simple~string->offset&value* (db:cid&concept-stream db) ~cui concept-cui))
 (define (db:~name*->cid&concept*/options
           case-sensitive? chars:ignore chars:split db ~name*)
-  (define cids (corpus-find* (db:concept-name-corpus db)
-                             (db:concept-name-index db) ~name*))
+  (define cids (suffix:corpus-find* (db:concept-name-corpus db)
+                                    (db:concept-name-index db) ~name*))
   (define found (foldr (lambda (i cs)
                          (stream-cons (cons i (db:cid->concept db i)) cs))
                        '() cids))
