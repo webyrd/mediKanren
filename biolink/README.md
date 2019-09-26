@@ -31,10 +31,7 @@
 racket csv-graph-to-db.rkt data NAME
 racket build-string-index.rkt data NAME
 ```
-* Optionally, map pubmed ids to the edge ids that reference them (currently only applicable to semmed): `racket build-pubmed-edges.rkt data NAME`
-  * NOTE: generalize for Robokop:
-    * Semmed pubs look like: ("pmids" . "24021883;24021883")
-    * Robokop pubs look like: ("publications" . "(\"PMID:15917307\" \"PMID:25451572\")")
+* Optionally, map pubmed ids to the edge ids that reference them: `racket build-pubmed-edges.rkt data NAME`
 * Given `(require "mk-db.rkt")` you should now be able to access the new db by evaluating `(make-db "data/NAME")`.
 
 ### Verify data
@@ -61,7 +58,6 @@ Within racket, running this should produce sensible results:
 * support data sources with more categories and/or predicates
   * add additional byte in edge representation
 
-* map Robokop pubmed ids to edge ids
 * index edges by predicate
 * index concepts by CUI, including synonyms
   * robokop: `"equivalent_identifiers"`
