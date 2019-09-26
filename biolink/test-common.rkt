@@ -39,25 +39,26 @@
 
 (match-define
   (list name=>concepts name=>edges)
-  (run/graph
-    ;; Introduce concept names.  Optionally constrain them with lists of either
-    ;; concepts or categories.
-    ((X gene)  ;; To ask for all Xs instead, specify this as (X #f).
-     (S S)
-     (O O))
+  (time
+    (run/graph
+      ;; Introduce concept names.  Optionally constrain them with lists of
+      ;; either concepts or categories.
+      ((X gene)  ;; To ask for all Xs instead, specify this as (X #f).
+       (S S)
+       (O O))
 
-    ;; Introduce edge names.  Optionally constrain them with predicate lists.
-    ((S->X decreases)
-     (X->O increases))
+      ;; Introduce edge names.  Optionally constrain them with predicate lists.
+      ((S->X decreases)
+       (X->O increases))
 
-    ;; Specify one or more directed paths.  Paths imply edges with subject on
-    ;; the left and object on the right.
-    (S S->X X X->O O)
-    ;; This path could also have been equivalently specified as two separate
-    ;; paths (in either order), each containing a single edge:
-    ;; (X X->O O)
-    ;; (S S->X X)
-    ))
+      ;; Specify one or more directed paths.  Paths imply edges with subject on
+      ;; the left and object on the right.
+      (S S->X X X->O O)
+      ;; This path could also have been equivalently specified as two separate
+      ;; paths (in either order), each containing a single edge:
+      ;; (X X->O O)
+      ;; (S S->X X)
+      )))
 
 (displayln "concepts by name:")
 (pretty-print name=>concepts)

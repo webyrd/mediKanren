@@ -476,6 +476,15 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
                                  (set-member? oids (cons dbname iobject)))))
                          (set->list (edge->set e)))))
     (update-edge! e s o id-edges))
+  (define (concepts->predicates cpo cs)
+    (constraints->set
+      (append* (map (lambda (c) (run* (p) (cpo (report-concept c) p)))
+                    (set->list cs)))))
+  (define (concept-predicate-intersect cpo pcx cs)
+    (if (and pcx cs (< (set-count cs) (set-count pcx)))
+      (let ((cpcx (concepts->predicates cpo cs)))
+        (set-intersect cpcx pcx))
+      pcx))
 
   (let loop ((pending edges))
     (unless (null? pending)
@@ -486,8 +495,11 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
       (set!/add concept=>edges o edge)
       (define ss  (concept->set s))
       (define os  (concept->set o))
-      ;; TODO: improve these constraints when adjacent concepts are available.
-      (define pcx (predicate->cx e))
+      (define pcx (concept-predicate-intersect
+                    object-predicateo
+                    (concept-predicate-intersect
+                      subject-predicateo (predicate->cx e) ss)
+                    os))
       (define (find-edges/db db stream-edges srcs pids cats dsts)
         (define srcids
           (sort
@@ -548,16 +560,14 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
   (or (not xs) (and (pair? xs)
                     (not (list? (cdr (car xs))))
                     (not (number? (cdr (car xs)))))))
+(define (constraints->set cxs)
+  (list->set (map (lambda (c) (cons (car c) (cadr c))) cxs)))
 (define (constraint-sets kvs)
   (make-immutable-hash
-    (map (match-lambda
-            ((cons name cxs)
-            (cons name (list->set
-                          (map (lambda (c) (cons (car c) (cadr c)))
-                              cxs)))))
-          (filter (match-lambda
-                    ((cons name value) (and value (constraints? value))))
-                  kvs))))
+    (map (match-lambda ((cons name cxs) (cons name (constraints->set cxs))))
+         (filter (match-lambda
+                   ((cons name value) (and value (constraints? value))))
+                 kvs))))
 (define (path*->edges paths cnames enames)
   (when (null? paths) (error "no paths were provided"))
   (unless (list? paths) (error "paths must be given as a list:" paths))
