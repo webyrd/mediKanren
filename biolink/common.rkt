@@ -26,6 +26,8 @@
   object-predicateo
   isao
 
+  pubmed-ids-from-edge-props
+  pubmed-ids-from-edge
   pubmed-URLs-from-edge
   pubmed-count
   path-confidence
@@ -240,27 +242,30 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
     (== `(,dbname . ,s) s/db)
     (edgeo `(,dbname ,eid ,s ,o (,pid . "subclass_of") ,eprops))))
 
-(define PUBMED_URL_PREFIX "https://www.ncbi.nlm.nih.gov/pubmed/")
-(define (pubmed-URLs-from-edge edge)
-  (define pubmed*
+(define (pubmed-ids-from-edge-props eprops)
+  (cond
+    [(assoc "pmids" eprops)  ;; WEB the 'pmids' property is only used by semmed, I believe
+     => (lambda (pr) (regexp-split #rx";" (cdr pr)))]
+    [(assoc "publications" eprops)
+     => (lambda (pr)
+          (define pubs (cdr pr))
+          (if (not (string? pubs))
+            '()
+            (regexp-match* #rx"([0-9]+)" pubs #:match-select cadr)))]
+    [else '()]))
+(define (pubmed-ids-from-edge edge)
+  (remove-duplicates
     (match edge
       ['path-separator '()]
       [`(,dbname ,eid ,subj ,obj ,p ,eprops)
-       (cond
-         [(assoc "pmids" eprops) => ;; WEB the 'pmids' property is only used by semmed, I believe
-          (lambda (pr) (regexp-split #rx";" (cdr pr)))]
-         [(assoc "publications" eprops) =>
-          (lambda (pr)
-            (define pubs (cdr pr))
-            (if (not (string? pubs))
-                '()
-                (regexp-match* #rx"([0-9]+)" pubs #:match-select cadr)))]
-         [else '()])]))
+        (pubmed-ids-from-edge-props eprops)])))
+(define PUBMED_URL_PREFIX "https://www.ncbi.nlm.nih.gov/pubmed/")
+(define (pubmed-URLs-from-edge edge)
   (map (lambda (pubmed-id) (string-append PUBMED_URL_PREFIX (~a pubmed-id)))
-       (remove-duplicates pubmed*)))
+       (pubmed-ids-from-edge edge)))
 
 (define (pubmed-count e)
-  (length (pubmed-URLs-from-edge e)))
+  (length (pubmed-ids-from-edge e)))
 
 (define (get-pred-names e*)
   (let loop ([e* e*]
