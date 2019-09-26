@@ -1,6 +1,7 @@
 #lang racket/base
 (provide
   find-concepts
+  find-isa-concepts
   find-concepts/options
   find-predicates/concepts
   find-predicates
@@ -306,6 +307,12 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
       [else #f])))
 (define (sort-paths paths) (sort paths path-confidence<?))
 
+(define (find-isa-concepts count concepts)
+  (remove-duplicates (run count (s/db)
+                       (fresh (o/db)
+                         (membero o/db concepts)
+                         (isao s/db o/db)))))
+
 (define (find-concepts/options subject? object? isa-count via-cui? strings)
   ;; subject? and object? insist that a concept participate in a certain role.
   ;; If via-cui? then strings is an OR-list of CUIs to consider.
@@ -313,11 +320,7 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
   (let* ((ans (if via-cui?
                 (run* (c) (~cui*-concepto strings c))
                 (run* (c) (~name*-concepto strings c))))
-         (isa-ans (remove-duplicates
-                    (run isa-count (s/db)
-                      (fresh (o/db)
-                        (membero o/db ans)
-                        (isao s/db o/db)))))
+         (isa-ans (find-isa-concepts isa-count ans))
          (ans (if (null? isa-ans) ans
                 (remove-duplicates (append ans isa-ans))))
          (ans (filter  ;; Only include concepts with at least one predicate.
