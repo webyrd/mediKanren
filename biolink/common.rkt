@@ -531,6 +531,12 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
       (loop (cdr edges))))
   (cons concept=>set edge=>set))
 
+(define (duplicates xs)
+  (remove-duplicates
+    (let loop ((xs xs))
+      (cond ((null? xs)                 '())
+            ((member (car xs) (cdr xs)) (cons (car xs) (loop (cdr xs))))
+            (else                       (loop (cdr xs)))))))
 (define (constraints? xs)
   (or (not xs) (and (pair? xs)
                     (not (list? (cdr (car xs))))
@@ -603,7 +609,17 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
      (let* ((concepts (list (cons 'cname cexpr) ...))
             (pedges   (list (cons 'ename pexpr) ...))
             (paths    '(path* ...))
-            (edges (path*->edges paths (map car concepts) (map car pedges)))
+            (cnames   (map car concepts))
+            (enames   (map car pedges))
+            (dup-concepts (duplicates cnames))
+            (dup-pedges   (duplicates enames))
+            (_ (unless (null? dup-concepts)
+                 (error "duplicate concept bindings:"
+                        dup-concepts '((cname cexpr) ...))))
+            (_ (unless (null? dup-pedges)
+                 (error "duplicate edge bindings:"
+                        dup-pedges '((ename pexpr) ...))))
+            (edges (path*->edges paths cnames enames))
             (concept=>set
               (make-immutable-hash
                 (map (match-lambda
