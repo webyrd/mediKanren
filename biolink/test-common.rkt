@@ -35,13 +35,18 @@
                                                   "HP:0002099"
                                                   "MONDO:0004979"))))
 
+(define gene (find-categories (list "gene")))
+
 (match-define
   (list name=>concepts name=>edges)
   (run/graph
-    ((X #f)
+    ;; Introduce concept names.  Optionally constrain them with lists of either
+    ;; concepts or categories.
+    ((X gene)  ;; To ask for all Xs instead, specify this as (X #f).
      (S S)
      (O O))
 
+    ;; Introduce edge names.  Optionally constrain them with predicate lists.
     ((S->X decreases)
      (X->O increases))
 
