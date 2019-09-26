@@ -58,6 +58,9 @@ Within racket, running this should produce sensible results:
   * move library and data processing code to a new subdirectory
   * move tests and examples into their own subdirectories
 
+* support data sources with more categories and/or predicates
+  * add additional byte in edge representation
+
 * map Robokop pubmed ids to edge ids
 * index edges by predicate
 * index concepts by CUI, including synonyms
@@ -107,25 +110,47 @@ Within racket, running this should produce sensible results:
 
 * data
   * concept sets
-    * start with universe or union/intersection/difference of other sets
+    * unknown or union/intersection/difference of other sets
     * filter if a text search query is given
     * filter if known category
-    * filter if constrained as source/target with given predicates/relations
+    * filter if constrained as source/target with given predicates
     * filter by user selections
-  * predicate/relation sets (e.g., increases, decreases)
-    * start with universe or union/intersection/difference of other sets
+  * predicate sets (e.g., increases, decreases)
+    * unknown or union/intersection/difference of other sets
     * filter if a text search query is given
     * filter if known parent class(es)
     * filter if constrained by given source/target concepts
     * filter by user selections
   * graphs
-    * concept nodes and predicate/relation edges
+    * nodes and edges
+      * nodes constrained by concept sets
+      * edges connect subject and object sets, constrained by predicate sets
       * metadata: unique ID, optional name, UI, or visualization preferences
-      * underlying concept/predicate/relation set computation
+      * knowns
+        * stratified concept/predicate set computation
+      * unknowns
+        * nodes collect solution sets of concepts
+        * edges collect solution sets of triples
     * subgraphs
+      * used for organizational convenience
       * metadata
       * collection of nodes and edges
       * may compute as union/intersection/difference of other subgraphs
+
+* computation
+  * stratified construction and constraint resolution
+    * topologically sort element sets along construction expression dependencies
+    * iteratively compute knowns and unknowns
+      * compute known concept and predicate sets
+        * construct new sets using dependencies
+        * filter elements by class, then text search, then selections
+        * validate element selections
+      * solve for unknowns used as subject/object, i.e., (== #f construction)
+        * filter subject/object by text search, then class, then selections
+        * find edge triples
+        * accumulate subject/object concepts from triples, making them known
+        * validate subject/object selections
+  * cache retrieved triples per workspace?
 
 * basic graph building manipulations
   * update node/edge metadata
@@ -139,7 +164,7 @@ Within racket, running this should produce sensible results:
       subgraph components
   * connect nodes and edges
   * add/remove node/edge constraints
-    * choose a set of categories/relation-classes
+    * choose a set of categories/predicate-classes
     * compute any union/intersection/difference operations
     * search for text (across name, CURIE, description, etc.)
     * manually select entries from a list
