@@ -27,13 +27,13 @@
       "increases_activity_of"
       "increases_expression_of")))
 
-(define S (keep 1 (find-concepts #t #f 0 #f (list "imatin"))))
+(define S (keep 1 (find-concepts #f (list "imatin"))))
 ;; Alternatively, fuzzy search by name.
-;(define O (keep 1 (find-concepts #f #t 0 #f (list "asthma"))))
-(define O (keep 1 (find-concepts #f #t 0 #t (list "UMLS:C0004096"
-                                                  "DOID:2841"
-                                                  "HP:0002099"
-                                                  "MONDO:0004979"))))
+;(define O (keep 1 (find-concepts #f (list "asthma"))))
+(define O (keep 1 (find-concepts #t (list "UMLS:C0004096"
+                                          "DOID:2841"
+                                          "HP:0002099"
+                                          "MONDO:0004979"))))
 
 (define gene (find-categories (list "gene")))
 
@@ -96,8 +96,8 @@
                        "increases_activity_of"
                        "increases_expression_of")))
 
-  (define S (keep 1 (find-concepts #t #f 0 #f  (list "imatin"))))
-  (define O (keep 1 (find-concepts #f #t 0 #f  (list "asthma"))))
+  (define S (keep 1 (find-concepts #f (list "imatin"))))
+  (define O (keep 1 (find-concepts #f (list "asthma"))))
 
   (define SP (map (lambda (cp)
                     (define c (car cp))

@@ -1,6 +1,7 @@
 #lang racket/base
 (provide
   find-concepts
+  find-concepts/options
   find-predicates/concepts
   find-predicates
   find-categories
@@ -305,7 +306,7 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
       [else #f])))
 (define (sort-paths paths) (sort paths path-confidence<?))
 
-(define (find-concepts subject? object? isa-count via-cui? strings)
+(define (find-concepts/options subject? object? isa-count via-cui? strings)
   ;; subject? and object? insist that a concept participate in a certain role.
   ;; If via-cui? then strings is an OR-list of CUIs to consider.
   ;; Otherwise, strings is an AND-list of fragments the name must contain.
@@ -333,6 +334,9 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
                   (or (string>? dbname1 dbname2)
                       (and (string=? dbname1 dbname2)
                            (string<? cui1 cui2))))))))
+
+(define (find-concepts via-cui? strings)
+  (find-concepts/options #f #f 0 via-cui? strings))
 
 (define (find-predicates/concepts subject? object? concepts)
   (map (lambda (c)
