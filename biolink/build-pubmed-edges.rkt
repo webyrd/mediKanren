@@ -1,5 +1,6 @@
 #lang racket/base
 (require
+  "common.rkt"
   "repr.rkt"
   racket/match
   racket/stream)
@@ -46,8 +47,7 @@
                     (set! pmid=>eid*
                       (hash-set pmid=>eid* pmid
                                 (cons eid (hash-ref pmid=>eid* pmid '())))))
-                  (let ((rib (assoc "pmids" props)))
-                    (if rib (regexp-split #rx";" (cdr rib)) '())))
+                  (pubmed-ids-from-edge-props props))
                 (loop (stream-rest eid&edge-stream))))))
 
 (printf "\nMapping pmids to edges:\n")

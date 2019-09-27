@@ -27,25 +27,38 @@
       "increases_activity_of"
       "increases_expression_of")))
 
-(define S (keep 1 (find-concepts #t #f 0 #f (list "imatin"))))
+(define S (keep 1 (find-concepts #f (list "imatin"))))
 ;; Alternatively, fuzzy search by name.
-;(define O (keep 1 (find-concepts #f #t 0 #f (list "asthma"))))
-(define O (keep 1 (find-concepts #f #t 0 #t (list "UMLS:C0004096"
-                                                  "DOID:2841"
-                                                  "HP:0002099"
-                                                  "MONDO:0004979"))))
+;(define O (keep 1 (find-concepts #f (list "asthma"))))
+(define O (keep 1 (find-concepts #t (list "UMLS:C0004096"
+                                          "DOID:2841"
+                                          "HP:0002099"
+                                          "MONDO:0004979"))))
+
+(define gene (find-categories (list "gene")))
 
 (match-define
   (list name=>concepts name=>edges)
-  (run/graph
-    ((X #f)
-     (S S)
-     (O O))
+  (time
+    (run/graph
+      ;; Introduce concept names.  Optionally constrain them with lists of
+      ;; either concepts or categories.
+      ((X gene)  ;; To ask for all Xs instead, specify this as (X #f).
+       (S S)
+       (O O))
 
-    ((S->X decreases)
-     (X->O increases))
+      ;; Introduce edge names.  Optionally constrain them with predicate lists.
+      ((S->X decreases)
+       (X->O increases))
 
-    (S S->X X X->O O)))
+      ;; Specify one or more directed paths.  Paths imply edges with subject on
+      ;; the left and object on the right.
+      (S S->X X X->O O)
+      ;; This path could also have been equivalently specified as two separate
+      ;; paths (in either order), each containing a single edge:
+      ;; (X X->O O)
+      ;; (S S->X X)
+      )))
 
 (displayln "concepts by name:")
 (pretty-print name=>concepts)
@@ -84,8 +97,8 @@
                        "increases_activity_of"
                        "increases_expression_of")))
 
-  (define S (keep 1 (find-concepts #t #f 0 #f  (list "imatin"))))
-  (define O (keep 1 (find-concepts #f #t 0 #f  (list "asthma"))))
+  (define S (keep 1 (find-concepts #f (list "imatin"))))
+  (define O (keep 1 (find-concepts #f (list "asthma"))))
 
   (define SP (map (lambda (cp)
                     (define c (car cp))

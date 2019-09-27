@@ -568,7 +568,7 @@ edge format, with dbname at front (as used in edgeo):
            (name-parts (split-name-string current-name))
            (ans (if (null? name-parts) '()
                   (begin (printf "searching for: ~s\n" current-name)
-                         (time (find-concepts subject? object? isa-count #f name-parts))))))
+                         (time (find-concepts/options subject? object? isa-count #f name-parts))))))
       (set-box! choices ans)
       (send concept-listbox
             set

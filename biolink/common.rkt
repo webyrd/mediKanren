@@ -1,6 +1,8 @@
 #lang racket/base
 (provide
   find-concepts
+  find-isa-concepts
+  find-concepts/options
   find-predicates/concepts
   find-predicates
   find-categories
@@ -24,6 +26,8 @@
   object-predicateo
   isao
 
+  pubmed-ids-from-edge-props
+  pubmed-ids-from-edge
   pubmed-URLs-from-edge
   pubmed-count
   path-confidence
@@ -238,27 +242,30 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
     (== `(,dbname . ,s) s/db)
     (edgeo `(,dbname ,eid ,s ,o (,pid . "subclass_of") ,eprops))))
 
-(define PUBMED_URL_PREFIX "https://www.ncbi.nlm.nih.gov/pubmed/")
-(define (pubmed-URLs-from-edge edge)
-  (define pubmed*
+(define (pubmed-ids-from-edge-props eprops)
+  (cond
+    [(assoc "pmids" eprops)  ;; WEB the 'pmids' property is only used by semmed, I believe
+     => (lambda (pr) (regexp-split #rx";" (cdr pr)))]
+    [(assoc "publications" eprops)
+     => (lambda (pr)
+          (define pubs (cdr pr))
+          (if (not (string? pubs))
+            '()
+            (regexp-match* #rx"([0-9]+)" pubs #:match-select cadr)))]
+    [else '()]))
+(define (pubmed-ids-from-edge edge)
+  (remove-duplicates
     (match edge
       ['path-separator '()]
       [`(,dbname ,eid ,subj ,obj ,p ,eprops)
-       (cond
-         [(assoc "pmids" eprops) => ;; WEB the 'pmids' property is only used by semmed, I believe
-          (lambda (pr) (regexp-split #rx";" (cdr pr)))]
-         [(assoc "publications" eprops) =>
-          (lambda (pr)
-            (define pubs (cdr pr))
-            (if (not (string? pubs))
-                '()
-                (regexp-match* #rx"([0-9]+)" pubs #:match-select cadr)))]
-         [else '()])]))
+        (pubmed-ids-from-edge-props eprops)])))
+(define PUBMED_URL_PREFIX "https://www.ncbi.nlm.nih.gov/pubmed/")
+(define (pubmed-URLs-from-edge edge)
   (map (lambda (pubmed-id) (string-append PUBMED_URL_PREFIX (~a pubmed-id)))
-       (remove-duplicates pubmed*)))
+       (pubmed-ids-from-edge edge)))
 
 (define (pubmed-count e)
-  (length (pubmed-URLs-from-edge e)))
+  (length (pubmed-ids-from-edge e)))
 
 (define (get-pred-names e*)
   (let loop ([e* e*]
@@ -305,18 +312,20 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
       [else #f])))
 (define (sort-paths paths) (sort paths path-confidence<?))
 
-(define (find-concepts subject? object? isa-count via-cui? strings)
+(define (find-isa-concepts count concepts)
+  (remove-duplicates (run count (s/db)
+                       (fresh (o/db)
+                         (membero o/db concepts)
+                         (isao s/db o/db)))))
+
+(define (find-concepts/options subject? object? isa-count via-cui? strings)
   ;; subject? and object? insist that a concept participate in a certain role.
   ;; If via-cui? then strings is an OR-list of CUIs to consider.
   ;; Otherwise, strings is an AND-list of fragments the name must contain.
   (let* ((ans (if via-cui?
                 (run* (c) (~cui*-concepto strings c))
                 (run* (c) (~name*-concepto strings c))))
-         (isa-ans (remove-duplicates
-                    (run isa-count (s/db)
-                      (fresh (o/db)
-                        (membero o/db ans)
-                        (isao s/db o/db)))))
+         (isa-ans (find-isa-concepts isa-count ans))
          (ans (if (null? isa-ans) ans
                 (remove-duplicates (append ans isa-ans))))
          (ans (filter  ;; Only include concepts with at least one predicate.
@@ -333,6 +342,9 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
                   (or (string>? dbname1 dbname2)
                       (and (string=? dbname1 dbname2)
                            (string<? cui1 cui2))))))))
+
+(define (find-concepts via-cui? strings)
+  (find-concepts/options #f #f 0 via-cui? strings))
 
 (define (find-predicates/concepts subject? object? concepts)
   (map (lambda (c)
@@ -469,6 +481,15 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
                                  (set-member? oids (cons dbname iobject)))))
                          (set->list (edge->set e)))))
     (update-edge! e s o id-edges))
+  (define (concepts->predicates cpo cs)
+    (constraints->set
+      (append* (map (lambda (c) (run* (p) (cpo (report-concept c) p)))
+                    (set->list cs)))))
+  (define (concept-predicate-intersect cpo pcx cs)
+    (if (and pcx cs (< (set-count cs) (set-count pcx)))
+      (let ((cpcx (concepts->predicates cpo cs)))
+        (set-intersect cpcx pcx))
+      pcx))
 
   (let loop ((pending edges))
     (unless (null? pending)
@@ -479,8 +500,11 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
       (set!/add concept=>edges o edge)
       (define ss  (concept->set s))
       (define os  (concept->set o))
-      ;; TODO: improve these constraints when adjacent concepts are available.
-      (define pcx (predicate->cx e))
+      (define pcx (concept-predicate-intersect
+                    object-predicateo
+                    (concept-predicate-intersect
+                      subject-predicateo (predicate->cx e) ss)
+                    os))
       (define (find-edges/db db stream-edges srcs pids cats dsts)
         (define srcids
           (sort
@@ -531,20 +555,24 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
       (loop (cdr edges))))
   (cons concept=>set edge=>set))
 
+(define (duplicates xs)
+  (remove-duplicates
+    (let loop ((xs xs))
+      (cond ((null? xs)                 '())
+            ((member (car xs) (cdr xs)) (cons (car xs) (loop (cdr xs))))
+            (else                       (loop (cdr xs)))))))
 (define (constraints? xs)
   (or (not xs) (and (pair? xs)
                     (not (list? (cdr (car xs))))
                     (not (number? (cdr (car xs)))))))
+(define (constraints->set cxs)
+  (list->set (map (lambda (c) (cons (car c) (cadr c))) cxs)))
 (define (constraint-sets kvs)
   (make-immutable-hash
-    (map (match-lambda
-            ((cons name cxs)
-            (cons name (list->set
-                          (map (lambda (c) (cons (car c) (cadr c)))
-                              cxs)))))
-          (filter (match-lambda
-                    ((cons name value) (and value (constraints? value))))
-                  kvs))))
+    (map (match-lambda ((cons name cxs) (cons name (constraints->set cxs))))
+         (filter (match-lambda
+                   ((cons name value) (and value (constraints? value))))
+                 kvs))))
 (define (path*->edges paths cnames enames)
   (when (null? paths) (error "no paths were provided"))
   (unless (list? paths) (error "paths must be given as a list:" paths))
@@ -603,7 +631,17 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
      (let* ((concepts (list (cons 'cname cexpr) ...))
             (pedges   (list (cons 'ename pexpr) ...))
             (paths    '(path* ...))
-            (edges (path*->edges paths (map car concepts) (map car pedges)))
+            (cnames   (map car concepts))
+            (enames   (map car pedges))
+            (dup-concepts (duplicates cnames))
+            (dup-pedges   (duplicates enames))
+            (_ (unless (null? dup-concepts)
+                 (error "duplicate concept bindings:"
+                        dup-concepts '((cname cexpr) ...))))
+            (_ (unless (null? dup-pedges)
+                 (error "duplicate edge bindings:"
+                        dup-pedges '((ename pexpr) ...))))
+            (edges (path*->edges paths cnames enames))
             (concept=>set
               (make-immutable-hash
                 (map (match-lambda

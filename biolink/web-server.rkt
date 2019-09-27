@@ -99,8 +99,9 @@
                        (((lambda _ #t) e400/failure))
                        (ok200 (find-predicates/concepts
                                 subject? object?
-                                (find-concepts subject? object?
-                                               isa-count via-cui? strings)))))
+                                (find-concepts/options
+                                  subject? object? isa-count
+                                  via-cui? strings)))))
                    (`(X ,subject ,object)
                      (with-handlers
                        (((lambda _ #t) e400/failure))
