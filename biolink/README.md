@@ -55,14 +55,18 @@ Within racket, running this should produce sensible results:
   * move library and data processing code to a new subdirectory
   * move tests and examples into their own subdirectories
 
-* support data sources with more categories and/or predicates
-  * add additional byte in edge representation
-
-* index edges by predicate
-* index concepts by CUI, including synonyms
-  * robokop: `"equivalent_identifiers"`
-  * orange: `"same_as"`
-  * semmed: `"xrefs"`
+* generalize database representation and indexing
+  * choose representation based on field cardinalities
+    * support data sources with more categories and/or predicates
+      * would add an additional byte in edge representation
+    * store representation metadata per-database
+  * make it possible to index using arbitrary fields
+    * declaratively specify desired indices
+    * index edges by predicate
+    * index concepts by CUI, including synonyms
+      * robokop: `"equivalent_identifiers"`
+      * orange: `"same_as"`
+      * semmed: `"xrefs"`
 
 ```
   (robokop 26 "HGNC:1100" "BRCA1" (0 . "(\"named_thing\" \"gene\")") (("locus_group" . "protein-coding gene") ("chromosome" . "17") ("taxon" . "9606") ("gene_family" . "(\"Ring finger proteins\" \"FA complementation groups\" \"Protein phosphatase 1 regulatory subunits\" \"BRCA1 A complex\" \"BRCA1 B complex\" \"BRCA1 C complex\")") ("location" . "17q21.31") ("id" . "HGNC:1100") ("gene_family_id" . "(58 548 694 1328 1335 1336)") ("equivalent_identifiers" . "(\"UniProtKB:C9IZW4\" \"UniProtKB:E9PC22\" \"UniProtKB:A0A2R8Y7V5\" \"UniProtKB:H0Y8D8\" \"UniProtKB:E9PH68\" \"UniProtKB:K7EPC7\" \"UniProtKB:E7EQW4\" \"UniProtKB:H0Y881\" \"UniProtKB:E7EWN5\" \"UniProtKB:H0Y850\" \"UniProtKB:C6YB45\" \"UniProtKB:E7EUM2\" \"UniProtKB:A0A024R1V0\" \"HGNC:1100\" \"UniProtKB:A0A0U1RRA9\" \"UniProtKB:E7ENB7\" \"UniProtKB:K7EJW3\" \"UniProtKB:H0Y8B8\" \"UniProtKB:A0A2R8Y6Y9\" \"UniProtKB:Q5YLB2\" \"UniProtKB:P38398\" \"UniProtKB:B7ZA85\" \"UniProtKB:A0A0A0MSN1\" \"ENSEMBL:ENSG00000012048\" \"UniProtKB:Q3B891\" \"UniProtKB:G1UI37\" \"NCBIGENE:672\" \"UniProtKB:A0A2R8Y587\")")))
