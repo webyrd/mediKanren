@@ -17,7 +17,7 @@
 (provide
   launch-gui)
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.28")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.29")
 
 (define argv (current-command-line-arguments))
 (define argv-optional '#(CONFIG_FILE))
