@@ -57,8 +57,6 @@ Within racket, running this should produce sensible results:
 
 * generalize database representation and indexing
   * choose representation based on field cardinalities
-    * support data sources with more categories and/or predicates
-      * would add an additional byte in edge representation
     * store representation metadata per-database
   * make it possible to index using arbitrary fields
     * declaratively specify desired indices

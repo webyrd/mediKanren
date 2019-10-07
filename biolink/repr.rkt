@@ -63,21 +63,24 @@
 
 (define (byte-at offset n) (bitwise-and 255 (arithmetic-shift n offset)))
 
-;; 1-byte predicate + 1-byte category + 3-byte concept-id + 4-byte eid
-(define edge-byte-size (+ 1 1 3 4))
+;; 2-byte predicate + 2-byte category + 3-byte concept-id + 4-byte eid
+(define edge-byte-size (+ 2 2 3 4))
 (define (edge->bytes e)
-  (define c (edge-dst e))
+  (define c   (edge-dst e))
   (define pid (edge-predicate e))
-  (define cc (edge-dst-category e))
+  (define cc  (edge-dst-category e))
   (define eid (edge-eid e))
-  (bytes pid cc (byte-at -16 c) (byte-at -8 c) (byte-at 0 c)
+  (bytes                                     (byte-at -8 pid) (byte-at 0 pid)
+                                             (byte-at -8 cc)  (byte-at 0 cc)
+                           (byte-at -16 c)   (byte-at -8 c)   (byte-at 0 c)
          (byte-at -24 eid) (byte-at -16 eid) (byte-at -8 eid) (byte-at 0 eid)))
 (define (bytes->edge bs)
   (define (bref pos) (bytes-ref bs pos))
   (define (bref-to pos offset) (arithmetic-shift (bref pos) offset))
-  (vector (bref 0) (bref 1)
-          (+ (bref-to 2 16) (bref-to 3 8) (bref-to 4 0))
-          (+ (bref-to 5 24) (bref-to 6 16) (bref-to 7 8) (bref-to 8 0))))
+  (vector (+                               (bref-to 0 8) (bref-to 1  0))
+          (+                               (bref-to 2 8) (bref-to 3  0))
+          (+                (bref-to 4 16) (bref-to 5 8) (bref-to 6  0))
+          (+ (bref-to 7 24) (bref-to 8 16) (bref-to 9 8) (bref-to 10 0))))
 (define (read-edge-bytes in) (read-bytes edge-byte-size in))
 
 (define string-key-byte-size 4)
