@@ -1,8 +1,4 @@
 .DS_Store
-/biolink/data/*
-!/biolink/data/neo4j
-/biolink/data/neo4j/*
-!/biolink/data/neo4j/README.md
 /code/semmed/publication-reference.scm
 /code/semmed/edge-by-object
 /code/semmed/edge-by-predicate
