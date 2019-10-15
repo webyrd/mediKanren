@@ -108,6 +108,18 @@ neo4j stop
 
 ## TODO
 
+* index "xrefs", "same_as", "equivalent_identifiers", etc.
+  * expose via something like xrefo?
+  * preprocess to eliminate repetitions in CURIEs
+    * e.g., [W: ...]X:X:Y[:Z ...] becomes [W: ...]X:Y[:Z ...]
+
+* index gene aliasing data
+
+* speed up `build-string-index.rkt`
+  * might be able to do this with a radix sort
+
+* consolidate db generation with one script
+
 * reorganize directory structure
   * lift biolink to main directory, moving current main contents somewhere else
   * keep configs, logs,  and user programs (such as gui, web-server...) in main directory
@@ -124,6 +136,8 @@ neo4j stop
       * robokop: `"equivalent_identifiers"`
       * orange: `"same_as"`
       * semmed: `"xrefs"`
+  * allow humans the option of choosing representations
+    * generate summaries and random samples to inform decisions
 
 ```
   (robokop 26 "HGNC:1100" "BRCA1" (0 . "(\"named_thing\" \"gene\")") (("locus_group" . "protein-coding gene") ("chromosome" . "17") ("taxon" . "9606") ("gene_family" . "(\"Ring finger proteins\" \"FA complementation groups\" \"Protein phosphatase 1 regulatory subunits\" \"BRCA1 A complex\" \"BRCA1 B complex\" \"BRCA1 C complex\")") ("location" . "17q21.31") ("id" . "HGNC:1100") ("gene_family_id" . "(58 548 694 1328 1335 1336)") ("equivalent_identifiers" . "(\"UniProtKB:C9IZW4\" \"UniProtKB:E9PC22\" \"UniProtKB:A0A2R8Y7V5\" \"UniProtKB:H0Y8D8\" \"UniProtKB:E9PH68\" \"UniProtKB:K7EPC7\" \"UniProtKB:E7EQW4\" \"UniProtKB:H0Y881\" \"UniProtKB:E7EWN5\" \"UniProtKB:H0Y850\" \"UniProtKB:C6YB45\" \"UniProtKB:E7EUM2\" \"UniProtKB:A0A024R1V0\" \"HGNC:1100\" \"UniProtKB:A0A0U1RRA9\" \"UniProtKB:E7ENB7\" \"UniProtKB:K7EJW3\" \"UniProtKB:H0Y8B8\" \"UniProtKB:A0A2R8Y6Y9\" \"UniProtKB:Q5YLB2\" \"UniProtKB:P38398\" \"UniProtKB:B7ZA85\" \"UniProtKB:A0A0A0MSN1\" \"ENSEMBL:ENSG00000012048\" \"UniProtKB:Q3B891\" \"UniProtKB:G1UI37\" \"NCBIGENE:672\" \"UniProtKB:A0A2R8Y587\")")))
