@@ -1,5 +1,6 @@
 #lang racket/base
 (provide
+  (all-from-out "mk.rkt")
   find-concepts
   find-isa-concepts
   find-concepts/options
@@ -56,6 +57,7 @@
 
 (require
   "db.rkt"
+  "mk.rkt"
   "mk-db.rkt"
   "repr.rkt"
   racket/format

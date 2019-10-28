@@ -1,7 +1,7 @@
 #lang racket
 (provide (all-defined-out)
-         (all-from-out "common.rkt" "mk-db.rkt"))
-(require "common.rkt" "mk-db.rkt")
+         (all-from-out "common.rkt"))
+(require "common.rkt")
 
 (define decreases
   (find-predicates

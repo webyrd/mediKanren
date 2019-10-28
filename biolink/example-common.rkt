@@ -1,10 +1,8 @@
 #lang racket
 (provide
-  (all-from-out "common.rkt" "mk-db.rkt")
+  (all-from-out "common.rkt")
   (all-defined-out))
-(require
-  "common.rkt"
-  "mk-db.rkt")
+(require "common.rkt")
 
 (displayln "all categories:")
 (pretty-print (run* (c) (categoryo c)))
