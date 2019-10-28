@@ -521,6 +521,9 @@ edge format, with dbname at front (as used in edgeo):
                       choices-box
                       convert-values-to-column-sorting-format
                       send-values-to-list-box)
+  (define concept-message (new message%
+                               (parent parent-search/isa-panel)
+                               (label label)))
   (define search-type-choice (new choice%
                                   (label "")
                                   (parent parent-search/isa-panel)
@@ -594,7 +597,7 @@ edge format, with dbname at front (as used in edgeo):
   
 
   (define name-field (new text-field%
-                          (label label)
+                          (label "")
                           (parent string-search-panel)
                           (init-value "")
                           (callback (lambda (self event)
