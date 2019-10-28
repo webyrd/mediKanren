@@ -25,6 +25,8 @@ TODO:
 
 * bring in related concepts
 
+* support additional CURIE types
+
 * refactor CURIE-related code, including string-trim nightmare
 |#
 
