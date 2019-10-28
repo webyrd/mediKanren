@@ -7,8 +7,45 @@
   string:corpus-find*)
 (require
   racket/list
+  racket/set
   racket/string
   racket/vector)
+
+(define sort-threshold 500000)
+(define (length<threshold? vs)
+  (let loop ((vs vs) (remaining sort-threshold))
+    (cond ((null? vs)      #t)
+          ((= 0 remaining) #f)
+          (else (loop (cdr vs) (- remaining 1))))))
+
+(define (msd-radix-sort vs len ref d<? v<?)
+  ;; If this simple version isn't fast enough, here are possible improvements:
+  ;; * switch to normal sort when cardinality drops below some threshold
+  ;; * assign buckets (and done-ness) in a single pass
+  ;;   * constant time bucket identification
+  ;;     * hash table digit=>bucket
+  ;;     * or allocate a contiguous digit range rather than a minimal set
+  ;; * allocate vector buffers instead of using intermediate lists
+  (define out (make-vector (length vs)))
+  (define out-pos 0)
+  (define (bucket vs i)
+    (define-values (done pending) (partition (lambda (v) (<= (len v) i)) vs))
+    (for ((v done))
+         (vector-set! out out-pos v)
+         (set! out-pos (+ 1 out-pos)))
+    (foldl (lambda (digit pending)
+             (define-values (found still-pending)
+               (partition (lambda (v) (equal? digit (ref v i))) pending))
+             (if (length<threshold? found)
+               (for ((v (sort found v<?)))
+                    (vector-set! out out-pos v)
+                    (set! out-pos (+ 1 out-pos)))
+               (bucket found (+ i 1)))
+             still-pending)
+           pending
+           (sort (set->list (for/set ((v pending)) (ref v i))) d<?)))
+  (bucket vs 0)
+  out)
 
 (define (nlist-intersection nlists)
   (let loop ((i** (map (lambda (nlist) (sort nlist <)) nlists)))
@@ -30,6 +67,8 @@
   (list->string (map integer->char (filter searchable? cs))))
 (define (suffix->string corpus s)
   (substring (vector-ref corpus (car s)) (cdr s)))
+(define (suffix-string-ref corpus s i)
+  (string-ref (vector-ref corpus (car s)) (+ (cdr s) i)))
 
 (define (suffix:corpus->index corpus)
   (define suffixes
@@ -39,7 +78,9 @@
            '() (range (vector-length corpus))))
   (define (suffix<? a b) (string<? (suffix->string corpus a)
                                    (suffix->string corpus b)))
-  (vector-sort (list->vector suffixes) suffix<?))
+  (define (suffix-length s) (string-length (suffix->string corpus s)))
+  (define (suffix-ref s i)  (suffix-string-ref corpus s i))
+  (msd-radix-sort suffixes suffix-length suffix-ref char<? suffix<?))
 
 (define (suffix:corpus-find corpus index str)
   (define needle (string/searchable str))
@@ -85,7 +126,9 @@
 (define (string:corpus->index corpus)
   (define ixs (range (vector-length corpus)))
   (define (ix<? a b) (string<? (vector-ref corpus a) (vector-ref corpus b)))
-  (vector-sort (list->vector ixs) ix<?))
+  (define (ix-length ix) (string-length (vector-ref corpus ix)))
+  (define (ix-ref ix i)  (string-ref (vector-ref corpus ix) i))
+  (msd-radix-sort ixs ix-length ix-ref char<? ix<?))
 
 (define (string:corpus-find corpus index needle)
   (define (compare si needle)
