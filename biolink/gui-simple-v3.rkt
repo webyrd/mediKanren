@@ -23,11 +23,11 @@ then click on pred in concept 2, X is populated
 
 TODO:
 
-* make CURIE search ignore trailing/leading whitespace
-
 * bring in related concepts
 
 * improve the switching between GUI widget states
+
+* refactor CURIE-related code, including string-trim nightmare
 |#
 
 (require
@@ -630,7 +630,7 @@ edge format, with dbname at front (as used in edgeo):
                            (callback (lambda (self event)
                                        ;; TODO refactor
                                        (define curie-prefix (send curie-type-choice get-string-selection))
-                                       (define curie-suffix (send self get-value))
+                                       (define curie-suffix (string-trim (send self get-value)))
                                        (define full-curie (string-append curie-prefix ":" curie-suffix))
                                        (printf "full curie: ~s\n" full-curie)
                                        (send name-field set-value "")
@@ -786,7 +786,7 @@ edge format, with dbname at front (as used in edgeo):
 
     ;; TODO refactor duplicate logic
     (define curie-prefix (send curie-type-choice get-string-selection))
-    (define curie-suffix (send curie-field get-value))
+    (define curie-suffix (string-trim (send curie-field get-value)))
     (define new-curie (string-append curie-prefix ":" curie-suffix))
     
     (when (not (and (equal? current-name new-name)
