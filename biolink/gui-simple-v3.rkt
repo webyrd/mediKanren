@@ -27,6 +27,7 @@ TODO:
 
 * bring in related concepts
 
+* improve the switching between GUI widget states
 |#
 
 (require
