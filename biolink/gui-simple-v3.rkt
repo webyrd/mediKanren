@@ -732,7 +732,68 @@ edge format, with dbname at front (as used in edgeo):
                  (define concepts (find-concepts #t (list current-curie)))
                  (printf "found ~s CURIE-related concepts\n" (length concepts))
                  (pretty-print concepts)
-                 concepts]
+                 ;;
+                 ;; TODO remove mutation
+                 (define all-equivalent-concepts concepts)
+                 ;;
+                 (map
+                  (lambda (concept)
+                    (match concept
+                      [`(,db ,cid ,curie ,name (,catid . ,cat) ,props)
+                       (printf "matched against ~s\n" concept)
+                       (printf "found props ~s for CURIE ~s\n" props curie)
+                       (define equivalent-ids (let ((pr (assoc "equivalent_identifiers" props)))
+                                                (and pr (cdr pr))))
+                       (when equivalent-ids
+                         (printf "found equivalent ids ~s for CURIE ~s\n" equivalent-ids curie)
+
+                         (printf "Extracting ENSMBL equivalent identifiers...\n") 
+                         (define robokop-target-gene-concept-ENSEMBL-CUIs
+                           (regexp-match* #rx"ENSEMBL:[A-Z0-9]+" equivalent-ids))
+                         (printf "Extracted ENSMBL equivalent identifiers:\n~s\n\n" robokop-target-gene-concept-ENSEMBL-CUIs)
+                         
+                         (printf "Extracting HGNC equivalent identifiers...\n") 
+                         (define robokop-target-gene-concept-HGNC-CUIs
+                           (regexp-match* #rx"HGNC:[0-9]+" equivalent-ids))
+                         (printf "Extracted HGNC equivalent identifiers:\n~s\n\n" robokop-target-gene-concept-HGNC-CUIs)
+
+                         (printf "Extracting OMIM equivalent identifiers...\n") 
+                         (define robokop-target-gene-concept-OMIM-CUIs
+                           (regexp-match* #rx"OMIM:[A-Z0-9]+" equivalent-ids))
+                         (printf "Extracted OMIM equivalent identifiers:\n~s\n\n" robokop-target-gene-concept-OMIM-CUIs)
+  
+                         (printf "Extracting UniProtKB equivalent identifiers...\n")
+                         (define robokop-target-gene-concept-UniProtKB-CUIs
+                           (regexp-match* #rx"UniProtKB:[A-Z0-9]+" equivalent-ids))
+                         (printf "Extracted UniProtKB equivalent identifiers:\n~s\n\n" robokop-target-gene-concept-UniProtKB-CUIs)
+
+                         (define all-equivalent-CUIs
+                           (set-subtract
+                            (set-union
+                             robokop-target-gene-concept-ENSEMBL-CUIs
+                             robokop-target-gene-concept-HGNC-CUIs
+                             robokop-target-gene-concept-OMIM-CUIs
+                             robokop-target-gene-concept-UniProtKB-CUIs)
+                            (list curie)))
+                         (printf "All equivalent CUIs:\n~s\n\n" all-equivalent-CUIs)
+
+                         (for-each
+                           (lambda (cui)
+                             (define concepts (find-concepts #t (list cui)))
+                             (set! all-equivalent-concepts (set-union concepts all-equivalent-concepts))
+                             (void))
+                           all-equivalent-CUIs)
+                         
+                         (void))
+                       (void)]
+                      [else (printf "!!! failed to match against ~s\n" concept)]))
+                  concepts)
+                 ;;
+                 (printf "\nreturning equivalent concepts: ~s\n\n" all-equivalent-concepts)
+                 
+                 all-equivalent-concepts
+                 ;;
+                 ]
                 [else (error 'mk-run
                              (format "unknown search type ~s\n" search-type))]))))
       (set-box! choices ans)
