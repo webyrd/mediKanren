@@ -25,8 +25,6 @@ TODO:
 
 * bring in related concepts
 
-* improve the switching between GUI widget states
-
 * refactor CURIE-related code, including string-trim nightmare
 |#
 
@@ -577,13 +575,17 @@ edge format, with dbname at front (as used in edgeo):
                                               (void)
                                               ))))
 
+  (define string/curie-search-parent-panel (new panel%
+                                                (parent parent-search/isa-panel)
+                                                (alignment '(center center))))
+
   (define string-search-panel (new panel:horizontal-dragable%
-                                   (parent parent-search/isa-panel)
+                                   (parent string/curie-search-parent-panel)
                                    (alignment '(left center))
                                    (stretchable-height #f)))
 
   (define curie-search-panel (new panel:horizontal-dragable%
-                                  (parent parent-search/isa-panel)
+                                  (parent string/curie-search-parent-panel)
                                   (alignment '(left center))
                                   (stretchable-height #f)))
   
