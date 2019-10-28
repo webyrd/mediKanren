@@ -526,6 +526,7 @@ edge format, with dbname at front (as used in edgeo):
                                   (parent parent-search/isa-panel)
                                   ;; TODO make constants for these strings
                                   (choices (list "String search" "CURIE search"))
+                                  (stretchable-width #f)
                                   (callback (lambda (self event)
                                               (printf "event called for search-type-choice: ~s\n" event)
                                               (define event-type (send event get-event-type))
@@ -581,12 +582,12 @@ edge format, with dbname at front (as used in edgeo):
                                                 (parent parent-search/isa-panel)
                                                 (alignment '(center center))))
 
-  (define string-search-panel (new panel:horizontal-dragable%
+  (define string-search-panel (new horizontal-panel%
                                    (parent string/curie-search-parent-panel)
                                    (alignment '(left center))
                                    (stretchable-height #f)))
 
-  (define curie-search-panel (new panel:horizontal-dragable%
+  (define curie-search-panel (new horizontal-panel%
                                   (parent string/curie-search-parent-panel)
                                   (alignment '(left center))
                                   (stretchable-height #f)))
@@ -616,6 +617,7 @@ edge format, with dbname at front (as used in edgeo):
                                  (label "")
                                  (parent curie-search-panel)
                                  (choices (list "HGNC" "OMIM"))
+                                 (stretchable-width #f)
                                  (callback (lambda (self event)
                                              ;; TODO refactor repeated reset code
                                              ;; reset everythinggggggggg
@@ -906,7 +908,7 @@ edge format, with dbname at front (as used in edgeo):
                                         (parent upper-pane)
                                         (alignment '(left center))))
     
-    (define concept-1-search/isa-panel (new panel:horizontal-dragable%
+    (define concept-1-search/isa-panel (new horizontal-panel%
                                             (parent concept-1-overall-pane)
                                             (alignment '(left center))
                                             (stretchable-height #f)))
@@ -944,7 +946,7 @@ edge format, with dbname at front (as used in edgeo):
                                         (parent upper-pane)
                                         (alignment '(left center))))
     
-    (define concept-2-search/isa-panel (new panel:horizontal-dragable%
+    (define concept-2-search/isa-panel (new horizontal-panel%
                                             (parent concept-2-overall-pane)
                                             (alignment '(left center))
                                             (stretchable-height #f)))
