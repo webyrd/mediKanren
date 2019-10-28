@@ -1,5 +1,26 @@
 #lang racket
 
+#|
+GUI bug:
+
+start GUI
+
+CURIE search for HGNC 15840 in Concept 1
+click on some predicate
+
+then do CURIE search for HGNC 15840 in Concept 1
+click on some predicate
+
+no concept X
+
+then delete CURIE string in Concept 1
+
+no concept X still
+
+if switch from CURIE to string search for concept 1,
+then click on pred in concept 2, X is populated
+|#
+
 (require
   "common.rkt"
   racket/sandbox
