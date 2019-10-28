@@ -19,6 +19,14 @@ no concept X still
 
 if switch from CURIE to string search for concept 1,
 then click on pred in concept 2, X is populated
+
+
+TODO:
+
+* make CURIE search ignore trailing/leading whitespace
+
+* bring in related concepts
+
 |#
 
 (require
