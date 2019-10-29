@@ -7,7 +7,6 @@
   string:corpus-find*)
 (require
   racket/list
-  racket/set
   racket/string
   racket/vector)
 
@@ -20,30 +19,27 @@
 
 (define (msd-radix-sort vs len ref d<? v<?)
   ;; If this simple version isn't fast enough, here are possible improvements:
-  ;; * switch to normal sort when cardinality drops below some threshold
-  ;; * assign buckets (and done-ness) in a single pass
-  ;;   * constant time bucket identification
-  ;;     * hash table digit=>bucket
-  ;;     * or allocate a contiguous digit range rather than a minimal set
+  ;; * faster bucket identification
+  ;;   * allocate a contiguous digit range rather than a minimal set
   ;; * allocate vector buffers instead of using intermediate lists
   (define out (make-vector (length vs)))
   (define out-pos 0)
+  (define (output! vs) (for ((v vs))
+                            (vector-set! out out-pos v)
+                            (set! out-pos (+ 1 out-pos))))
   (define (bucket vs i)
-    (define-values (done pending) (partition (lambda (v) (<= (len v) i)) vs))
-    (for ((v done))
-         (vector-set! out out-pos v)
-         (set! out-pos (+ 1 out-pos)))
-    (foldl (lambda (digit pending)
-             (define-values (found still-pending)
-               (partition (lambda (v) (equal? digit (ref v i))) pending))
-             (if (length<threshold? found)
-               (for ((v (sort found v<?)))
-                    (vector-set! out out-pos v)
-                    (set! out-pos (+ 1 out-pos)))
-               (bucket found (+ i 1)))
-             still-pending)
-           pending
-           (sort (set->list (for/set ((v pending)) (ref v i))) d<?)))
+    (define digit=>bucket (hash))
+    (for ((v vs))
+         (cond ((<= (len v) i) (vector-set! out out-pos v)
+                               (set! out-pos (+ 1 out-pos)))
+               (else (set! digit=>bucket
+                       (hash-update digit=>bucket (ref v i)
+                                    (lambda (b) (cons v b)) '())))))
+    (for ((d (sort (hash-keys digit=>bucket) d<?)))
+         (define found (reverse (hash-ref digit=>bucket d)))
+         (if (length<threshold? found)
+           (output! (sort found v<?))
+           (bucket found (+ i 1)))))
   (bucket vs 0)
   out)
 
