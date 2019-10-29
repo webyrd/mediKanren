@@ -43,6 +43,41 @@
   (bucket vs 0)
   out)
 
+;(define char-digit-len (+ (- (char->integer #\z) (char->integer #\A)) 1))
+
+;(define (msd-radix-sort vs dlen len ref v<?)
+  ;(define out (make-vector (length vs)))
+  ;(define out-pos 0)
+  ;(define (output! vs) (for ((v vs))
+                            ;(vector-set! out out-pos v)
+                            ;(set! out-pos (+ 1 out-pos))))
+  ;(define (bucket vs i)
+    ;;; PERF: only reverse once at the end, and only when i is even.
+    ;;; Or don't worry about stable sorting, and just don't reverse.
+    ;(define below '())
+    ;(define above '())
+    ;(define buckets (make-vector dlen '()))
+    ;(for ((v vs))
+         ;(cond ((<= (len v) i)
+                ;(vector-set! out out-pos v)
+                ;(set! out-pos (+ 1 out-pos)))
+               ;(else (define digit (ref v i))
+                     ;(cond ((<  digit 0)    (set! below (cons v below)))
+                           ;((>= digit dlen) (set! above (cons v above)))
+                           ;(else (vector-set!
+                                   ;buckets digit
+                                   ;(cons v (vector-ref buckets digit))))))))
+    ;(output! (sort (reverse below) v<?))
+    ;(for ((b buckets)) (unless (null? b) (bucket (reverse b) (+ i 1))))
+    ;;(for ((b buckets)) (unless (null? b) (loop (reverse b) (+ i 1))))
+    ;(output! (sort (reverse above) v<?)))
+  ;;(define (loop vs i) (if (length<threshold? vs)
+                        ;;(output! (sort vs v<?))
+                        ;;(bucket vs i)))
+  ;;(loop vs 0)
+  ;(bucket vs 0)
+  ;out)
+
 (define (nlist-intersection nlists)
   (let loop ((i** (map (lambda (nlist) (sort nlist <)) nlists)))
     (cond ((ormap null? i**) '())
@@ -76,6 +111,10 @@
                                    (suffix->string corpus b)))
   (define (suffix-length s) (string-length (suffix->string corpus s)))
   (define (suffix-ref s i)  (suffix-string-ref corpus s i))
+  ;(define (suffix-ref s i)
+    ;(- (char->integer (suffix-string-ref corpus s i))
+       ;(char->integer #\A)))
+  ;(msd-radix-sort suffixes char-digit-len suffix-length suffix-ref suffix<?)
   (msd-radix-sort suffixes suffix-length suffix-ref char<? suffix<?))
 
 (define (suffix:corpus-find corpus index str)
@@ -124,6 +163,10 @@
   (define (ix<? a b) (string<? (vector-ref corpus a) (vector-ref corpus b)))
   (define (ix-length ix) (string-length (vector-ref corpus ix)))
   (define (ix-ref ix i)  (string-ref (vector-ref corpus ix) i))
+  ;(define (ix-ref ix i)
+    ;(- (char->integer (string-ref (vector-ref corpus ix) i))
+       ;(char->integer #\A)))
+  ;(msd-radix-sort ixs char-digit-len ix-length ix-ref ix<?)
   (msd-radix-sort ixs ix-length ix-ref char<? ix<?))
 
 (define (string:corpus-find corpus index needle)
