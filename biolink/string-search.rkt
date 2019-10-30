@@ -14,10 +14,10 @@
 (define sort-threshold 100)
 ;(define sort-threshold 4)
 
-;(define (msd-radix-sort vs len dref v<?)
-  ;(define vvs (list->vector vs))
-  ;(vector-sort! vvs v<?)
-  ;vvs)
+(define (list->vector-sort vs v<?)
+  (define vvs (list->vector vs))
+  (vector-sort! vvs v<?)
+  vvs)
 
 ;(define (small-vector-sort! vs <? start end)
   ;(define len (- end start))
@@ -243,7 +243,9 @@
   (define (ix<? a b) (string<? (vector-ref corpus a) (vector-ref corpus b)))
   (define (ix-length ix) (string-length (vector-ref corpus ix)))
   (define (ix-ref ix i)  (char->integer (string-ref (vector-ref corpus ix) i)))
-  (msd-radix-sort ixs ix-length ix-ref ix<?))
+  (msd-radix-sort ixs ix-length ix-ref ix<?)
+  ;(list->vector-sort ixs ix<?)
+  )
 
 (define (string:corpus-find corpus index needle)
   (define (compare si needle)
