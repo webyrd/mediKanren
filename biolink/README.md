@@ -115,9 +115,6 @@ neo4j stop
 
 * index gene aliasing data
 
-* speed up `build-string-index.rkt`
-  * might be able to do this with a radix sort
-
 * consolidate db generation with one script
 
 * reorganize directory structure

@@ -11,58 +11,6 @@
   racket/unsafe/ops
   racket/vector)
 
-(define sort-threshold 100)
-;(define sort-threshold 4)
-
-(define (list->vector-sort vs v<?)
-  (define vvs (list->vector vs))
-  (vector-sort! vvs v<?)
-  vvs)
-
-;(define (small-vector-sort! vs <? start end)
-  ;(define len (- end start))
-  ;(cond ;((< len 2) (void))
-        ;((= len 2)
-         ;(define v0 (unsafe-vector*-ref vs start))
-         ;(define v1 (unsafe-vector*-ref vs (+ start 1)))
-         ;(when (<? v1 v0)
-           ;(unsafe-vector*-set! vs start       v1)
-           ;(unsafe-vector*-set! vs (+ start 1) v0)))
-        ;((= len 3)
-         ;(define v0 (unsafe-vector*-ref vs start))
-         ;(define v1 (unsafe-vector*-ref vs (+ start 1)))
-         ;(define v2 (unsafe-vector*-ref vs (+ start 2)))
-         ;(if (<? v1 v0)
-           ;;; v1 < v0
-           ;(if (<? v2 v0)
-             ;;; v2 < v0
-             ;(if (<? v2 v1)
-               ;;; v2 v1 v0
-               ;(begin (unsafe-vector*-set! vs start       v2)
-                      ;(unsafe-vector*-set! vs (+ start 2) v0))
-               ;;; v1 v2 v0
-               ;(begin (unsafe-vector*-set! vs start       v1)
-                      ;(unsafe-vector*-set! vs (+ start 1) v2)
-                      ;(unsafe-vector*-set! vs (+ start 2) v0)))
-             ;;; v1 v0 v2
-             ;(begin (unsafe-vector*-set! vs start       v1)
-                    ;(unsafe-vector*-set! vs (+ start 1) v0)))
-           ;;; v0 <= v1
-           ;(when (<? v2 v1)
-             ;;; v2 < v1
-             ;(if (<? v2 v0)
-               ;;; v2 v0 v1
-               ;(begin (unsafe-vector*-set! vs start       v2)
-                      ;(unsafe-vector*-set! vs (+ start 1) v0)
-                      ;(unsafe-vector*-set! vs (+ start 2) v1))
-               ;;; v0 v2 v1
-               ;(begin (unsafe-vector*-set! vs (+ start 1) v2)
-                      ;(unsafe-vector*-set! vs (+ start 2) v1)))
-             ;;; otherwise: v0 v1 v2
-             ;)))
-        ;;(else (vector-sort! vs <? start end))
-        ;))
-
 (define (msd-radix-sort vs len dref v<?)
   (define vvs (list->vector vs))
   (define out (make-vector (vector-length vvs)))
@@ -72,10 +20,9 @@
                        pos i (+ 1 (unsafe-vector*-ref pos i))))
   (let loop ((bi 0) (vi 0) (vend (vector-length vvs)) (vs vvs) (out out))
     (cond
-      ((< (- vend vi) sort-threshold) ;(small-vector-sort! vs v<? vi vend)
-                                      (vector-sort! vs v<? vi vend)
-                                      (when (= 0 (bitwise-and bi 1))
-                                        (vector-copy! out vi vs vi vend)))
+      ((< (- vend vi) 100) (vector-sort! vs v<? vi vend)
+                           (when (= 0 (bitwise-and bi 1))
+                             (vector-copy! out vi vs vi vend)))
       (else (vector-fill! pos 0)
             (define done-pos
               (let i-loop ((i vi) (done-pos vi))
@@ -119,7 +66,6 @@
             (let d-loop ((i done-pos))
               (when (< i initial-big-pos)
                 (define d (dref (unsafe-vector*-ref out i) bi))
-
                 (let end-loop ((end i) (offset 1))
                   (define next (+ end offset))
                   (cond
@@ -138,15 +84,7 @@
                                                          out next) bi)))
                                        next)
                                       (else end))
-                                (arithmetic-shift offset -1)))))))
-
-                ;(let end-loop ((end (+ 1 i)))
-                  ;(cond ((or (= end initial-big-pos)
-                             ;(< d (dref (unsafe-vector*-ref out end) bi)))
-                         ;(loop (+ 1 bi) i end out vs)
-                         ;(d-loop end))
-                        ;(else (end-loop (+ 1 end)))))
-                )))))
+                                (arithmetic-shift offset -1))))))))))))
   out)
 
 (define (nlist-intersection nlists)
@@ -243,9 +181,7 @@
   (define (ix<? a b) (string<? (vector-ref corpus a) (vector-ref corpus b)))
   (define (ix-length ix) (string-length (vector-ref corpus ix)))
   (define (ix-ref ix i)  (char->integer (string-ref (vector-ref corpus ix) i)))
-  (msd-radix-sort ixs ix-length ix-ref ix<?)
-  ;(list->vector-sort ixs ix<?)
-  )
+  (msd-radix-sort ixs ix-length ix-ref ix<?))
 
 (define (string:corpus-find corpus index needle)
   (define (compare si needle)
