@@ -4,6 +4,7 @@
   concept-category
   concept-name
   concept-props
+  concept->xrefs
 
   edge/props-subject
   edge/props-pid
@@ -36,18 +37,32 @@
   offset-write
   offset-count
   offset-ref
+  detail-find-index
   detail-find
   detail-ref
   detail-next
   detail-write
   detail-stream)
 
-(require racket/set racket/stream)
+(require racket/list racket/port racket/set racket/stream racket/string)
 
 (define (concept-cui c)      (vector-ref c 0))
 (define (concept-category c) (vector-ref c 1))
 (define (concept-name c)     (vector-ref c 2))
 (define (concept-props c)    (vector-ref c 3))
+(define (concept->xrefs c)
+  (define props (concept-props c))
+  (define (dedup xs)
+    (cdr (reverse (foldl (lambda (part acc) (if (equal? part (car acc)) acc
+                                              (cons part acc)))
+                         '(#t) xs))))
+  (append* (map (lambda (key)
+                  (define rib (assoc key props))
+                  (if rib (map (lambda (curie)
+                                 (string-join (dedup (string-split curie ":"))
+                                              ":"))
+                               (call-with-input-string (cdr rib) read)) '()))
+                '("xrefs" "same_as" "equivalent_identifiers"))))
 
 ;; This is the edge representation for edges.scm, not for edges-by-X.detail.
 (define (edge/props-subject e) (vector-ref e 0))
@@ -187,6 +202,17 @@
   (file-position detail-in (offset-ref offset-in n))
   (read detail-in))
 (define (detail-next detail-in) (read detail-in))
+
+(define (detail-find-index detail-in offset-in compare)
+  (let loop ((start 0) (end (offset-count offset-in)) (best #f))
+    (cond ((< start end)
+           (define n (+ start (quotient (- end start) 2)))
+           (define detail (detail-ref detail-in offset-in n))
+           (case (compare detail)
+             ((-1) (loop (+ 1 n) end best))
+             (( 0) (loop start n n))
+             (( 1) (loop start n best))))
+          (else best))))
 
 (define (detail-find detail-in offset-in compare)
   (let loop ((start 0) (end (offset-count offset-in)) (best #f))
