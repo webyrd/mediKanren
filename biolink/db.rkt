@@ -18,6 +18,7 @@
   db:object->edge-stream
   db:pmid->eid*
   db:pmid&eid*-stream
+  db:xref->cid*
 
   db:~category->catid&category*
   db:~predicate->pid&predicate*
@@ -40,6 +41,8 @@
   racket/vector)
 
 (define fnin-concepts             "concepts.scm")
+(define fnin-xrefs                "xrefs.scm")
+(define fnin-concepts-by-xref     "concepts-by-xref.scm")
 (define fnin-concept-cui-corpus   "concept-cui-corpus.scm")
 (define fnin-concept-cui-index    "concept-cui-index.bytes")
 (define fnin-concept-name-corpus  "concept-name-corpus.scm")
@@ -79,11 +82,15 @@
         (if (file-exists? "/dev/null")
             (open-input-file "/dev/null")
             (open-input-file "nul"))))
-  (define in-concepts-by-category
-    (open-db-path fnin-concepts-by-category))
+  (define in-concepts-by-category (open-db-path fnin-concepts-by-category))
   (define in-offset-concepts-by-category
     (open-db-path (fname-offset fnin-concepts-by-category)))
+  (define in-concepts-by-xref (open-db-path fnin-concepts-by-xref))
+  (define in-offset-concepts-by-xref
+    (open-db-path (fname-offset fnin-concepts-by-xref)))
   (define in-concepts            (open-db-path fnin-concepts))
+  (define in-xrefs               (open-db-path fnin-xrefs))
+  (define in-offset-xrefs        (open-db-path (fname-offset fnin-xrefs)))
   (define in-concept-cui-corpus  (open-db-path fnin-concept-cui-corpus))
   (define in-concept-cui-index   (open-db-path fnin-concept-cui-index))
   (define in-concept-name-corpus (open-db-path fnin-concept-name-corpus))
@@ -121,6 +128,16 @@
                                 in-offset-concepts-by-category catid))
        (vector-set! catid=>cid* catid cid*))
 
+  (define (xref->cid* xref)
+    (define xid (detail-find-index in-xrefs in-offset-xrefs
+                                   (lambda (key)
+                                     (cond ((string<? key xref) -1)
+                                           ((string=? key xref)  0)
+                                           (else                 1)))))
+    (displayln `(found: ,xref ,xid))
+    (if xid (detail-ref in-concepts-by-xref in-offset-concepts-by-xref xid)
+      '()))
+
   (define (catid->cid* catid)  (vector-ref catid=>cid* catid))
   (define (cid->concept cid)   (detail-ref in-concepts in-offset-concepts cid))
   (define (cid&concept-stream) (port->stream-offset&values in-concepts))
@@ -154,7 +171,8 @@
           catid->cid* cid->concept eid->edge
           cid&concept-stream eid&edge/props-stream
           subject->edge-stream object->edge-stream
-          pmid->eid* pmid&eid*-stream subject->pids object->pids))
+          pmid->eid* pmid&eid*-stream subject->pids object->pids
+          xref->cid*))
 
 (define (db:category*             db)        (vector-ref db 0))
 (define (db:predicate*            db)        (vector-ref db 1))
@@ -173,6 +191,7 @@
 (define (db:pmid&eid*-stream      db)        ((vector-ref db 12)))
 (define (db:subject->pids         db . args) (apply (vector-ref db 13) args))
 (define (db:object->pids          db . args) (apply (vector-ref db 14) args))
+(define (db:xref->cid*            db . args) (apply (vector-ref db 15) args))
 
 (define (db:catid->category db catid) (vector-ref (db:category* db) catid))
 (define (db:pid->predicate db pid)    (vector-ref (db:predicate* db) pid))

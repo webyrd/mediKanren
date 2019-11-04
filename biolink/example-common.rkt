@@ -35,6 +35,13 @@
             c))))
 
 (newline)
+(displayln "xref search:")
+(time (pretty-print
+        (run* (xref c)
+          (membero xref '("DOID:2841" "HP:0002099" "MONDO:0004979"))
+          (xref-concepto xref c))))
+
+(newline)
 (displayln "finding pubmed ids and associated edges:")
 (time (pretty-print (run 3 (pmid e) (pmid-edgeo pmid      e))))
 (displayln "associating specific pubmed ids with edges:")
