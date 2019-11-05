@@ -108,10 +108,17 @@ neo4j stop
 
 ## TODO
 
-* index "xrefs", "same_as", "equivalent_identifiers", etc.
-  * expose via something like xrefo?
-  * preprocess to eliminate repetitions in CURIEs
-    * e.g., [W: ...]X:X:Y[:Z ...] becomes [W: ...]X:Y[:Z ...]
+* finish implementing 0.9.1 (looks like it might be 0.9.2 now?) draft specification of NCATS Translator Reasoner API
+  * https://github.com/NCATS-Tangerine/NCATS-ReasonerStdAPI/tree/master/API
+  * OpenAPI 3.0.1 format
+    * https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.1.md
+    * What is OpenAPI? https://swagger.io/docs/specification/about/
+    * https://developer.squareup.com/blog/making-openapi-swagger-bearable-with-your-own-dsl/
+  * communicate using JSON-LD format: https://json-ld.org/
+  * yaml/json parser/unparser
+    * https://docs.racket-lang.org/yaml/index.html
+    * https://github.com/esilkensen/yaml
+  * schema validation and exploration
 
 * index gene aliasing data
 
