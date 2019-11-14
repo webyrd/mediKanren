@@ -48,12 +48,20 @@
                                       ;; robokop
                                       "(\"named_thing\" \"chemical_substance\")")))
 
-(define hgnc-ids (call-with-input-file
-                   "hgnc-ids.txt"
-                   (lambda (in) (let loop ()
-                                  (define line (read-line in))
-                                  (if (eof-object? line) '()
-                                    (cons (string-trim line) (loop)))))))
+(define (file->strings filename)
+  (call-with-input-file
+    filename
+    (lambda (in) (let loop ()
+                   (define line (read-line in))
+                   (if (eof-object? line) '()
+                     (cons (string-trim line) (loop)))))))
+
+(define (xref-curies curies)
+  (time (run* (c) (fresh (xref)
+                    (membero xref curies)
+                    (xref-concepto xref c)))))
+
+(define hgnc-ids (file->strings "hgnc-ids.txt"))
 (printf "HGNC gene total: ~s\n" (length hgnc-ids))
 
 ;; This will only work with robokop.
@@ -72,10 +80,9 @@
                     (category-concepto dbcat c)))))
 (printf "Total gene count: ~s\n" (length genes))
 
-(define human-genes
-  (time (run* (c) (fresh (xref)
-                    (membero xref hgnc-ids)
-                    (xref-concepto xref c)))))
+;; TODO: This set-based deduping is due to one duplicate semmed entry.
+;; We need to fix this by re-indexing xrefs.
+(define human-genes (set->list (list->set (xref-curies hgnc-ids))))
 (define human-genes-alt
   (time (filter (lambda (g)
                   (ormap (lambda (xref) (string-prefix? xref "HGNC:"))
@@ -196,3 +203,36 @@
         (set-count perturbed<=3-hop)
         (%hgnc-found (set-count perturbed<=3-hop))
         (%hgnc-total (set-count perturbed<=3-hop)))
+
+;; Only do this when generating Robokop data.
+;(call-with-output-file
+  ;"hgnc-robokop.txt"
+  ;(lambda (out)
+    ;(for-each
+      ;(lambda (c) (fprintf out "~a\n" (caddr c)))
+      ;(set->list perturbed<=3-hop))))
+
+;; Only do this comparison when we have Robokop data.
+;(define hgnc-robokop-ids (file->strings "hgnc-robokop.txt"))
+;(define hgnc-robokop-concepts (list->set (xref-curies hgnc-robokop-ids)))
+;(define hgnc-robokop-missing (- (length hgnc-robokop-ids) (set-count hgnc-robokop-concepts)))
+;(define hgnc-common (set-intersect hgnc-robokop-concepts perturbed<=3-hop))
+;(define hgnc-combined (set-union hgnc-robokop-concepts perturbed<=3-hop))
+;(define hgnc-total-perturbed (+ hgnc-robokop-missing (set-count hgnc-combined)))
+;(define extra         (- (set-count perturbed<=3-hop)
+                         ;(set-count hgnc-common)))
+;(define extra-robokop (- (length hgnc-robokop-ids)
+                         ;(set-count hgnc-common)))
+
+;(printf "overlap with Robokop: this=~s robokop=~s; common=~s ~s\n"
+        ;(set-count perturbed<=3-hop)
+        ;(set-count hgnc-robokop-concepts)
+        ;(set-count hgnc-common)
+        ;(%hgnc-total (set-count hgnc-common)))
+
+;(printf "missing: ~s\n" hgnc-robokop-missing)
+
+;(printf "extra and combined contributions: extra=~s ~s; extra-robokop=~s ~s; combined=~s ~s\n"
+        ;extra                (%hgnc-total extra)
+        ;extra-robokop        (%hgnc-total extra-robokop)
+        ;hgnc-total-perturbed (%hgnc-total hgnc-total-perturbed))
