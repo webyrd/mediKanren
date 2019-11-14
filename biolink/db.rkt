@@ -134,7 +134,6 @@
                                      (cond ((string<? key xref) -1)
                                            ((string=? key xref)  0)
                                            (else                 1)))))
-    (displayln `(found: ,xref ,xid))
     (if xid (detail-ref in-concepts-by-xref in-offset-concepts-by-xref xid)
       '()))
 
