@@ -84,8 +84,10 @@
         (fname-offset fnout-concept-xref)
         (lambda (out-offsets-concept-xref)
           (for ((xref xrefs))
-               (detail-write out-concept-xref out-offsets-concept-xref
-                             (sort (hash-ref xref=>concepts xref) <))))))))
+               (detail-write
+                 out-concept-xref out-offsets-concept-xref
+                 (sort (set->list (list->set (hash-ref xref=>concepts xref)))
+                       <))))))))
 
 (let ()
   (printf "building CUI search corpus...\n")
