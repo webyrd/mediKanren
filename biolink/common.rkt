@@ -19,6 +19,7 @@
   ~categoryo
   ~predicateo
   xref-concepto
+  category-concepto
   concepto
   categoryo
   predicateo
@@ -177,6 +178,11 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
     (lambda (dbname db)
       (fresh (c) (== `(,dbname . ,c) concept)
         (db:xref-concepto db xref c)))))
+(define (category-concepto category concept)
+  (fresh (db cid cui name cat props)
+    (== category `(,db . ,cat))
+    (== concept `(,db ,cid ,cui ,name ,cat . ,props))
+    (concepto concept)))
 (define (concepto concept)
   (conde/databases
     (lambda (dbname db)
