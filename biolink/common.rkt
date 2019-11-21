@@ -524,7 +524,7 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
           (sort
             (if srcs srcs
               (run* (src)
-                (fresh (src cui cname catid catname cprops)
+                (fresh (cui cname catid catname cprops)
                   (if cats (membero catid cats) (== #t #t))
                   (db:concepto
                     db `(,src ,cui ,cname (,catid . ,catname) ,cprops)))))
