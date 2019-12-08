@@ -3,6 +3,7 @@
   "repr.rkt"
   "string-search.rkt"
   racket/list
+  racket/set
   racket/stream
   racket/vector)
 
