@@ -2,6 +2,8 @@
 (require
   "common.rkt"
   racket/file
+  racket/list
+  (except-in racket/match ==)
   racket/pretty
   racket/runtime-path
   json
@@ -13,6 +15,13 @@
 
 (print-as-expression #f)
 (pretty-print-abbreviate-read-macros #f)
+(define argv (current-command-line-arguments))
+(define argv-optional '#(CONFIG_FILE))
+(when (not (<= (vector-length argv) (vector-length argv-optional)))
+  (error "optional arguments ~s; given ~s" argv-optional argv))
+;; Loading will occur at first use if not explicitly forced like this.
+(load-config #t (and (<= 1 (vector-length argv)) (vector-ref argv 0)))
+(load-databases #t)
 
 (define-runtime-path path:root ".")
 (define (path/root relative-path) (build-path path:root relative-path))
@@ -128,13 +137,54 @@ query_result_clear.addEventListener('click', function(){
                (div (button ((id "query-result-clear")) "Clear Result"))
                (div (pre ((id "query-result")) "Result will appear here.")))))
 
+(define hash-empty (hash))
+(define (olift v) (if (hash? v) v hash-empty))
+(define (slift v) (cond ((pair? v) v) ((string? v) (list v)) (else '())))
+(define (str v)   (and (string? v) v))
+
+(define (message->query-results msg)
+  ;; NOTE: ignore 'results and 'knowledge_graph until we find a use for them.
+  (define qgraph (hash-ref msg 'query_graph hash-empty))
+  (define nodes
+    (filter-not not
+      (map (lambda (n)
+             (let ((id    (str   (hash-ref n 'id    #f)))
+                   (curie (slift (hash-ref n 'curie '())))
+                   (type  (slift (hash-ref n 'type  '()))))
+               ;; TODO: use a new find-concepts based on xrefo instead?
+               (and id `(,(string->symbol id)
+                          ',(cond ((pair? curie) (find-concepts #t curie))
+                                  ((pair? type)  (find-categories type))
+                                  (else          #f))))))
+           (hash-ref qgraph 'nodes '()))))
+  (define edges&paths
+    (filter-not not
+      (map (lambda (e)
+             (let ((id   (str   (hash-ref e 'id        #f)))
+                   (type (slift (hash-ref e 'type      '())))
+                   (src  (str   (hash-ref e 'source_id #f)))
+                   (tgt  (str   (hash-ref e 'target_id #f))))
+               (define preds (and (pair? type) (find-predicates type)))
+               (and id src tgt (cons `(,(string->symbol id) ',preds)
+                                     (map string->symbol (list src id tgt))))))
+           (hash-ref qgraph 'edges '()))))
+  (define edges (map car edges&paths))
+  (define paths (map cdr edges&paths))
+  (define runq #`(run/graph #,nodes #,edges . #,paths))
+  (printf "running query: ~s\n" runq)
+  (match-define (list name=>concepts name=>edges) (time (eval runq)))
+  (hash 'nodes (hash-map name=>concepts (lambda (name xs) (list (symbol->string name) (length xs))))
+        'edges (hash-map name=>edges    (lambda (name xs) (list (symbol->string name) (length xs)))))
+  )
+
 (define (predicates)
   ;; TODO: build concept-type relation mapping
   (hash 'chemical_substance (hash 'gene '("TODO"))))
-
 (define (query jsdata)
-  ;; TODO:
-  (hash 'received (or (eof-object? jsdata) jsdata)))
+  (cond ((or (eof-object? jsdata) (not (hash? jsdata))) 'null)
+        (else (message->query-results
+                (olift (hash-ref (olift jsdata) 'message hash-empty)))))
+  )
 
 (define (respond code message headers mime-type body)
   (response/full code (string->bytes/utf-8 message)
