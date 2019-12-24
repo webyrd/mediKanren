@@ -104,17 +104,30 @@ query_result_clear.addEventListener('click', function(){
     \"query_graph\": {
       \"nodes\": [
         {
-          \"id\": \"\",
-          \"type\": \"\",
-          \"curie\": \"\"
+          \"id\": \"n0\",
+          \"curie\": \"UMLS:C0935989\"
+        },
+        {
+          \"id\": \"n1\",
+          \"type\": \"gene\"
+        },
+        {
+          \"id\": \"n2\",
+          \"curie\": \"UMLS:C0004096\"
         }
       ],
       \"edges\": [
         {
-          \"id\": \"\",
-          \"type\": \"\",
-          \"source_id\": \"\",
-          \"target_id\": \"\"
+          \"id\": \"e0\",
+          \"type\": \"negatively_regulates\",
+          \"source_id\": \"n0\",
+          \"target_id\": \"n1\"
+        },
+        {
+          \"id\": \"e1\",
+          \"type\": \"gene_associated_with_condition\",
+          \"source_id\": \"n1\",
+          \"target_id\": \"n2\"
         }
       ]
     }
