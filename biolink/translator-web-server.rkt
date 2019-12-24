@@ -47,25 +47,22 @@ var query_result_clear = document.getElementById('query-result-clear');
 var query_form         = document.getElementById('query-form');
 var query_text         = document.getElementById('query-text');
 var query_submit       = document.getElementById('query-submit');
+function pretty_json(json_text) {
+  try { return JSON.stringify(JSON.parse(json_text), null, 2); }
+  catch (_) { return json_text; }
+}
 function query(data) {
   var xhr = new XMLHttpRequest();
-  xhr.addEventListener('load', function(event){
-    show(xhr.responseText);
-  });
-  xhr.addEventListener('error', function(event){
-    show('POST error');
-  });
+  xhr.addEventListener('load',  function(event){ show(xhr.responseText); });
+  xhr.addEventListener('error', function(event){ show('POST error'); });
   xhr.open('POST', '/query');
   xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
   xhr.send(data);
 }
-function show(result) {
-  query_result.textContent = JSON.stringify(JSON.parse(result), null, 2);
-}
-function clear_result() {
-  query_result.textContent = '';
-}
+function show(result)   { query_result.textContent = pretty_json(result); }
+function clear_result() { query_result.textContent = ''; }
 
+query_text.textContent = pretty_json(query_text.textContent);
 query_form.addEventListener('submit', function(event){
   event.preventDefault();
   query(query_text.value);
@@ -91,7 +88,41 @@ query_result_clear.addEventListener('click', function(){
                    (li (a ((href "/schema.json")) "schema.json")))
                (p (a ((href "/predicates")) "GET /predicates"))
                (form ((method "post") (action "/query") (id "query-form"))
-                     (div (textarea ((id "query-text")) ""))
+                     (div (textarea
+                            ((id "query-text"))
+                            "{
+  \"message\": {
+    \"query_graph\": {
+      \"nodes\": [
+        {
+          \"id\": \"\",
+          \"type\": \"\",
+          \"curie\": \"\"
+        }
+      ],
+      \"edges\": [
+        {
+          \"id\": \"\",
+          \"type\": \"\",
+          \"source_id\": \"\",
+          \"target_id\": \"\"
+        }
+      ]
+    }
+  }
+}"
+                            ;,(jsexpr->string
+                               ;;; TODO: factor this out
+                               ;(hash 'message
+                                     ;(hash 'query_graph
+                                           ;(hash 'nodes (list (hash 'id ""
+                                                                    ;'curie ""
+                                                                    ;'type ""))
+                                                 ;'edges (list (hash 'id ""
+                                                                    ;'type ""
+                                                                    ;'source_id ""
+                                                                    ;'target_id ""))))))
+                            ))
                      (div (button ((type "submit") (id "query-submit"))
                                   "POST /query")))
                (div (button ((id "query-result-clear")) "Clear Result"))
