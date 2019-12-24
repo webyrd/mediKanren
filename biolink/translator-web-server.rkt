@@ -142,7 +142,19 @@ query_result_clear.addEventListener('click', function(){
 (define (slift v) (cond ((pair? v) v) ((string? v) (list v)) (else '())))
 (define (str v)   (and (string? v) v))
 
-(define (message->query-results msg)
+(define (concept->result c)
+  (hash 'id (caddr c) 'name (cadddr c) 'type (cdr (cadddr (cdr c)))))
+(define (edge->result e)
+  (define id (string-append (symbol->string (car e)) (number->string (cadr e))))
+  (define src (cadr (caddr e)))
+  (define tgt (cadr (cadddr e)))
+  (define pred (cdr (cadddr (cdr e))))
+  (define attrs (make-immutable-hash
+                  (map (lambda (kv) (cons (string->symbol (car kv)) (cdr kv)))
+                       (cadddr (cddr e)))))
+  (hash 'id id 'type pred 'source_id src 'target_id tgt 'attrs attrs))
+
+(define (message->response msg)
   ;; NOTE: ignore 'results and 'knowledge_graph until we find a use for them.
   (define qgraph (hash-ref msg 'query_graph hash-empty))
   (define nodes
@@ -173,24 +185,43 @@ query_result_clear.addEventListener('click', function(){
   (define runq #`(run/graph #,nodes #,edges . #,paths))
   (printf "running query: ~s\n" runq)
   (match-define (list name=>concepts name=>edges) (time (eval runq)))
-  (hash 'nodes (hash-map name=>concepts (lambda (name xs) (list (symbol->string name) (length xs))))
-        'edges (hash-map name=>edges    (lambda (name xs) (list (symbol->string name) (length xs)))))
-  )
+  (define knodes
+    (hash-map name=>concepts (lambda (name xs) (map concept->result xs))))
+  (define kedges
+    (hash-map name=>edges    (lambda (name xs) (map edge->result xs))))
+  (hash 'results
+        (append* (map (lambda (p)
+                        (define qsrc  (symbol->string (car p)))
+                        (define qname (cadr p))
+                        (define qedge (symbol->string qname))
+                        (define qtgt  (symbol->string (caddr p)))
+                        (map (lambda (e)
+                               (define r (edge->result e))
+                               (define id  (hash-ref r 'id))
+                               (define src (hash-ref r 'source_id))
+                               (define tgt (hash-ref r 'target_id))
+                               (hash 'edge_bindings
+                                     (list (hash 'qg_id qedge 'kg_id id))
+                                     'node_bindings
+                                     (list (hash 'qg_id qsrc  'kg_id src)
+                                           (hash 'qg_id qtgt  'kg_id tgt))))
+                             (hash-ref name=>edges qname)))
+                      paths))
+        'knowledge_graph (hash 'nodes (append* knodes)
+                               'edges (append* kedges))))
 
 (define (predicates)
   ;; TODO: build concept-type relation mapping
   (hash 'chemical_substance (hash 'gene '("TODO"))))
 (define (query jsdata)
   (cond ((or (eof-object? jsdata) (not (hash? jsdata))) 'null)
-        (else (message->query-results
-                (olift (hash-ref (olift jsdata) 'message hash-empty)))))
-  )
+        (else (message->response
+                (olift (hash-ref (olift jsdata) 'message hash-empty))))))
 
 (define (respond code message headers mime-type body)
   (response/full code (string->bytes/utf-8 message)
                  (current-seconds) mime-type headers
                  (list (string->bytes/utf-8 body))))
-
 (define (not-found req)
   (respond 404 "Not Found" '() mime:html
            (xexpr->html-string (not-found.html
@@ -202,7 +233,6 @@ query_result_clear.addEventListener('click', function(){
 (define (/schema.yaml  req) (respond 200 "ok" '() mime:text schema.yaml.txt))
 (define (/schema.html  req) (respond 200 "ok" '() mime:html schema.html))
 (define (/schema.html2 req) (respond 200 "ok" '() mime:html schema.html2))
-
 (define (/predicates req)
   (respond 200 "OK" '() mime:json (jsexpr->string (predicates))))
 (define (/query req)
