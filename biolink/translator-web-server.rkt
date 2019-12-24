@@ -211,8 +211,27 @@ query_result_clear.addEventListener('click', function(){
                                'edges (append* kedges))))
 
 (define (predicates)
-  ;; TODO: build concept-type relation mapping
-  (hash 'chemical_substance (hash 'gene '("TODO"))))
+  ;; TODO: at greater expense, we could restrict each list of predicates
+  ;; to those reflected by existing edges for the corresponding categories.
+  (define cs (run* (c) (categoryo c)))
+  (define ps (run* (p) (predicateo p)))
+  (define dbs (map car cs))
+  (make-immutable-hash
+    (append*
+      (map (lambda (db)
+             (define dcs
+               (filter-not
+                 not (map (lambda (c) (and (eq? (car c) db) (cddr c)))
+                          cs)))
+             (define dps
+               (filter-not
+                 not (map (lambda (p) (and (eq? (car p) db) (cddr p)))
+                          ps)))
+             (define dcps
+               (make-immutable-hash
+                 (map (lambda (c) (cons (string->symbol c) dps)) dcs)))
+             (map (lambda (c) (cons (string->symbol c) dcps)) dcs))
+           dbs))))
 (define (query jsdata)
   (cond ((or (eof-object? jsdata) (not (hash? jsdata))) 'null)
         (else (message->response
