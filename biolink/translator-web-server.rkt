@@ -196,8 +196,12 @@ query_result_clear.addEventListener('click', function(){
   (define edges (map car edges&paths))
   (define paths (map cdr edges&paths))
   (define runq #`(run/graph #,nodes #,edges . #,paths))
-  (printf "running query: ~s\n" runq)
+  (displayln "===============================================================")
+  (pretty-print (syntax->datum runq))
   (match-define (list name=>concepts name=>edges) (time (eval runq)))
+  (displayln "result counts:")
+  (pretty-print (hash-map name=>concepts (lambda (n xs) (cons n (length xs)))))
+  (pretty-print (hash-map name=>edges    (lambda (n xs) (cons n (length xs)))))
   (define knodes
     (hash-map name=>concepts (lambda (name xs) (map concept->result xs))))
   (define kedges
