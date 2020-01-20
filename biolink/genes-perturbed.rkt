@@ -33,12 +33,6 @@
                      "disrupts"
                      )))
 
-(define (find-exact-categories names)
-  (run* (cat) (fresh (db catid name)
-                (membero name names)
-                (== cat `(,db ,catid . ,name))
-                (categoryo cat))))
-
 (define gene (find-exact-categories '(;; semmed
                                       "gene"
                                       ;; robokop

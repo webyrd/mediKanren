@@ -7,6 +7,7 @@
   find-predicates/concepts
   find-predicates
   find-categories
+  find-exact-categories
   find-Xs
   find-graph
   run/graph
@@ -373,6 +374,11 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
   (append* (map (lambda (name) (run* (x) (~predicateo name x))) names)))
 (define (find-categories names)
   (append* (map (lambda (name) (run* (x) (~categoryo name x))) names)))
+(define (find-exact-categories names)
+  (run* (cat) (fresh (db catid name)
+                (membero name names)
+                (== cat `(,db ,catid . ,name))
+                (categoryo cat))))
 
 (define (find-Xs subjects? objects?)
   ;; subjects?: #f | ((concept (predicate ...) #f) ...)
