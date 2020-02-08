@@ -114,19 +114,25 @@
     (list->vector (read-all-from-file (db-path fnin-predicates))))
 
   (define cui-corpus
-    (list->vector (stream->list (stream-map cdr (port->stream-offset&values
-                                                  in-concept-cui-corpus)))))
+    (for/vector ((x (port->stream-offset&values in-concept-cui-corpus)))
+                (cdr x)))
+  (close-input-port in-concept-cui-corpus)
   (define cui-index (port->string-keys in-concept-cui-index))
+  (close-input-port in-concept-cui-index)
   (define name-corpus
-    (list->vector (stream->list (stream-map cdr (port->stream-offset&values
-                                                  in-concept-name-corpus)))))
+    (for/vector ((x (port->stream-offset&values in-concept-name-corpus)))
+                (cdr x)))
+  (close-input-port in-concept-name-corpus)
   (define name-index (port->suffix-keys in-concept-name-index))
+  (close-input-port in-concept-name-index)
 
   (define catid=>cid* (make-vector (vector-length category*) #f))
   (for ((catid (in-range 0 (vector-length category*))))
        (define cid* (detail-ref in-concepts-by-category
                                 in-offset-concepts-by-category catid))
        (vector-set! catid=>cid* catid cid*))
+  (close-input-port in-concepts-by-category)
+  (close-input-port in-offset-concepts-by-category)
 
   (define (xref->cid* xref)
     (define xid (detail-find-index in-xrefs in-offset-xrefs
