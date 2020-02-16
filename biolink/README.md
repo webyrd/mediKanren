@@ -108,6 +108,40 @@ neo4j stop
 
 ## TODO
 
+* Set up a 64GB RAM linode (add ssh keys)
+
+
+### High-level
+
+* queries we want to show during demo, common use cases
+* figure out what info we need and how to build an ontologyo (better name?) relation to relate concepts and classes for traversal in either direction
+* synonymization with max concept distance
+  * e.g., equivalent_to might be distance 0, encodes might be distance 1, etc.
+* figure out what scoring parameters to use, some possibilities are:
+  * confidence we're even referencing the right concepts
+  * confidence in the evidence of a claim (via publications, ontological traversal, etc.)
+    * avoid double-counting same ontological information from multiple sources
+  * confidence via presence in multiple knowledge graphs (RTX2 + sulab semmed)
+  * some notion of novelty: how interesting is this result?
+
+
+### UI
+
+* CURIE string lookup
+* concept distance for (potentially cross-KG) synonyms (similar to ISA checkbox)
+* extract RTX2 pubmed and display sentence inline
+* sorting results by different scoring parameters (confidence vs. novelty)
+* reimplement GUI result builder in terms of run/graph for consistency
+* display JSON version of input/output (need to map different forms of evidence to biolink model)
+* display a simple handmade graph visualization of query and results
+
+
+### Greg will do these
+
+* reduce load time
+* speed up string search
+* fix UI interaction hangups (probably not using threads for all utility queries)
+
 * index gene aliasing data
 
 * consolidate db generation with one script
