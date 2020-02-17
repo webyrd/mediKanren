@@ -113,17 +113,20 @@
   (define predicate*
     (list->vector (read-all-from-file (db-path fnin-predicates))))
 
+  (displayln "* cui-corpus:")
   (define cui-corpus
-    (for/vector ((x (port->stream-offset&values in-concept-cui-corpus)))
-                (cdr x)))
+    (time (for/vector ((x (port->stream-offset&values in-concept-cui-corpus)))
+                (cdr x))))
   (close-input-port in-concept-cui-corpus)
   (define cui-index (port->string-keys in-concept-cui-index))
   (close-input-port in-concept-cui-index)
+  (displayln "* name-corpus:")
   (define name-corpus
-    (for/vector ((x (port->stream-offset&values in-concept-name-corpus)))
-                (cdr x)))
+    (time (for/vector ((x (port->stream-offset&values in-concept-name-corpus)))
+                (cdr x))))
   (close-input-port in-concept-name-corpus)
-  (define name-index (port->suffix-keys in-concept-name-index))
+  (displayln "* name-index:")
+  (define name-index (time (port->suffix-keys in-concept-name-index)))
   (close-input-port in-concept-name-index)
 
   (define catid=>cid* (make-vector (vector-length category*) #f))
