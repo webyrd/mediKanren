@@ -23,8 +23,9 @@
   write-string-keys
   port->string-keys
 
+  suffix-key-count
+  suffix-key-ref
   suffix-key->bytes
-  bytes->suffix-key
   write-suffix-keys
   port->suffix-keys
 
@@ -114,6 +115,7 @@
               (bytes->string-key (read-string-key-bytes in))))
 
 (define suffix-key-byte-size (+ 4 2))
+(define (suffix-key-count index) (vector-length index))
 (define (suffix-key->bytes s)
   (define cid (car s))
   (define pos (cdr s))

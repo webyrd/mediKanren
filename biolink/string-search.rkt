@@ -6,6 +6,7 @@
   string:corpus->index
   string:corpus-find*)
 (require
+  "repr.rkt"
   racket/list
   racket/string
   racket/unsafe/ops
@@ -138,12 +139,12 @@
 (define (suffix:corpus-find corpus index str)
   (define needle (string/searchable str))
   (define (compare si needle)
-    (define hay (suffix->string corpus (vector-ref index si)))
+    (define hay (suffix->string corpus (suffix-key-ref index si)))
     (cond ((string-prefix? hay needle) 0)
           ((string<? hay needle)      -1)
           (else                        1)))
   ;; Find a point in the desired range...
-  (let find-range ((start 0) (end (vector-length index)))
+  (let find-range ((start 0) (end (suffix-key-count index)))
     (cond ((< start end)
            (define mid (+ start (quotient (- end start) 2)))
            (case (compare mid needle)
@@ -168,8 +169,9 @@
                            ((0) (loop (+ 1 mid) end))
                            (else (error "rend: this shouldn't happen."))))
                         (else end))))
-              (remove-duplicates (map (lambda (i) (car (vector-ref index i)))
-                                      (range rstart rend))))))
+              (remove-duplicates
+                (map (lambda (i) (car (suffix-key-ref index i)))
+                     (range rstart rend))))))
           (else '()))))
 
 (define (suffix:corpus-find* corpus index str*)
