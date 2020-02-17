@@ -36,6 +36,7 @@
 (require
   "repr.rkt"
   "string-search.rkt"
+  racket/file
   racket/stream
   racket/string
   racket/vector)
@@ -94,7 +95,6 @@
   (define in-concept-cui-corpus  (open-db-path fnin-concept-cui-corpus))
   (define in-concept-cui-index   (open-db-path fnin-concept-cui-index))
   (define in-concept-name-corpus (open-db-path fnin-concept-name-corpus))
-  (define in-concept-name-index  (open-db-path fnin-concept-name-index))
   (define in-offset-concepts  (open-db-path (fname-offset fnin-concepts)))
   (define in-edges            (open-db-path fnin-edges))
   (define in-offset-edges     (open-db-path (fname-offset fnin-edges)))
@@ -126,8 +126,7 @@
                 (cdr x))))
   (close-input-port in-concept-name-corpus)
   (displayln "* name-index:")
-  (define name-index (time (port->suffix-keys in-concept-name-index)))
-  (close-input-port in-concept-name-index)
+  (define name-index (time (file->bytes (db-path fnin-concept-name-index))))
 
   (define catid=>cid* (make-vector (vector-length category*) #f))
   (for ((catid (in-range 0 (vector-length category*))))

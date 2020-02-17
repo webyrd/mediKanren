@@ -27,7 +27,6 @@
   suffix-key-ref
   suffix-key->bytes
   write-suffix-keys
-  port->suffix-keys
 
   edge-pids-by-X
   stream-edges-by-X
@@ -130,7 +129,6 @@
 (define (read-suffix-key-bytes in) (read-bytes suffix-key-byte-size in))
 (define (write-suffix-keys out v)
   (for ((s (in-vector v))) (write-bytes (suffix-key->bytes s) out)))
-(define port->suffix-keys port->bytes)
 
 (define (edge-pids-by-X in in-offset src)
   (define start (offset-ref in-offset src))
