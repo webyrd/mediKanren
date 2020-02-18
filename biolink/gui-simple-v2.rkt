@@ -16,7 +16,7 @@
 (provide
   launch-gui)
 
-(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.29")
+(define MEDIKANREN_VERSION_STRING "mediKanren Explorer 0.2.30")
 
 (define argv (current-command-line-arguments))
 (define argv-optional '#(CONFIG_FILE))
@@ -199,6 +199,13 @@ edge format, with dbname at front (as used in edgeo):
 (define *solution-concept-2-choices* (box '()))
 (define *solution-predicate-1-choices* (box '()))
 (define *solution-predicate-2-choices* (box '()))
+
+;; ((pubmed-URL . (publication-date subject-score object-score sentence)) ...)
+(define *publications-info-alist* (box '()))
+
+(define *populate-publication-fields*
+  (lambda args
+    (error '*populate-publication-fields* "*populate-publication-fields* function not initialized")))
 
 (define handle-search-in-Xs
   (lambda (search-in-Xs-field
@@ -1134,6 +1141,12 @@ edge format, with dbname at front (as used in edgeo):
                                                       (set-box! *pubmed-choices* URLs)
                                                       (send pubmed-list-box set URLs)))
                                                   selected-full-paths)
+                                                (for-each
+                                                  (lambda (edge)
+                                                    (let ((publications-info-alist
+                                                           (publications-info-alist-from-edge edge)))
+                                                      (set-box! *publications-info-alist* publications-info-alist)))
+                                                  selected-full-paths)                                               
                                                 (when *verbose*
                                                   (printf "selected full path:\n")
                                                   (for-each
@@ -1184,7 +1197,7 @@ edge format, with dbname at front (as used in edgeo):
                                  (columns '("URL"))
                                  (parent properties/pubmed-panel)
                                  (style '(column-headers reorderable-headers single))
-                                 (callback (lambda (self event)                                        
+                                 (callback (lambda (self event)
                                              (define event-type (send event get-event-type))
                                              (define selections (send self get-selections))
                                              (define selected-pubmeds
@@ -1194,11 +1207,62 @@ edge format, with dbname at front (as used in edgeo):
                                              (for-each
                                                (lambda (url)
                                                  (printf "url: ~s\n" url)
+                                                 
+                                                 (match (assoc url (unbox *publications-info-alist*))
+                                                   [`(,pubmed-URL . (,publication-date ,subject-score ,object-score ,sentence))
+                                                    (*populate-publication-fields* publication-date subject-score object-score sentence)]
+                                                   [#f (*populate-publication-fields* "" "" "" "")])
+                                                 
                                                  (when (eqv? event-type 'list-box-dclick)
                                                    ;; if the user double-clicked on the URL, open it in a web browser
                                                    (send-url url)))
                                                selected-pubmeds)))))
-   
+
+    (define publication-info-panel (new panel:vertical-dragable%
+                                        (parent lower-pane)
+                                        (alignment '(left center))
+                                        (stretchable-height #t)))
+
+    (define publication-info-date/subject/object-panel (new horizontal-panel%
+                                                            (parent publication-info-panel)
+                                                            (alignment '(left center))
+                                                            (stretchable-height #f)))
+
+    (define publication-date (new text-field%
+                                  (label "Publication Date")
+                                  (parent publication-info-date/subject/object-panel)
+                                  (enabled #f)
+                                  (init-value "")))
+
+    (define subject-score (new text-field%
+                               (label "Subject Score")
+                               (parent publication-info-date/subject/object-panel)
+                               (enabled #f)                               
+                               (init-value "")))
+
+    (define object-score (new text-field%
+                              (label "Object Score")
+                              (parent publication-info-date/subject/object-panel)
+                              (enabled #f)
+                              (init-value "")))
+
+    (define publication-sentence-editor-canvas (new editor-canvas%
+                                                    (parent publication-info-panel)
+                                                    (enabled #f)
+                                                    (label "Sentence")))
+    (define publication-sentence-text (new text%))
+    (send publication-sentence-text insert "")
+    (send publication-sentence-editor-canvas set-editor publication-sentence-text)
+
+    (set! *populate-publication-fields*
+          (lambda (date subj-score obj-score sentence)
+            (send publication-date set-value date)
+            (send subject-score set-value (format "~a" subj-score))
+            (send object-score set-value (format "~a" obj-score))
+            (send publication-sentence-text erase)
+            (send publication-sentence-text insert sentence)))
+    
+    
     ;; trigger reflowing of object sizes
     (send frame reflow-container)
 

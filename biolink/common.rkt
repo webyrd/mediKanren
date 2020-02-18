@@ -34,6 +34,10 @@
   pubmed-ids-from-edge
   pubmed-URLs-from-edge
   pubmed-count
+
+  publications-info-alist-from-edge
+  publications-info-alist-from-edge-props
+  
   path-confidence
   path-confidence<?
   sort-paths
@@ -63,13 +67,15 @@
   "mk.rkt"
   "mk-db.rkt"
   "repr.rkt"
+  json
   racket/format
   racket/list
   (except-in racket/match ==)
   racket/runtime-path
   racket/port
   racket/set
-  racket/stream)
+  racket/stream
+  racket/string)
 
 (define (keep n xs)
   (if (or (and n (= n 0)) (null? xs)) '()
@@ -281,6 +287,33 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
 
 (define (pubmed-count e)
   (length (pubmed-ids-from-edge e)))
+
+(define (publications-info-alist-from-edge-props eprops)
+  (cond
+    [(assoc "publications_info" eprops) ;; RTX2
+     => (lambda (pr)
+          (define pubs (cdr pr))
+          (define pubs-json-str (string-replace pubs "'" "\""))
+          (define jason-ht (string->jsexpr pubs-json-str))
+          (hash-map jason-ht (lambda (k v)
+                               (cons (string-append
+                                       PUBMED_URL_PREFIX
+                                       (car (regexp-match* #rx"([0-9]+)" (symbol->string k) #:match-select cadr)))
+                                     (list (hash-ref v '|publication date| #f)
+                                           (hash-ref v '|subject score| #f)
+                                           (hash-ref v '|object score| #f)
+                                           (regexp-replace*
+                                             #rx"([ ]+)"
+                                             (hash-ref v 'sentence #f)	 	 	 	 
+                                             " "))))))]
+    [else '()]))
+(define (publications-info-alist-from-edge edge)
+  ;; ((pubmed-URL . (publication-date subject-score object-score sentence)) ...)
+  (remove-duplicates
+    (match edge
+      ['path-separator '()]
+      [`(,dbname ,eid ,subj ,obj ,p ,eprops)
+        (publications-info-alist-from-edge-props eprops)])))
 
 (define (get-pred-names e*)
   (let loop ([e* e*]
