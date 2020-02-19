@@ -138,9 +138,27 @@ neo4j stop
 
 ### Greg will do these
 
-* reduce load time
 * speed up string search
-* fix UI interaction hangups (probably not using threads for all utility queries)
+  * fix `suffix:corpus-find*` to populate only the final intersected ranges
+* fix UI interaction hangups by using threads for all queries
+  * find-concepts/options (already in a thread)
+  * find-predicates/concepts
+  * uses of `run*`
+    * synthetic queries
+    * all-X-concepts-with-edges
+* reduce corpus load time
+  * reprocess corpus data using a flat binary format of length-encoded strings
+
+* general data (tuple/vector) stream processing
+  * parsing: csv, n-quads, s-expressions
+  * binary serialization format for faster replay
+    * element-level headers for varying types and sizes
+    * column-level headers for uniform types and sizes
+      * can also support partial colum (runs of a certain length) uniformity
+  * statistics and reservoir sampling
+    * statistics binned by type
+    * histogram up to distinct element threshold
+    * count, min, max, sum, min-length, max-length
 
 * index gene aliasing data
 
