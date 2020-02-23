@@ -207,6 +207,38 @@ edge format, with dbname at front (as used in edgeo):
   (lambda args
     (error '*populate-publication-fields* "*populate-publication-fields* function not initialized")))
 
+(define (scheduler dependents)
+  (define mk-thread #f)
+  (define (kill-and-run p)
+    (kill-current-thread)
+    (set! mk-thread (thread p)))
+  (define (kill-current-thread)
+    (and mk-thread (begin (kill-thread mk-thread)
+                          (set! mk-thread #f)))
+    (for-each (lambda (s) (s 'kill)) dependents))
+  (lambda (op . args)
+    (case op
+      ((run)  (apply kill-and-run args))
+      ((kill) (kill-current-thread))
+      (else   (error "invalid scheduler operation:" op args)))))
+
+(define S (scheduler '()))
+(define S:edges S)
+(define S:X     S)
+(define S:C1P   S)
+(define S:C2P   S)
+(define S:C1    S)
+(define S:C2    S)
+;; TODO: ideally we would tier schedulers so that independent processes could
+;; be run concurrently.  Unfortunately, the underlying database does not
+;; currently use its ports in a thread-safe manner.  Fix this.
+;(define S:edges (scheduler '()))
+;(define S:X     (scheduler (list S:edges)))
+;(define S:C1P   (scheduler (list S:X)))
+;(define S:C2P   (scheduler (list S:X)))
+;(define S:C1    (scheduler (list S:C1P)))
+;(define S:C2    (scheduler (list S:C2P)))
+
 (define handle-search-in-Xs
   (lambda (search-in-Xs-field
            concept-X-list-box
@@ -489,7 +521,8 @@ edge format, with dbname at front (as used in edgeo):
                       column-sort-order-vector
                       choices-box
                       convert-values-to-column-sorting-format
-                      send-values-to-list-box)
+                      send-values-to-list-box
+                      S:C S:CP)
   (define name-field (new text-field%
                           (label label)
                           (parent parent-search/isa-panel)
@@ -516,52 +549,53 @@ edge format, with dbname at front (as used in edgeo):
                                            (cond
                                              [(eqv? event-type 'list-box-column)                                              
                                               (handle-sort-by-column-header-click
-                                                    event
-                                                    concept-listbox
-                                                    last-column-clicked-for-sorting-box
-                                                    column-sort-order-vector
-                                                    choices-box
-                                                    convert-values-to-column-sorting-format
-                                                    send-values-to-list-box)]
+                                                event
+                                                concept-listbox
+                                                last-column-clicked-for-sorting-box
+                                                column-sort-order-vector
+                                                choices-box
+                                                convert-values-to-column-sorting-format
+                                                send-values-to-list-box)]
                                              [else
-                                              (define selections (send self get-selections))
-                                              (define selected-concepts (foldr (lambda (i l) (cons (list-ref (unbox choices) i) l)) '() selections))
-                                              (when *verbose*
-                                                (printf "selected concepts:\n~s\n" selected-concepts))
-                                              (define preds-by-concept
-                                                (time (case edge-type
-                                                        [(in-edge)  (map caddr (find-predicates/concepts #f #t selected-concepts))]
-                                                        [(out-edge) (map cadr (find-predicates/concepts #t #f selected-concepts))]
-                                                        [else       (error 'concept-listbox/predicates)])))
-                                              (define predicates
-                                                (sort (remove-duplicates (map cddr (append* preds-by-concept))) string<?))
-                                              (define (create-increase/decrease-syn-pred-list
-                                                       syn-pred-prefix predicate-names selected-predicates)
-                                                (let ((inter (sort (set-intersect predicate-names selected-predicates)
-                                                                   string<?)))
-                                                  (if (not (null? inter))
-                                                      (let ((str (string-append syn-pred-prefix " (" (string-join inter ", ") ")")))
-                                                        (let ((safe-string (~a str #:max-width MAX-CHAR-WIDTH #:limit-marker "...")))
-                                                          (list safe-string))) 
-                                                      '())))
-                                              (define decreases-synthetic-predicate-string-list
-                                                (create-increase/decrease-syn-pred-list
-                                                 DECREASES_PREDICATE_PREFIX_STRING DECREASES_PREDICATE_NAMES predicates))
-                                              (define increases-synthetic-predicate-string-list
-                                                (create-increase/decrease-syn-pred-list
-                                                 INCREASES_PREDICATE_PREFIX_STRING INCREASES_PREDICATE_NAMES predicates))
-                                              (set! predicates (append
-                                                                decreases-synthetic-predicate-string-list
-                                                                increases-synthetic-predicate-string-list
-                                                                predicates))
-                                              (printf "predicates: ~s\n" predicates)
-                                              (set-box! predicate-choices predicates)
-                                              (send (predicate-list-box-thunk) set predicates)
-
-                                              ;; unselect all items
-                                              (for ([i (length predicates)])
-                                                   (send (predicate-list-box-thunk) select i #f))
-                                              ])))))
+                                               (define selections (send self get-selections))
+                                               (define selected-concepts
+                                                 (foldr (lambda (i l) (cons (list-ref (unbox choices) i) l)) '() selections))
+                                               (when *verbose*
+                                                 (printf "selected concepts:\n~s\n" selected-concepts))
+                                               (S:CP 'run
+                                                     (thunk
+                                                       (define preds-by-concept
+                                                         (time (case edge-type
+                                                                 [(in-edge)  (map caddr (find-predicates/concepts #f #t selected-concepts))]
+                                                                 [(out-edge) (map cadr (find-predicates/concepts #t #f selected-concepts))]
+                                                                 [else       (error 'concept-listbox/predicates)])))
+                                                       (define predicates
+                                                         (sort (remove-duplicates (map cddr (append* preds-by-concept))) string<?))
+                                                       (define (create-increase/decrease-syn-pred-list
+                                                                 syn-pred-prefix predicate-names selected-predicates)
+                                                         (let ((inter (sort (set-intersect predicate-names selected-predicates)
+                                                                            string<?)))
+                                                           (if (not (null? inter))
+                                                             (let ((str (string-append syn-pred-prefix " (" (string-join inter ", ") ")")))
+                                                               (let ((safe-string (~a str #:max-width MAX-CHAR-WIDTH #:limit-marker "...")))
+                                                                 (list safe-string)))
+                                                             '())))
+                                                       (define decreases-synthetic-predicate-string-list
+                                                         (create-increase/decrease-syn-pred-list
+                                                           DECREASES_PREDICATE_PREFIX_STRING DECREASES_PREDICATE_NAMES predicates))
+                                                       (define increases-synthetic-predicate-string-list
+                                                         (create-increase/decrease-syn-pred-list
+                                                           INCREASES_PREDICATE_PREFIX_STRING INCREASES_PREDICATE_NAMES predicates))
+                                                       (set! predicates (append
+                                                                          decreases-synthetic-predicate-string-list
+                                                                          increases-synthetic-predicate-string-list
+                                                                          predicates))
+                                                       (printf "predicates: ~s\n" predicates)
+                                                       (set-box! predicate-choices predicates)
+                                                       (send (predicate-list-box-thunk) set predicates)
+                                                       ;; unselect all items
+                                                       (for ([i (length predicates)])
+                                                            (send (predicate-list-box-thunk) select i #f))))])))))
 
   (define (mk-run)
     (let* ((isa-count (if current-isa 50 0))  ;; Only grab the first 50.  50 should probably be a parameter.
@@ -622,9 +656,7 @@ edge format, with dbname at front (as used in edgeo):
   (define current-name "")
   (define current-isa #f)
   (define pending-name current-name)
-  (define mk-thread #f)
-  (define timer (new timer% (notify-callback
-                              (lambda () (set! mk-thread (thread mk-run))))))
+  (define timer (new timer% (notify-callback (thunk (S:C 'run mk-run)))))
   (define (handle)
     (define new-name (send name-field get-value))
     (define new-isa (send isa-field get-value))
@@ -633,7 +665,7 @@ edge format, with dbname at front (as used in edgeo):
       (set! current-name new-name)
       (set! current-isa new-isa)
       (set-box! isa-flag current-isa)
-      (and mk-thread (begin (kill-thread mk-thread) (set! mk-thread #f)))
+      (S:C 'kill)
       (send timer stop)
       (send timer start input-response-latency #t)))
   concept-listbox)
@@ -704,30 +736,27 @@ edge format, with dbname at front (as used in edgeo):
         (displayln predicate-2-selected-predicates)
         (printf "---------------------------------\n")
 
-
-        (find-X-concepts concept-1-selected-concepts
-                         concept-2-selected-concepts
-                         predicate-1-selected-predicates
-                         predicate-2-selected-predicates
-                         (unbox *predicate-1-choices*)
-                         (unbox *predicate-2-choices*)
-                         concept-X-list-box
-                         running-status-description
-                         full-path-list-box
-                         subject-properties-list-box
-                         edge-properties-list-box
-                         object-properties-list-box
-                         pubmed-list-box
-                         search-in-Xs-field
-                         search-in-Xs-previous-button
-                         search-in-Xs-next-button)
-
-        ))
+        (S:X 'run (thunk (find-X-concepts concept-1-selected-concepts
+                                          concept-2-selected-concepts
+                                          predicate-1-selected-predicates
+                                          predicate-2-selected-predicates
+                                          (unbox *predicate-1-choices*)
+                                          (unbox *predicate-2-choices*)
+                                          concept-X-list-box
+                                          running-status-description
+                                          full-path-list-box
+                                          subject-properties-list-box
+                                          edge-properties-list-box
+                                          object-properties-list-box
+                                          pubmed-list-box
+                                          search-in-Xs-field
+                                          search-in-Xs-previous-button
+                                          search-in-Xs-next-button)))))
 
     (define concept-1-overall-pane (new vertical-pane%
                                         (parent upper-pane)
                                         (alignment '(left center))))
-    
+
     (define concept-1-search/isa-panel (new panel:horizontal-dragable%
                                             (parent concept-1-overall-pane)
                                             (alignment '(left center))
@@ -749,7 +778,8 @@ edge format, with dbname at front (as used in edgeo):
                                              *concept-1-column-sort-order*
                                              *concept-1-choices*
                                              convert-concept-1/2-to-column-sorting-format
-                                             (make-send-concepts-to-concept-1/2-list-box (lambda () concept-1-list-box))))
+                                             (make-send-concepts-to-concept-1/2-list-box (lambda () concept-1-list-box))
+                                             S:C1 S:C1P))
     (define predicate-1-list-box (new list-box%
                                       (label "Predicate 1")
                                       (choices (unbox *predicate-1-choices*))
@@ -793,7 +823,8 @@ edge format, with dbname at front (as used in edgeo):
                                              *concept-2-column-sort-order*
                                              *concept-2-choices*
                                              convert-concept-1/2-to-column-sorting-format
-                                             (make-send-concepts-to-concept-1/2-list-box (lambda () concept-2-list-box))))
+                                             (make-send-concepts-to-concept-1/2-list-box (lambda () concept-2-list-box))
+                                             S:C2 S:C2P))
 
     (define running-status-description/search-in-Xs-panel
       (new
@@ -845,244 +876,246 @@ edge format, with dbname at front (as used in edgeo):
                                     (style '(column-headers clickable-headers reorderable-headers single))
                                     (callback (lambda (self event)
                                                 (define event-type (send event get-event-type))
-                                                (cond
-                                                  [(eqv? event-type 'list-box-column)
-                                                   (handle-sort-by-column-header-click
-                                                    event
-                                                    concept-X-list-box
-                                                    *last-concept-X-column-clicked-for-sorting*
-                                                    *concept-X-column-sort-order*
-                                                    *concept-X-choices*
-                                                    convert-X-concept-to-column-sorting-format
-                                                    (make-send-concepts-to-concept-X-list-box self))]
-                                                  [(eqv? event-type 'list-box-dclick)
-                                                   (printf "double-click!! copy name of the concept to the clipboard\n")
-                                                   (define time-stamp (send event get-time-stamp))
-                                                   (printf "time stamp: ~s\n" time-stamp)
-                                                   (define concept-name
-                                                     (let ((sel* (send concept-X-list-box get-selections)))
-                                                       (if (= (length sel*) 1)
-                                                           (let ((selected-X (list-ref (unbox *concept-X-choices*) (car sel*))))
-                                                             (match selected-X
-                                                               [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props ,max-pubmed-count ,min-pubmed-count ,pred-names ,path-count ,confidence)
-                                                                name]
-                                                               [else ""]))
-                                                           "")))
-                                                   (printf "concept name: ~s\n" concept-name)
-                                                   (send the-clipboard set-clipboard-string concept-name time-stamp)]
-                                                  [else
-
-                                                   ;; empty the entries in the full-path-list-box
-                                                   (send full-path-list-box set '() '() '() '() '() '() '() '())
-                                                   
-                                                   ;; empty the entries in the properties list-boxes
-                                                   (send subject-properties-list-box set '() '())
-                                                   (send edge-properties-list-box set '() '())
-                                                   (send object-properties-list-box set '() '())
-
-                                                   ;; empty the entries in the pubmed-list-box
-                                                   (send pubmed-list-box set '())
-
-                                                   (let ((sel* (send concept-X-list-box get-selections)))
-                                                     (when (= (length sel*) 1)
-                                                       (let ((selected-X (list-ref (unbox *concept-X-choices*) (car sel*))))
-                                                         (let ((selected-X
-                                                                (match selected-X
-                                                                  [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props ,max-pubmed-count ,min-pubmed-count ,pred-names ,path-count ,confidence)
-                                                                   `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)])))
-                                                           (printf "selected ~s\n" selected-X)
-                                                           (define concept-1* (unbox *solution-concept-1-choices*))
-                                                           (define concept-2* (unbox *solution-concept-2-choices*))
-                                                           (printf "concept-1* ~s\n" concept-1*)
-                                                           (printf "concept-2* ~s\n" concept-2*)
-                                                           (define predicate-1* (unbox *solution-predicate-1-choices*))
-                                                           (define predicate-2* (unbox *solution-predicate-2-choices*))
-                                                           (printf "predicate-1* ~s\n" predicate-1*)
-                                                           (printf "predicate-2* ~s\n" predicate-2*)
-
-                                                           (define atomic/synthetic-predicate-1* (split-atomic/synthetic-predicates (unbox *predicate-1-choices*) predicate-1*))
-                                                           (define atomic/synthetic-predicate-2* (split-atomic/synthetic-predicates (unbox *predicate-2-choices*) predicate-2*))
-
-                                                           (define atomic-predicate-1* (car atomic/synthetic-predicate-1*))
-                                                           (define atomic-predicate-2* (car atomic/synthetic-predicate-2*))
-
-                                                           (define synthetic-predicate-1* (cadr atomic/synthetic-predicate-1*))
-                                                           (define synthetic-predicate-2* (cadr atomic/synthetic-predicate-2*))
-
-
-                                                           (define paths '())
-
-
+                                                (S:edges 'run
+                                                         (thunk
                                                            (cond
-                                                             [(and
-                                                               (null?
-                                                                (split-name-string
-                                                                 (unbox *solution-concept-1-name-string*)))
-                                                               (null?
-                                                                (split-name-string
-                                                                 (unbox *solution-concept-2-name-string*))))
-
-                                                              (set! paths '())]
-                                                             [(null? (split-name-string (unbox *solution-concept-1-name-string*)))
-
-                                                              (set! paths '())
-                                                              ;; run synthetic queries here
-                                                              (set! paths
-                                                                    (remove-duplicates
-                                                                     (append paths
-                                                                             (run* (q)
-                                                                               (fresh (e dbname eid x o pid pred eprops)
-                                                                                 (== (list `(,dbname ,eid ,x ,o (,pid . ,pred) ,eprops)) q)
-                                                                                 (== `(,dbname . ,x) selected-X)
-                                                                                 (== `(,dbname ,eid ,x ,o (,pid . ,pred) ,eprops) e)
-                                                                                 (membero `(,dbname . ,o) concept-2*)
-                                                                                 (membero pred atomic-predicate-2*)
-                                                                                 (edgeo e))))))]
-                                                             [(null? (split-name-string (unbox *solution-concept-2-name-string*)))
-
-                                                              (set! paths '())
-                                                              ;; run synthetic queries here
-                                                              (set! paths
-                                                                    (remove-duplicates
-                                                                     (append paths
-                                                                             (run* (q)
-                                                                               (fresh (e dbname eid s x pid pred eprops)
-                                                                                 (== (list `(,dbname ,eid ,s ,x (,pid . ,pred) ,eprops)) q)
-                                                                                 (== `(,dbname . ,x) selected-X)
-                                                                                 (== `(,dbname ,eid ,s ,x (,pid . ,pred) ,eprops) e)
-                                                                                 (membero `(,dbname . ,s) concept-1*)
-                                                                                 (membero pred atomic-predicate-1*)
-                                                                                 (edgeo e))))))]
+                                                             [(eqv? event-type 'list-box-column)
+                                                              (handle-sort-by-column-header-click
+                                                                event
+                                                                concept-X-list-box
+                                                                *last-concept-X-column-clicked-for-sorting*
+                                                                *concept-X-column-sort-order*
+                                                                *concept-X-choices*
+                                                                convert-X-concept-to-column-sorting-format
+                                                                (make-send-concepts-to-concept-X-list-box self))]
+                                                             [(eqv? event-type 'list-box-dclick)
+                                                              (printf "double-click!! copy name of the concept to the clipboard\n")
+                                                              (define time-stamp (send event get-time-stamp))
+                                                              (printf "time stamp: ~s\n" time-stamp)
+                                                              (define concept-name
+                                                                (let ((sel* (send concept-X-list-box get-selections)))
+                                                                  (if (= (length sel*) 1)
+                                                                    (let ((selected-X (list-ref (unbox *concept-X-choices*) (car sel*))))
+                                                                      (match selected-X
+                                                                        [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props ,max-pubmed-count ,min-pubmed-count ,pred-names ,path-count ,confidence)
+                                                                          name]
+                                                                        [else ""]))
+                                                                    "")))
+                                                              (printf "concept name: ~s\n" concept-name)
+                                                              (send the-clipboard set-clipboard-string concept-name time-stamp)]
                                                              [else
-                                                              (set! paths '())
-                                                              ;; run synthetic queries here
-                                                              (set! paths
-                                                                    (remove-duplicates
-                                                                     (append paths
-                                                                             (run* (q)
-                                                                               (fresh (e1 e2 dbname eid1 eid2 s x o pid1 pid2 p1 p2 eprops1 eprops2)
-                                                                                 (== `(,dbname . ,x) selected-X)
-                                                                                 (== (list
-                                                                                      `(,dbname ,eid1 ,s ,x (,pid1 . ,p1) ,eprops1)
-                                                                                      `(,dbname ,eid2 ,x ,o (,pid2 . ,p2) ,eprops2))
-                                                                                     q)
-                                                                                 (== `(,dbname ,eid1 ,s ,x (,pid1 . ,p1) ,eprops1) e1)
-                                                                                 (== `(,dbname ,eid2 ,x ,o (,pid2 . ,p2) ,eprops2) e2)
-                                                                                 (membero `(,dbname . ,s) concept-1*)
-                                                                                 (membero `(,dbname . ,o) concept-2*)
-                                                                                 (membero p1 atomic-predicate-1*)
-                                                                                 (membero p2 atomic-predicate-2*)
-                                                                                 (edgeo e1)
-                                                                                 (edgeo e2))))))])
 
-                                                           (printf "paths: ~s\n" paths)
-                                                           (newline)
+                                                               ;; empty the entries in the full-path-list-box
+                                                               (send full-path-list-box set '() '() '() '() '() '() '() '())
 
-                                                           ;; This sorting affects the order of the "Path" list
-                                                           ;; for the selected concept.
-                                                           (set! paths (sort-paths paths))
-                                                           
-                                                           (define flattened-paths
-                                                             (let ((ls (foldr
-                                                                        (lambda (p l)
-                                                                          (cons
-                                                                           'path-separator
-                                                                           (append (reverse p) l)))
-                                                                        '()
-                                                                        paths)))
-                                                               (if (null? ls)
-                                                                   ;; ls should never be null!
-                                                                   '()
-                                                                   (reverse (cdr ls)))))
+                                                               ;; empty the entries in the properties list-boxes
+                                                               (send subject-properties-list-box set '() '())
+                                                               (send edge-properties-list-box set '() '())
+                                                               (send object-properties-list-box set '() '())
+
+                                                               ;; empty the entries in the pubmed-list-box
+                                                               (send pubmed-list-box set '())
+
+                                                               (let ((sel* (send concept-X-list-box get-selections)))
+                                                                 (when (= (length sel*) 1)
+                                                                   (let ((selected-X (list-ref (unbox *concept-X-choices*) (car sel*))))
+                                                                     (let ((selected-X
+                                                                             (match selected-X
+                                                                               [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props ,max-pubmed-count ,min-pubmed-count ,pred-names ,path-count ,confidence)
+                                                                                 `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)])))
+                                                                       (printf "selected ~s\n" selected-X)
+                                                                       (define concept-1* (unbox *solution-concept-1-choices*))
+                                                                       (define concept-2* (unbox *solution-concept-2-choices*))
+                                                                       (printf "concept-1* ~s\n" concept-1*)
+                                                                       (printf "concept-2* ~s\n" concept-2*)
+                                                                       (define predicate-1* (unbox *solution-predicate-1-choices*))
+                                                                       (define predicate-2* (unbox *solution-predicate-2-choices*))
+                                                                       (printf "predicate-1* ~s\n" predicate-1*)
+                                                                       (printf "predicate-2* ~s\n" predicate-2*)
+
+                                                                       (define atomic/synthetic-predicate-1* (split-atomic/synthetic-predicates (unbox *predicate-1-choices*) predicate-1*))
+                                                                       (define atomic/synthetic-predicate-2* (split-atomic/synthetic-predicates (unbox *predicate-2-choices*) predicate-2*))
+
+                                                                       (define atomic-predicate-1* (car atomic/synthetic-predicate-1*))
+                                                                       (define atomic-predicate-2* (car atomic/synthetic-predicate-2*))
+
+                                                                       (define synthetic-predicate-1* (cadr atomic/synthetic-predicate-1*))
+                                                                       (define synthetic-predicate-2* (cadr atomic/synthetic-predicate-2*))
 
 
+                                                                       (define paths '())
 
-                                                           (define full-path-dbname-list
-                                                             (map (lambda (x)
-                                                                    (match x
-                                                                      ['path-separator "----"]
-                                                                      [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
-                                                                       (~a dbname)]))
-                                                                  flattened-paths))
 
-                                                           (define full-path-eid-list
-                                                             (map (lambda (x)
-                                                                    (match x
-                                                                      ['path-separator "----"]
-                                                                      [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
-                                                                       (~a eid)]))
-                                                                  flattened-paths))
+                                                                       (cond
+                                                                         [(and
+                                                                            (null?
+                                                                              (split-name-string
+                                                                                (unbox *solution-concept-1-name-string*)))
+                                                                            (null?
+                                                                              (split-name-string
+                                                                                (unbox *solution-concept-2-name-string*))))
 
-                                                           (define full-path-subj-list
-                                                             (map (lambda (x)
-                                                                    (match x
-                                                                      ['path-separator "----"]
-                                                                      [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
-                                                                       (~a subj #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                                                                  flattened-paths))
+                                                                          (set! paths '())]
+                                                                         [(null? (split-name-string (unbox *solution-concept-1-name-string*)))
 
-                                                           (define full-path-pred-list
-                                                             (map (lambda (x)
-                                                                    (match x
-                                                                      ['path-separator "----"]
-                                                                      [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
-                                                                       (~a `(,pid . ,pred) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                                                                  flattened-paths))
+                                                                          (set! paths '())
+                                                                          ;; run synthetic queries here
+                                                                          (set! paths
+                                                                            (remove-duplicates
+                                                                              (append paths
+                                                                                      (run* (q)
+                                                                                        (fresh (e dbname eid x o pid pred eprops)
+                                                                                          (== (list `(,dbname ,eid ,x ,o (,pid . ,pred) ,eprops)) q)
+                                                                                          (== `(,dbname . ,x) selected-X)
+                                                                                          (== `(,dbname ,eid ,x ,o (,pid . ,pred) ,eprops) e)
+                                                                                          (membero `(,dbname . ,o) concept-2*)
+                                                                                          (membero pred atomic-predicate-2*)
+                                                                                          (edgeo e))))))]
+                                                                         [(null? (split-name-string (unbox *solution-concept-2-name-string*)))
 
-                                                           (define full-path-obj-list
-                                                             (map (lambda (x)
-                                                                    (match x
-                                                                      ['path-separator "----"]
-                                                                      [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
-                                                                       (~a obj #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                                                                  flattened-paths))
+                                                                          (set! paths '())
+                                                                          ;; run synthetic queries here
+                                                                          (set! paths
+                                                                            (remove-duplicates
+                                                                              (append paths
+                                                                                      (run* (q)
+                                                                                        (fresh (e dbname eid s x pid pred eprops)
+                                                                                          (== (list `(,dbname ,eid ,s ,x (,pid . ,pred) ,eprops)) q)
+                                                                                          (== `(,dbname . ,x) selected-X)
+                                                                                          (== `(,dbname ,eid ,s ,x (,pid . ,pred) ,eprops) e)
+                                                                                          (membero `(,dbname . ,s) concept-1*)
+                                                                                          (membero pred atomic-predicate-1*)
+                                                                                          (edgeo e))))))]
+                                                                         [else
+                                                                           (set! paths '())
+                                                                           ;; run synthetic queries here
+                                                                           (set! paths
+                                                                             (remove-duplicates
+                                                                               (append paths
+                                                                                       (run* (q)
+                                                                                         (fresh (e1 e2 dbname eid1 eid2 s x o pid1 pid2 p1 p2 eprops1 eprops2)
+                                                                                           (== `(,dbname . ,x) selected-X)
+                                                                                           (== (list
+                                                                                                 `(,dbname ,eid1 ,s ,x (,pid1 . ,p1) ,eprops1)
+                                                                                                 `(,dbname ,eid2 ,x ,o (,pid2 . ,p2) ,eprops2))
+                                                                                               q)
+                                                                                           (== `(,dbname ,eid1 ,s ,x (,pid1 . ,p1) ,eprops1) e1)
+                                                                                           (== `(,dbname ,eid2 ,x ,o (,pid2 . ,p2) ,eprops2) e2)
+                                                                                           (membero `(,dbname . ,s) concept-1*)
+                                                                                           (membero `(,dbname . ,o) concept-2*)
+                                                                                           (membero p1 atomic-predicate-1*)
+                                                                                           (membero p2 atomic-predicate-2*)
+                                                                                           (edgeo e1)
+                                                                                           (edgeo e2))))))])
 
-                                                           (define full-path-subj-cat-list
-                                                             (map (lambda (x)
-                                                                    (match x
-                                                                      ['path-separator "----"]
-                                                                      [`(,dbname ,eid (,cid ,cui ,name (,catid . ,cat) ,props) ,obj (,pid . ,pred) ,eprops)
-                                                                       (~a `(,catid . ,cat) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                                                                  flattened-paths))
+                                                                       (printf "paths: ~s\n" paths)
+                                                                       (newline)
 
-                                                           (define full-path-obj-cat-list
-                                                             (map (lambda (x)
-                                                                    (match x
-                                                                      ['path-separator "----"]
-                                                                      [`(,dbname ,eid ,subj (,cid ,cui ,name (,catid . ,cat) ,props) (,pid . ,pred) ,eprops)
-                                                                       (~a `(,catid . ,cat) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
-                                                                  flattened-paths))
+                                                                       ;; This sorting affects the order of the "Path" list
+                                                                       ;; for the selected concept.
+                                                                       (set! paths (sort-paths paths))
 
-                                                           (define full-path-PubMed-count-list
-                                                             (map (lambda (x)
-                                                                    (match x
-                                                                      ['path-separator "----"]
-                                                                      [`(,dbname ,eid ,subj (,cid ,cui ,name (,catid . ,cat) ,props) (,pid . ,pred) ,eprops)
-                                                                       (~a (length (pubmed-URLs-from-edge x)))]))
-                                                                  flattened-paths))
+                                                                       (define flattened-paths
+                                                                         (let ((ls (foldr
+                                                                                     (lambda (p l)
+                                                                                       (cons
+                                                                                         'path-separator
+                                                                                         (append (reverse p) l)))
+                                                                                     '()
+                                                                                     paths)))
+                                                                           (if (null? ls)
+                                                                             ;; ls should never be null!
+                                                                             '()
+                                                                             (reverse (cdr ls)))))
 
-                                                           (send full-path-list-box
-                                                                 set
-                                                                 full-path-dbname-list
-                                                                 full-path-eid-list
-                                                                 full-path-subj-list
-                                                                 full-path-pred-list
-                                                                 full-path-obj-list
-                                                                 full-path-subj-cat-list
-                                                                 full-path-obj-cat-list
-                                                                 full-path-PubMed-count-list
-                                                                 )
 
-                                                           (set-box! *full-path-choices* flattened-paths)
 
-                                                           ;; unselect all items
-                                                           (for ([i (length flattened-paths)])
-                                                                (send full-path-list-box select i #f))
+                                                                       (define full-path-dbname-list
+                                                                         (map (lambda (x)
+                                                                                (match x
+                                                                                  ['path-separator "----"]
+                                                                                  [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
+                                                                                    (~a dbname)]))
+                                                                              flattened-paths))
 
-                                                           ;; select first item
-                                                           (send full-path-list-box select 0 #t)
-                                                           )))
-                                                     (void))])))))
+                                                                       (define full-path-eid-list
+                                                                         (map (lambda (x)
+                                                                                (match x
+                                                                                  ['path-separator "----"]
+                                                                                  [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
+                                                                                    (~a eid)]))
+                                                                              flattened-paths))
+
+                                                                       (define full-path-subj-list
+                                                                         (map (lambda (x)
+                                                                                (match x
+                                                                                  ['path-separator "----"]
+                                                                                  [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
+                                                                                    (~a subj #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                                                                              flattened-paths))
+
+                                                                       (define full-path-pred-list
+                                                                         (map (lambda (x)
+                                                                                (match x
+                                                                                  ['path-separator "----"]
+                                                                                  [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
+                                                                                    (~a `(,pid . ,pred) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                                                                              flattened-paths))
+
+                                                                       (define full-path-obj-list
+                                                                         (map (lambda (x)
+                                                                                (match x
+                                                                                  ['path-separator "----"]
+                                                                                  [`(,dbname ,eid ,subj ,obj (,pid . ,pred) ,eprops)
+                                                                                    (~a obj #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                                                                              flattened-paths))
+
+                                                                       (define full-path-subj-cat-list
+                                                                         (map (lambda (x)
+                                                                                (match x
+                                                                                  ['path-separator "----"]
+                                                                                  [`(,dbname ,eid (,cid ,cui ,name (,catid . ,cat) ,props) ,obj (,pid . ,pred) ,eprops)
+                                                                                    (~a `(,catid . ,cat) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                                                                              flattened-paths))
+
+                                                                       (define full-path-obj-cat-list
+                                                                         (map (lambda (x)
+                                                                                (match x
+                                                                                  ['path-separator "----"]
+                                                                                  [`(,dbname ,eid ,subj (,cid ,cui ,name (,catid . ,cat) ,props) (,pid . ,pred) ,eprops)
+                                                                                    (~a `(,catid . ,cat) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                                                                              flattened-paths))
+
+                                                                       (define full-path-PubMed-count-list
+                                                                         (map (lambda (x)
+                                                                                (match x
+                                                                                  ['path-separator "----"]
+                                                                                  [`(,dbname ,eid ,subj (,cid ,cui ,name (,catid . ,cat) ,props) (,pid . ,pred) ,eprops)
+                                                                                    (~a (length (pubmed-URLs-from-edge x)))]))
+                                                                              flattened-paths))
+
+                                                                       (send full-path-list-box
+                                                                             set
+                                                                             full-path-dbname-list
+                                                                             full-path-eid-list
+                                                                             full-path-subj-list
+                                                                             full-path-pred-list
+                                                                             full-path-obj-list
+                                                                             full-path-subj-cat-list
+                                                                             full-path-obj-cat-list
+                                                                             full-path-PubMed-count-list
+                                                                             )
+
+                                                                       (set-box! *full-path-choices* flattened-paths)
+
+                                                                       ;; unselect all items
+                                                                       (for ([i (length flattened-paths)])
+                                                                            (send full-path-list-box select i #f))
+
+                                                                       ;; select first item
+                                                                       (send full-path-list-box select 0 #t)
+                                                                       )))
+                                                                 (void))])))))))
 
     (define full-path-list-box (new smart-column-width-list-box%
                                     (label "Paths")
