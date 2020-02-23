@@ -190,7 +190,7 @@
   (nlist-intersection
     (map (lambda (r) (dedup/< (map (lambda (i) (car (suffix-key-ref index i)))
                                    (range (car r) (cdr r)))))
-         (filter (lambda (r) (< (rz r) zmin)) rs))))
+         (filter (lambda (r) (<= (rz r) zmin)) rs))))
 
 (define (string:corpus->index corpus)
   (define ixs (range (vector-length corpus)))
