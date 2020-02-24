@@ -112,7 +112,7 @@ edge format, with dbname at front (as used in edgeo):
              set-column-width
              col-num
              width
-             min-width	 
+             min-width
              max-width)
        (loop (sub1 col-num))])))
 
@@ -259,7 +259,7 @@ edge format, with dbname at front (as used in edgeo):
                            [(previous) sub1]
                            [(next) add1]
                            [else (error 'add1/sub1 "unknown direction in inc/dec")]))
-       
+
        (define found-selection
          (and (> count 0)
               (let loop ((i (add1/sub1 current-selection)))
@@ -293,7 +293,7 @@ edge format, with dbname at front (as used in edgeo):
                (send concept-X-list-box select current-selection #f))))]
       [(empty-string? search-str)
        (when current-selection
-         (send concept-X-list-box select current-selection #f))          
+         (send concept-X-list-box select current-selection #f))
        (send search-in-Xs-previous-button enable #f)
        (send search-in-Xs-next-button enable #f)]
       [else
@@ -323,7 +323,7 @@ edge format, with dbname at front (as used in edgeo):
            (begin
              (send search-in-Xs-previous-button enable #f)
              (send search-in-Xs-next-button enable #f)))
-          
+
        (if found-selection
            (when (not (equal? found-selection current-selection))
              (when current-selection
@@ -359,7 +359,7 @@ edge format, with dbname at front (as used in edgeo):
 
 (define (convert-concept-1/2-to-column-sorting-format concept)
   (match concept
-    [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)     
+    [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
      (list (format "~a" dbname)
            cid
            (format "~a" cui)
@@ -417,7 +417,7 @@ edge format, with dbname at front (as used in edgeo):
                                             send-values-to-list-box)
 
   (printf "handle-sort-by-column-header-click called\n")
-  
+
   ;; get previously selected choice's data, if any
   (define current-selection (send list-box get-selection))
   (printf "current-selection: ~s\n" current-selection)
@@ -427,7 +427,7 @@ edge format, with dbname at front (as used in edgeo):
 
   (when current-selection
     (send list-box select current-selection #f))
-  
+
   ;; sort by column
   (define column-clicked (send event get-column))
   (define last-column-clicked (unbox last-column-clicked-for-sorting-box))
@@ -449,7 +449,7 @@ edge format, with dbname at front (as used in edgeo):
   (define choices (unbox choices-box))
 
   (define sorted-choices (sort choices
-                               (lambda (c1 c2) 
+                               (lambda (c1 c2)
                                  (let ((fc1 (convert-values-to-column-sorting-format c1))
                                        (fc2 (convert-values-to-column-sorting-format c2)))
                                    (let ((v1 (list-ref fc1 column-clicked))
@@ -483,7 +483,7 @@ edge format, with dbname at front (as used in edgeo):
        (send list-box set-data i (car c*))
        (loop (add1 i)
              (cdr c*))]))
-  
+
   ;; select previously selected choice in its new location, if any
   (when (and current-selection current-selection-data)
     (define count (send list-box get-number))
@@ -504,7 +504,7 @@ edge format, with dbname at front (as used in edgeo):
     (when new-selection
       (send list-box select new-selection #t)
       (send list-box set-first-visible-item new-selection)))
-  
+
   (void))
 
 (define (concept-list parent
@@ -547,7 +547,7 @@ edge format, with dbname at front (as used in edgeo):
                                (callback (lambda (self event)
                                            (define event-type (send event get-event-type))
                                            (cond
-                                             [(eqv? event-type 'list-box-column)                                              
+                                             [(eqv? event-type 'list-box-column)
                                               (handle-sort-by-column-header-click
                                                 event
                                                 concept-listbox
@@ -648,7 +648,7 @@ edge format, with dbname at front (as used in edgeo):
            (send concept-listbox set-data i (car c*))
            (loop (add1 i)
                  (cdr c*))]))
-      
+
       ;; unselect all items
       (for ([i (length ans)])
            (send concept-listbox select i #f))))
@@ -683,7 +683,7 @@ edge format, with dbname at front (as used in edgeo):
     (define outer-vert-draggable-panel (new panel:vertical-dragable%
                                             (parent frame)
                                             (alignment '(left center))))
-    
+
     (define upper-pane (new panel:vertical-dragable%
                             (parent outer-vert-draggable-panel)
                             (alignment '(left center))))
@@ -691,7 +691,7 @@ edge format, with dbname at front (as used in edgeo):
     (define lower-pane (new panel:vertical-dragable%
                             (parent outer-vert-draggable-panel)
                             (alignment '(left center))))
-    
+
     (define go-callback
       (lambda (button event)
         (send running-status-description set-label "Running...")
@@ -794,7 +794,7 @@ edge format, with dbname at front (as used in edgeo):
     (define concept-2-overall-pane (new vertical-pane%
                                         (parent upper-pane)
                                         (alignment '(left center))))
-    
+
     (define concept-2-search/isa-panel (new panel:horizontal-dragable%
                                             (parent concept-2-overall-pane)
                                             (alignment '(left center))
@@ -832,11 +832,11 @@ edge format, with dbname at front (as used in edgeo):
        (parent concept-2-overall-pane)
        (alignment '(left center))
        (stretchable-height #f)))
-    
+
     (define running-status-description (new message%
                                             (parent running-status-description/search-in-Xs-panel)
                                             (label "                                                                ")))
-    
+
     (define search-in-Xs-field (new text-field%
                                     (label "Find in X's")
                                     (parent running-status-description/search-in-Xs-panel)
@@ -847,7 +847,7 @@ edge format, with dbname at front (as used in edgeo):
                                                                      search-in-Xs-previous-button
                                                                      search-in-Xs-next-button
                                                                      )))))
-    
+
     (define search-in-Xs-previous-button (new button%
                                               (parent running-status-description/search-in-Xs-panel)
                                               (label "Previous")
@@ -867,7 +867,7 @@ edge format, with dbname at front (as used in edgeo):
                                                                            search-in-Xs-previous-button
                                                                            search-in-Xs-next-button
                                                                            'next)))))
-    
+
     (define concept-X-list-box (new smart-column-width-list-box%
                                     (label "X")
                                     (choices (unbox *concept-X-choices*))
@@ -1205,7 +1205,7 @@ edge format, with dbname at front (as used in edgeo):
                                              (style '(column-headers reorderable-headers extended))
                                              (callback (lambda (self event)
                                                          (void)))))
-    
+
     (define edge-properties-list-box (new smart-column-width-list-box%
                                      (label "Edge")
                                      (choices '())
@@ -1223,7 +1223,7 @@ edge format, with dbname at front (as used in edgeo):
                                             (style '(column-headers reorderable-headers extended))
                                             (callback (lambda (self event)
                                                         (void)))))
-    
+
     (define pubmed-list-box (new list-box%
                                  (label "Pubmed")
                                  (choices (unbox *pubmed-choices*))
@@ -1240,12 +1240,12 @@ edge format, with dbname at front (as used in edgeo):
                                              (for-each
                                                (lambda (url)
                                                  (printf "url: ~s\n" url)
-                                                 
+
                                                  (match (assoc url (unbox *publications-info-alist*))
                                                    [`(,pubmed-URL . (,publication-date ,subject-score ,object-score ,sentence))
                                                     (*populate-publication-fields* publication-date subject-score object-score sentence)]
                                                    [#f (*populate-publication-fields* "" "" "" "")])
-                                                 
+
                                                  (when (eqv? event-type 'list-box-dclick)
                                                    ;; if the user double-clicked on the URL, open it in a web browser
                                                    (send-url url)))
@@ -1270,7 +1270,7 @@ edge format, with dbname at front (as used in edgeo):
     (define subject-score (new text-field%
                                (label "Subject Score")
                                (parent publication-info-date/subject/object-panel)
-                               (enabled #f)                               
+                               (enabled #f)
                                (init-value "")))
 
     (define object-score (new text-field%
@@ -1294,15 +1294,15 @@ edge format, with dbname at front (as used in edgeo):
             (send object-score set-value (format "~a" obj-score))
             (send publication-sentence-text erase)
             (send publication-sentence-text insert sentence)))
-    
-    
+
+
     ;; trigger reflowing of object sizes
     (send frame reflow-container)
 
     ;; disable previous and next buttons by default
     (send search-in-Xs-previous-button enable #f)
     (send search-in-Xs-next-button enable #f)
-    
+
     (set-default-column-widths concept-1-list-box)
     (set-default-column-widths concept-2-list-box)
     (set-default-column-widths concept-X-list-box)
@@ -1310,7 +1310,7 @@ edge format, with dbname at front (as used in edgeo):
     (set-default-column-widths edge-properties-list-box)
     (set-default-column-widths edge-properties-list-box)
     (set-default-column-widths object-properties-list-box)
-        
+
     (send frame show #t)))
 
 (define (launch-gene-window)
@@ -1369,7 +1369,6 @@ edge format, with dbname at front (as used in edgeo):
 (define (find-X-concepts concept-1* concept-2* predicate-1* predicate-2* predicate-1-choices predicate-2-choices concept-X-list-box running-status-description full-path-list-box subject-properties-list-box edge-properties-list-box object-properties-list-box pubmed-list-box search-in-Xs-field search-in-Xs-previous-button search-in-Xs-next-button)
 
   (define start-time (current-milliseconds))
-
   (printf "\nfinding concepts X for which\n[C1] -> P1 -> [X] -> P2 -> [C2]\n")
   (printf "=============================\n")
 
@@ -1471,7 +1470,7 @@ edge format, with dbname at front (as used in edgeo):
     (cond
       [(null? c*) (void)]
       [else (match (car c*)
-              [`(,dbname (,cid ,cui ,name (,catid . ,cat) ,props) ,whatever ,e*)                  
+              [`(,dbname (,cid ,cui ,name (,catid . ,cat) ,props) ,whatever ,e*)
                (let ((pred-names (get-pred-names e*)))
                  (let ((key (list dbname cui)))
                    (let ((current-v (hash-ref db/cui-to-pred-names-hash-table key #f)))
@@ -1479,7 +1478,7 @@ edge format, with dbname at front (as used in edgeo):
                          (hash-set! db/cui-to-pred-names-hash-table key (set-union pred-names current-v))
                          (hash-set! db/cui-to-pred-names-hash-table key pred-names))
                      (loop (cdr c*)))))])]))
-  
+
   (define all-X-concepts '())
   (set! all-X-concepts
         (let loop ([ls all-X-concepts-with-edges])
@@ -1656,14 +1655,14 @@ edge format, with dbname at front (as used in edgeo):
       (printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\n"
               "Subject Category"
               "Subject Name"
-              
+
               "Predicate"
-              
+
               "Object Category"
               "Object Name"
-              
+
               "PubMed URL"
-              
+
               "KG Name")
       (for-each
         (lambda (entry index)
@@ -1690,10 +1689,10 @@ edge format, with dbname at front (as used in edgeo):
                                    pred
 
                                    ocat
-                                   oname                                   
+                                   oname
 
                                    pubmed
-                                   
+
                                    dbname))
                          pubmed*))]))
                 edges)]))
@@ -1759,7 +1758,7 @@ edge format, with dbname at front (as used in edgeo):
   (send search-in-Xs-field set-value "")
   (send search-in-Xs-previous-button enable #f)
   (send search-in-Xs-next-button enable #f)
-  
+
   ;; empty the entries in the full-path-list-box
   (send full-path-list-box set '() '() '() '() '() '() '() '())
 
