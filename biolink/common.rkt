@@ -37,7 +37,7 @@
 
   publications-info-alist-from-edge
   publications-info-alist-from-edge-props
-  
+
   path-confidence
   path-confidence<?
   sort-paths
@@ -304,7 +304,7 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
                                            (hash-ref v '|object score| #f)
                                            (regexp-replace*
                                              #rx"([ ]+)"
-                                             (hash-ref v 'sentence #f)	 	 	 	 
+                                             (hash-ref v 'sentence #f)
                                              " "))))))]
     [else '()]))
 (define (publications-info-alist-from-edge edge)
