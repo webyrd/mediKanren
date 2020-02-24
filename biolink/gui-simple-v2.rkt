@@ -605,10 +605,10 @@ edge format, with dbname at front (as used in edgeo):
            (object? (case edge-type
                       [(out-edge) #f]
                       [(in-edge)  #t]))
-           (name-parts (split-name-string current-name))
-           (ans (if (null? name-parts) '()
+           (string-parts (split-name-string current-name))
+           (ans (if (null? string-parts) '()
                   (begin (printf "searching for: ~s\n" current-name)
-                         (time (find-concepts/options subject? object? isa-count #f name-parts))))))
+                         (time (find-concepts/options/cui-infer subject? object? isa-count string-parts))))))
       (set-box! choices ans)
       (send concept-listbox
             set
