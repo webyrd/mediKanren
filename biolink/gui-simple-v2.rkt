@@ -1114,8 +1114,76 @@ edge format, with dbname at front (as used in edgeo):
 
                                                                        ;; select first item
                                                                        (send full-path-list-box select 0 #t)
-                                                                       )))
+                                                                       (populate-selected-paths))))
                                                                  (void))])))))))
+
+    (define (populate-selected-paths)
+      (when *verbose*
+        (printf "(unbox *full-path-choices*):\n~s\n" (unbox *full-path-choices*)))
+      (define selections (send full-path-list-box get-selections))
+      (when *verbose*
+        (printf "selection for full path:\n~s\n" selections))
+      (define selected-full-paths
+        (foldr (lambda (i l) (cons (list-ref (unbox *full-path-choices*) i) l))
+               '()
+               selections))
+      (for-each
+        (lambda (x)
+          (match x
+            ['path-separator
+             (send subject-properties-list-box set '() '())
+             (send edge-properties-list-box set '() '())
+             (send object-properties-list-box set '() '())]
+            [`(,dbname ,eid
+                       (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
+                       (,ocid ,ocui ,oname (,ocatid . ,ocat) ,oprops)
+                       ,p
+                       ,eprops)
+              (define (set-properties-list-box prop-list-box props)
+                (send prop-list-box
+                      set
+                      (map
+                        (lambda (p)
+                          (~a (car p)
+                              #:max-width
+                              MAX-CHAR-WIDTH
+                              #:limit-marker
+                              "..."))
+                        props)
+                      (map
+                        (lambda (p)
+                          (~a (cdr p)
+                              #:max-width
+                              MAX-CHAR-WIDTH
+                              #:limit-marker
+                              "..."))
+                        props)))
+              (set-properties-list-box subject-properties-list-box sprops)
+              (set-properties-list-box edge-properties-list-box eprops)
+              (set-properties-list-box object-properties-list-box oprops)]))
+        selected-full-paths)
+      (for-each
+        (lambda (edge)
+          (let ((URLs (pubmed-URLs-from-edge edge)))
+            (set-box! *pubmed-choices* URLs)
+            (send pubmed-list-box set URLs)))
+        selected-full-paths)
+      (for-each
+        (lambda (edge)
+          (let ((publications-info-alist
+                  (publications-info-alist-from-edge edge)))
+            (set-box! *publications-info-alist* publications-info-alist)))
+        selected-full-paths)
+      (when *verbose*
+        (printf "selected full path:\n")
+        (for-each
+          (lambda (x)
+            (match x
+              ['path-separator
+               (printf "-----------------------\n")]
+              [`(,dbname ,eid ,subj ,obj ,p ,eprops)
+                (pretty-print `(,dbname ,eid ,subj ,obj ,p ,eprops))]))
+          selected-full-paths)))
 
     (define full-path-list-box (new smart-column-width-list-box%
                                     (label "Paths")
@@ -1123,74 +1191,7 @@ edge format, with dbname at front (as used in edgeo):
                                     (columns '("KG" "EID" "Subject" "Predicate" "Object" "Subj Cat" "Obj Cat" "PubMed #"))
                                     (parent lower-pane)
                                     (style '(column-headers reorderable-headers extended))
-                                    (callback (lambda (self event)
-                                                (when *verbose*
-                                                  (printf "(unbox *full-path-choices*):\n~s\n" (unbox *full-path-choices*)))
-                                                (define selections (send self get-selections))
-                                                (when *verbose*
-                                                  (printf "selection for full path:\n~s\n" selections))
-                                                (define selected-full-paths
-                                                  (foldr (lambda (i l) (cons (list-ref (unbox *full-path-choices*) i) l))
-                                                         '()
-                                                         selections))
-                                                (for-each
-                                                    (lambda (x)
-                                                      (match x
-                                                        ['path-separator
-                                                         (send subject-properties-list-box set '() '())
-                                                         (send edge-properties-list-box set '() '())
-                                                         (send object-properties-list-box set '() '())]
-                                                        [`(,dbname ,eid
-                                                                   (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
-                                                                   (,ocid ,ocui ,oname (,ocatid . ,ocat) ,oprops)
-                                                                   ,p
-                                                                   ,eprops)
-                                                         (define (set-properties-list-box prop-list-box props)
-                                                           (send prop-list-box
-                                                                 set
-                                                                 (map
-                                                                  (lambda (p)
-                                                                    (~a (car p)
-                                                                        #:max-width
-                                                                        MAX-CHAR-WIDTH
-                                                                        #:limit-marker
-                                                                        "..."))
-                                                                  props)
-                                                                 (map
-                                                                  (lambda (p)
-                                                                    (~a (cdr p)
-                                                                        #:max-width
-                                                                        MAX-CHAR-WIDTH
-                                                                        #:limit-marker
-                                                                        "..."))
-                                                                  props)))
-                                                         (set-properties-list-box subject-properties-list-box sprops)
-                                                         (set-properties-list-box edge-properties-list-box eprops)
-                                                         (set-properties-list-box object-properties-list-box oprops)]))
-                                                    selected-full-paths)
-                                                (for-each
-                                                  (lambda (edge)
-                                                    (let ((URLs (pubmed-URLs-from-edge edge)))
-                                                      (set-box! *pubmed-choices* URLs)
-                                                      (send pubmed-list-box set URLs)))
-                                                  selected-full-paths)
-                                                (for-each
-                                                  (lambda (edge)
-                                                    (let ((publications-info-alist
-                                                           (publications-info-alist-from-edge edge)))
-                                                      (set-box! *publications-info-alist* publications-info-alist)))
-                                                  selected-full-paths)                                               
-                                                (when *verbose*
-                                                  (printf "selected full path:\n")
-                                                  (for-each
-                                                    (lambda (x)
-                                                      (match x
-                                                        ['path-separator
-                                                         (printf "-----------------------\n")]
-                                                        [`(,dbname ,eid ,subj ,obj ,p ,eprops)
-                                                         (pretty-print `(,dbname ,eid ,subj ,obj ,p ,eprops))]))
-                                                    selected-full-paths))
-                                                ))))
+                                    (callback (lambda (self event) (populate-selected-paths)))))
 
     (define properties/pubmed-panel (new panel:horizontal-dragable%
                                          (parent lower-pane)
