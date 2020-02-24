@@ -4,6 +4,7 @@
   find-concepts
   find-isa-concepts
   find-concepts/options
+  find-concepts/options/cui-infer
   find-predicates/concepts
   find-predicates
   find-categories
@@ -366,21 +367,18 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
                          (membero o/db concepts)
                          (isao s/db o/db)))))
 
-(define (find-concepts/options subject? object? isa-count via-cui? strings)
+(define (concepts/options subject? object? isa-count concepts)
   ;; subject? and object? insist that a concept participate in a certain role.
   ;; If via-cui? then strings is an OR-list of CUIs to consider.
   ;; Otherwise, strings is an AND-list of fragments the name must contain.
-  (let* ((ans (if via-cui?
-                (run* (c) (~cui*-concepto strings c))
-                (run* (c) (~name*-concepto strings c))))
-         (isa-ans (find-isa-concepts isa-count ans))
-         (ans (if (null? isa-ans) ans
-                (remove-duplicates (append ans isa-ans))))
+  (let* ((isa-concepts (find-isa-concepts isa-count concepts))
+         (ans (if (null? isa-concepts) (remove-duplicates concepts)
+                (remove-duplicates (append concepts isa-concepts))))
          (ans (filter  ;; Only include concepts with at least one predicate.
                 (lambda (concept)
                   (define (? cpo) (not (null? (run 1 (p) (cpo concept p)))))
                   (and (or (not subject?) (? subject-predicateo))
-                       (or (not object?) (? object-predicateo))))
+                       (or (not object?)  (? object-predicateo))))
                 ans)))
     (sort ans (lambda (a1 a2)
                 (let ((dbname1 (symbol->string (car a1)))
@@ -390,6 +388,20 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
                   (or (string>? dbname1 dbname2)
                       (and (string=? dbname1 dbname2)
                            (string<? cui1 cui2))))))))
+
+(define (find-concepts/options/cui-infer subject? object? isa-count strings)
+  (define yes-cui
+    (map (lambda (s) (run* (c) (~cui*-concepto (list s) c))) strings))
+  (define no-cui (filter-not not (map (lambda (s rs) (and (null? rs) s))
+                                      strings yes-cui)))
+  (define all (append* (cons (run* (c) (~name*-concepto no-cui c)) yes-cui)))
+  (concepts/options subject? object? isa-count all))
+
+(define (find-concepts/options subject? object? isa-count via-cui? strings)
+  (concepts/options subject? object? isa-count
+                    (if via-cui?
+                      (run* (c) (~cui*-concepto strings c))
+                      (run* (c) (~name*-concepto strings c)))))
 
 (define (find-concepts via-cui? strings)
   (find-concepts/options #f #f 0 via-cui? strings))
