@@ -138,31 +138,32 @@ neo4j stop
 
 ### Greg will do these
 
-* speed up string search
-  * fix `suffix:corpus-find*` to populate only the final intersected ranges
-* fix UI interaction hangups by using threads for all queries
-  * find-concepts/options (already in a thread)
-  * find-predicates/concepts
-  * uses of `run*`
-    * synthetic queries
-    * all-X-concepts-with-edges
+* implement dbKanren
+
 * reduce corpus load time
   * reprocess corpus data using a flat binary format of length-encoded strings
 
 * general data (tuple/vector) stream processing
+  * one-shot streams
   * parsing: csv, n-quads, s-expressions
+    * typed columns: string (default), number, json, s-expr
   * binary serialization format for faster replay
     * element-level headers for varying types and sizes
     * column-level headers for uniform types and sizes
       * can also support partial colum (runs of a certain length) uniformity
   * statistics and reservoir sampling
+    * optional column type inference
     * statistics binned by type
     * histogram up to distinct element threshold
     * count, min, max, sum, min-length, max-length
 
+* first-class prefixes, suffixes, and slices (of strings or vectors)
+
 * index gene aliasing data
 
 * consolidate db generation with one script
+
+* update `csv->db` process to account for JSON values produced by new kgx dump
 
 * reorganize directory structure
   * lift biolink to main directory, moving current main contents somewhere else
