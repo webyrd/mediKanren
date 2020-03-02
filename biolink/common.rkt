@@ -7,6 +7,7 @@
   find-concepts/options/cui-infer
   find-predicates/concepts
   find-predicates
+  find-exact-predicates
   find-categories
   find-exact-categories
   find-Xs
@@ -416,6 +417,12 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
        concepts))
 
 (define (find-predicates names)
+  (append* (map (lambda (name) (run* (x) (~predicateo name x))) names)))
+(define (find-exact-predicates names)
+  (run* (p) (fresh (db pid name)
+                (membero name names)
+                (== p `(,db ,pid . ,name))
+                (predicateo p)))
   (append* (map (lambda (name) (run* (x) (~predicateo name x))) names)))
 (define (find-categories names)
   (append* (map (lambda (name) (run* (x) (~categoryo name x))) names)))
