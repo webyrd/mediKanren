@@ -127,7 +127,6 @@ neo4j stop
 
 ### UI
 
-* CURIE string lookup
 * concept distance for (potentially cross-KG) synonyms (similar to ISA checkbox)
 * extract RTX2 pubmed and display sentence inline
 * sorting results by different scoring parameters (confidence vs. novelty)
@@ -144,18 +143,10 @@ neo4j stop
   * reprocess corpus data using a flat binary format of length-encoded strings
 
 * general data (tuple/vector) stream processing
-  * one-shot streams
-  * parsing: csv, n-quads, s-expressions
-    * typed columns: string (default), number, json, s-expr
   * binary serialization format for faster replay
     * element-level headers for varying types and sizes
     * column-level headers for uniform types and sizes
       * can also support partial colum (runs of a certain length) uniformity
-  * statistics and reservoir sampling
-    * optional column type inference
-    * statistics binned by type
-    * histogram up to distinct element threshold
-    * count, min, max, sum, min-length, max-length
 
 * first-class prefixes, suffixes, and slices (of strings or vectors)
 
@@ -171,42 +162,7 @@ neo4j stop
   * move library and data processing code to a new subdirectory
   * move tests and examples into their own subdirectories
 
-* generalize database representation and indexing
-  * generalized field representation
-    * choose representation based on field cardinalities
-      * store representation metadata per-database
-    * allow humans the option of choosing representations
-      * generate summaries and random samples to inform decisions
-  * make it possible to index using arbitrary fields
-    * declaratively specify desired indices
-    * index types
-      * categorical: id-normalized, like we currently do
-        * configurable ordering
-      * text: whole-string or suffix-based
-        * configurable alphabet approximation (for smaller index)
-      * continuous/numerical
-        * optional categorical bucketing
-    * wishlist
-      * index edges by predicate
-  * configurable disk/memory loading per data unit
-    * maybe reconfigurable at runtime?
-  * runtime [un]loading of databases (maybe we should call these data modules)
-  * maybe runtime [un]loading of data units within a database
-    * could support dynamic loading of new mk relations
-    * multiple database families (we currently use one implicit family)
-      * a set of databases with the same structure
-      * relations parameterized over databases
-  * general disk formats
-    * content: arbitrary s-exprs, text, numeric, tuples of text/numeric
-    * format: plaintext vs. binary (or fasl)
-      * plaintext: element delimiters are format-dependent
-        * needs an offset list to support random access
-      * random access binary:
-        * fixed offset binary: all elements are the same size
-        * variable offset binary: element locations described by an offset list
-          * offset list is itself a fixed offset binary
-      * length-encoded binary: elements prefixed by their length
-        * cannot easily support random access, would this format really be used?
+* index edges by predicate
 
 * web interface
   * webserver endpoints for lookup of:
