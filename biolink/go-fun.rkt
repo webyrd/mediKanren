@@ -58,7 +58,7 @@
              [`(,db ,cid ,curie ,name (,catid . ,cat) ,props)
               (list curie name)]
              [else
-              (error 'get-all-GO-ancestors (format "c didn't match:\n~s\n" c))]))
+              (error 'get-curies/names-from-concepts (format "c didn't match:\n~s\n" c))]))
          (set->list s))))
 
 ;; Lymphangiogenesis
