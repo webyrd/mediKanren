@@ -20,7 +20,6 @@
     (lambda (S)
       (define get-all-GO-ancestors
         (lambda (S ancestors)
-          (printf "(set-count ancestors): ~s\n" (set-count ancestors))
           (match (run/graph
                   ((S S)
                    (O #f))
@@ -29,14 +28,7 @@
             [(list name=>concepts name=>edges)
              (let* ((c* (hash-ref name=>concepts 'O))
                     (c* (filter (lambda (c) (not (set-member? ancestors c))) c*))
-                    (c* (filter (lambda (c)
-                                  (printf "c: ~s\n" c)
-                                  (match c
-                                    [`(,db ,cid ,curie ,name (,catid . ,cat) ,props)
-                                     (string-prefix? curie "GO:")]
-                                    [else
-                                     (error 'get-all-GO-ancestors (format "c didn't match:\n~s\n" c))]))
-                                c*)))
+                    (c* (filter (lambda (c) (string-prefix? (concept->curie c) "GO:")) c*)))
                (cond
                  [(null? c*) ancestors]
                  [else

@@ -16,6 +16,13 @@
 
   membero
 
+  concept->dbname
+  concept->cid
+  concept->curie
+  concept->name
+  concept->category
+  concept->props
+
   ~name*-concepto
   ~cui*-concepto
   ~cui-concepto
@@ -162,6 +169,13 @@
 #|
 concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
 |#
+(define (concept->dbname concept) (car concept))
+(define (concept->cid concept) (cadr concept))
+(define (concept->curie concept) (caddr concept))
+(define (concept->name concept) (cadddr concept))
+(define (concept->category concept) (cadddr (cdr concept)))
+(define (concept->props concept) (cadddr (cddr concept)))
+
 (define (~name*-concepto ~name* concept)
   (conde/databases
     (lambda (dbname db)
