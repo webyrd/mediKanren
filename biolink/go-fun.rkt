@@ -18,38 +18,36 @@
 (define get-all-GO-ancestors
   (let ((subclass_of-pred-ls '((rtx2 15 . "subclass_of"))))
     (lambda (S)
-      (letrec ((get-all-GO-ancestors
-                (lambda (S ancestors)
-                  (let ()
-                    (printf "(set-count ancestors): ~s\n" (set-count ancestors))
-                    (match-define
-                     (list name=>concepts name=>edges)
-                     (run/graph
-                      ((S S)
-                       (O #f))
-                      ((S->O subclass_of-pred-ls))
-                      (S S->O O)))
-                    (let* ((c* (hash-ref name=>concepts 'O))
-                           (c* (filter (lambda (c) (not (set-member? ancestors c))) c*))
-                           (c* (filter (lambda (c)
-                                         (printf "c: ~s\n" c)
-                                         (match c
-                                           [`(,db ,cid ,curie ,name (,catid . ,cat) ,props)
-                                            (string-prefix? curie "GO:")]
-                                           [else
-                                            (error 'get-all-GO-ancestors (format "c didn't match:\n~s\n" c))]))
-                                       c*)))
-                      (cond
-                        [(null? c*) ancestors]
-                        [else
-                         (let ((ancestors (let loop ((c* c*)
-                                                     (ancestors ancestors))
-                                            (match c*
-                                              ['() ancestors]
-                                              [`(,c . ,c*)
-                                               (loop c* (set-add ancestors c))]))))
-                           (get-all-GO-ancestors c* ancestors))]))))))
-        (get-all-GO-ancestors S (set))))))
+      (define get-all-GO-ancestors
+        (lambda (S ancestors)
+          (printf "(set-count ancestors): ~s\n" (set-count ancestors))
+          (match (run/graph
+                  ((S S)
+                   (O #f))
+                  ((S->O subclass_of-pred-ls))
+                  (S S->O O))
+            [(list name=>concepts name=>edges)
+             (let* ((c* (hash-ref name=>concepts 'O))
+                    (c* (filter (lambda (c) (not (set-member? ancestors c))) c*))
+                    (c* (filter (lambda (c)
+                                  (printf "c: ~s\n" c)
+                                  (match c
+                                    [`(,db ,cid ,curie ,name (,catid . ,cat) ,props)
+                                     (string-prefix? curie "GO:")]
+                                    [else
+                                     (error 'get-all-GO-ancestors (format "c didn't match:\n~s\n" c))]))
+                                c*)))
+               (cond
+                 [(null? c*) ancestors]
+                 [else
+                  (let ((ancestors (let loop ((c* c*)
+                                              (ancestors ancestors))
+                                     (match c*
+                                       ['() ancestors]
+                                       [`(,c . ,c*)
+                                        (loop c* (set-add ancestors c))]))))
+                    (get-all-GO-ancestors c* ancestors))]))])))
+      (get-all-GO-ancestors S (set)))))
 
 (define get-curies/names-from-concepts
   (lambda (s)
