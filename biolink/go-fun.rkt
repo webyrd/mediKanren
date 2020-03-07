@@ -70,3 +70,8 @@
 (define S4 (keep 1 (find-concepts #t (list "GO:2001272"))))
 (define A4 (get-all-GO-ancestors S4))
 (pretty-print (get-curies/names-from-concepts A4))
+
+;; cysteine-type endopeptidase activity involved in execution phase of apoptosis
+(define S5 (keep 1 (find-concepts #t (list "GO:0097200"))))
+(define A5 (get-all-GO-ancestors S5))
+(pretty-print (get-curies/names-from-concepts A5))
