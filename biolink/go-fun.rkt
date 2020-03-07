@@ -60,3 +60,13 @@
 (define S2 (keep 1 (find-concepts #t (list "GO:0090051"))))
 (define A2 (get-all-GO-ancestors S2))
 (pretty-print (get-curies/names-from-concepts A2))
+
+;; positive regulation of execution phase of apoptosis
+(define S3 (keep 1 (find-concepts #t (list "GO:1900119"))))
+(define A3 (get-all-GO-ancestors S3))
+(pretty-print (get-curies/names-from-concepts A3))
+
+;; positive regulation of cysteine-type endopeptidase activity involved in execution phase of apoptosis
+(define S4 (keep 1 (find-concepts #t (list "GO:2001272"))))
+(define A4 (get-all-GO-ancestors S4))
+(pretty-print (get-curies/names-from-concepts A4))
