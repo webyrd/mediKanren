@@ -271,6 +271,8 @@
    HGNC-NCBIGene-ENSEMBL-CUIg-OMIM/concept-ls
    A-->CUIg/concept-ls))
 
+
+;; TODO, filter specifically on the NCITg concept if it exists!! 
 (define NCITg-concept-ls
   A-->CUIg/concept-ls)
 
@@ -578,10 +580,6 @@
 (displayln "CONCEPT BUILDING FOR ANIMAL MODEL QUERY COMPLETE:\n")
 (pretty-print (extract-name/curie/category-from-concept-ls filtered-HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-concept-ls '()))
 (newline)
-
-
-
-
 
 (match-define
   (list A-->molecular-entity-concept-ls/complete-->B=>concepts
