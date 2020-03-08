@@ -45,6 +45,29 @@
                          (cdr query-ls)
                          els curie kg)))])))))
 
+(define extract-curie-from-concept-ls
+  (lambda (query-ls els curie kg)
+    (cond
+      ((null? query-ls) (remove-duplicates els))
+      ((or (void? (car query-ls))
+           (boolean? (car query-ls)))
+       (extract-curie-from-concept-ls
+        (cdr query-ls) els curie kg))
+      (else 
+       (match (car query-ls)
+         [`(,db ,cui ,id ,name ,category ,properties-list)
+          (cond
+            ((and (equal? db kg)
+                  (string-contains? id curie)) 
+             (extract-curie-from-concept-ls
+              (cdr query-ls)
+              (cons
+               id els) curie kg))
+            (else
+             (extract-curie-from-concept-ls
+                         (cdr query-ls)
+                         els curie kg)))])))))
+
 (define genetic_variant-curie-ls
   '("HGNC:18756"))
 
@@ -211,17 +234,15 @@
 (newline)
 
 
-(define NCBIGene-concept
+(define NCBIGene-concept/rtx2
   (extract-concept-from-concept-ls
    HGNC-NCBIGene-ENSEMBL-CUIg-NCITg-NCITwt-CUIwt/concept-ls '() "NCBIGene:" 'rtx2))
 
 
-
-
 (newline)
-(displayln "NCBIGene-concept:")
+(displayln "NCBIGene-concept/rtx2:")
 (newline)
-(pretty-print NCBIGene-concept)
+(pretty-print NCBIGene-concept/rtx2)
 (newline)
 
 
@@ -233,7 +254,7 @@
   (time
    (run/graph
     ((Y #f)
-     (NCBIg (list NCBIGene-concept)))
+     (NCBIg (list NCBIGene-concept/rtx2)))
     ((--encodes--> '((rtx2 775 . "encodes"))))
     (NCBIg --encodes--> Y)
     )))
@@ -252,13 +273,14 @@
 (newline)
 
 
+
 (match-define
   (list A-->NCBI-input=>concepts
         A-->NCBI-input=>edges)
   (time
    (run/graph
     ((A #f)
-     (NCBIg (list NCBIGene-concept))) 
+     (NCBIg (list NCBIGene-concept/rtx2))) 
     ((--xref--> '((rtx2 3 . "xref"))))
     (A --xref--> NCBIg))))
 
@@ -271,11 +293,19 @@
 (pretty-print (extract-name/curie/category-from-concept-ls A-->NCBIGene/concepts '()))
 (newline)
 
+
+(define NCBIGene-concept/orange
+  (extract-concept-from-concept-ls
+   HGNC-NCBIGene-ENSEMBL-CUIg-NCITg-NCITwt-CUIwt/concept-ls '() "NCBIGene:" 'orange))
+
+
+
 (define HGNC-NCBIGene-ENSEMBL-CUIg-NCITg-NCITwt-CUIwt-CUIp-UniProtKB/concept-ls
-  (set-union A-->NCBIGene/concepts
+  (set-union NCBIGene-concept/orange
+             (set-union A-->NCBIGene/concepts
              (set-union
               NCBI-input-->Y/concepts
-              HGNC-NCBIGene-ENSEMBL-CUIg-NCITg-NCITwt-CUIwt/concept-ls)))
+              HGNC-NCBIGene-ENSEMBL-CUIg-NCITg-NCITwt-CUIwt/concept-ls))))
 
 
 (newline)
@@ -356,7 +386,7 @@
 ;; MESH:D appears to master node for all species of protein
 ;; should I string append protein, human protein, rat protein, mouse
 
-molecular-entity-concept-ls/complete
+;;molecular-entity-concept-ls/complete
 
 (match-define
   (list A-->molecular-entity-concept-ls/complete-->B=>concepts
@@ -379,6 +409,7 @@ molecular-entity-concept-ls/complete
 
 (define A--ALL-->mol-entity-ls/edges
   (hash-ref A-->molecular-entity-concept-ls/complete-->B=>edges '--ALLin-->))
+
 #|
 (displayln "A--ALL-->mol-entity-ls/edges")
 (newline)
