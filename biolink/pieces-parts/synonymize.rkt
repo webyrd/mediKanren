@@ -4,8 +4,6 @@
 (require "../common.rkt" "../mk-db.rkt")
 
 
-
-
 (define extract-name/curie/category-from-concept-ls
   (lambda (query-ls els)
     (cond
@@ -48,7 +46,7 @@
 (define extract-curie-from-concept-ls
   (lambda (query-ls els curie kg)
     (cond
-      ((null? query-ls) (remove-duplicates els))
+      ((null? query-ls) (flatten (remove-duplicates els)))
       ((or (void? (car query-ls))
            (boolean? (car query-ls)))
        (extract-curie-from-concept-ls
@@ -65,6 +63,29 @@
                id els) curie kg))
             (else
              (extract-curie-from-concept-ls
+                         (cdr query-ls)
+                         els curie kg)))])))))
+
+(define extract-name-from-concept-ls
+  (lambda (query-ls els curie kg)
+    (cond
+      ((null? query-ls) (remove-duplicates els))
+      ((or (void? (car query-ls))
+           (boolean? (car query-ls)))
+       (extract-name-from-concept-ls
+        (cdr query-ls) els curie kg))
+      (else 
+       (match (car query-ls)
+         [`(,db ,cui ,id ,name ,category ,properties-list)
+          (cond
+            ((and (equal? db kg)
+                  (string-contains? id curie)) 
+             (extract-name-from-concept-ls
+              (cdr query-ls)
+              (cons
+               name els) curie kg))
+            (else
+             (extract-name-from-concept-ls
                          (cdr query-ls)
                          els curie kg)))])))))
 
@@ -294,14 +315,15 @@
 (newline)
 
 
-(define NCBIGene-concepts/orange
-  (find-concepts #t (extract-curie-from-concept-ls
-                     HGNC-NCBIGene-ENSEMBL-CUIg-NCITg-NCITwt-CUIwt/concept-ls '() "NCBIGene:" 'rtx2)))
-
+(define NCBIGene-concept/orange 
+  (find-concepts
+   #t
+   (extract-curie-from-concept-ls
+    HGNC-NCBIGene-ENSEMBL-CUIg-NCITg-NCITwt-CUIwt/concept-ls '() "NCBIGene:" 'rtx2)))
 
 
 (define HGNC-NCBIGene-ENSEMBL-CUIg-NCITg-NCITwt-CUIwt-CUIp-UniProtKB/concept-ls
-  (set-union NCBIGene-concepts/orange
+  (set-union NCBIGene-concept/orange
              (set-union A-->NCBIGene/concepts
              (set-union
               NCBI-input-->Y/concepts
@@ -357,6 +379,7 @@
 (define molecular-entity/curie-ls/CUI-ONLY
   (extract-curie-from-concept-ls molecular-entity/concept-ls/sans-UMLS '() "CUI:" 'rtx2))
 
+
 (define molecular-entity/curie-ls/UMLS-ONLY
   (map (lambda (ls)
          (string-replace
@@ -366,27 +389,107 @@
 (define molecular-entity/concept-ls/UMLS-ONLY
   (find-concepts #t molecular-entity/curie-ls/UMLS-ONLY))
 
+(define molecular-entity/curie-ls/HGNC-ONLY
+  (extract-name-from-concept-ls molecular-entity/concept-ls/sans-UMLS '() "HGNC:" 'robokop))
+
+(define human-gene/protein-suffix-ls
+  (list " protein, human"
+        " gene"
+        " Gene"
+        " wt Allele"
+        " (human)"))
+
+(define map-it
+  (lambda (f ls)
+    (cond
+      ((null? ls) '())
+      (else
+       (cons (f (car ls))
+             (map-it f (cdr ls)))))))
+
+;; string append HGNC symbol to list of human suffixes
+(define HGNC-string-with-human-gene/protein-suffix-ls
+  (map (lambda (x) (string-append (car molecular-entity/curie-ls/HGNC-ONLY) x)) human-gene/protein-suffix-ls))
+
+
+;; use this to filter find-concepts 
+(define HGNC-string-with-human-gene/protein-suffix-concept-ls
+  (remove-duplicates
+           (apply append
+                  (map
+                   (lambda (x) (find-concepts #f (list x)))
+                   HGNC-string-with-human-gene/protein-suffix-ls))))
+
+(define filtered-HGNC-string-with-human-gene/protein-suffix-concept-ls
+  (filter (lambda (c)
+            (member (concept->name c)
+                     HGNC-string-with-human-gene/protein-suffix-ls))
+          HGNC-string-with-human-gene/protein-suffix-concept-ls
+          ))
 
 (define molecular-entity-concept-ls/complete
-  (set-union molecular-entity/concept-ls/sans-UMLS
-             molecular-entity/concept-ls/UMLS-ONLY))
-
+  (set-union filtered-HGNC-string-with-human-gene/protein-suffix-concept-ls 
+             (set-union molecular-entity/concept-ls/sans-UMLS
+                        molecular-entity/concept-ls/UMLS-ONLY)))
+ 
 (newline)
 (displayln "CONCEPT BUILDING FOR HGNC QUERY COMPLETE:\n")
 (pretty-print (extract-name/curie/category-from-concept-ls molecular-entity-concept-ls/complete '()))
 (newline)
 
 
-;;CUI to UMLS mappings are not perfect, CUI:C1418837 did not map to UMLS
-;;not all CUI proteins have a xref to MESH protein
-;; MESH:C517191 is PPP2RA1 protein, human. it has xref to CUI:C1871283 PPP2R1A protein, human
-;; but there is no way to get at that CUI
-;; MESH:C517191 --mapped_to--> MESH:D054648
-;; MESH:C517191 --xref--> CUI:C1871283
-;; MESH:D appears to master node for all species of protein
-;; should I string append protein, human protein, rat protein, mouse
+(define animal-model/bacteria/plant-gene/protein-suffix-ls
+  (list " protein, mouse"
+        " protein, rat"
+        " protein, zebrafish"
+        " protein, C elegans"
+        " protein, S cerevisiae"
+        " protein, Drosophila"
+        " protein, Arabidopsis"
+        " protein, E coli"
+        " protein, S pombe"
+        " protein, Xenopus"
+        " (mouse)"
+        " (rat)"
+        " (zebrafish)"
+        " (C elegans)"
+        " (S cerevisiae)"
+        " (Drosophila)"
+        " (Arabidopsis)"
+        " (E coli)"
+        " (S pombe)"
+        " (Xenopus)"))
 
-;;molecular-entity-concept-ls/complete
+(define HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-ls
+  (map
+   string-downcase
+   (map
+    (lambda (x) (string-append (car molecular-entity/curie-ls/HGNC-ONLY) x))
+    animal-model/bacteria/plant-gene/protein-suffix-ls)))
+
+(define HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-concept-ls
+  (remove-duplicates
+   (apply
+    append
+    (map
+     (lambda (x) (find-concepts #f (list x)))
+     HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-ls))))
+
+(define filtered-HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-concept-ls
+  (filter
+   (lambda (c)
+     (member (string-downcase (concept->name c))
+             HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-ls))
+   HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-concept-ls)) 
+
+(newline)
+(displayln "CONCEPT BUILDING FOR ANIMAL MODEL QUERY COMPLETE:\n")
+(pretty-print (extract-name/curie/category-from-concept-ls filtered-HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-concept-ls '()))
+(newline)
+
+
+
+
 
 (match-define
   (list A-->molecular-entity-concept-ls/complete-->B=>concepts
@@ -409,7 +512,7 @@
 
 (define A--ALL-->mol-entity-ls/edges
   (hash-ref A-->molecular-entity-concept-ls/complete-->B=>edges '--ALLin-->))
-
+ 
 #|
 (displayln "A--ALL-->mol-entity-ls/edges")
 (newline)
