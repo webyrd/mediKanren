@@ -294,14 +294,14 @@
 (newline)
 
 
-(define NCBIGene-concept/orange
-  (extract-concept-from-concept-ls
-   HGNC-NCBIGene-ENSEMBL-CUIg-NCITg-NCITwt-CUIwt/concept-ls '() "NCBIGene:" 'orange))
+(define NCBIGene-concepts/orange
+  (find-concepts #t (extract-curie-from-concept-ls
+                     HGNC-NCBIGene-ENSEMBL-CUIg-NCITg-NCITwt-CUIwt/concept-ls '() "NCBIGene:" 'rtx2)))
 
 
 
 (define HGNC-NCBIGene-ENSEMBL-CUIg-NCITg-NCITwt-CUIwt-CUIp-UniProtKB/concept-ls
-  (set-union NCBIGene-concept/orange
+  (set-union NCBIGene-concepts/orange
              (set-union A-->NCBIGene/concepts
              (set-union
               NCBI-input-->Y/concepts
