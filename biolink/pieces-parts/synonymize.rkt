@@ -89,35 +89,6 @@
                          (cdr query-ls)
                          els curie kg)))])))))
 
-(define substitute
-  (lambda (ls old new)
-    (cond 
-      ((null? ls) '())
-      ((void? (car ls))
-       (substitute (cdr ls) old new))
-      ((boolean? (car ls))
-       (cons
-         (format "~a" (car ls))
-         (substitute (cdr ls) old new))) 
-      ((equal? (car ls) old)
-       (cons new
-             (substitute (cdr ls) old new)))
-      (else
-       (cons (car ls)
-             (substitute (cdr ls) old new))))))
-
-(define str-converter
-  (lambda (ls)
-    (cond
-      ((null? ls)
-       (substitute ls '() "NA"))
-      ((or (boolean? (car ls))
-           (void? (car ls)))
-       (str-converter (cdr ls)))
-      (else 
-       (if (symbol? (car ls))
-           (string-join (map symbol->string ls) " ")
-           (string-join ls " "))))))
 
 (define PUBMED_URL_PREFIX "https://www.ncbi.nlm.nih.gov/pubmed/")
 
