@@ -22,6 +22,28 @@
            (cons
             (list db id name) els))])))))
 
+(define extract-concept-from-concept-ls
+  (lambda (query-ls els curie kg)
+    (cond
+      ((null? query-ls) (remove-duplicates els))
+      ((or (void? (car query-ls))
+           (boolean? (car query-ls)))
+       (extract-concept-from-concept-ls
+        (cdr query-ls) els curie kg))
+      (else 
+       (match (car query-ls)
+         [`(,db ,cui ,id ,name ,category ,properties-list)
+          (cond
+            ((and (equal? db kg)
+                  (string-contains? id curie)) 
+             (extract-concept-from-concept-ls
+              (cdr query-ls)
+              (set-union 
+               `(,db ,cui ,id ,name ,category ,properties-list) els) curie kg))
+            (else
+             (extract-concept-from-concept-ls
+                         (cdr query-ls)
+                         els curie kg)))])))))
 
 (define genetic_variant-curie-ls
   '("HGNC:18756"))
