@@ -188,8 +188,8 @@ edge = `(,dbname ,eid ,subject-concept ,object-concept (,pid . ,pred-name) ,prop
 |#
 (define (edge->dbname edge) (car edge))
 (define (edge->eid edge) (cadr edge))
-(define (edge->subject edge) (caddr edge))
-(define (edge->object edge) (cadddr edge))
+(define (edge->subject edge) (cons (edge->dbname edge) (caddr edge)))
+(define (edge->object edge) (cons (edge->dbname edge) (cadddr edge)))
 (define (edge->pred edge) (cadddr (cdr edge)))
 (define (edge->props edge) (cadddr (cddr edge)))
 
