@@ -7,20 +7,10 @@
 
 ;; just for printing
 (define extract-name/curie/category-from-concept-ls
-  (lambda (query-ls els)
-    (cond
-      ((null? query-ls) els)
-      ((or (void? (car query-ls))
-           (boolean? (car query-ls)))
-       (extract-name/curie/category-from-concept-ls
-        (cdr query-ls) els))
-      (else 
-       (match (car query-ls)
-         [`(,db ,cui ,id ,name ,category ,properties-list)
-          (extract-name/curie/category-from-concept-ls
-           (cdr query-ls)
-           (cons
-            (list db id name) els))])))))
+  (lambda (concept)
+    (list (concept->name concept)
+          (concept->curie concept)
+          (concept->category concept))))
 
 (define genetic_variant-curie-ls
   (list "HGNC:18756"))
@@ -32,7 +22,7 @@
 (newline)
 (displayln (format "CONCEPTS FOUND RETURNED FROM INITIAL INPUT CURIE: ~a" genetic_variant-curie-ls))
 (newline)
-(pretty-print (extract-name/curie/category-from-concept-ls HGNC-gene-query '()))
+(pretty-print (extract-name/curie/category-from-concept-ls HGNC-gene-query))
           
 
 (define equivalent_to (find-predicates (list "equivalent_to")))
@@ -60,13 +50,13 @@
 (newline)
 (displayln "CONCEPTS FROM:\nA --equivalent_to--> HGNC-input")
 (newline)
-(pretty-print (extract-name/curie/category-from-concept-ls A-->HGNC-input/concepts '()))
+(pretty-print (extract-name/curie/category-from-concept-ls A-->HGNC-input/concepts))
 (newline)
 
 (newline)
 (displayln "CONCEPTS FROM:\nHGNC-input --xref--> B")
 (newline)
-(pretty-print (extract-name/curie/category-from-concept-ls HGNC-input-->B/concepts '()))
+(pretty-print (extract-name/curie/category-from-concept-ls HGNC-input-->B/concepts))
 (newline)
 
 
@@ -81,7 +71,7 @@
 (newline)
 (displayln "CONCEPTS FROM:\nA --equivalent_to--> HGNC-input --xref--> B")
 (newline)
-(pretty-print (extract-name/curie/category-from-concept-ls HGNC-NCBIGene-ENSEMBL-CUIg-OMIM/concept-ls '()))
+(pretty-print (extract-name/curie/category-from-concept-ls HGNC-NCBIGene-ENSEMBL-CUIg-OMIM/concept-ls))
 (newline)
 
 
@@ -104,7 +94,7 @@
 (newline)
 (displayln "CONCEPTS FROM:\nA --xref--> CUI gene")
 (newline)
-(pretty-print (extract-name/curie/category-from-concept-ls A-->CUIg/concept-ls '()))
+(pretty-print (extract-name/curie/category-from-concept-ls A-->CUIg/concept-ls))
 (newline)
 
 
