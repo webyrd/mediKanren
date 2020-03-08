@@ -173,7 +173,7 @@
 (pretty-print (extract-name/curie/category-from-concept-ls HGNC-gene-query '()))
          
 
-	       
+#|	       
 (define export-path
   (cdr (assoc "automated_query_export_path" (config))))               
 
@@ -194,7 +194,7 @@
   (if (directory-exists? directory/path)
       (error (format "CHECK FILE, IT MAY EXIST"))
       (make-directory directory/path)))
-
+|#
 
 
 (match-define
