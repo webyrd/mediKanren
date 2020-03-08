@@ -5,7 +5,7 @@
 
 
 
-
+;; just for printing
 (define extract-name/curie/category-from-concept-ls
   (lambda (query-ls els)
     (cond
@@ -23,10 +23,10 @@
             (list db id name) els))])))))
 
 (define genetic_variant-curie-ls
-  (find-concepts #t (list "HGNC:18756")))
+  (list "HGNC:18756"))
 
 (define HGNC-gene-query
-  (find-concepts #t (list genetic_variant-curie-ls)))
+  (find-concepts #t genetic_variant-curie-ls))
 
 
 (newline)
@@ -85,7 +85,7 @@
 (newline)
 
 
-          ;; get NCITg
+;; get NCITg
 (match-define
  (list A-->CUIg=>concepts
        A-->CUIg=>edges)
@@ -100,7 +100,7 @@
   (hash-ref A-->CUIg=>concepts 'A))
 
           
-;;should have NCIT-gene
+;; should have NCIT-gene
 (newline)
 (displayln "CONCEPTS FROM:\nA --xref--> CUI gene")
 (newline)
@@ -118,6 +118,3 @@
   A-->CUIg/concept-ls)
 
 (define subclass_of (find-predicates '("subclass_of")))
-
-
-
