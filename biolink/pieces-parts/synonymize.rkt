@@ -25,6 +25,7 @@
                 (list db id name) els))])))))
     (extract-name/curie/category-from-concept-ls query-ls '())))
 
+
 (define genetic_variant-curie-ls
   (list "HGNC:18756"))
 
