@@ -7,10 +7,23 @@
 
 ;; just for printing
 (define extract-name/curie/category-from-concept-ls
-  (lambda (concept)
-    (list (concept->name concept)
-          (concept->curie concept)
-          (concept->category concept))))
+  (lambda (query-ls)
+    (define extract-name/curie/category-from-concept-ls
+      (lambda (query-ls els)
+        (cond
+          ((null? query-ls) els)
+          ((or (void? (car query-ls))
+               (boolean? (car query-ls)))
+           (extract-name/curie/category-from-concept-ls
+            (cdr query-ls) els))
+          (else 
+           (match (car query-ls)
+             [`(,db ,cui ,id ,name ,category ,properties-list)
+              (extract-name/curie/category-from-concept-ls
+               (cdr query-ls)
+               (cons
+                (list db id name) els))])))))
+    (extract-name/curie/category-from-concept-ls query-ls '())))
 
 (define genetic_variant-curie-ls
   (list "HGNC:18756"))
