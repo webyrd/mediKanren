@@ -121,45 +121,9 @@
 
 (define PUBMED_URL_PREFIX "https://www.ncbi.nlm.nih.gov/pubmed/")
 
-(define export-column-headers
-  (lambda (headers port path)
-    (cond 
-      ((= (file-size path) 0)
-       (cond
-         ((null? headers)
-          (fprintf port "~c" #\newline))
-         (else
-          (fprintf port "~a~c" (car headers) #\tab)
-          (export-column-headers (cdr headers) port path))))
-      (else
-       (void)))))
-
-(define outer-loop
-  (lambda (ls port)
-    (cond
-      ((null? ls)
-       (close-output-port port))
-      (else
-       (inner-loop (car ls) port)
-       (fprintf port (format "~c" #\newline))
-       (outer-loop (cdr ls) port)))))
-
-(define inner-loop
-  (lambda (ls port)
-    (cond
-      ((null? ls) (void))
-      (else
-       (fprintf port "~a~c" (car ls) #\tab)
-       (inner-loop (cdr ls) port)))))
-
 (define equivalent_to (find-predicates (list "equivalent_to")))
 (define xref (find-predicates (list "xref")))
 
-
-
- 
-(define test
-  "test")
 
 (define genetic_variant-curie-ls
   '("HGNC:18756"))
@@ -172,29 +136,6 @@
 (newline)
 (pretty-print (extract-name/curie/category-from-concept-ls HGNC-gene-query '()))
          
-
-#|	       
-(define export-path
-  (cdr (assoc "automated_query_export_path" (config))))               
-
-(define date (seconds->date (current-seconds)))
-
-(define export-date 
-  (format "~a_~a_~a" 
-          (number->string (date-month date))
-          (number->string (date-day date))
-          (number->string (date-year date))))
-
-#|CREATE EXPORT DIRECTORY|#
-(define directory/path
-  (format "~a~a_~a_~a/" export-path export-date test test))
-          
-;;read in existing file, delete it and re-export         
-(define make-export-directory
-  (if (directory-exists? directory/path)
-      (error (format "CHECK FILE, IT MAY EXIST"))
-      (make-directory directory/path)))
-|#
 
 
 (match-define
@@ -603,94 +544,5 @@
 (define A--ALL-->mol-entity-ls/edges
   (hash-ref A-->molecular-entity-concept-ls/complete-->B=>edges '--ALLin-->))
 
-#|
-(displayln "A--ALL-->mol-entity-ls/edges")
-(newline)
-(pretty-print A--ALL-->mol-entity-ls/edges)
-(newline)
-|#
 (define mol-entity-ls--ALL-->B/edges
   (hash-ref A-->molecular-entity-concept-ls/complete-->B=>edges '--ALLout-->))
-#|
-(displayln "mol-entity-ls--ALL-->B/edges")
-(newline)
-(pretty-print mol-entity-ls--ALL-->B/edges)
-(newline)
-|#
-
-(define match-edge-simple/for-export
-  (lambda (edges-ls els record-id)
-    (cond
-      ((null? edges-ls) els)
-      (else 
-       (match (car edges-ls)
-         [`(,db ,edge-cui (,subject-cui ,subject-id ,subject-name (,_ . ,subject-category) ,subject-props-assoc)
-                (,object-cui ,object-id ,object-name (,_ . ,object-category) ,object-props-assoc)
-                (,_ . ,pred) ,pred-props-assoc)
-          (match-edge-simple/for-export
-           (cdr edges-ls)
-           (cons 
-            (substitute
-             (list
-              record-id
-              db
-              subject-name
-              subject-id
-              subject-category
-              pred
-              object-name
-              object-id
-              object-category
-              (length (pubmed-ids-from-edge-props pred-props-assoc))
-              (string-join
-               (map (lambda (pubmed)
-                      (string-append PUBMED_URL_PREFIX (~a pubmed)))
-                    (pubmed-ids-from-edge-props pred-props-assoc)) " ")) '() "NA") els) record-id)])))))
-
-(define TARGET-CONCEPT-->ALLp-->ALLc/export-edges
-  (match-edge-simple/for-export mol-entity-ls--ALL-->B/edges '() test))
-
-(define ALLc-->ALLp-->TARGET-CONCEPT/export-edges
-  (match-edge-simple/for-export A--ALL-->mol-entity-ls/edges '() test))
-
-#|
-(define COLUMN-HEADERS_SUBJECT->PREDICATE->OBJECT
-  '("record_id" "knowledge_graph" "subject_name" "subject_id" "subject_category"
-    "predicate" "target_object_name" "target_object_id" "target_object_category" "number_of_pubmeds"
-    "pubmed_urls"))
-                    
-(define ALLc-->ALLp-->TARGET-CONCEPT/path
-  (format			
-   "~a~a_[ALLc]-->ALLp-->~a.tsv"
-   directory/path test (concept->name (car HGNC-gene-query))))
-
-(define ALLc-->ALLp-->TARGET-CONCEPT/port
-  (open-output-file ALLc-->ALLp-->TARGET-CONCEPT/path #:exists 'can-update))
-
-(export-column-headers
- COLUMN-HEADERS_SUBJECT->PREDICATE->OBJECT
- ALLc-->ALLp-->TARGET-CONCEPT/port
- ALLc-->ALLp-->TARGET-CONCEPT/path)
-
-(outer-loop
- ALLc-->ALLp-->TARGET-CONCEPT/export-edges
- ALLc-->ALLp-->TARGET-CONCEPT/port)
-
-(define TARGET-CONCEPT-->ALLp-->ALLc/path
-  (format			
-   "~a~a_~a-->ALLp-->[ALLc].tsv"
-   directory/path test (car (extract-name/curie/category-from-concept-ls HGNC-gene-query))))
-
-(define TARGET-CONCEPT-->ALLp-->ALLc/port
-  (open-output-file TARGET-CONCEPT-->ALLp-->ALLc/path #:exists 'can-update))
-
-(export-column-headers
- COLUMN-HEADERS_SUBJECT->PREDICATE->OBJECT
- TARGET-CONCEPT-->ALLp-->ALLc/port
- TARGET-CONCEPT-->ALLp-->ALLc/path)
-
-(outer-loop
- TARGET-CONCEPT-->ALLp-->ALLc/export-edges
- TARGET-CONCEPT-->ALLp-->ALLc/port)
- 
-|#
