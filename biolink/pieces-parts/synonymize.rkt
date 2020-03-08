@@ -39,16 +39,16 @@
 (define xref (find-predicates (list "xref")))
 
 (match-define
- (list A-->HGNC-input-->B=>concepts
-       A-->HGNC-input-->B=>edges)
- (time
-  (run/graph
-   ((A #f)
-    (HGNC-input HGNC-gene-query)
-    (B #f))
-   ((--equivalent_to--> '((rtx2 57 . "equivalent_to")))
-    (--xref--> '((rtx2 3 . "xref"))))
-   (A --equivalent_to--> HGNC-input --xref--> B))))
+  (list A-->HGNC-input-->B=>concepts
+        A-->HGNC-input-->B=>edges)
+  (time
+   (run/graph
+    ((A #f)
+     (HGNC-input HGNC-gene-query)
+     (B #f))
+    ((--equivalent_to--> '((rtx2 57 . "equivalent_to")))
+     (--xref--> '((rtx2 3 . "xref"))))
+    (A --equivalent_to--> HGNC-input --xref--> B))))
 
 (define A-->HGNC-input/concepts
   (hash-ref A-->HGNC-input-->B=>concepts 'A))
@@ -87,14 +87,14 @@
 
 ;; get NCITg
 (match-define
- (list A-->CUIg=>concepts
-       A-->CUIg=>edges)
- (time
-  (run/graph
-   ((A #f)
-    (CUIg HGNC-input-->B/concepts))
-   ((--xref--> '((rtx2 3 . "xref"))))
-   (A --xref--> CUIg))))
+  (list A-->CUIg=>concepts
+        A-->CUIg=>edges)
+  (time
+   (run/graph
+    ((A #f)
+     (CUIg HGNC-input-->B/concepts))
+    ((--xref--> '((rtx2 3 . "xref"))))
+    (A --xref--> CUIg))))
 
 (define A-->CUIg/concept-ls
   (hash-ref A-->CUIg=>concepts 'A))
