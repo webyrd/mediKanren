@@ -23,6 +23,13 @@
   concept->category
   concept->props
 
+  edge->dbname
+  edge->eid
+  edge->subject
+  edge->object
+  edge->pred
+  edge->props
+
   ~name*-concepto
   ~cui*-concepto
   ~cui-concepto
@@ -175,6 +182,17 @@ concept = `(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
 (define (concept->name concept) (cadddr concept))
 (define (concept->category concept) (cadddr (cdr concept)))
 (define (concept->props concept) (cadddr (cddr concept)))
+
+#|
+edge = `(,dbname ,eid ,subject-concept ,object-concept (,pid . ,pred-name) ,props)
+|#
+(define (edge->dbname edge) (car edge))
+(define (edge->eid edge) (cadr edge))
+(define (edge->subject edge) (caddr edge))
+(define (edge->object edge) (cadddr edge))
+(define (edge->pred edge) (cadddr (cdr edge)))
+(define (edge->props edge) (cadddr (cddr edge)))
+
 
 (define (~name*-concepto ~name* concept)
   (conde/databases
