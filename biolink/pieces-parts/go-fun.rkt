@@ -1,7 +1,7 @@
 #lang racket
 (provide (all-defined-out)
-         (all-from-out "common.rkt" "mk-db.rkt"))
-(require "common.rkt" "mk-db.rkt")
+         (all-from-out "../common.rkt" "../mk-db.rkt"))
+(require "../common.rkt" "../mk-db.rkt")
 
 
 ;; How can we tell we reached one of the 3 ultimate GO superclasses?
@@ -75,3 +75,8 @@
 (define S5 (keep 1 (find-concepts #t (list "GO:0097200"))))
 (define A5 (get-all-GO-ancestors S5))
 (pretty-print (get-curies/names-from-concepts A5))
+
+;; activation of JUN kinase activity
+(define S6 (keep 1 (find-concepts #t (list "GO:0007257"))))
+(define A6 (get-all-GO-ancestors S6))
+(pretty-print (get-curies/names-from-concepts A6))
