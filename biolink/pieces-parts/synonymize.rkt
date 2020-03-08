@@ -108,21 +108,6 @@
 (pretty-print (extract-name/curie/category-from-concept-ls A-->CUIg/concept-ls '()))
 (newline)
 
-
-
-(define HGNC-NCBIGene-ENSEMBL-CUIg-NCITg/concept-ls
-  (set-union
-   HGNC-NCBIGene-ENSEMBL-CUIg-OMIM/concept-ls
-   A-->CUIg/concept-ls))
-
-(define NCITg-concept-ls
-  A-->CUIg/concept-ls)
-
-
-
-
-
-
 (define HGNC-NCBIGene-ENSEMBL-CUIg-NCITg/concept-ls
   (set-union
    HGNC-NCBIGene-ENSEMBL-CUIg-OMIM/concept-ls
