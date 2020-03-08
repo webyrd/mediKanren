@@ -51,6 +51,8 @@
   pubmed-URLs-from-edge
   pubmed-count
 
+  PUBMED_URL_PREFIX
+
   publications-info-alist-from-edge
   publications-info-alist-from-edge-props
 

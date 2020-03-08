@@ -90,8 +90,6 @@
                          els curie kg)))])))))
 
 
-(define PUBMED_URL_PREFIX "https://www.ncbi.nlm.nih.gov/pubmed/")
-
 (define equivalent_to (find-predicates (list "equivalent_to")))
 (define xref (find-predicates (list "xref")))
 
@@ -106,20 +104,17 @@
 (displayln (format "CONCEPTS FOUND RETURNED FROM INITIAL INPUT CURIE: ~a" HGNC-gene-query))
 (newline)
 (pretty-print (extract-name/curie/category-from-concept-ls HGNC-gene-query '()))
-         
-
 
 (match-define
- (list A-->HGNC-input-->B=>concepts
-       A-->HGNC-input-->B=>edges)
- (time
+  (list A-->HGNC-input-->B=>concepts
+        A-->HGNC-input-->B=>edges)
   (run/graph
-   ((A #f)
-    (HGNC-input HGNC-gene-query)
-    (B #f))
-   ((--equivalent_to--> '((rtx2 57 . "equivalent_to")))
-    (--xref--> '((rtx2 3 . "xref"))))
-   (A --equivalent_to--> HGNC-input --xref--> B))))
+    ((A #f)
+     (HGNC-input HGNC-gene-query)
+     (B #f))
+    ((--equivalent_to--> '((rtx2 57 . "equivalent_to")))
+     (--xref--> '((rtx2 3 . "xref"))))
+    (A --equivalent_to--> HGNC-input --xref--> B)))
 
 (define A-->HGNC-input/concepts
   (hash-ref A-->HGNC-input-->B=>concepts 'A))
@@ -158,14 +153,13 @@
 
 ;; get NCITg (if it exists), OMIM, and redundant HGNC
 (match-define
- (list A-->CUIg=>concepts
-       A-->CUIg=>edges)
- (time
+  (list A-->CUIg=>concepts
+        A-->CUIg=>edges)
   (run/graph
-   ((A #f)
-    (CUIg HGNC-input-->B/concepts))
-   ((--xref--> '((rtx2 3 . "xref"))))
-   (A --xref--> CUIg))))
+    ((A #f)
+     (CUIg HGNC-input-->B/concepts))
+    ((--xref--> '((rtx2 3 . "xref"))))
+    (A --xref--> CUIg)))
 
 (define A-->CUIg/concept-ls
   (hash-ref A-->CUIg=>concepts 'A))
@@ -194,12 +188,11 @@
 (match-define
   (list A-->NCITg=>concepts
         A-->NCITg=>edges)
-  (time
-   (run/graph
+  (run/graph
     ((A #f)
      (NCITg A-->CUIg/concept-ls))
     ((--subclass_of--> '((rtx2 15 . "subclass_of"))))
-    (A --subclass_of--> NCITg))))
+    (A --subclass_of--> NCITg)))
 
 (define A-->NCITg/concept-ls
   (hash-ref A-->NCITg=>concepts 'A))
@@ -229,12 +222,11 @@
 (match-define
   (list NCITwt-->A=>concepts
         NCITwt-->A=>edges)
-  (time
-   (run/graph
+  (run/graph
     ((A #f)
      (NCITwt A-->NCITg/concept-ls))
     ((--xref--> '((rtx2 3 . "xref"))))
-    (NCITwt --xref--> A))))
+    (NCITwt --xref--> A)))
 
 (define NCITwt-->A/concept-ls
   (hash-ref NCITwt-->A=>concepts 'A))
@@ -278,13 +270,12 @@
 (match-define
   (list NCBI-input-->Y=>concepts
         NCBI-input-->Y=>edges)
-  (time
-   (run/graph
+  (run/graph
     ((Y #f)
      (NCBIg (list NCBIGene-concept/rtx2)))
     ((--encodes--> '((rtx2 775 . "encodes"))))
     (NCBIg --encodes--> Y)
-    )))
+    ))
 
 
 ;; returns a redundant CUI for gene as well as desired CUI for protein
@@ -304,12 +295,11 @@
 (match-define
   (list A-->NCBI-input=>concepts
         A-->NCBI-input=>edges)
-  (time
-   (run/graph
+  (run/graph
     ((A #f)
      (NCBIg (list NCBIGene-concept/rtx2))) 
     ((--xref--> '((rtx2 3 . "xref"))))
-    (A --xref--> NCBIg))))
+    (A --xref--> NCBIg)))
 
 (define A-->NCBIGene/concepts 
   (hash-ref A-->NCBI-input=>concepts 'A))
@@ -346,12 +336,11 @@
 (match-define
   (list A-->CUIp-input=>concepts
         A-->CUIp-input=>edges)
-  (time
-   (run/graph
+  (run/graph
     ((A #f)
      (CUIp A-->NCBIGene/concepts))
     ((--xref--> '((rtx2 3 . "xref"))))
-    (A --xref--> CUIp))))
+    (A --xref--> CUIp)))
 
 ;; should have MESH protein id
 (define A-->CUIp-input/concepts
@@ -496,14 +485,13 @@
 (match-define
   (list A-->molecular-entity-concept-ls/complete-->B=>concepts
         A-->molecular-entity-concept-ls/complete-->B=>edges)
-  (time
-   (run/graph
+  (run/graph
     ((A #f)
      (mol-entity-ls molecular-entity-concept-ls/complete)
      (B #f))
     ((--ALLin--> #f)
      (--ALLout--> #f))
-    (A --ALLin--> mol-entity-ls --ALLout--> B))))
+    (A --ALLin--> mol-entity-ls --ALLout--> B)))
 
 
 (define A-->mol-entity-ls/concepts
