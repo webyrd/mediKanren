@@ -28,7 +28,7 @@
              (printf "cid: ~s\n" cid))
            (let ((s
                   (let ((curie (vector-ref data 0)))
-                    (if (string-prefix? curie "HGNC:")
+                    (if (regexp-match #px"^HGNC:[0-9]*$" curie)
                         (set-add s curie)
                         s))))
              (loop (add1 cid) (read ip) s))])))))
@@ -46,7 +46,13 @@
   (get-hgncs-for-concept-file-path "data/rtx2/concepts.scm"))
 
 (define all-hgns
-  (set-union robokop-hgncs
-             rtx2-hgncs))
+  (sort (set->list (set-union robokop-hgncs
+                              rtx2-hgncs))
+        (lambda (str1 str2)
+          (let ((hgnc-curie->n (lambda (str)
+                                 (string->number (cadr (regexp-match #px"^HGNC:([0-9]*)$" str))))))
+            (let ((n1 (hgnc-curie->n str1))
+                  (n2 (hgnc-curie->n str2)))
+              (< n1 n2))))))
 
-(save-hgncs-to-file! all-hgns "./all-hgnc-curies.rkt")
+(save-hgncs-to-file! all-hgns "./all-hgnc-curies.scm")
