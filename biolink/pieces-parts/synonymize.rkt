@@ -463,24 +463,22 @@
 
 
     (define HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-ls
-      (map string-downcase
-           (map (lambda (x) (string-append (car molecular-entity/curie-ls/HGNC-ONLY) x))
-                animal-model/bacteria/plant-gene/protein-suffix-ls)))
+      (let ((hgnc-id-str (car molecular-entity/curie-ls/HGNC-ONLY)))
+        (map string-downcase
+             (map (lambda (x) (string-append hgnc-id-str x))
+                  animal-model/bacteria/plant-gene/protein-suffix-ls))))
 
     (define HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-concept-ls
       (remove-duplicates
-       (apply
-        append
-        (map
-         (lambda (x) (find-concepts #f (list x)))
-         HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-ls))))
+       (apply append
+              (map (lambda (x) (find-concepts #f (list x)))
+                   HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-ls))))
 
     (define filtered-HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-concept-ls
-      (filter
-       (lambda (c)
-         (member (string-downcase (concept->name c))
-                 HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-ls))
-       HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-concept-ls)) 
+      (filter (lambda (c)
+                (member (string-downcase (concept->name c))
+                        HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-ls))
+              HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-concept-ls)) 
 
     (define animal-genes/proteins-concept-ls filtered-HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-concept-ls)
 
