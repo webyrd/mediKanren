@@ -1,5 +1,5 @@
 #lang racket
-(provide (all-defined-out)
+(provide HGNC-CURIE->synonymized-concepts
          (all-from-out "../common.rkt" "../mk-db.rkt"))
 (require "../common.rkt" "../mk-db.rkt")
 
