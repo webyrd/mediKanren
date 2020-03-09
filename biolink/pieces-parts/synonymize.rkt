@@ -32,8 +32,12 @@
         " (S pombe)"
         " (Xenopus)"))
 
-(define equivalent_to (find-predicates (list "equivalent_to")))
-(define xref (find-predicates (list "xref")))
+;; TODO -- generalize to handle predicates better (really this is more
+;; of a KG standardization issue)
+;;
+;; (define equivalent_to (find-predicates (list "equivalent_to")))
+;; (define xref (find-predicates (list "xref")))
+;; (define subclass_of (find-predicates '("subclass_of")))
 
 (define extract-name/curie/category-from-concept-ls
   (lambda (query-ls els)
@@ -214,7 +218,7 @@
     (define NCITg-concept-ls
       A-->CUIg/concept-ls)
 
-    (define subclass_of (find-predicates '("subclass_of")))
+    
 
     ;;get NCIT wt Allele
     (match-define
