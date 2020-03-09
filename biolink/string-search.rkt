@@ -181,7 +181,7 @@
                     (else (remove/x (car xs) (cdr xs)))))))
   (if (null? xs) '() (remove/x (car xs) (cdr xs))))
 
-(define (dedup/< ns) (remove-adjacent-duplicates (time (sort ns <))))
+(define (dedup/< ns) (remove-adjacent-duplicates (sort ns <)))
 
 (define (suffix:corpus-find* corpus index str*)
   (define (rz r) (- (cdr r) (car r)))
