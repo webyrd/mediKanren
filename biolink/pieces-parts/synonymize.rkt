@@ -127,11 +127,13 @@
   (lambda (hgnc-curie-ls)
     (define HGNC-gene-query (find-concepts #t hgnc-curie-ls))
 
+    #|
     (newline)
     (displayln (format "CONCEPTS FOUND RETURNED FROM INITIAL INPUT CURIE: ~a" HGNC-gene-query))
     (newline)
     (pretty-print (extract-name/curie/category-from-concept-ls HGNC-gene-query '()))
-
+    |#
+    
     (match-define
       (list A-->HGNC-input-->B=>concepts
             A-->HGNC-input-->B=>edges)
@@ -149,7 +151,7 @@
     (define HGNC-input-->B/concepts
       (hash-ref A-->HGNC-input-->B=>concepts 'B))
 
-
+    #|
     (newline)
     (displayln "CONCEPTS FROM:\nA --equivalent_to--> HGNC-input")
     (newline)
@@ -161,7 +163,7 @@
     (newline)
     (pretty-print (extract-name/curie/category-from-concept-ls HGNC-input-->B/concepts '()))
     (newline)
-
+    |#
 
     (define HGNC-NCBIGene-ENSEMBL-CUIg-OMIM/concept-ls
       (set-union
@@ -171,12 +173,13 @@
         HGNC-input-->B/concepts)))
 
 
+    #|
     (newline)
     (displayln "CONCEPTS FROM:\nA --equivalent_to--> HGNC-input --xref--> B")
     (newline)
     (pretty-print (extract-name/curie/category-from-concept-ls HGNC-NCBIGene-ENSEMBL-CUIg-OMIM/concept-ls '()))
     (newline)
-
+    |#
 
     ;; get NCITg (if it exists), OMIM, and redundant HGNC
     (match-define
@@ -193,12 +196,14 @@
 
 
     ;; NCITg (if it exists), OMIM, and redundant HGNC
+    #|
     (newline)
     (displayln "CONCEPTS FROM:\nA --xref--> CUI gene")
     (newline)
     (pretty-print (extract-name/curie/category-from-concept-ls A-->CUIg/concept-ls '()))
     (newline)
-
+    |#
+    
     (define HGNC-NCBIGene-ENSEMBL-CUIg-NCITg/concept-ls
       (set-union
        HGNC-NCBIGene-ENSEMBL-CUIg-OMIM/concept-ls
@@ -225,24 +230,26 @@
       (hash-ref A-->NCITg=>concepts 'A))
 
 
-    ;;should have NCIT wt Allele 
+    ;;should have NCIT wt Allele
+    #|
     (newline)
     (displayln "CONCEPTS FROM:\nA --subclass_of--> NCIT gene:")
     (newline)
     (pretty-print (extract-name/curie/category-from-concept-ls A-->NCITg/concept-ls '()))
     (newline)
-
+    |#
 
     (define HGNC-NCBIGene-ENSEMBL-CUIg-NCITg-NCITwt/concept-ls
       (set-union
        A-->NCITg/concept-ls
        HGNC-NCBIGene-ENSEMBL-CUIg-NCITg/concept-ls))
 
-
+    #|
     (newline)
     (displayln "CONCEPTS FROM:\nA --equivalent_to--> HGNC-input --xref--> B\nA --xref--> CUI gene\nA --subclass_of--> NCIT gene\n")
     (pretty-print (extract-name/curie/category-from-concept-ls HGNC-NCBIGene-ENSEMBL-CUIg-NCITg-NCITwt/concept-ls '()))
     (newline)
+    |#
 
 
 
@@ -260,11 +267,12 @@
 
 
     ;; should have CUI wt Allele
+    #|
     (newline)
     (displayln "CONCEPTS FROM:\nNCIT wt Allele --xref--> A")
     (pretty-print (extract-name/curie/category-from-concept-ls NCITwt-->A/concept-ls '()))
     (newline)
-
+    |#
 
     (define HGNC-NCBIGene-ENSEMBL-CUIg-NCITg-NCITwt-CUIwt/concept-ls
       (set-union
@@ -272,25 +280,26 @@
        HGNC-NCBIGene-ENSEMBL-CUIg-NCITg-NCITwt/concept-ls))
 
 
-
+    #|
     (newline)
     (displayln "CONCEPTS FROM:\nA --equivalent_to--> HGNC-input --xref--> B\nA --xref--> CUI gene\nA --subclass_of--> NCIT gene\nNCIT wt Allele --xref--> A\n" )
     (newline)
     (pretty-print (extract-name/curie/category-from-concept-ls HGNC-NCBIGene-ENSEMBL-CUIg-NCITg-NCITwt-CUIwt/concept-ls '()))
     (newline)
-
+    |#
 
     (define NCBIGene-concept/rtx2
       (extract-concept-from-concept-ls
        HGNC-NCBIGene-ENSEMBL-CUIg-NCITg-NCITwt-CUIwt/concept-ls '() "NCBIGene:" 'rtx2))
 
 
+    #|
     (newline)
     (displayln "NCBIGene-concept/rtx2:")
     (newline)
     (pretty-print NCBIGene-concept/rtx2)
     (newline)
-
+    |#
 
     (define encodes (find-predicates (list "encodes")))
 
@@ -310,14 +319,13 @@
     (define NCBI-input-->Y/concepts
       (hash-ref NCBI-input-->Y=>concepts 'Y))
 
-
+    #|
     (newline)
     (displayln "CONCEPTS FROM:\nNCBIGene --encodes--> B")
     (newline)
     (pretty-print (extract-name/curie/category-from-concept-ls NCBI-input-->Y/concepts '()))
     (newline)
-
-
+    |#
 
     (match-define
       (list A-->NCBI-input=>concepts
@@ -331,12 +339,13 @@
     (define A-->NCBIGene/concepts 
       (hash-ref A-->NCBI-input=>concepts 'A))
 
+    #|
     (newline)
     (displayln "CONCEPTS FROM:\nA --xref--> NCBIGene")
     (newline)
     (pretty-print (extract-name/curie/category-from-concept-ls A-->NCBIGene/concepts '()))
     (newline)
-
+    |#
 
     (define NCBIGene-concept/orange 
       (find-concepts
@@ -353,12 +362,13 @@
                              HGNC-NCBIGene-ENSEMBL-CUIg-NCITg-NCITwt-CUIwt/concept-ls))))
 
 
+    #|
     (newline)
     (displayln "CONCEPTS FROM:\nA --equivalent_to--> HGNC-input --xref--> B\nA --xref--> CUI gene\nA --subclass_of--> NCIT gene\nNCIT wt Allele --xref--> A\nA --xref--> NCBIGene\nNCBIGene --encodes--> B\n" )
     (newline)
     (pretty-print (extract-name/curie/category-from-concept-ls HGNC-NCBIGene-ENSEMBL-CUIg-NCITg-NCITwt-CUIwt-CUIp-UniProtKB/concept-ls '()))
     (newline)
-
+    |#
 
     (match-define
       (list A-->CUIp-input=>concepts
@@ -373,13 +383,14 @@
     (define A-->CUIp-input/concepts
       (hash-ref A-->CUIp-input=>concepts 'A))
 
-
+    
+    #|
     (newline)
     (displayln "CONCEPTS FROM:\nA --xref--> CUI protein")
     (newline)
     (pretty-print (extract-name/curie/category-from-concept-ls A-->CUIp-input/concepts '()))
     (newline)
-
+    |#
 
     (define HGNC-NCBIGene-ENSEMBL-CUIg-NCITg-NCITwt-CUIwt-CUIp-UniProtKB-MESHp/concept-ls
       (set-union
@@ -387,12 +398,14 @@
        HGNC-NCBIGene-ENSEMBL-CUIg-NCITg-NCITwt-CUIwt-CUIp-UniProtKB/concept-ls))
 
 
+    #|
     (newline)
     (displayln "CONCEPTS FROM:\nA --equivalent_to--> HGNC-input --xref--> B\nA --xref--> CUI gene\nA --subclass_of--> NCIT gene\nNCIT wt Allele --xref--> A\nA --xref--> NCBIGene\nNCBIGene --encodes--> B\nA --xref--> CUI protein\n")
     (newline)
     (pretty-print (extract-name/curie/category-from-concept-ls HGNC-NCBIGene-ENSEMBL-CUIg-NCITg-NCITwt-CUIwt-CUIp-UniProtKB-MESHp/concept-ls '()))
     (newline)
-
+    |#
+    
 
     (define molecular-entity/concept-ls/sans-UMLS
       HGNC-NCBIGene-ENSEMBL-CUIg-NCITg-NCITwt-CUIwt-CUIp-UniProtKB-MESHp/concept-ls) 
@@ -450,12 +463,13 @@
                             molecular-entity/concept-ls/UMLS-ONLY)))
 
     (define human-gene/protein-concept-ls molecular-entity-concept-ls/complete)
-    
+
+    #|
     (newline)
     (displayln "CONCEPT BUILDING FOR HGNC QUERY COMPLETE:\n")
     (pretty-print (extract-name/curie/category-from-concept-ls human-gene/protein-concept-ls '()))
     (newline)
-
+    |#
 
 
     (define HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-ls
@@ -481,12 +495,14 @@
        HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-concept-ls)) 
 
     (define animal-genes/proteins-concept-ls filtered-HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-concept-ls)
-    
+
+    #|
     (newline)
     (displayln "CONCEPT BUILDING FOR ANIMAL MODEL QUERY COMPLETE:\n")
     (pretty-print (extract-name/curie/category-from-concept-ls animal-genes/proteins-concept-ls '()))
     (newline)
-
+    |#
+    
     (define all-genes/proteins (set-union human-gene/protein-concept-ls
                                           animal-genes/proteins-concept-ls))
     
