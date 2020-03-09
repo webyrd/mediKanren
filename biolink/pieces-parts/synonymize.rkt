@@ -419,7 +419,8 @@
       (map (lambda (ls)
              (string-replace
               (car (list ls))
-              "CUI:" "UMLS:")) molecular-entity/curie-ls/CUI-ONLY))
+              "CUI:" "UMLS:"))
+           molecular-entity/curie-ls/CUI-ONLY))
 
     (define molecular-entity/concept-ls/UMLS-ONLY
       (find-concepts #t molecular-entity/curie-ls/UMLS-ONLY))
@@ -427,28 +428,17 @@
     (define molecular-entity/curie-ls/HGNC-ONLY
       (extract-name-from-concept-ls molecular-entity/concept-ls/sans-UMLS '() "HGNC:" 'robokop))
 
-
-
-    (define map-it
-      (lambda (f ls)
-        (cond
-          ((null? ls) '())
-          (else
-           (cons (f (car ls))
-                 (map-it f (cdr ls)))))))
-
     ;; string append HGNC symbol to list of human suffixes
     (define HGNC-string-with-human-gene/protein-suffix-ls
       (map (lambda (x) (string-append (car molecular-entity/curie-ls/HGNC-ONLY) x)) human-gene/protein-suffix-ls))
-
 
     ;; use this to filter find-concepts 
     (define HGNC-string-with-human-gene/protein-suffix-concept-ls
       (remove-duplicates
        (apply append
               (map
-               (lambda (x) (find-concepts #f (list x)))
-               HGNC-string-with-human-gene/protein-suffix-ls))))
+                (lambda (x) (find-concepts #f (list x)))
+                HGNC-string-with-human-gene/protein-suffix-ls))))
 
     (define filtered-HGNC-string-with-human-gene/protein-suffix-concept-ls
       (filter (lambda (c)
@@ -473,11 +463,9 @@
 
 
     (define HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-ls
-      (map
-       string-downcase
-       (map
-        (lambda (x) (string-append (car molecular-entity/curie-ls/HGNC-ONLY) x))
-        animal-model/bacteria/plant-gene/protein-suffix-ls)))
+      (map string-downcase
+           (map (lambda (x) (string-append (car molecular-entity/curie-ls/HGNC-ONLY) x))
+                animal-model/bacteria/plant-gene/protein-suffix-ls)))
 
     (define HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-concept-ls
       (remove-duplicates
