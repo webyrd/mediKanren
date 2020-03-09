@@ -505,7 +505,7 @@
      human-gene/protein-concept-ls
 
      'animal-genes/proteins
-     filtered-HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-concept-ls
+     animal-genes/proteins-concept-ls
      )
     ))
 
