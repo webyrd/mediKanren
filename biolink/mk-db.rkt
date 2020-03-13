@@ -17,6 +17,7 @@
   db:~predicateo
   db:~categoryo
   db:~name*-concepto/options
+  db:synonym-concepto
   db:xref-concepto
 
   chars:ignore-typical
@@ -74,6 +75,26 @@
   (project (~category)
     (stream-refo (db:~category->catid&category* db ~category) category)))
 
+(define (db:synonym-concepto db synonym concept)
+  (project (synonym concept)
+    (match concept
+      (`(,(and cid (? integer?)) . ,_)
+        (fresh ()
+          (db:concepto db concept)
+          (let loop ((synonym* (concept->synonyms (db:cid->concept db cid))))
+            (if (null? synonym*) fail
+              (conde ((== (car synonym*) synonym))
+                     ((loop (cdr synonym*))))))))
+      (_ (cond ((not (var? synonym))
+                (let loop ((cid* (db:synonym->cid* db synonym)))
+                  (if (null? cid*) fail
+                    (let ((c (vconcept->details
+                               db (db:cid->concept db (car cid*)))))
+                      (conde ((== (cons (car cid*) c) concept))
+                             ((loop (cdr cid*))))))))
+               (else (fresh ()
+                       (db:concepto db concept)
+                       (db:synonym-concepto db synonym concept))))))))
 (define (db:xref-concepto db xref concept)
   (project (xref concept)
     (match concept

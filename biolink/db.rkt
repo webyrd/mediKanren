@@ -18,6 +18,7 @@
   db:object->edge-stream
   db:pmid->eid*
   db:pmid&eid*-stream
+  db:synonym->cid*
   db:xref->cid*
 
   db:~category->catid&category*
@@ -42,6 +43,8 @@
   racket/vector)
 
 (define fnin-concepts             "concepts.scm")
+(define fnin-synonyms             "synonyms.scm")
+(define fnin-concepts-by-synonym  "concepts-by-synonym.scm")
 (define fnin-xrefs                "xrefs.scm")
 (define fnin-concepts-by-xref     "concepts-by-xref.scm")
 (define fnin-concept-cui-corpus   "concept-cui-corpus.scm")
@@ -83,13 +86,18 @@
         (if (file-exists? "/dev/null")
             (open-input-file "/dev/null")
             (open-input-file "nul"))))
+  (define in-concepts            (open-db-path fnin-concepts))
   (define in-concepts-by-category (open-db-path fnin-concepts-by-category))
   (define in-offset-concepts-by-category
     (open-db-path (fname-offset fnin-concepts-by-category)))
+  (define in-concepts-by-synonym (open-db-path fnin-concepts-by-synonym))
+  (define in-offset-concepts-by-synonym
+    (open-db-path (fname-offset fnin-concepts-by-synonym)))
+  (define in-synonyms            (open-db-path fnin-synonyms))
+  (define in-offset-synonyms     (open-db-path (fname-offset fnin-synonyms)))
   (define in-concepts-by-xref (open-db-path fnin-concepts-by-xref))
   (define in-offset-concepts-by-xref
     (open-db-path (fname-offset fnin-concepts-by-xref)))
-  (define in-concepts            (open-db-path fnin-concepts))
   (define in-xrefs               (open-db-path fnin-xrefs))
   (define in-offset-xrefs        (open-db-path (fname-offset fnin-xrefs)))
   (define in-concept-cui-corpus  (open-db-path fnin-concept-cui-corpus))
@@ -136,6 +144,14 @@
   (close-input-port in-concepts-by-category)
   (close-input-port in-offset-concepts-by-category)
 
+  (define (synonym->cid* synonym)
+    (define id (detail-find-index in-synonyms in-offset-synonyms
+                                  (lambda (key)
+                                    (cond ((string<? key synonym) -1)
+                                          ((string=? key synonym)  0)
+                                          (else                    1)))))
+    (if id (detail-ref in-concepts-by-synonym in-offset-concepts-by-synonym id)
+      '()))
   (define (xref->cid* xref)
     (define xid (detail-find-index in-xrefs in-offset-xrefs
                                    (lambda (key)
@@ -179,7 +195,7 @@
           cid&concept-stream eid&edge/props-stream
           subject->edge-stream object->edge-stream
           pmid->eid* pmid&eid*-stream subject->pids object->pids
-          xref->cid*))
+          synonym->cid* xref->cid*))
 
 (define (db:category*             db)        (vector-ref db 0))
 (define (db:predicate*            db)        (vector-ref db 1))
@@ -198,7 +214,8 @@
 (define (db:pmid&eid*-stream      db)        ((vector-ref db 12)))
 (define (db:subject->pids         db . args) (apply (vector-ref db 13) args))
 (define (db:object->pids          db . args) (apply (vector-ref db 14) args))
-(define (db:xref->cid*            db . args) (apply (vector-ref db 15) args))
+(define (db:synonym->cid*         db . args) (apply (vector-ref db 15) args))
+(define (db:xref->cid*            db . args) (apply (vector-ref db 16) args))
 
 (define (db:catid->category db catid) (vector-ref (db:category* db) catid))
 (define (db:pid->predicate db pid)    (vector-ref (db:predicate* db) pid))

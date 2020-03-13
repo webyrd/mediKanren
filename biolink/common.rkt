@@ -35,6 +35,7 @@
   ~cui-concepto
   ~categoryo
   ~predicateo
+  synonym-concepto
   xref-concepto
   category-concepto
   concepto
@@ -216,6 +217,11 @@ edge = `(,dbname ,eid ,subject-concept ,object-concept (,pid . ,pred-name) ,prop
     (lambda (dbname db)
       (fresh (c) (== `(,dbname . ,c) concept)
         (db:~cui-concepto db ~cui c)))))
+(define (synonym-concepto synonym concept)
+  (conde/databases
+    (lambda (dbname db)
+      (fresh (c) (== `(,dbname . ,c) concept)
+        (db:synonym-concepto db synonym c)))))
 (define (xref-concepto xref concept)
   (conde/databases
     (lambda (dbname db)
