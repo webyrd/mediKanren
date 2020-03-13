@@ -125,6 +125,36 @@ neo4j stop
   * some notion of novelty: how interesting is this result?
 
 
+### Graph queries
+
+* Given a query graph
+  * set of nodes
+    * known concepts with CURIEs
+    * unknown concepts, possibly with known category/type
+  * set of edges with known predicate/relation/type
+* Produce a result graph
+  * this is the query graph augmented with instantiations and their metadata
+  * unknown query nodes are bound to (possibly multiple) concepts with CURIEs
+    * contain other information? confidence (the right concept)? relevance?
+  * query edges are bound to (possibly multiple) result edges linking concepts
+    * subject, object
+    * type
+    * negated
+    * `provided_by`
+    * `has_evidence`
+    * publications
+    * confidence (how likely a result is to be true)
+    * relevance (how important a result would be if true; not a biolink property)
+
+* Strategy for producing result graph
+  * synonymization, within and across knowledge graphs
+    * high confidence: `equivalent_to`
+    * low confidence: `xref`
+  * kg-specific base confidence in edges
+  * improving confidence when possible to double-check
+  * determine relevance (e.g., drug is safe (approved or passed phase 1 trial))
+
+
 ### UI
 
 * concept distance for (potentially cross-KG) synonyms (similar to ISA checkbox)
@@ -137,19 +167,13 @@ neo4j stop
 
 ### Greg will do these
 
+* KG patching: add and retract edges
+
 * implement dbKanren
+  * reduce corpus load time
+    * reprocess corpus data using a flat binary format of length-encoded strings
 
-* reduce corpus load time
-  * reprocess corpus data using a flat binary format of length-encoded strings
-
-* general data (tuple/vector) stream processing
-  * binary serialization format for faster replay
-    * element-level headers for varying types and sizes
-    * column-level headers for uniform types and sizes
-      * can also support partial colum (runs of a certain length) uniformity
-
-* first-class prefixes, suffixes, and slices (of strings or vectors)
-
+* index edges by predicate
 * index gene aliasing data
 
 * consolidate db generation with one script
@@ -162,15 +186,11 @@ neo4j stop
   * move library and data processing code to a new subdirectory
   * move tests and examples into their own subdirectories
 
-* index edges by predicate
-
 * web interface
   * webserver endpoints for lookup of:
     * concepts/predicates (by name or CUI)
     * Xs (by chosen concepts and predicates)
   * web client corresponding to GUI
-
-* try automatic goal reordering based on cardinality statistics
 
 
 ### bottom-up explorer and graph builder ideas
