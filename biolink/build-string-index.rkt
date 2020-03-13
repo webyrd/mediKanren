@@ -27,12 +27,18 @@
 
 (define (fname-offset fname) (string-append fname ".offset"))
 (define fnin-concepts             "concepts.scm")
+(define fnout-synonyms            "synonyms.scm")
 (define fnout-xrefs               "xrefs.scm")
+(define fnout-concept-synonym     "concepts-by-synonym.scm")
 (define fnout-concept-xref        "concepts-by-xref.scm")
 (define fnout-concept-cui-corpus  "concept-cui-corpus.scm")
 (define fnout-concept-cui-index   "concept-cui-index.bytes")
 (define fnout-concept-name-corpus "concept-name-corpus.scm")
 (define fnout-concept-name-index  "concept-name-index.bytes")
+(assert-file-absent! fnout-synonyms)
+(assert-file-absent! (fname-offset fnout-synonyms))
+(assert-file-absent! fnout-concept-synonym)
+(assert-file-absent! (fname-offset fnout-concept-synonym))
 (assert-file-absent! fnout-xrefs)
 (assert-file-absent! (fname-offset fnout-xrefs))
 (assert-file-absent! fnout-concept-xref)
@@ -51,6 +57,46 @@
               (stream->list
                 (stream-map cdr (port->stream-offset&values in-concepts))))))))
 (printf "loaded ~a concepts\n" (vector-length concept*))
+
+(let ()
+  (printf "gathering concept synonyms...\n")
+  (define synonym=>concepts
+    (time (let loop ((i 0) (synonym=>concepts (hash)))
+            (cond ((< i (vector-length concept*))
+                   (loop (+ 1 i)
+                         (foldl (lambda (synonym c=>cs)
+                                  (hash-update c=>cs synonym
+                                               (lambda (cs) (cons i cs)) '()))
+                                synonym=>concepts
+                                (concept->synonyms (vector-ref concept* i)))))
+                  (else synonym=>concepts)))))
+  (printf "building synonym vector...\n")
+  (define synonyms (time (for/vector ((key (in-hash-keys synonym=>concepts)))
+                                     key)))
+  (printf "found ~a synonyms\n" (vector-length synonyms))
+  (printf "sorting synonyms...\n")
+  (time (vector-sort! synonyms string<?))
+  (output/filename
+    fnout-synonyms
+    (lambda (out-synonyms)
+      (output/filename
+        (fname-offset fnout-synonyms)
+        (lambda (out-offsets-synonyms)
+          (for ((synonym synonyms))
+               (detail-write out-synonyms out-offsets-synonyms synonym))))))
+  (printf "mapping synonyms to concepts...\n")
+  (output/filename
+    fnout-concept-synonym
+    (lambda (out-concept-synonym)
+      (output/filename
+        (fname-offset fnout-concept-synonym)
+        (lambda (out-offsets-concept-synonym)
+          (for ((synonym synonyms))
+               (detail-write
+                 out-concept-synonym out-offsets-concept-synonym
+                 (sort (set->list (list->set (hash-ref synonym=>concepts
+                                                       synonym)))
+                       <))))))))
 
 (let ()
   (printf "gathering concept cross-references...\n")

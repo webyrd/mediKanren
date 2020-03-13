@@ -4,6 +4,7 @@
   concept-category
   concept-name
   concept-props
+  concept->synonyms
   concept->xrefs
 
   edge/props-subject
@@ -50,6 +51,19 @@
 (define (concept-category c) (vector-ref c 1))
 (define (concept-name c)     (vector-ref c 2))
 (define (concept-props c)    (vector-ref c 3))
+(define (concept->synonyms c)
+  (define props (concept-props c))
+  (define (dedup xs)
+    (cdr (reverse (foldl (lambda (part acc) (if (equal? part (car acc)) acc
+                                              (cons part acc)))
+                         '(#t) xs))))
+  (append* (map (lambda (key)
+                  (define rib (assoc key props))
+                  (if rib (map (lambda (curie)
+                                 (string-join (dedup (string-split curie ":"))
+                                              ":"))
+                               (call-with-input-string (cdr rib) read)) '()))
+                '("same_as" "equivalent_identifiers"))))
 (define (concept->xrefs c)
   (define props (concept-props c))
   (define (dedup xs)
@@ -62,7 +76,7 @@
                                  (string-join (dedup (string-split curie ":"))
                                               ":"))
                                (call-with-input-string (cdr rib) read)) '()))
-                '("xrefs" "same_as" "equivalent_identifiers"))))
+                '("xrefs"))))
 
 ;; This is the edge representation for edges.scm, not for edges-by-X.detail.
 (define (edge/props-subject e) (vector-ref e 0))
