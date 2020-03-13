@@ -1,3 +1,9 @@
+#lang racket
+(provide (all-defined-out)
+         (all-from-out "pieces-parts/synonymize.rkt"))
+(require "pieces-parts/synonymize.rkt")
+
+
 ;; rtx2 contains a bunch of weird entries of the form:
 ;;
 ;; "HGNC:24039/HGNC:<some number>"
@@ -6,11 +12,7 @@
 ;; "HGNC:24039/HGNC:2602"
 ;; "HGNC:24039/HGNC:470"
 ;;
-;; These are presumably errors.
-;;
-;; TODO:  update the code to ensure these bogus CURIEs aren't added
-;;
-;; TODO:  update the code to ensure CURIEs are written in increasing numeric order
+;; These are presumably errors.  We filter these out.
 
 (define get-hgncs-for-concept-file-path
   (lambda (concept-file-path)
@@ -39,13 +41,16 @@
   (close-output-port op))
 
 
+(printf "processing robokop-hgncs\n")
 (define robokop-hgncs
   (get-hgncs-for-concept-file-path "data/robokop/concepts.scm"))
 
+(printf "processing rtx2-hgncs\n")
 (define rtx2-hgncs
   (get-hgncs-for-concept-file-path "data/rtx2/concepts.scm"))
 
-(define all-hgns
+(printf "sorting all hgncs\n")
+(define all-hgncs
   (sort (set->list (set-union robokop-hgncs
                               rtx2-hgncs))
         (lambda (str1 str2)
@@ -55,4 +60,33 @@
                   (n2 (hgnc-curie->n str2)))
               (< n1 n2))))))
 
-(save-hgncs-to-file! all-hgns "./all-hgnc-curies.scm")
+; (printf "saving all hgncs\n")
+; (save-hgncs-to-file! all-hgncs "./all-hgnc-curies.scm")
+
+(printf "synonymizing hgncs\n")
+(define synonymized-hashes
+  (map
+    (lambda (curie)
+      (printf "*** HGNC curie: ~s\n" curie)
+      (HGNC-CURIE->synonymized-concepts curie))
+    all-hgncs))
+
+;; > (begin (HGNC-CURIE->synonymized-concepts '("HGNC:8")) 2)
+;; car: contract violation
+;;   expected: pair?
+;;   given: '()
+;; [,bt for context]
+
+(define ht (make-hash))
+
+(for-each
+  (lambda (h)
+    (let ((all-genes/proteins (set->list (hash-ref h 'all-genes/proteins))))
+      (for-each
+        (lambda (curie)
+          (hash-set! ht curie h))
+        all-genes/proteins)))
+  synonymized-hashes)
+
+;; TODO
+;; save ht to disk!
