@@ -1,7 +1,82 @@
 #lang racket
 (provide HGNC-CURIE->synonymized-concepts
+         curie-aliases curie-synonyms curie-xrefs
          (all-from-out "../common.rkt" "../mk-db.rkt"))
 (require "../common.rkt" "../mk-db.rkt")
+
+(define (curie-aliases curies)
+  (list->set (foldl (lambda (c acc)
+                      (cond ((string-prefix? c "UMLS:")
+                             (cons (string-replace c "UMLS:" "CUI:") acc))
+                            ((string-prefix? c "CUI:")
+                             (cons (string-replace c "CUI:" "UMLS:") acc))
+                            (else acc)))
+                    curies curies)))
+
+(define (curie-synonyms curies)
+  (define same-as (find-exact-predicates (list "same_as" "equivalent_to")))
+  ;; TODO: compare run* performance to run/graph
+  (define (forward  cs) (hash-ref (car (run/graph
+                                         ((S cs) (O #f))
+                                         ((S->O same-as))
+                                         (S S->O O))) 'O))
+  (define (backward cs) (hash-ref (car (run/graph
+                                         ((S #f) (O cs))
+                                         ((S->O same-as))
+                                         (S S->O O))) 'S))
+  (define ids (curie-aliases curies))
+  (let loop ((ids0 (set->list ids)) (synonym-ids (list->set ids)))
+    (printf "ids0: ~s\n" ids0)
+    (let* ((cs0 (find-concepts #t ids0))
+           (ids (run* (curie)
+                  (fresh (c)
+                    (membero c cs0)
+                    (synonym-concepto curie c))))
+           (cs  (run* (c)
+                  (fresh (curie)
+                    (membero curie ids0)
+                    (synonym-concepto curie c))))
+           (ids (append ids (map caddr cs)
+                        (map caddr (append (forward  cs0)
+                                           (backward cs0)))))
+           (ids (set-subtract (curie-aliases ids) synonym-ids)))
+      (if (set-empty? ids) synonym-ids
+        (loop (set->list ids) (set-union synonym-ids ids))))))
+
+(define (curie-xrefs depth curies)
+  (define xref (find-exact-predicates (list "xref")))
+  (define (forward  cs) (hash-ref (car (run/graph
+                                         ((S cs) (O #f))
+                                         ((S->O xref))
+                                         (S S->O O))) 'O))
+  (define (backward cs) (hash-ref (car (run/graph
+                                         ((S #f) (O cs))
+                                         ((S->O xref))
+                                         (S S->O O))) 'S))
+  (define ids (curie-synonyms curies))
+  (let loop ((d depth) (ids0 (set->list ids)) (xref-ids ids))
+    (if (= d 0) xref-ids
+      (let* ((cs0 (find-concepts #t ids0))
+             (ids '())
+             (cs  '())
+             ;; TODO: xref properties explode the search space.
+             ;; Do we really want that?
+             ;(ids (run* (curie)
+                    ;(fresh (c)
+                      ;(membero c cs0)
+                      ;(xref-concepto curie c))))
+             ;(cs  (run* (c)
+                    ;(fresh (curie)
+                      ;(membero curie ids0)
+                      ;(xref-concepto curie c))))
+             (ids (list->set (append ids (map caddr cs)
+                                     (map caddr (append (forward  cs0)
+                                                        (backward cs0))))))
+             (ids (curie-synonyms (set->list (set-subtract ids xref-ids))))
+             (ids (set-subtract ids xref-ids)))
+        (if (set-empty? ids) xref-ids
+          (loop (- d 1) (set->list ids) (set-union xref-ids ids)))))))
+
 
 (define DEBUG-SYNONYMIZE #f)
 
