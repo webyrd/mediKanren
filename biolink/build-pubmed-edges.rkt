@@ -2,7 +2,7 @@
 (require
   "common.rkt"
   "repr.rkt"
-  racket/match
+  (except-in racket/match ==)
   racket/stream)
 
 (define argv (current-command-line-arguments))
