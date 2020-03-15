@@ -568,4 +568,7 @@
 
 
 ;; RHOBTB2
-;; (define RHOBTB2-synonyms (HGNC-CURIE->synonymized-concepts (list "HGNC:18756")))
+;; (define RHOBTB2-synonyms (HGNC-CURIE->synonymized-concepts "HGNC:18756"))
+
+;; E2F1
+;; (define E2F1-synonyms (HGNC-CURIE->synonymized-concepts "HGNC:3113"))
