@@ -15,15 +15,16 @@
 
 (define (curie-synonyms curies)
   (define same-as (find-exact-predicates (list "same_as" "equivalent_to")))
-  ;; TODO: compare run* performance to run/graph
-  (define (forward  cs) (hash-ref (car (run/graph
-                                         ((S cs) (O #f))
-                                         ((S->O same-as))
-                                         (S S->O O))) 'O))
-  (define (backward cs) (hash-ref (car (run/graph
-                                         ((S #f) (O cs))
-                                         ((S->O same-as))
-                                         (S S->O O))) 'S))
+  (define (forward  cs) (run* (x) (fresh (s o p db eid erest)
+                                    (membero `(,db . ,s) cs)
+                                    (== x `(,db . ,o))
+                                    (membero `(,db . ,p) same-as)
+                                    (edgeo `(,db ,eid ,s ,o ,p . ,erest)))))
+  (define (backward cs) (run* (x) (fresh (s o p db eid erest)
+                                    (membero `(,db . ,o) cs)
+                                    (== x `(,db . ,s))
+                                    (membero `(,db . ,p) same-as)
+                                    (edgeo `(,db ,eid ,s ,o ,p . ,erest)))))
   (define ids (curie-aliases curies))
   (let loop ((ids0 (set->list ids)) (synonym-ids (list->set ids)))
     (printf "ids0: ~s\n" ids0)
@@ -45,14 +46,16 @@
 
 (define (curie-xrefs depth curies)
   (define xref (find-exact-predicates (list "xref")))
-  (define (forward  cs) (hash-ref (car (run/graph
-                                         ((S cs) (O #f))
-                                         ((S->O xref))
-                                         (S S->O O))) 'O))
-  (define (backward cs) (hash-ref (car (run/graph
-                                         ((S #f) (O cs))
-                                         ((S->O xref))
-                                         (S S->O O))) 'S))
+  (define (forward  cs) (run* (x) (fresh (s o p db eid erest)
+                                    (membero `(,db . ,s) cs)
+                                    (== x `(,db . ,o))
+                                    (membero `(,db . ,p) xref)
+                                    (edgeo `(,db ,eid ,s ,o ,p . ,erest)))))
+  (define (backward cs) (run* (x) (fresh (s o p db eid erest)
+                                    (membero `(,db . ,o) cs)
+                                    (== x `(,db . ,s))
+                                    (membero `(,db . ,p) xref)
+                                    (edgeo `(,db ,eid ,s ,o ,p . ,erest)))))
   (define ids (curie-synonyms curies))
   (let loop ((d depth) (ids0 (set->list ids)) (xref-ids ids))
     (if (= d 0) xref-ids
