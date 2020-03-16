@@ -1,6 +1,6 @@
 #lang racket
 (provide HGNC-CURIE->synonymized-concepts
-         curie-aliases curie-synonyms curie-xrefs
+         curie-aliases curie-synonyms curie-xrefs curie-1xrefs
          (all-from-out "../common.rkt" "../mk-db.rkt"))
 (require "../common.rkt" "../mk-db.rkt")
 
@@ -27,7 +27,6 @@
                                     (edgeo `(,db ,eid ,s ,o ,p . ,erest)))))
   (define ids (curie-aliases curies))
   (let loop ((ids0 (set->list ids)) (synonym-ids (list->set ids)))
-    (printf "ids0: ~s\n" ids0)
     (let* ((cs0 (find-concepts #t ids0))
            (ids (run* (curie)
                   (fresh (c)
@@ -44,6 +43,34 @@
       (if (set-empty? ids) synonym-ids
         (loop (set->list ids) (set-union synonym-ids ids))))))
 
+(define (curie-1xrefs ids0)
+  (define xref (find-exact-predicates (list "xref")))
+  (define (forward  cs) (run* (x) (fresh (s o p db eid erest)
+                                    (membero `(,db . ,s) cs)
+                                    (== x `(,db . ,o))
+                                    (membero `(,db . ,p) xref)
+                                    (edgeo `(,db ,eid ,s ,o ,p . ,erest)))))
+  (define (backward cs) (run* (x) (fresh (s o p db eid erest)
+                                    (membero `(,db . ,o) cs)
+                                    (== x `(,db . ,s))
+                                    (membero `(,db . ,p) xref)
+                                    (edgeo `(,db ,eid ,s ,o ,p . ,erest)))))
+  (let* ((cs0 (find-concepts #t ids0))
+         ;; TODO: xref properties explode the search space.
+         ;; Do we really want that?
+         ;(ids (run* (curie)
+                ;(fresh (c)
+                  ;(membero c cs0)
+                  ;(xref-concepto curie c))))
+         ;(cs  (run* (c)
+                ;(fresh (curie)
+                  ;(membero curie ids0)
+                  ;(xref-concepto curie c))))
+         (ids '())
+         (cs  '()))
+    (append ids (map caddr cs)
+            (map caddr (append (forward cs0) (backward cs0))))))
+
 (define (curie-xrefs depth curies)
   (define xref (find-exact-predicates (list "xref")))
   (define (forward  cs) (run* (x) (fresh (s o p db eid erest)
@@ -59,24 +86,8 @@
   (define ids (curie-synonyms curies))
   (let loop ((d depth) (ids0 (set->list ids)) (xref-ids ids))
     (if (= d 0) xref-ids
-      (let* ((cs0 (find-concepts #t ids0))
-             (ids '())
-             (cs  '())
-             ;; TODO: xref properties explode the search space.
-             ;; Do we really want that?
-             ;(ids (run* (curie)
-                    ;(fresh (c)
-                      ;(membero c cs0)
-                      ;(xref-concepto curie c))))
-             ;(cs  (run* (c)
-                    ;(fresh (curie)
-                      ;(membero curie ids0)
-                      ;(xref-concepto curie c))))
-             (ids (list->set (append ids (map caddr cs)
-                                     (map caddr (append (forward  cs0)
-                                                        (backward cs0))))))
-             (ids (curie-synonyms (set->list (set-subtract ids xref-ids))))
-             (ids (set-subtract ids xref-ids)))
+      (let* ((ids (set-subtract (list->set (curie-1xrefs ids0)) xref-ids))
+             (ids (set-subtract (curie-synonyms (set->list ids)) xref-ids)))
         (if (set-empty? ids) xref-ids
           (loop (- d 1) (set->list ids) (set-union xref-ids ids)))))))
 
