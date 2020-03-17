@@ -3,6 +3,7 @@
          report/paths
          positively-regulates negatively-regulates drug-safe
          gene drug disease phenotype
+         (all-defined-out)
          (all-from-out "../common.rkt" "../mk-db.rkt" "propagator.rkt"))
 (require "../common.rkt" "../mk-db.rkt" "propagator.rkt" "synonymize.rkt"
          racket/list (except-in racket/match ==) racket/pretty
