@@ -1,8 +1,11 @@
 #lang racket/base
-(provide base-confidence summarize
+(provide base-confidence summarize summarize/assoc query query/graph
+         positively-regulates negatively-regulates drug-safe
+         gene drug disease phenotype
          (all-from-out "../common.rkt" "../mk-db.rkt" "propagator.rkt"))
 (require "../common.rkt" "../mk-db.rkt" "propagator.rkt"
-         racket/list (except-in racket/match ==) racket/set racket/string)
+         racket/list (except-in racket/match ==) racket/pretty
+         racket/set racket/string)
 
 ;; TODO: do these values make sense?
 (define (base-confidence edge)
@@ -163,91 +166,25 @@
 ;;; if best concept is no longer best, swap in new best, and repeat until all edges are returned
 ;;; ... or just let the upstream reporter report edges specific to selected unknown results
 
-;;(define (path*->edges paths cnames enames)
-  ;;(when (null? paths) (error "no paths were provided"))
-  ;;(unless (list? paths) (error "paths must be given as a list:" paths))
-  ;;(for-each
-    ;;(lambda (path)
-      ;;(unless (list? path) (error "path must be a list:" path))
-      ;;(unless (<= 3 (length path))
-        ;;(error "path must contain at least one edge triple:" path))
-      ;;(let loop ((parts path))
-        ;;(cond ((null? parts) (error "missing concept at end of path:" path))
-              ;;((not (member (car parts) cnames))
-               ;;(error "unknown path concept:"
-                      ;;path `(unknown-concept: ,(car parts))
-                      ;;`(valid-concepts: ,cnames)))
-              ;;((and (pair? (cdr parts)) (not (member (cadr parts) enames)))
-               ;;(error "unknown path edge:"
-                      ;;path `(unknown-edge: ,(cadr parts))
-                      ;;`(valid-edges: ,enames)))
-              ;;((pair? (cdr parts)) (loop (cddr parts))))))
-    ;;paths)
-  ;;(define (path->edges path)
-    ;;(if (null? (cdr path)) '()
-      ;;(cons (list (cadr path) (car path) (caddr path))
-            ;;(path->edges (cddr path)))))
-  ;;(append* (map path->edges paths)))
+(define (path->edges path)
+  (if (and (pair? path) (null? (cdr path))) '()
+    (cons (take path 3) (path->edges (drop path 2)))))
 
-
-
-;(define (path->edges path)
-  ;(if (and (pair? path) (null? (cdr path))) '()
-    ;(cons (take path 3) (path->edges (drop path 2)))))
-
-;(define (run-query concepts edge-predicates paths)
-  ;(define known   (make-immutable-hash
-                    ;(map (lambda (kv)
-                           ;(cons (car kv) (concept-synonyms (list (cdr kv)))))
-                         ;(filter (lambda (kv) (not (pair? (cdr kv))))
-                                 ;concepts))))
-  ;(define unknown (make-immutable-hash
-                    ;(map (lambda (kv)
-                           ;(cons (car kv)
-                                 ;(if (cdr kv) (find-exact-categories (cdr kv))
-                                   ;(run* (c) (categoryo c)))))
-                         ;(filter (lambda (kv) (pair? (cdr kv))) concepts))))
-  ;(define edges   (append* (map path->edges paths)))
-  ;(define s=>e    (make-immutable-hash
-                    ;(map (lambda (e) (cons (car   e)  (cadr e))) edges)))
-  ;(define o=>e    (make-immutable-hash
-                    ;(map (lambda (e) (cons (caddr e)  (cadr e))) edges)))
-  ;(define e=>s    (make-immutable-hash
-                    ;(map (lambda (e) (cons (cadr  e)   (car e))) edges)))
-  ;(define e=>o    (make-immutable-hash
-                    ;(map (lambda (e) (cons (cadr  e) (caddr e))) edges)))
-  ;(define e=>p    (make-immutable-hash
-                    ;(map (lambda (kv) (cons (car kv) (find-exact-predicates
-                                                       ;(cdr kv))))
-                         ;edge-predicates)))
-
-
-  ;;; start with known, and explore, and find fixed point
-  ;(let loop ((pending known))
-  ;)
-
-
-;;; results for unknowns must be grouped by synonym before proceeding
-;;; each edge must have at least one member of a synonym group participating in it
-;;;   otherwise the synonym group is removed from consideration
-
-;(define-syntax-rule (query/graph ((concept-name initial) ...)
-                                 ;((edge-name predicate) ...)
-                                 ;path ...)
-  ;(run-query `((concept-name . ,initial)   ...)
-             ;`((edge-name    . ,predicate) ...)
-             ;'(path ...)))
-
-;(query/graph
-  ;((S imatinib) ;; represents a single concept
-   ;(X gene)     ;; represents multiple possibilities
-   ;(O asthma))  ;; represents a single concept
-  ;((S->X negatively-regulates)
-   ;(X->O positively-regulates))
-  ;(S S->X X X->O O))
-
-;; TODO:
-;query/report
+(define (query concepts edge-predicates paths)
+  (define edges (append* (map path->edges paths)))
+  (define csets (map cons (map car concepts)
+                     (map (lambda (c)
+                            (cond ((string? c) (concept/curie c))
+                                  ((not c)     (concept/any))
+                                  (else        (concept/category c))))
+                          (map cdr concepts))))
+  (define esets
+    (map (lambda (e) (let ((s (car e)) (p (cadr e)) (o (caddr e)))
+                       (cons p (edge/predicate (cdr (assoc p edge-predicates))
+                                               (cdr (assoc s csets))
+                                               (cdr (assoc o csets))))))
+         edges))
+  (append csets esets))
 
 (define (summarize-edge es)
   (map (lambda (e) (list (car e) (cadr e) (car (cddddr e))
@@ -263,3 +200,27 @@
     (`(edge    . ,es) `(edge    . ,(summarize-edge    es)))
     (`(concept . ,gs) `(concept . ,(summarize-concept gs)))
     (v                v)))
+(define (summarize/assoc named-cells)
+  (map cons (map car named-cells) (map summarize (map cdr named-cells))))
+
+(define-syntax-rule (query/graph ((concept-name initial) ...)
+                                 ((edge-name predicate) ...)
+                                 path ...)
+  (let ((q (query `((concept-name . ,initial)   ...)
+                  `((edge-name    . ,predicate) ...)
+                  '(path ...))))
+    (run!)
+    q))
+
+;; TODO: report/graph with confidence ranking
+
+(load-databases #t)
+(time (pretty-print
+        (summarize/assoc
+          (query/graph
+            ((S imatinib) ;; represents a single concept
+             (X gene)     ;; represents multiple possibilities
+             (O asthma))  ;; represents a single concept
+            ((S->X negatively-regulates)
+             (X->O positively-regulates))
+            (S S->X X X->O O)))))
