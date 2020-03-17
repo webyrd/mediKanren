@@ -101,12 +101,15 @@
 
 ;; Graph propagation
 (define (string-min a b) (if (string<? a b) a b))
-(define (group curie categories concepts) (list curie categories concepts))
-(define (group-curie      g) (car   g))
-(define (group-categories g) (cadr  g))
-(define (group-concepts   g) (caddr g))
+(define (group curie curies categories concepts)
+  (list curie curies categories concepts))
+(define (group-curie      g) (car    g))
+(define (group-curies     g) (cadr   g))
+(define (group-categories g) (caddr  g))
+(define (group-concepts   g) (cadddr g))
 (define (group<? ga gb) (string<? (group-curie ga) (group-curie gb)))
 (define (group=? ga gb) (string=? (group-curie ga) (group-curie gb)))
+(define (group-member? g curie) (set-member? (group-curies g) curie))
 (define (curie->group curie)
   (define synonyms (curie-synonyms (list curie)))
   (define curies (set->list synonyms))
@@ -114,7 +117,7 @@
   (define cs (find-concepts #t curies))
   (define categories (list->set (map cons (map car cs)
                                      (map (lambda (c) (cadddr (cdr c))) cs))))
-  (group first-curie categories cs))
+  (group first-curie synonyms categories cs))
 
 (define (concept=? ca cb)
   (match* (ca cb)
@@ -148,6 +151,16 @@
                      (else       (cons a (loop (cdr as) (cdr bs)))))))))
        (if changed? `(concept . ,result) ca)))))
 
+(define (concept-constrain c curies)
+  (match c
+    ('(any) `(concept . ,(map curie->group curies)))
+    (`(category . ,cats)
+      (concept-intersect c `(concept . ,(map curie->group curies))))
+    (`(concept . ,gs)
+      (define (valid-group? g)
+        (ormap (lambda (curie) (group-member? g curie)) curies))
+      `(concept . ,(filter valid-group? gs)))))
+
 (define (edge-constrain/subject e c)
   (match c
     ;; TODO: optionally find edges with only category/any constraints
@@ -155,10 +168,10 @@
     (`(category . ,_) e)
     (`(concept  . ,gs)
       (match e
-        (`(edge . ,egs)
-          (define (valid-eg? eg)
-            (pair? (cdr (concept-intersect `(concept . ,(list (car eg))) c))))
-          `(edge . ,(filter valid-eg? egs)))
+        (`(edge . ,es)
+          (define (valid-eg? e)
+            (ormap (lambda (g) (group-member? g (cadr (caddr e)))) gs))
+          `(edge . ,(filter valid-eg? es)))
         (`(predicate . ,ps)
           (define cs (append* (map group-concepts gs)))
           (define es (run* (e) (fresh (s o p db eid erest)
@@ -166,7 +179,7 @@
                                  (membero `(,db . ,s) cs)
                                  (membero `(,db . ,p) ps)
                                  (edgeo e))))
-          `(edge . ,(map edge->edge/groups es)))))))
+          `(edge . ,es))))))
 
 (define (edge-constrain/object e c)
   (match c
@@ -175,10 +188,10 @@
     (`(category . ,_) e)
     (`(concept  . ,gs)
       (match e
-        (`(edge . ,egs)
-          (define (valid-eg? eg)
-            (pair? (cdr (concept-intersect `(concept . ,(list (cadr eg))) c))))
-          `(edge . ,(filter valid-eg? egs)))
+        (`(edge . ,es)
+          (define (valid-eg? e)
+            (ormap (lambda (g) (group-member? g (cadr (cadddr e)))) gs))
+          `(edge . ,(filter valid-eg? es)))
         (`(predicate . ,ps)
           (define cs (append* (map group-concepts gs)))
           (define es (run* (e) (fresh (s o p db eid erest)
@@ -186,18 +199,16 @@
                                  (membero `(,db . ,o) cs)
                                  (membero `(,db . ,p) ps)
                                  (edgeo e))))
-          `(edge . ,(map edge->edge/groups es)))))))
+          `(edge . ,es))))))
 
-(define (edge->edge/groups e) (list (curie->group (cadr (caddr e)))
-                                    (curie->group (cadr (cadddr e))) e))
 (define (edge-subjects e)
   (match e
-    (`(edge . ,egs) (cons 'concept (sort (map car  egs) group<?)))
-    (_ (list 'any))))
+    (`(edge . ,es) (map (lambda (e) (cadr (caddr  e))) es))
+    (_             (list 'any))))
 (define (edge-objects e)
   (match e
-    (`(edge . ,egs) (cons 'concept (sort (map cadr egs) group<?)))
-    (_ (list 'any))))
+    (`(edge . ,es) (map (lambda (e) (cadr (cadddr e))) es))
+    (_             (list 'any))))
 
 (define (concept-cost c)
   (match c
@@ -206,8 +217,8 @@
     (_                0)))
 (define (edge-cost e)
   (match e
-    (`(edge . ,egs) (length egs))
-    (_              0)))
+    (`(edge . ,es) (length es))
+    (_             0)))
 
 (define (concept/any) (cell concept=? '(any)))
 (define (concept/category categories)
@@ -238,9 +249,9 @@
     (thunk
       (define e (edge 'ref))
       (when update-subject?
-        (subject 'set! (concept-intersect (subject 'ref) (edge-subjects e))))
+        (subject 'set! (concept-constrain (subject 'ref) (edge-subjects e))))
       (when update-object?
-        (object  'set! (concept-intersect (object  'ref) (edge-objects  e))))
+        (object  'set! (concept-constrain (object  'ref) (edge-objects  e))))
       (set! update-subject? #f)
       (set! update-object?  #f)))
   edge)
