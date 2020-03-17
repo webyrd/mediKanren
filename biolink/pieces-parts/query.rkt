@@ -1,5 +1,5 @@
 #lang racket/base
-(provide base-confidence
+(provide base-confidence summarize
          (all-from-out "../common.rkt" "../mk-db.rkt" "propagator.rkt"))
 (require "../common.rkt" "../mk-db.rkt" "propagator.rkt"
          (except-in racket/match ==) racket/string)
@@ -68,7 +68,7 @@
                                "disrupts"
                                "may_inhibit_effect_of"
                                "may_prevent"
-                               "may_treat"                               
+                               "may_treat"
                                ))
 (define drug-safe            '("clinically_tested_approved_unknown_phase"
                                "clinically_tested_terminated_phase_2"
@@ -248,3 +248,18 @@
 
 ;; TODO:
 ;query/report
+
+(define (summarize-edge es)
+  (map (lambda (e) (list (car e) (cadr e) (car (cddddr e))
+                         (cons (cadr (caddr  e)) (caddr (caddr  e)))
+                         (cons (cadr (cadddr e)) (caddr (cadddr e)))))
+       es))
+(define (summarize-concept gs)
+  (map (lambda (curies) (map (lambda (c) (take c 4))
+                             (find-concepts #t curies)))
+       (map set->list (map group-curies gs))))
+(define (summarize cell)
+  (match (cell 'ref)
+    (`(edge    . ,es) `(edge    . ,(summarize-edge    es)))
+    (`(concept . ,gs) `(concept . ,(summarize-concept gs)))
+    (v                v)))
