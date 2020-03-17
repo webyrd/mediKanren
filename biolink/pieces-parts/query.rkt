@@ -14,6 +14,15 @@
     (`(,_ ,_ (,_ ,subject-curie . ,_) (,_ ,object-curie . ,_) . ,rest)
       (if (or (umls? subject-curie) (umls? object-curie)) 0.5 0.75))))
 
+
+#|
+;; ** rtx2 neutral predicates -- do we want to include these somewhere? **
+
+"regulates_expression_of"
+"regulates_activity_of"
+"targets"
+|#
+
 (define positively-regulates '(;; common
                                "causes" "positively_regulates" "produces"
                                ;; robokop
@@ -30,6 +39,7 @@
                                ;; rtx2
                                "directly_positively_regulates"
                                "stimulates"
+                               "activator"
                                "augments"
                                "induces"
                                "cause_of"
@@ -52,11 +62,13 @@
                                ;; rtx2
                                "directly_negatively_regulates"
                                "inhibits"
+                               "inhibitor"
+                               "channel_blocker"
                                "treats"
                                "disrupts"
                                "may_inhibit_effect_of"
                                "may_prevent"
-                               "may_treat"
+                               "may_treat"                               
                                ))
 (define drug-safe            '("clinically_tested_approved_unknown_phase"
                                "clinically_tested_terminated_phase_2"
