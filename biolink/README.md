@@ -108,9 +108,6 @@ neo4j stop
 
 ## TODO
 
-* Set up a 64GB RAM linode (add ssh keys)
-
-
 ### High-level
 
 * queries we want to show during demo, common use cases
@@ -122,7 +119,8 @@ neo4j stop
   * confidence in the evidence of a claim (via publications, ontological traversal, etc.)
     * avoid double-counting same ontological information from multiple sources
   * confidence via presence in multiple knowledge graphs (RTX2 + sulab semmed)
-  * some notion of novelty: how interesting is this result?
+  * some notion of relevance: how interesting/useful is this result?
+    * safe drugs are more relevant than unsafe drugs
 
 
 ### Graph queries
@@ -143,7 +141,8 @@ neo4j stop
     * `provided_by`
     * `has_evidence`
     * publications
-    * confidence (how likely a result is to be true)
+    * `has_confidence_level` (how likely a result is to be true)
+    * `confidence_calculation` ?
     * relevance (how important a result would be if true; not a biolink property)
 
 * Strategy for producing result graph
@@ -152,22 +151,20 @@ neo4j stop
     * low confidence: `xref`
   * kg-specific base confidence in edges
   * improving confidence when possible to double-check
+  * reasoning about contradictions (applying negated edges)
   * determine relevance (e.g., drug is safe (approved or passed phase 1 trial))
 
 
 ### UI
 
 * concept distance for (potentially cross-KG) synonyms (similar to ISA checkbox)
-* extract RTX2 pubmed and display sentence inline
-* sorting results by different scoring parameters (confidence vs. novelty)
+* sorting results by different scoring parameters (confidence vs. relevance)
 * reimplement GUI result builder in terms of run/graph for consistency
 * display JSON version of input/output (need to map different forms of evidence to biolink model)
 * display a simple handmade graph visualization of query and results
 
 
 ### Greg will do these
-
-* KG patching: add and retract edges
 
 * implement dbKanren
   * reduce corpus load time

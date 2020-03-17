@@ -27,6 +27,9 @@
      (method-choose ((name) (lambda (_ . param) body ...)) ... (else else-body ...)))
     ((_ body ...) (method-lambda body ... (else method-unknown)))))
 
+;; TODO: priorities change and propagators are redundantly scheduled (though
+;; that might mitigate some of the priority changes).  Fix these issues by
+;; having propagators track their own scheduling and cost changes.
 ;; Heap as priority queue
 (define (heap-top h) (vector-ref h 0))
 (define (heap! ? h end)
