@@ -1,4 +1,9 @@
 #lang racket
+(provide
+  (all-from-out "../common.rkt")
+  (all-from-out "../mk-db.rkt")
+  (all-from-out "propagator.rkt")
+  (all-defined-out))
 (require "../common.rkt" "../mk-db.rkt" "propagator.rkt")
 (load-databases #t)
 
