@@ -16,19 +16,24 @@
 
 (define (curie-UMLS? curie) (or (string-prefix? curie "CUI:")
                                 (string-prefix? curie "UMLS:")))
+(define (concept-drug? c)
+  (string=? "http://w3id.org/biolink/vocab/Drug"
+            (cdr (cadddr (cdr c)))))
 
 (define (curie-synonyms curies)
   (define xref    (find-exact-predicates (list "xref")))
   (define same-as (find-exact-predicates (list "equivalent_to")))
   (define (xref-forward cs0)
-    (define cs (filter-not (lambda (c) (curie-UMLS? (caddr c))) cs0))
+    (define cs (filter (lambda (c) (and (not (curie-UMLS? (caddr c)))
+                                        (concept-drug? c))) cs0))
     (run* (x) (fresh (s o p db eid erest)
                 (membero `(,db . ,s) cs)
                 (== x `(,db . ,o))
                 (membero `(,db . ,p) xref)
                 (edgeo `(,db ,eid ,s ,o ,p . ,erest)))))
   (define (xref-backward cs0)
-    (define cs (filter (lambda (c) (curie-UMLS? (caddr c))) cs0))
+    (define cs (filter (lambda (c) (and (curie-UMLS? (caddr c))
+                                        (concept-drug? c))) cs0))
     (filter-not
       (lambda (c) (curie-UMLS? (caddr c)))
       (run* (x) (fresh (s o p db eid erest)
