@@ -88,6 +88,7 @@
   (define observers '())
   (define value     initial-value)
   (method-lambda
+    ((force)           (run!) value)
     ((ref)             value)
     ((set! v)          (unless (=? v value)
                          (set! value v)
