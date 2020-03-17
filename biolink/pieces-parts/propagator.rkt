@@ -1,5 +1,6 @@
 #lang racket/base
-(provide concept/any concept/category concept/curie edge/predicate run!)
+(provide group-curie group-curies group-categories group-concepts
+         concept/any concept/category concept/curie edge/predicate run!)
 (require "synonymize.rkt"
          racket/function racket/list (except-in racket/match ==) racket/set)
 
