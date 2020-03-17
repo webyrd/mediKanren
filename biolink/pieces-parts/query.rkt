@@ -180,28 +180,28 @@
   (define csets (filter (lambda (kv) (eq? (cadr kv) 'concept)) kvs))
   (define esets (filter (lambda (kv) (eq? (cadr kv) 'edge))    kvs))
   (define path-results
-    (map (lambda (path)
-           (cons path
-                 (let loop ((edges (path->edges path)) (lhs #f))
-                   (if (null? edges) '(())
-                     (let* ((ename (cadar  edges))
-                            (es    (cddr (assoc ename esets))))
-                       (append*
-                         (map (lambda (e)
-                                (define snorm (curie-norm (cadr (caddr  e))))
-                                (define onorm (curie-norm (cadr (cadddr e))))
-                                (if (or (not lhs) (string=? lhs snorm))
-                                  (map (lambda (suffix) (cons e suffix))
-                                       (loop (cdr edges) onorm))
-                                  '()))
-                              es)))))))
-         paths))
-  ;; TODO: confidence ranking of paths
-  ;; multiply per-edge confidences
-  ;;   KG/CURIE base confidence
-  ;;   publication count
-  ;;   synonymous edge count
-  ;; TODO: relevance ranking? drug safety?
+    (map
+      (lambda (path)
+        (cons path
+              (sort
+                (map (lambda (p) (cons (path-confidence p) p))
+                     (let loop ((edges (path->edges path)) (lhs #f))
+                       (if (null? edges) '(())
+                         (let* ((ename (cadar  edges))
+                                (es    (cddr (assoc ename esets))))
+                           (append*
+                             (map
+                               (lambda (e)
+                                 (define snorm (curie-norm (cadr (caddr  e))))
+                                 (define onorm (curie-norm (cadr (cadddr e))))
+                                 (if (or (not lhs) (string=? lhs snorm))
+                                   (map (lambda (suffix) (cons e suffix))
+                                        (loop (cdr edges) onorm))
+                                   '()))
+                               es))))))
+                (lambda (pa pb)
+                  (< (car pa) (car pb))))))
+        paths))
   `((paths: ,path-results)
     (concepts:
       ,(map (lambda (cset)
@@ -225,11 +225,11 @@
     (`(,_ ,_ (,_ ,subject-curie . ,_) (,_ ,object-curie . ,_) . ,rest)
       (if (or (umls? subject-curie) (umls? object-curie)) 0.5 0.75))))
 
-;(define (edge-confidence edge)
-  ;)
+(define (edge-confidence edge)
+  (define base (base-edge-confidence edge))
+  base)
 
-;(define (path-confidence edges)
-  ;)
+(define (path-confidence edges) (foldl * 1 (map edge-confidence edges)))
 
 ;; concept confidences: 1.0 for given and synonyms, 0.5 for 1-hop xref
 
