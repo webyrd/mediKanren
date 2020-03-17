@@ -114,6 +114,13 @@
         (if (set-empty? ids) xref-ids
           (loop (- d 1) (set->list ids) (set-union xref-ids ids)))))))
 
+(define (curie-partition/synonyms curies)
+  (let loop ((pending (list->set curies)) (groups '()))
+    (if (set-empty? pending) groups
+      (let* ((group   (curie-synonyms (list (set-first pending))))
+             (pending (set-subtract pending group)))
+        (loop pending (cons group groups))))))
+
 
 (define DEBUG-SYNONYMIZE #f)
 
