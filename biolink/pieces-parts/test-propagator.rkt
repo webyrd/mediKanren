@@ -15,25 +15,20 @@
 (define S->X (edge/predicate negatively-regulates S X))
 (define X->O (edge/predicate positively-regulates X O))
 
-
-(displayln 'S)
-(S 'ref)
-
-(displayln 'O)
-(O 'ref)
-
-(displayln 'X)
-(X 'ref)
-
-(displayln 'S->X)
-(S->X 'ref)
-
-(displayln 'X->O)
-(X->O 'ref)
-
+(displayln 'running:)
 (time (run!))
 
-;; examine results
-;(X 'ref)
-;(S->X 'ref)
-;(X->O 'ref)
+(displayln 'S)
+(length (cdr (S 'ref)))
+
+(displayln 'O)
+(length (cdr (O 'ref)))
+
+(displayln 'X)
+(length (cdr (X 'ref)))
+
+(displayln 'S->X)
+(length (cdr (S->X 'ref)))
+
+(displayln 'X->O)
+(length (cdr (X->O 'ref)))
