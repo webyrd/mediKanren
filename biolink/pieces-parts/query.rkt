@@ -2,7 +2,7 @@
 (provide base-confidence summarize
          (all-from-out "../common.rkt" "../mk-db.rkt" "propagator.rkt"))
 (require "../common.rkt" "../mk-db.rkt" "propagator.rkt"
-         (except-in racket/match ==) racket/string)
+         racket/list (except-in racket/match ==) racket/set racket/string)
 
 ;; TODO: do these values make sense?
 (define (base-confidence edge)
