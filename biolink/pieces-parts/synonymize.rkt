@@ -14,7 +14,7 @@
                     curies curies)))
 
 (define (curie-synonyms curies)
-  (define same-as (find-exact-predicates (list "same_as" "equivalent_to")))
+  (define same-as (find-exact-predicates (list "equivalent_to")))
   (define (forward  cs) (run* (x) (fresh (s o p db eid erest)
                                     (membero `(,db . ,s) cs)
                                     (== x `(,db . ,o))
