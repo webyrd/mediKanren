@@ -1,9 +1,10 @@
 #lang racket/base
 (provide base-confidence summarize summarize/assoc query query/graph
+         report/paths
          positively-regulates negatively-regulates drug-safe
          gene drug disease phenotype
          (all-from-out "../common.rkt" "../mk-db.rkt" "propagator.rkt"))
-(require "../common.rkt" "../mk-db.rkt" "propagator.rkt"
+(require "../common.rkt" "../mk-db.rkt" "propagator.rkt" "synonymize.rkt"
          racket/list (except-in racket/match ==) racket/pretty
          racket/set racket/string)
 
@@ -184,7 +185,7 @@
                                                (cdr (assoc s csets))
                                                (cdr (assoc o csets))))))
          edges))
-  (append csets esets))
+  (cons edges (append csets esets)))
 
 (define (summarize-edge es)
   (map (lambda (e) (list (car e) (cadr e) (car (cddddr e))
@@ -212,15 +213,64 @@
     (run!)
     q))
 
-;; TODO: report/graph with confidence ranking
+(define (curie-norm curie)
+  (define curies (set->list (curie-synonyms (list curie))))
+  (foldl (lambda (a b) (if (string<? a b) a b)) (car curies) (cdr curies)))
+
+(define (report/paths paths q)
+  (define edges       (car q))
+  (define named-cells (cdr q))
+  (define kvs (map (lambda (nc) (cons (car nc) ((cdr nc) 'ref)))
+                   named-cells))
+  (define csets (filter (lambda (kv) (eq? (cadr kv) 'concept)) kvs))
+  (define esets (filter (lambda (kv) (eq? (cadr kv) 'edge))    kvs))
+  (define path-results
+    (map (lambda (path)
+           (cons path
+                 (let loop ((edges (path->edges path)) (lhs #f))
+                   (if (null? edges) '(())
+                     (let* ((ename (cadar  edges))
+                            (es    (cddr (assoc ename esets))))
+                       (append*
+                         (map (lambda (e)
+                                (define snorm (curie-norm (cadr (caddr  e))))
+                                (define onorm (curie-norm (cadr (cadddr e))))
+                                (if (or (not lhs) (string=? lhs snorm))
+                                  (map (lambda (suffix)
+                                         (append (if lhs (list e onorm)
+                                                   (list snorm e onorm))
+                                                 suffix))
+                                       (loop (cdr edges) onorm))
+                                  '()))
+                              es)))))))
+         paths))
+  ;; TODO: confidence ranking of paths
+  ;; multiply per-edge confidences
+  ;;   KG/CURIE base confidence
+  ;;   publication count
+  ;;   synonymous edge count
+  ;; TODO: relevance ranking? drug safety?
+  `((paths: ,path-results)
+    (concepts:
+      ,(map (lambda (cset)
+              `(,(car cset)
+                 ,(length (cddr cset))
+                 ,(map (lambda (g) (cons (group-curie g)
+                                         (set-count (group-curies g))))
+                       (cddr cset))))
+            csets))
+    (edges: ,(map (lambda (eset)
+                    (cons (car eset) (length (cddr eset))))
+                  esets))))
 
 ;(load-databases #t)
-;(time (pretty-print
-        ;(summarize/assoc
-          ;(query/graph
-            ;((S imatinib) ;; represents a single concept
-             ;(X gene)     ;; represents multiple possibilities
-             ;(O asthma))  ;; represents a single concept
-            ;((S->X negatively-regulates)
-             ;(X->O positively-regulates))
-            ;(S S->X X X->O O)))))
+;(define q (time (query/graph
+                  ;((S imatinib) ;; represents a single concept
+                   ;(X gene)     ;; represents multiple possibilities
+                   ;(O asthma))  ;; represents a single concept
+                  ;((S->X negatively-regulates)
+                   ;(X->O positively-regulates))
+                  ;(S S->X X X->O O))))
+
+;;(pretty-print (summarize/assoc (cdr q)))
+;(pretty-print (report/paths '((S S->X X X->O O)) q))
