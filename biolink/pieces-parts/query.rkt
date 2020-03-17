@@ -191,7 +191,7 @@
                                 (define snorm (curie-norm (cadr (caddr  e))))
                                 (define onorm (curie-norm (cadr (cadddr e))))
                                 (if (or (not lhs) (string=? lhs snorm))
-                                  (map (lambda (suffix) (append e suffix))
+                                  (map (lambda (suffix) (cons e suffix))
                                        (loop (cdr edges) onorm))
                                   '()))
                               es)))))))
