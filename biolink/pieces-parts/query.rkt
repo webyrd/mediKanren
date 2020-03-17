@@ -214,13 +214,13 @@
 
 ;; TODO: report/graph with confidence ranking
 
-(load-databases #t)
-(time (pretty-print
-        (summarize/assoc
-          (query/graph
-            ((S imatinib) ;; represents a single concept
-             (X gene)     ;; represents multiple possibilities
-             (O asthma))  ;; represents a single concept
-            ((S->X negatively-regulates)
-             (X->O positively-regulates))
-            (S S->X X X->O O)))))
+;(load-databases #t)
+;(time (pretty-print
+        ;(summarize/assoc
+          ;(query/graph
+            ;((S imatinib) ;; represents a single concept
+             ;(X gene)     ;; represents multiple possibilities
+             ;(O asthma))  ;; represents a single concept
+            ;((S->X negatively-regulates)
+             ;(X->O positively-regulates))
+            ;(S S->X X X->O O)))))
