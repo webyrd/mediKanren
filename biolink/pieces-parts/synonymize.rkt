@@ -1,6 +1,7 @@
 #lang racket
 (provide HGNC-CURIE->synonymized-concepts
-         curie-aliases curie-synonyms curie-xrefs curie-1xrefs
+         curie-UMLS? curie-aliases curie-synonyms curie-xrefs curie-1xrefs
+         curie-partition/synonyms
          (all-from-out "../common.rkt" "../mk-db.rkt"))
 (require "../common.rkt" "../mk-db.rkt")
 
@@ -13,8 +14,28 @@
                             (else acc)))
                     curies curies)))
 
+(define (curie-UMLS? curie) (or (string-prefix? curie "CUI:")
+                                (string-prefix? curie "UMLS:")))
+
 (define (curie-synonyms curies)
+  (define xref    (find-exact-predicates (list "xref")))
   (define same-as (find-exact-predicates (list "equivalent_to")))
+  (define (xref-forward cs0)
+    (define cs (filter-not (lambda (c) (curie-UMLS? (caddr c))) cs0))
+    (run* (x) (fresh (s o p db eid erest)
+                (membero `(,db . ,s) cs)
+                (== x `(,db . ,o))
+                (membero `(,db . ,p) xref)
+                (edgeo `(,db ,eid ,s ,o ,p . ,erest)))))
+  (define (xref-backward cs0)
+    (define cs (filter (lambda (c) (curie-UMLS? (caddr c))) cs0))
+    (filter-not
+      (lambda (c) (curie-UMLS? (caddr c)))
+      (run* (x) (fresh (s o p db eid erest)
+                  (membero `(,db . ,o) cs)
+                  (== x `(,db . ,s))
+                  (membero `(,db . ,p) xref)
+                  (edgeo `(,db ,eid ,s ,o ,p . ,erest))))))
   (define (forward  cs) (run* (x) (fresh (s o p db eid erest)
                                     (membero `(,db . ,s) cs)
                                     (== x `(,db . ,o))
@@ -37,8 +58,10 @@
                     (membero curie ids0)
                     (synonym-concepto curie c))))
            (ids (append ids (map caddr cs)
-                        (map caddr (append (forward  cs0)
-                                           (backward cs0)))))
+                        (map caddr (append (forward       cs0)
+                                           (backward      cs0)
+                                           (xref-forward  cs0)
+                                           (xref-backward cs0)))))
            (ids (set-subtract (curie-aliases ids) synonym-ids)))
       (if (set-empty? ids) synonym-ids
         (loop (set->list ids) (set-union synonym-ids ids))))))
