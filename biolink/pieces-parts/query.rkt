@@ -1,6 +1,5 @@
 #lang racket/base
-(provide base-confidence summarize summarize/assoc query query/graph
-         report/paths
+(provide summarize summarize/assoc query query/graph report/paths
          positively-regulates negatively-regulates drug-safe
          gene drug disease phenotype
          (all-defined-out)
@@ -9,17 +8,6 @@
 (require "../common.rkt" "../mk-db.rkt" "propagator.rkt" "synonymize.rkt"
          racket/list (except-in racket/match ==) racket/pretty
          racket/set racket/string)
-
-;; TODO: do these values make sense?
-(define (base-confidence edge)
-  (define (umls? curie) (or (string-prefix? curie "UMLS:")
-                            (string-prefix? curie "CUI:")))
-  (match edge
-    (`(uab-pmi . ,_) 1.0)
-    (`(semmed  . ,_) 0.5)
-    (`(,_ ,_ (,_ ,subject-curie . ,_) (,_ ,object-curie . ,_) . ,rest)
-      (if (or (umls? subject-curie) (umls? object-curie)) 0.5 0.75))))
-
 
 #|
 ;; ** rtx2 neutral predicates -- do we want to include these somewhere? **
@@ -134,41 +122,6 @@
 (define imatinib "UMLS:C0935989")
 (define asthma   "UMLS:C0004096")
 
-;; concept confidences: 1.0 for given and synonyms, 0.5 for 1-hop xref
-
-;; TODO: improve edge confidence with publications
-;; TODO: adjust base concept confidence with subject/object scores in rtx2
-
-;; multiple edges (an edge set) between two synonym sets
-;;   take max base confidence + accumulate all pubs and evidence?
-
-;augment concept sets, partition by xref depth
-
-;find edges
-
-;fill in unknown concepts
-
-;repeat until no more unknown concepts or missing edges
-
-
-;compute edge confidences:
-  ;(f (* edge-base subject-xref-base object-xref-base) pubs evidence)
-
-;;; multiply sub-path confidence between this concept and every other known concept node
-;;; intuition: if there is no path to an anchor node, that's confidence 0, and
-;;; multiplied by anything is 0, meaning this concept should not be included
-;compute concept confidences:
-  ;(* concept-xref-base
-     ;(apply * (map (apply max (map (path-confidence path)
-                                   ;(paths-to known-concept)))
-                   ;known-concepts)))
-
-;;; to rank edges, first rank solved unknown concepts
-;;; return best concept's best paths to each anchor node
-;;; gradually swap in lower-confidence edges and adjust best concept's confidence downward to match
-;;; if best concept is no longer best, swap in new best, and repeat until all edges are returned
-;;; ... or just let the upstream reporter report edges specific to selected unknown results
-
 (define (path->edges path)
   (if (and (pair? path) (null? (cdr path))) '()
     (cons (take path 3) (path->edges (drop path 2)))))
@@ -264,6 +217,59 @@
     (edges: ,(map (lambda (eset)
                     (cons (car eset) (length (cddr eset))))
                   esets))))
+
+;; TODO: do these values make sense?
+(define (base-edge-confidence edge)
+  (define (umls? curie) (or (string-prefix? curie "UMLS:")
+                            (string-prefix? curie "CUI:")))
+  (match edge
+    (`(uab-pmi . ,_) 1.0)
+    (`(semmed  . ,_) 0.5)
+    (`(,_ ,_ (,_ ,subject-curie . ,_) (,_ ,object-curie . ,_) . ,rest)
+      (if (or (umls? subject-curie) (umls? object-curie)) 0.5 0.75))))
+
+;(define (edge-confidence edge)
+  ;)
+
+;(define (path-confidence edges)
+  ;)
+
+;; concept confidences: 1.0 for given and synonyms, 0.5 for 1-hop xref
+
+;; TODO: improve edge confidence with publications
+;; TODO: adjust base concept confidence with subject/object scores in rtx2
+
+;; multiple edges (an edge set) between two synonym sets
+;;   take max base confidence + accumulate all pubs and evidence?
+
+;augment concept sets, partition by xref depth
+
+;find edges
+
+;fill in unknown concepts
+
+;repeat until no more unknown concepts or missing edges
+
+
+;compute edge confidences:
+  ;(f (* edge-base subject-xref-base object-xref-base) pubs evidence)
+
+;;; multiply sub-path confidence between this concept and every other known concept node
+;;; intuition: if there is no path to an anchor node, that's confidence 0, and
+;;; multiplied by anything is 0, meaning this concept should not be included
+;compute concept confidences:
+  ;(* concept-xref-base
+     ;(apply * (map (apply max (map (path-confidence path)
+                                   ;(paths-to known-concept)))
+                   ;known-concepts)))
+
+;;; to rank edges, first rank solved unknown concepts
+;;; return best concept's best paths to each anchor node
+;;; gradually swap in lower-confidence edges and adjust best concept's confidence downward to match
+;;; if best concept is no longer best, swap in new best, and repeat until all edges are returned
+;;; ... or just let the upstream reporter report edges specific to selected unknown results
+
+
 
 ;(load-databases #t)
 ;(define q (time (query/graph
