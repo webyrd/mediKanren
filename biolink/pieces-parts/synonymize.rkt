@@ -16,8 +16,19 @@
 
 (define (curie-UMLS? curie) (or (string-prefix? curie "CUI:")
                                 (string-prefix? curie "UMLS:")))
+(define (concept-gene? c)
+  (or (string=? "http://w3id.org/biolink/vocab/Gene"
+                (cdr (cadddr (cdr c))))
+      (string=? "http://w3id.org/biolink/vocab/GeneSet"
+                (cdr (cadddr (cdr c))))))
+(define (concept-protein? c)
+  (string=? "http://w3id.org/biolink/vocab/Protein"
+            (cdr (cadddr (cdr c)))))
 (define (concept-drug? c)
   (string=? "http://w3id.org/biolink/vocab/Drug"
+            (cdr (cadddr (cdr c)))))
+(define (concept-disease? c)
+  (string=? "http://w3id.org/biolink/vocab/Disease"
             (cdr (cadddr (cdr c)))))
 
 (define (curie-synonyms curies)
@@ -25,7 +36,9 @@
   (define same-as (find-exact-predicates (list "equivalent_to")))
   (define (xref-forward cs0)
     (define cs (filter (lambda (c) (and (not (curie-UMLS? (caddr c)))
-                                        (concept-drug? c))) cs0))
+                                        (or (concept-drug?    c)
+                                            (concept-gene?    c)
+                                            (concept-protein? c)))) cs0))
     (run* (x) (fresh (s o p db eid erest)
                 (membero `(,db . ,s) cs)
                 (== x `(,db . ,o))
@@ -33,9 +46,15 @@
                 (edgeo `(,db ,eid ,s ,o ,p . ,erest)))))
   (define (xref-backward cs0)
     (define cs (filter (lambda (c) (and (curie-UMLS? (caddr c))
-                                        (concept-drug? c))) cs0))
-    (filter-not
-      (lambda (c) (curie-UMLS? (caddr c)))
+                                        (or (concept-drug?    c)
+                                            (concept-gene?    c)
+                                            (concept-protein? c)
+                                            (concept-disease? c)))) cs0))
+    (filter
+      (lambda (c) (and (not (curie-UMLS? (caddr c)))
+                       (or (concept-drug?    c)
+                           (concept-gene?    c)
+                           (concept-protein? c))))
       (run* (x) (fresh (s o p db eid erest)
                   (membero `(,db . ,o) cs)
                   (== x `(,db . ,s))
