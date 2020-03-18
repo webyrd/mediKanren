@@ -447,6 +447,6 @@
 (define ranked (time (ranked-paths q)))
 (pretty-ranked ranked)
 ;(pretty-ranked ranked 50)
-
+|#
 
 ;; TODO: concepts/query
