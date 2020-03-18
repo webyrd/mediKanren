@@ -1,6 +1,6 @@
 #lang racket/base
 (provide summarize summarize/assoc query query/graph report/query
-         ranked-paths pretty-ranked edges/ranked
+         ranked-paths pretty-ranked edges/ranked curies/query edges/query
          positively-regulates negatively-regulates drug-safe
          gene drug disease phenotype
          (all-defined-out)
@@ -272,6 +272,10 @@
                         instances))
             edge-pos))
 
+(define (edges/query  q name) (cdr ((cdr (assoc name q)) 'ref)))
+(define (curies/query q name)
+  (map group-curie (cdr ((cdr (assoc name q)) 'ref))))
+
 (define (pretty-ranked ranked (n #f))
   (for ((path-report ranked))
        (define instances (cdr path-report))
@@ -448,5 +452,3 @@
 (pretty-ranked ranked)
 ;(pretty-ranked ranked 50)
 |#
-
-;; TODO: concepts/query
