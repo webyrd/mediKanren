@@ -444,7 +444,11 @@
      (pretty-print (map (lambda (pi)
                           (define confidence          (car pi))
                           (define pes        (map car (cdr pi)))
-                          (list confidence pes))
+                          (define npes (map (lambda (pe)
+                                              (cons (curie->name (car pe))
+                                                    (curie->name (cdr pe))))
+                                            pes))
+                          (list confidence pes npes))
                         (take/n instances 50))))
 
 
