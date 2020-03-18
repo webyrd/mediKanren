@@ -157,14 +157,16 @@
        (if changed? `(concept . ,result) ca)))))
 
 (define (concept-constrain c curies)
-  (match c
-    ('(any) `(concept . ,(map curie->group curies)))
-    (`(category . ,cats)
-      (concept-intersect c `(concept . ,(map curie->group curies))))
-    (`(concept . ,gs)
-      (define (valid-group? g)
-        (ormap (lambda (curie) (group-member? g curie)) curies))
-      `(concept . ,(filter valid-group? gs)))))
+  (if curies
+    (match c
+      ('(any) `(concept . ,(map curie->group curies)))
+      (`(category . ,cats)
+        (concept-intersect c `(concept . ,(map curie->group curies))))
+      (`(concept . ,gs)
+        (define (valid-group? g)
+          (ormap (lambda (curie) (group-member? g curie)) curies))
+        `(concept . ,(filter valid-group? gs))))
+    c))
 
 (define (edge-constrain/subject e c)
   (match c
@@ -209,11 +211,11 @@
 (define (edge-subjects e)
   (match e
     (`(edge . ,es) (map (lambda (e) (cadr (caddr  e))) es))
-    (_             (list 'any))))
+    (_             #f)))
 (define (edge-objects e)
   (match e
     (`(edge . ,es) (map (lambda (e) (cadr (cadddr e))) es))
-    (_             (list 'any))))
+    (_             #f)))
 
 (define (concept-cost c)
   (match c
