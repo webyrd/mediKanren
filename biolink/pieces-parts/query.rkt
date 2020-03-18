@@ -225,6 +225,12 @@
     (`(,_ ,_ (,_ ,subject-curie . ,_) (,_ ,object-curie . ,_) . ,rest)
       (if (or (umls? subject-curie) (umls? object-curie)) 0.5 0.75))))
 
+;; TODO: confidence ranking of paths
+;; multiply per-edge confidences
+;;   KG/CURIE base confidence
+;;   publication count
+;;   synonymous edge count
+;; TODO: relevance ranking? drug safety?
 (define (edge-confidence edge)
   (define base (base-edge-confidence edge))
   base)
