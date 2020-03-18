@@ -93,7 +93,7 @@
                     "(\"gene\" \"genomic entity\")"
                     ;; rtx2
                     "http://w3id.org/biolink/vocab/Protein"
-                    "http://w3id.org/biolink/vocab/NamedThing" ;; ugh
+                    ;; "http://w3id.org/biolink/vocab/NamedThing" ;; ugh
                     ))
 (define gene-or-protein (set->list (set-union gene protein)))
 (define drug      '(;; semmed
