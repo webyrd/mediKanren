@@ -126,6 +126,7 @@
   (if (and (pair? path) (null? (cdr path))) '()
     (cons (take path 3) (path->edges (drop path 2)))))
 
+;; TODO: catch naming errors
 (define (query concepts edge-predicates paths)
   (define edges (append* (map path->edges paths)))
   (define csets (map cons (map car concepts)
@@ -140,7 +141,7 @@
                                                (cdr (assoc s csets))
                                                (cdr (assoc o csets))))))
          edges))
-  (cons edges (append csets esets)))
+  (cons paths (append csets esets)))
 
 (define (summarize-edge es)
   (map (lambda (e) (list (car e) (cadr e) (car (cddddr e))
@@ -172,8 +173,8 @@
   (define curies (set->list (curie-synonyms curie)))
   (foldl (lambda (a b) (if (string<? a b) a b)) (car curies) (cdr curies)))
 
-(define (report/paths paths q)
-  (define edges       (car q))
+(define (report/paths q)
+  (define paths       (car q))
   (define named-cells (cdr q))
   (define kvs (map (lambda (nc) (cons (car nc) ((cdr nc) 'ref)))
                    named-cells))
@@ -286,4 +287,26 @@
 
 ;(displayln "\nBuilding report:")
 ;;(pretty-print (summarize/assoc (cdr q)))
-;(pretty-print (report/paths '((S S->X X X->O O)) q))
+;(pretty-print (report/paths q))
+
+;(displayln "\nRunning 1-hop rhobtb2 query:")
+;(define q (time (query/graph
+                  ;((X       #f)
+                   ;(rhobtb2 "UMLS:C1425762"))
+                  ;((X->rhobtb2 negatively-regulates))
+                  ;(X X->rhobtb2 rhobtb2))))
+
+;(displayln "\nBuilding report:")
+;(pretty-print (report/paths q))
+
+;(displayln "\nRunning 2-hop rhobtb2 query:")
+;(define q (time (query/graph
+                  ;((X       #f)
+                   ;(Y       #f)
+                   ;(rhobtb2 "UMLS:C1425762"))
+                  ;((X->Y       negatively-regulates)
+                   ;(Y->rhobtb2 positively-regulates))
+                  ;(X X->Y Y Y->rhobtb2 rhobtb2))))
+
+;(displayln "\nBuilding report:")
+;(pretty-print (report/paths q))
