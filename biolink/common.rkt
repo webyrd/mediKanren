@@ -334,20 +334,24 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
   (cond
     [(assoc "publications_info" eprops) ;; RTX2
      => (lambda (pr)
-          (define pubs (cdr pr))
-          (define pubs-json-str (string-replace pubs "'" "\""))
-          (define jason-ht (string->jsexpr pubs-json-str))
-          (hash-map jason-ht (lambda (k v)
-                               (cons (string-append
-                                       PUBMED_URL_PREFIX
-                                       (car (regexp-match* #rx"([0-9]+)" (symbol->string k) #:match-select cadr)))
-                                     (list (hash-ref v '|publication date| #f)
-                                           (hash-ref v '|subject score| #f)
-                                           (hash-ref v '|object score| #f)
-                                           (regexp-replace*
-                                             #rx"([ ]+)"
-                                             (hash-ref v 'sentence #f)
-                                             " "))))))]
+          (with-handlers ([exn:fail?
+                           (lambda (v)
+                             ((error-display-handler) (exn-message v) v)
+                             '())])
+            (define pubs (cdr pr))
+            (define pubs-json-str (string-replace pubs "'" "\""))
+            (define jason-ht (string->jsexpr pubs-json-str))
+            (hash-map jason-ht (lambda (k v)
+                                 (cons (string-append
+                                        PUBMED_URL_PREFIX
+                                        (car (regexp-match* #rx"([0-9]+)" (symbol->string k) #:match-select cadr)))
+                                       (list (hash-ref v '|publication date| #f)
+                                             (hash-ref v '|subject score| #f)
+                                             (hash-ref v '|object score| #f)
+                                             (regexp-replace*
+                                              #rx"([ ]+)"
+                                              (hash-ref v 'sentence #f)
+                                              " ")))))))]
     [else '()]))
 (define (publications-info-alist-from-edge edge)
   ;; ((pubmed-URL . (publication-date subject-score object-score sentence)) ...)
