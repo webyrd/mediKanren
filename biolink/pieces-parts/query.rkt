@@ -264,6 +264,13 @@
 (define (take/n xs n)
   (if (or (null? xs) (= n 0)) '() (cons (car xs) (take/n (cdr xs) (- n 1)))))
 
+(define (edges/ranked ranked path-pos edge-pos key)
+  (define path-report (list-ref ranked path-pos))
+  (define instances   (cdr path-report))
+  (list-ref (cdr (findf (lambda (i) (equal? (car (list-ref (cdr i) edge-pos)) key))
+                        instances))
+            edge-pos))
+
 ;; TODO: do these values make sense?
 (define (base-edge-confidence edge)
   (define (umls? curie) (or (string-prefix? curie "UMLS:")
