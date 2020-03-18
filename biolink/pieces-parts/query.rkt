@@ -169,7 +169,7 @@
     q))
 
 (define (curie-norm curie)
-  (define curies (set->list (curie-synonyms (list curie))))
+  (define curies (set->list (curie-synonyms curie)))
   (foldl (lambda (a b) (if (string<? a b) a b)) (car curies) (cdr curies)))
 
 (define (report/paths paths q)

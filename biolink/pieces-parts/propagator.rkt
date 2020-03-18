@@ -116,7 +116,7 @@
 (define (group=? ga gb) (string=? (group-curie ga) (group-curie gb)))
 (define (group-member? g curie) (set-member? (group-curies g) curie))
 (define (curie->group curie)
-  (define synonyms (curie-synonyms (list curie)))
+  (define synonyms (curie-synonyms curie))
   (define curies (set->list synonyms))
   (define first-curie (foldl string-min (car curies) (cdr curies)))
   (define cs (find-concepts #t curies))
