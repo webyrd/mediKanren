@@ -1,5 +1,5 @@
 #lang racket/base
-(provide summarize summarize/assoc query query/graph report/paths
+(provide summarize summarize/assoc query query/graph report/query ranked-paths
          positively-regulates negatively-regulates drug-safe
          gene drug disease phenotype
          (all-defined-out)
@@ -88,7 +88,7 @@
                     ))
 (define protein   '(;; semmed
                     "biological_entity" ;; with \"Amino Acid, Peptide, or Protein\" in "umls_type_label"
-                    ;; robokop                    
+                    ;; robokop
                     ;; orange
                     "(\"gene\" \"genomic entity\")"
                     ;; rtx2
@@ -182,7 +182,19 @@
 (define (curie-norm gs curie)
   (index-of gs curie (lambda (g c) (set-member? (group-curies g) c))))
 
-(define (report/paths q)
+(define (report/query q)
+  (define paths       (car q))
+  (define named-cells (cdr q))
+  (define kvs (map (lambda (nc) (cons (car nc) ((cdr nc) 'ref)))
+                   named-cells))
+  (define csets (filter (lambda (kv) (eq? (cadr kv) 'concept)) kvs))
+  (define esets (filter (lambda (kv) (eq? (cadr kv) 'edge))    kvs))
+  `((concepts: ,(map (lambda (cset) `(,(car cset) ,(length (cddr cset))))
+                     csets))
+    (edges: ,(map (lambda (eset) (cons (car eset) (length (cddr eset))))
+                  esets))))
+
+(define (ranked-paths q)
   (define paths       (car q))
   (define named-cells (cdr q))
   (define kvs (map (lambda (nc) (cons (car nc) ((cdr nc) 'ref)))
@@ -245,20 +257,12 @@
     (map (lambda (path)
            (cons path (sort (map (lambda (p) (cons (path-confidence p) p))
                                  (path-instances path))
-                            (lambda (pa pb) (< (car pa) (car pb))))))
+                            (lambda (pa pb) (> (car pa) (car pb))))))
          paths))
-  `((paths: ,(length (car path-results)))
-    (concepts:
-      ,(map (lambda (cset)
-              `(,(car cset)
-                 ,(length (cddr cset))
-                 ,(map (lambda (g) (cons (group-curie g)
-                                         (set-count (group-curies g))))
-                       (cddr cset))))
-            csets))
-    (edges: ,(map (lambda (eset)
-                    (cons (car eset) (length (cddr eset))))
-                  esets))))
+  path-results)
+
+(define (take/n xs n)
+  (if (or (null? xs) (= n 0)) '() (cons (car xs) (take/n (cdr xs) (- n 1)))))
 
 ;; TODO: do these values make sense?
 (define (base-edge-confidence edge)
@@ -323,7 +327,7 @@
 
 ;(displayln "\nBuilding report:")
 ;;(pretty-print (summarize/assoc (cdr q)))
-;(pretty-print (time (report/paths q)))
+;(pretty-print (time (report/query q)))
 
 ;(displayln "\nRunning 1-hop rhobtb2 query:")
 ;(define q (time (query/graph
@@ -333,7 +337,7 @@
                   ;(X X->rhobtb2 rhobtb2))))
 
 ;(displayln "\nBuilding report:")
-;(pretty-print (time (report/paths q)))
+;(pretty-print (time (report/query q)))
 
 #|
 (displayln "\nRunning 2-hop rhobtb2 query:")
@@ -347,7 +351,14 @@
                   (X X->Y Y Y->rhobtb2 rhobtb2))))
 
 (displayln "\nBuilding report:")
-(pretty-print (time (report/paths q)))
+(pretty-print (time (report/query q)))
+
+(displayln "\nRanking paths:")
+(define ranked (time (ranked-paths q)))
+(for ((path-report ranked))
+     (define instances (cdr path-report))
+     (displayln `(path: ,(length instances) ,(car path-report)))
+     (pretty-print (take/n instances 20)))
 |#
 
 ;; TODO: consolidate synonymous edges
@@ -371,4 +382,11 @@
                   (X X->Y Y Y->rhobtb2 rhobtb2))))
 
 (displayln "\nBuilding report:")
-(pretty-print (time (report/paths q)))
+(pretty-print (time (report/query q)))
+
+(displayln "\nRanking paths:")
+(define ranked (time (ranked-paths q)))
+(for ((path-report ranked))
+     (define instances (cdr path-report))
+     (displayln `(path: ,(length instances) ,(car path-report)))
+     (pretty-print (take/n instances 50)))
