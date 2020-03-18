@@ -5,6 +5,7 @@
          racket/function racket/list (except-in racket/match ==) racket/set)
 
 ;; Simple OO
+;; TODO: () should summarize supported messages
 (define (method-unknown name . args) (error "unknown method:" name args))
 (define (method-except m names)
   (lambda (name . args)

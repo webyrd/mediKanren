@@ -1,5 +1,6 @@
 #lang racket/base
-(provide summarize summarize/assoc query query/graph report/query ranked-paths
+(provide summarize summarize/assoc query query/graph report/query
+         ranked-paths pretty-ranked edges/ranked
          positively-regulates negatively-regulates drug-safe
          gene drug disease phenotype
          (all-defined-out)
@@ -271,6 +272,20 @@
                         instances))
             edge-pos))
 
+(define (pretty-ranked ranked (n #f))
+  (for ((path-report ranked))
+       (define instances (cdr path-report))
+       (displayln `(path: ,(length instances) ,(car path-report)))
+       (pretty-print
+         (map (lambda (pi)
+                (define confidence          (car pi))
+                (define pes        (map car (cdr pi)))
+                (define npes (map (lambda (pe) (cons (curie->name (car pe))
+                                                     (curie->name (cdr pe))))
+                                  pes))
+                (list confidence pes npes))
+              (if n (take/n instances n) instances)))))
+
 ;; TODO: do these values make sense?
 (define (base-edge-confidence edge)
   (define (umls? curie) (or (string-prefix? curie "UMLS:")
@@ -406,7 +421,6 @@
                           (list confidence pes npes))
                         (take/n instances 50))))
 
-
 #|
 (displayln "\nRunning 2-hop tmprss2 up-down query with concept categories:")
 (define q2 (time (query/graph
@@ -452,16 +466,8 @@
 
 (displayln "\nRanking paths:")
 (define ranked (time (ranked-paths q)))
-(for ((path-report ranked))
-     (define instances (cdr path-report))
-     (displayln `(path: ,(length instances) ,(car path-report)))
-     (pretty-print (map (lambda (pi)
-                          (define confidence          (car pi))
-                          (define pes        (map car (cdr pi)))
-                          (define npes (map (lambda (pe)
-                                              (cons (curie->name (car pe))
-                                                    (curie->name (cdr pe))))
-                                            pes))
-                          (list confidence pes npes))
-                        (take/n instances 50))))
-|#
+(pretty-ranked ranked)
+;(pretty-ranked ranked 50)
+
+
+;; TODO: concepts/query
