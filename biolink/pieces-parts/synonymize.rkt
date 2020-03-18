@@ -1,7 +1,5 @@
 #lang racket
-(provide HGNC-CURIE->synonymized-concepts
-         curie-UMLS? curie-aliases curie-synonyms curie-xrefs curie-1xrefs
-         curie-partition/synonyms
+(provide HGNC-CURIE->synonymized-concepts curie-aliases curie-synonyms
          (all-from-out "../common.rkt" "../mk-db.rkt"))
 (require "../common.rkt" "../mk-db.rkt")
 
@@ -18,52 +16,47 @@
                             (else acc)))
                     curies curies)))
 
-(define (curie-UMLS? curie) (or (string-prefix? curie "CUI:")
-                                (string-prefix? curie "UMLS:")))
-(define (concept-gene? c)
-  (or (string=? "http://w3id.org/biolink/vocab/Gene"
-                (cdr (cadddr (cdr c))))
-      (string=? "http://w3id.org/biolink/vocab/GeneSet"
-                (cdr (cadddr (cdr c))))))
-(define (concept-protein? c)
-  (string=? "http://w3id.org/biolink/vocab/Protein"
-            (cdr (cadddr (cdr c)))))
-(define (concept-drug? c)
-  (string=? "http://w3id.org/biolink/vocab/Drug"
-            (cdr (cadddr (cdr c)))))
-(define (concept-disease? c)
-  (string=? "http://w3id.org/biolink/vocab/Disease"
-            (cdr (cadddr (cdr c)))))
+(define (curie-UMLS-gene? c)
+  (and (string-prefix? (caddr c) "UMLS:")
+       (string=? (cdar (cddddr c)) "gene")))
+(define (curie-UMLS-drug? c)
+  (and (string-prefix? (caddr c) "UMLS:")
+       (string=? (cdar (cddddr c)) "chemical_substance")))
+(define (curie-xref-gene? curie)
+  (ormap (lambda (pre) (string-prefix? curie pre))
+         '("NCI:" "HGNC:")))
+(define (curie-xref-drug? curie)
+  (ormap (lambda (pre) (string-prefix? curie pre))
+         '("MTHSPL:" "NDFRT:" "RXNORM:" "CHEMBL:")))
 
 (define (curie-synonyms curies)
-  (define xref    (find-exact-predicates (list "xref")))
   (define same-as (find-exact-predicates (list "equivalent_to")))
   (define (xref-forward cs0)
-    (define cs (filter (lambda (c) (and (not (curie-UMLS? (caddr c)))
-                                        (or (concept-drug?    c)
-                                            (concept-gene?    c)
-                                            (concept-protein? c)))) cs0))
-    (run* (x) (fresh (s o p db eid erest)
-                (membero `(,db . ,s) cs)
-                (== x `(,db . ,o))
-                (membero `(,db . ,p) xref)
-                (edgeo `(,db ,eid ,s ,o ,p . ,erest)))))
-  (define (xref-backward cs0)
-    (define cs (filter (lambda (c) (and (curie-UMLS? (caddr c))
-                                        (or (concept-drug?    c)
-                                            (concept-gene?    c)
-                                            (concept-protein? c)
-                                            (concept-disease? c)))) cs0))
-    (filter
-      (lambda (c) (and (not (curie-UMLS? (caddr c)))
-                       (or (concept-drug?    c)
-                           (concept-gene?    c)
-                           (concept-protein? c))))
-      (run* (x) (fresh (s o p db eid erest)
-                  (membero `(,db . ,o) cs)
-                  (== x `(,db . ,s))
-                  (membero `(,db . ,p) xref)
-                  (edgeo `(,db ,eid ,s ,o ,p . ,erest))))))
+    (define cs-gene (filter (lambda (c) (curie-UMLS-gene? c)) cs0))
+    (define xs-gene (filter curie-xref-gene?
+                            (run* (x) (fresh (c)
+                                        (membero c cs-gene)
+                                        (xref-concepto x c)))))
+    (define cs-drug (filter (lambda (c) (curie-UMLS-drug? c)) cs0))
+    (define xs-drug (filter curie-xref-drug?
+                            (run* (x) (fresh (c)
+                                        (membero c cs-drug)
+                                        (xref-concepto x c)))))
+    (append xs-gene xs-drug))
+  (define (xref-backward ids0)
+    (define xs-gene
+      (filter (lambda (c) (curie-xref-gene? c)) ids0))
+    (define cs-gene (filter curie-UMLS-gene?
+                            (run* (c) (fresh (x)
+                                        (membero x xs-gene)
+                                        (xref-concepto x c)))))
+    (define xs-drug
+      (filter (lambda (c) (curie-xref-drug? c)) ids0))
+    (define cs-drug (filter curie-UMLS-drug?
+                            (run* (c) (fresh (x)
+                                        (membero x xs-drug)
+                                        (xref-concepto x c)))))
+    (map caddr (append cs-gene cs-drug)))
   (define (forward  cs) (run* (x) (fresh (s o p db eid erest)
                                     (membero `(,db . ,s) cs)
                                     (== x `(,db . ,o))
@@ -86,10 +79,10 @@
                     (membero curie ids0)
                     (synonym-concepto curie c))))
            (ids (append ids (map caddr cs)
-                        (map caddr (append (forward       cs0)
-                                           (backward      cs0)
-                                           (xref-forward  cs0)
-                                           (xref-backward cs0)))))
+                        (map caddr (append (forward  cs0)
+                                           (backward cs0)))
+                        (xref-forward  cs0)
+                        (xref-backward ids0)))
            (ids (set-subtract (curie-aliases ids) synonym-ids)))
       (if (set-empty? ids) synonym-ids
         (loop (set->list ids) (set-union synonym-ids ids))))))
