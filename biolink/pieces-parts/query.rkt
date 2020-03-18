@@ -171,7 +171,7 @@
 
 ;; TODO: only report consolidated edges, not each individual one?
 ;; do we merge their properties and categories?
-(define (curie-norm gs curie)
+(define (curie-norm curie)
   ;; TODO: use concept groups rather than calculating this again
   ;(define curies (set->list (curie-synonyms curie)))
   ;(foldl (lambda (a b) (if (string<? a b) a b)) (car curies) (cdr curies))
