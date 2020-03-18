@@ -106,12 +106,10 @@
 
 ;; Graph propagation
 (define (string-min a b) (if (string<? a b) a b))
-(define (group curie curies categories concepts)
-  (list curie curies categories concepts))
-(define (group-curie      g) (car    g))
-(define (group-curies     g) (cadr   g))
-(define (group-categories g) (caddr  g))
-(define (group-concepts   g) (cadddr g))
+(define (group-curie      g) (g 'curie))
+(define (group-curies     g) (g 'curies))
+(define (group-categories g) (g 'categories))
+(define (group-concepts   g) (g 'concepts))
 (define (group<? ga gb) (string<? (group-curie ga) (group-curie gb)))
 (define (group=? ga gb) (string=? (group-curie ga) (group-curie gb)))
 (define (group-member? g curie) (set-member? (group-curies g) curie))
@@ -119,10 +117,15 @@
   (define synonyms (curie-synonyms curie))
   (define curies (set->list synonyms))
   (define first-curie (foldl string-min (car curies) (cdr curies)))
+  ;; TODO: lazily instantiate actual concepts?
   (define cs (find-concepts #t curies))
   (define categories (list->set (map cons (map car cs)
                                      (map (lambda (c) (cadddr (cdr c))) cs))))
-  (group first-curie synonyms categories cs))
+  (method-lambda
+    ((curie)      first-curie)
+    ((curies)     synonyms)
+    ((categories) categories)
+    ((concepts)   cs)))
 (define (curies->groups curies)
   (sort (cdr (foldl (lambda (c acc)
                       (let ((seen (car acc)) (groups (cdr acc)))
