@@ -371,6 +371,58 @@
 ;; TODO: try constraining by category
 ;; TODO: try with rtx2
 
+(displayln "\nRunning 2-hop tmprss2 down-up query with concept categories:")
+(define q1 (time (query/graph
+                  ((X       drug)
+                   (Y       gene-or-protein)
+                   (tmprss2 "UMLS:C1336641"))
+                  ((X->Y       negatively-regulates)
+                   (Y->tmprss2 positively-regulates))
+                  (X X->Y Y Y->tmprss2 tmprss2))))
+
+(displayln "\nBuilding report:")
+(pretty-print (time (report/query q1)))
+
+(displayln "\nRanking paths:")
+(define ranked (time (ranked-paths q1)))
+(for ((path-report ranked))
+     (define instances (cdr path-report))
+     (displayln `(path: ,(length instances) ,(car path-report)))
+     (pretty-print (map (lambda (pi)
+                          (define confidence          (car pi))
+                          (define pes        (map car (cdr pi)))
+                          (list confidence pes))
+                        (take/n instances 50))))
+
+
+
+
+(displayln "\nRunning 2-hop tmprss2 up-down query with concept categories:")
+(define q2 (time (query/graph
+                  ((X       drug)
+                   (Y       gene-or-protein)
+                   (tmprss2 "UMLS:C1336641"))
+                  ((X->Y       positively-regulates)
+                   (Y->tmprss2 negatively-regulates))
+                  (X X->Y Y Y->tmprss2 tmprss2))))
+
+(displayln "\nBuilding report:")
+(pretty-print (time (report/query q2)))
+
+(displayln "\nRanking paths:")
+(define ranked (time (ranked-paths q2)))
+(for ((path-report ranked))
+     (define instances (cdr path-report))
+     (displayln `(path: ,(length instances) ,(car path-report)))
+     (pretty-print (map (lambda (pi)
+                          (define confidence          (car pi))
+                          (define pes        (map car (cdr pi)))
+                          (list confidence pes))
+                        (take/n instances 50))))
+
+
+
+
 
 (displayln "\nRunning 2-hop rhobtb2 query with concept categories:")
 (define q (time (query/graph
@@ -394,3 +446,5 @@
                           (define pes        (map car (cdr pi)))
                           (list confidence pes))
                         (take/n instances 50))))
+
+
