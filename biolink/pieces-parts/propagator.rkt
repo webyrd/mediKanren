@@ -253,8 +253,6 @@
 (define (edge/predicate predicates subject object)
   (define edge
     (cell equal? (cons 'predicate (find-exact-predicates predicates))))
-  (define prev-subject    #f)
-  (define prev-object     #f)
   (define update-subject? #f)
   (define update-object?  #f)
   (propagator
@@ -263,18 +261,16 @@
     (thunk
       (displayln `(running subject update: ,(concept-cost (subject 'ref))
                            ,(length (cdr (subject 'ref)))))
-      (unless (eq? prev-subject (subject 'ref))
-        (set! update-object?  #t)
-        (edge 'set! (edge-constrain/subject (edge 'ref) (subject 'ref))))))
+      (set! update-object?  #t)
+      (edge 'set! (edge-constrain/subject (edge 'ref) (subject 'ref)))))
   (propagator
     (list object)
     (thunk (concept-cost (object 'ref)))
     (thunk
       (displayln `(running object update: ,(concept-cost (object 'ref))
                            ,(length (cdr (object 'ref)))))
-      (unless (eq? prev-object (object 'ref))
-        (set! update-subject? #t)
-        (edge 'set! (edge-constrain/object  (edge 'ref) (object  'ref))))))
+      (set! update-subject? #t)
+      (edge 'set! (edge-constrain/object  (edge 'ref) (object  'ref)))))
   (propagator
     (list edge)
     (thunk (edge-cost (edge 'ref)))
@@ -282,11 +278,9 @@
       (displayln `(running edge update: ,(edge-cost (edge 'ref))))
       (define e (edge 'ref))
       (when update-subject?
-        (subject 'set! (concept-constrain (subject 'ref) (edge-subjects e)))
-        (set! prev-subject (subject 'ref)))
+        (subject 'set! (concept-constrain (subject 'ref) (edge-subjects e))))
       (when update-object?
-        (object  'set! (concept-constrain (object  'ref) (edge-objects  e)))
-        (set! prev-object (object 'ref)))
+        (object  'set! (concept-constrain (object  'ref) (edge-objects  e))))
       (set! update-subject? #f)
       (set! update-object?  #f)))
   edge)
