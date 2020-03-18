@@ -123,6 +123,16 @@
   (define categories (list->set (map cons (map car cs)
                                      (map (lambda (c) (cadddr (cdr c))) cs))))
   (group first-curie synonyms categories cs))
+(define (curies->groups curies)
+  (sort (cdr (foldl (lambda (c acc)
+                      (let ((seen (car acc)) (groups (cdr acc)))
+                        (if (set-member? seen c) acc
+                          (let ((g (curie->group c)))
+                            (cons (set-union seen (group-curies g))
+                                  (cons g groups))))))
+                    (cons (set) '())
+                    curies))
+        group<?))
 
 (define (concept=? ca cb)
   (match* (ca cb)
@@ -159,9 +169,9 @@
 (define (concept-constrain c curies)
   (if curies
     (match c
-      ('(any) `(concept . ,(map curie->group curies)))
+      ('(any) `(concept . ,(curies->groups curies)))
       (`(category . ,cats)
-        (concept-intersect c `(concept . ,(map curie->group curies))))
+        (concept-intersect c `(concept . ,(curies->groups curies))))
       (`(concept . ,gs)
         (define (valid-group? g)
           (ormap (lambda (curie) (group-member? g curie)) curies))
