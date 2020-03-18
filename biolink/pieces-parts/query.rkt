@@ -179,13 +179,8 @@
     (run!)
     q))
 
-;; TODO: only report consolidated edges, not each individual one?
-;; do we merge their properties and categories?
-(define (curie-norm curie)
-  ;; TODO: use concept groups rather than calculating this again
-  ;(define curies (set->list (curie-synonyms curie)))
-  ;(foldl (lambda (a b) (if (string<? a b) a b)) (car curies) (cdr curies))
-  curie)
+(define (curie-norm gs curie)
+  (index-of gs curie (lambda (g c) (set-member? (group-curies g) c))))
 
 (define (report/paths q)
   (define paths       (car q))
@@ -194,29 +189,64 @@
                    named-cells))
   (define csets (filter (lambda (kv) (eq? (cadr kv) 'concept)) kvs))
   (define esets (filter (lambda (kv) (eq? (cadr kv) 'edge))    kvs))
+  (define e=>s
+    (foldl (lambda (path e=>s)
+             (foldl (lambda (edge e=>s)
+                      (define ename (cadr  edge))
+                      (define sname (car   edge))
+                      (hash-set e=>s ename (cddr (assoc sname csets))))
+                    e=>s (path->edges path)))
+           (hash) paths))
+  (define e=>o
+    (foldl (lambda (path e=>o)
+             (foldl (lambda (edge e=>o)
+                      (define ename (cadr  edge))
+                      (define oname (caddr edge))
+                      (hash-set e=>o ename (cddr (assoc oname csets))))
+                    e=>o (path->edges path)))
+           (hash) paths))
+  (define (augment sgs ogs es)
+    (map (lambda (kv)
+           (define key (car kv))
+           (define es  (cdr kv))
+           (define sg (list-ref sgs (car key)))
+           (define og (list-ref ogs (cdr key)))
+           (list key (augmented-edge-confidence sg og es) es))
+         (hash->list
+           (foldl (lambda (e acc)
+                    (define snorm (curie-norm sgs (cadr (caddr  e))))
+                    (define onorm (curie-norm ogs (cadr (cadddr e))))
+                    (define key (cons snorm onorm))
+                    (define existing (hash-ref acc key #f))
+                    (hash-set acc key (if existing (cons e existing) (list e))))
+                  (hash) es))))
+  (define e=>aes
+    (make-immutable-hash
+      (map (lambda (kv)
+             (define sgs (hash-ref e=>s (car kv)))
+             (define ogs (hash-ref e=>o (car kv)))
+             (define aes (augment sgs ogs (cddr kv)))
+             (cons (car kv) aes))
+           esets)))
+  (define (path-instances path)
+    (let loop ((edges (path->edges path)) (lhs #f))
+      (if (null? edges) '(())
+        (let ((aes (hash-ref e=>aes (cadar edges))))
+          (append* (map (lambda (ae)
+                          (define key   (car   ae))
+                          (define snorm (car   key))
+                          (define onorm (cdr   key))
+                          (if (or (not lhs) (equal? lhs snorm))
+                            (map (lambda (suffix) (cons ae suffix))
+                                 (loop (cdr edges) onorm))
+                            '()))
+                        aes))))))
   (define path-results
-    (map
-      (lambda (path)
-        (cons path
-              (sort
-                (map (lambda (p) (cons (path-confidence p) p))
-                     (let loop ((edges (path->edges path)) (lhs #f))
-                       (if (null? edges) '(())
-                         (let* ((ename (cadar  edges))
-                                (es    (cddr (assoc ename esets))))
-                           (append*
-                             (map
-                               (lambda (e)
-                                 (define snorm (curie-norm (cadr (caddr  e))))
-                                 (define onorm (curie-norm (cadr (cadddr e))))
-                                 (if (or (not lhs) (string=? lhs snorm))
-                                   (map (lambda (suffix) (cons e suffix))
-                                        (loop (cdr edges) onorm))
-                                   '()))
-                               es))))))
-                (lambda (pa pb)
-                  (< (car pa) (car pb))))))
-        paths))
+    (map (lambda (path)
+           (cons path (sort (map (lambda (p) (cons (path-confidence p) p))
+                                 (path-instances path))
+                            (lambda (pa pb) (< (car pa) (car pb))))))
+         paths))
   `((paths: ,(length (car path-results)))
     (concepts:
       ,(map (lambda (cset)
@@ -236,38 +266,30 @@
                             (string-prefix? curie "CUI:")))
   (match edge
     (`(uab-pmi . ,_) 1.0)
-    (`(semmed  . ,_) 0.5)
+    (`(semmed  . ,_) 0.4)
     (`(,_ ,_ (,_ ,subject-curie . ,_) (,_ ,object-curie . ,_) . ,rest)
-      (if (or (umls? subject-curie) (umls? object-curie)) 0.5 0.75))))
+      (if (or (umls? subject-curie) (umls? object-curie)) 0.4 0.7))))
 
-;; TODO: confidence ranking of paths
-;; multiply per-edge confidences
-;;   KG/CURIE base confidence
-;;   publication count
-;;   synonymous edge count
 ;; TODO: relevance ranking? drug safety?
 (define (edge-confidence edge)
   (define base (base-edge-confidence edge))
+  ;; TODO: examine publications, subject/object scores, and other evidence
   base)
 
-(define (path-confidence edges) (foldl * 1 (map edge-confidence edges)))
+(define (augmented-edge-confidence sg og es)
+  ;(define (weight-linear+1 n) (+ 1 n))
+  (define (weight-exponential n) (expt 2 n))
+  (define weight weight-exponential)
+  (define support (- 1 (/ 1.0 (weight (length es)))))
+  (define base (apply max (map edge-confidence es)))
+  (+ base (* (- 1 base) support)))
 
-;; concept confidences: 1.0 for given and synonyms, 0.5 for 1-hop xref
+(define (path-confidence aes) (foldl * 1 (map cadr aes)))
 
-;; TODO: improve edge confidence with publications
-;; TODO: adjust base concept confidence with subject/object scores in rtx2
+;; TODO: bayesian concept-based or edge-based reinforcement
 
 ;; multiple edges (an edge set) between two synonym sets
 ;;   take max base confidence + accumulate all pubs and evidence?
-
-;augment concept sets, partition by xref depth
-
-;find edges
-
-;fill in unknown concepts
-
-;repeat until no more unknown concepts or missing edges
-
 
 ;compute edge confidences:
   ;(f (* edge-base subject-xref-base object-xref-base) pubs evidence)
