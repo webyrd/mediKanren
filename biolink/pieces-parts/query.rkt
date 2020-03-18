@@ -180,7 +180,7 @@
     q))
 
 (define (curie-norm gs curie)
-  (index-of gs curie (lambda (g c) (set-member? (group-curies g) c))))
+  (group-curie (findf (lambda (g) (set-member? (group-curies g) curie)) gs)))
 
 (define (report/query q)
   (define paths       (car q))
@@ -221,8 +221,8 @@
     (map (lambda (kv)
            (define key (car kv))
            (define es  (cdr kv))
-           (define sg (list-ref sgs (car key)))
-           (define og (list-ref ogs (cdr key)))
+           (define sg (car key))
+           (define og (cdr key))
            (list key (augmented-edge-confidence sg og es) es))
          (hash->list
            (foldl (lambda (e acc)
@@ -389,4 +389,8 @@
 (for ((path-report ranked))
      (define instances (cdr path-report))
      (displayln `(path: ,(length instances) ,(car path-report)))
-     (pretty-print (take/n instances 50)))
+     (pretty-print (map (lambda (pi)
+                          (define confidence          (car pi))
+                          (define pes        (map car (cdr pi)))
+                          (list confidence pes))
+                        (take/n instances 50))))
