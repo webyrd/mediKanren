@@ -86,6 +86,16 @@
                     ;; rtx2
                     "http://w3id.org/biolink/vocab/Gene"
                     ))
+(define protein   '(;; semmed
+                    "biological_entity" ;; with \"Amino Acid, Peptide, or Protein\" in "umls_type_label"
+                    ;; robokop                    
+                    ;; orange
+                    "(\"gene\" \"genomic entity\")"
+                    ;; rtx2
+                    "http://w3id.org/biolink/vocab/Protein"
+                    "http://w3id.org/biolink/vocab/NamedThing" ;; ugh
+                    ))
+(define gene-or-protein (set->list (set-union gene protein)))
 (define drug      '(;; semmed
                     "chemical_substance"
                     ;; robokop
@@ -325,3 +335,17 @@
 ;; TODO: include a drug-safe constraint
 ;; TODO: try constraining by category
 ;; TODO: try with rtx2
+
+
+(displayln "\nRunning 2-hop rhobtb2 query with concept categories:")
+(define q (time (query/graph
+                  ;; TODO: try constraining categories
+                  ((X       drug)
+                   (Y       gene)
+                   (rhobtb2 "UMLS:C1425762"))
+                  ((X->Y       negatively-regulates)
+                   (Y->rhobtb2 positively-regulates))
+                  (X X->Y Y Y->rhobtb2 rhobtb2))))
+
+(displayln "\nBuilding report:")
+(pretty-print (time (report/paths q)))
