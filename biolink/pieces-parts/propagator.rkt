@@ -117,15 +117,19 @@
   (define synonyms (curie-synonyms curie))
   (define curies (set->list synonyms))
   (define first-curie (foldl string-min (car curies) (cdr curies)))
-  ;; TODO: lazily instantiate actual concepts?
-  (define cs (find-concepts #t curies))
-  (define categories (list->set (map cons (map car cs)
-                                     (map (lambda (c) (cadddr (cdr c))) cs))))
+  (define cs         #f)
+  (define categories #f)
+  (define (force!)
+    (unless cs
+      (set! cs (find-concepts #t (set->list synonyms)))
+      (set! categories
+        (list->set (map cons (map car cs)
+                        (map (lambda (c) (cadddr (cdr c))) cs))))))
   (method-lambda
     ((curie)      first-curie)
     ((curies)     synonyms)
-    ((categories) categories)
-    ((concepts)   cs)))
+    ((categories) (force!) categories)
+    ((concepts)   (force!) cs)))
 (define (curies->groups curies)
   (sort (cdr (foldl (lambda (c acc)
                       (let ((seen (car acc)) (groups (cdr acc)))
@@ -232,7 +236,7 @@
 
 (define (concept-cost c)
   (match c
-    (`(concept . ,gs) (foldl + 0 (map (lambda (g) (length (group-concepts g)))
+    (`(concept . ,gs) (foldl + 0 (map (lambda (g) (set-count (group-curies g)))
                                       gs)))
     (_                0)))
 (define (edge-cost e)
@@ -249,29 +253,35 @@
 (define (edge/predicate predicates subject object)
   (define edge
     (cell equal? (cons 'predicate (find-exact-predicates predicates))))
+  (define prev-subject    #f)
+  (define prev-object     #f)
   (define update-subject? #f)
   (define update-object?  #f)
   (propagator
     (list subject)
     (thunk (concept-cost (subject 'ref)))
     (thunk
-      (set! update-object?  #t)
-      (edge 'set! (edge-constrain/subject (edge 'ref) (subject 'ref)))))
+      (unless (eq? prev-subject (subject 'ref))
+        (set! update-object?  #t)
+        (edge 'set! (edge-constrain/subject (edge 'ref) (subject 'ref))))))
   (propagator
     (list object)
     (thunk (concept-cost (object 'ref)))
     (thunk
-      (set! update-subject? #t)
-      (edge 'set! (edge-constrain/object  (edge 'ref) (object  'ref)))))
+      (unless (eq? prev-object (object 'ref))
+        (set! update-subject? #t)
+        (edge 'set! (edge-constrain/object  (edge 'ref) (object  'ref))))))
   (propagator
     (list edge)
     (thunk (edge-cost (edge 'ref)))
     (thunk
       (define e (edge 'ref))
       (when update-subject?
-        (subject 'set! (concept-constrain (subject 'ref) (edge-subjects e))))
+        (subject 'set! (concept-constrain (subject 'ref) (edge-subjects e)))
+        (set! prev-subject (subject 'ref)))
       (when update-object?
-        (object  'set! (concept-constrain (object  'ref) (edge-objects  e))))
+        (object  'set! (concept-constrain (object  'ref) (edge-objects  e)))
+        (set! prev-object (object 'ref)))
       (set! update-subject? #f)
       (set! update-object?  #f)))
   edge)

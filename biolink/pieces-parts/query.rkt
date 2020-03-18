@@ -169,9 +169,13 @@
     (run!)
     q))
 
-(define (curie-norm curie)
-  (define curies (set->list (curie-synonyms curie)))
-  (foldl (lambda (a b) (if (string<? a b) a b)) (car curies) (cdr curies)))
+;; TODO: only report consolidated edges, not each individual one?
+;; do we merge their properties and categories?
+(define (curie-norm gs curie)
+  ;; TODO: use concept groups rather than calculating this again
+  ;(define curies (set->list (curie-synonyms curie)))
+  ;(foldl (lambda (a b) (if (string<? a b) a b)) (car curies) (cdr curies))
+  curie)
 
 (define (report/paths q)
   (define paths       (car q))
@@ -203,7 +207,7 @@
                 (lambda (pa pb)
                   (< (car pa) (car pb))))))
         paths))
-  `((paths: ,path-results)
+  `((paths: ,(length (car path-results)))
     (concepts:
       ,(map (lambda (cset)
               `(,(car cset)
