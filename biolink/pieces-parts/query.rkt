@@ -371,28 +371,28 @@
 ;; TODO: try constraining by category
 ;; TODO: try with rtx2
 
-(displayln "\nRunning 2-hop tmprss2 down-up query with concept categories:")
-(define q1 (time (query/graph
-                  ((X       drug)
-                   (Y       gene-or-protein)
-                   (tmprss2 "UMLS:C1336641"))
-                  ((X->Y       negatively-regulates)
-                   (Y->tmprss2 positively-regulates))
-                  (X X->Y Y Y->tmprss2 tmprss2))))
+;(displayln "\nRunning 2-hop tmprss2 down-up query with concept categories:")
+;(define q1 (time (query/graph
+                  ;((X       drug)
+                   ;(Y       gene-or-protein)
+                   ;(tmprss2 "UMLS:C1336641"))
+                  ;((X->Y       negatively-regulates)
+                   ;(Y->tmprss2 positively-regulates))
+                  ;(X X->Y Y Y->tmprss2 tmprss2))))
 
-(displayln "\nBuilding report:")
-(pretty-print (time (report/query q1)))
+;(displayln "\nBuilding report:")
+;(pretty-print (time (report/query q1)))
 
-(displayln "\nRanking paths:")
-(define ranked (time (ranked-paths q1)))
-(for ((path-report ranked))
-     (define instances (cdr path-report))
-     (displayln `(path: ,(length instances) ,(car path-report)))
-     (pretty-print (map (lambda (pi)
-                          (define confidence          (car pi))
-                          (define pes        (map car (cdr pi)))
-                          (list confidence pes))
-                        (take/n instances 50))))
+;(displayln "\nRanking paths:")
+;(define ranked (time (ranked-paths q1)))
+;(for ((path-report ranked))
+     ;(define instances (cdr path-report))
+     ;(displayln `(path: ,(length instances) ,(car path-report)))
+     ;(pretty-print (map (lambda (pi)
+                          ;(define confidence          (car pi))
+                          ;(define pes        (map car (cdr pi)))
+                          ;(list confidence pes))
+                        ;(take/n instances 50))))
 
 
 
@@ -417,33 +417,6 @@
      (pretty-print (map (lambda (pi)
                           (define confidence          (car pi))
                           (define pes        (map car (cdr pi)))
-                          (list confidence pes))
-                        (take/n instances 50))))
-
-
-
-
-
-(displayln "\nRunning 2-hop rhobtb2 query with concept categories:")
-(define q (time (query/graph
-                  ((X       drug)
-                   (Y       gene-or-protein)
-                   (rhobtb2 "UMLS:C1425762"))
-                  ((X->Y       negatively-regulates)
-                   (Y->rhobtb2 positively-regulates))
-                  (X X->Y Y Y->rhobtb2 rhobtb2))))
-
-(displayln "\nBuilding report:")
-(pretty-print (time (report/query q)))
-
-(displayln "\nRanking paths:")
-(define ranked (time (ranked-paths q)))
-(for ((path-report ranked))
-     (define instances (cdr path-report))
-     (displayln `(path: ,(length instances) ,(car path-report)))
-     (pretty-print (map (lambda (pi)
-                          (define confidence          (car pi))
-                          (define pes        (map car (cdr pi)))
                           (define npes (map (lambda (pe)
                                               (cons (curie->name (car pe))
                                                     (curie->name (cdr pe))))
@@ -452,3 +425,31 @@
                         (take/n instances 50))))
 
 
+
+
+;(displayln "\nRunning 2-hop rhobtb2 query with concept categories:")
+;(define q (time (query/graph
+                  ;((X       drug)
+                   ;(Y       gene-or-protein)
+                   ;(rhobtb2 "UMLS:C1425762"))
+                  ;((X->Y       negatively-regulates)
+                   ;(Y->rhobtb2 positively-regulates))
+                  ;(X X->Y Y Y->rhobtb2 rhobtb2))))
+
+;(displayln "\nBuilding report:")
+;(pretty-print (time (report/query q)))
+
+;(displayln "\nRanking paths:")
+;(define ranked (time (ranked-paths q)))
+;(for ((path-report ranked))
+     ;(define instances (cdr path-report))
+     ;(displayln `(path: ,(length instances) ,(car path-report)))
+     ;(pretty-print (map (lambda (pi)
+                          ;(define confidence          (car pi))
+                          ;(define pes        (map car (cdr pi)))
+                          ;(define npes (map (lambda (pe)
+                                              ;(cons (curie->name (car pe))
+                                                    ;(curie->name (cdr pe))))
+                                            ;pes))
+                          ;(list confidence pes npes))
+                        ;(take/n instances 50))))
