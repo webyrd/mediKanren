@@ -408,18 +408,8 @@
 
 (displayln "\nRanking paths:")
 (define ranked (time (ranked-paths q1)))
-(for ((path-report ranked))
-     (define instances (cdr path-report))
-     (displayln `(path: ,(length instances) ,(car path-report)))
-     (pretty-print (map (lambda (pi)
-                          (define confidence          (car pi))
-                          (define pes        (map car (cdr pi)))
-                          (define npes (map (lambda (pe)
-                                              (cons (curie->name (car pe))
-                                                    (curie->name (cdr pe))))
-                                            pes))
-                          (list confidence pes npes))
-                        (take/n instances 50))))
+(pretty-ranked ranked)
+
 
 #|
 (displayln "\nRunning 2-hop tmprss2 up-down query with concept categories:")
@@ -436,18 +426,7 @@
 
 (displayln "\nRanking paths:")
 (define ranked (time (ranked-paths q2)))
-(for ((path-report ranked))
-     (define instances (cdr path-report))
-     (displayln `(path: ,(length instances) ,(car path-report)))
-     (pretty-print (map (lambda (pi)
-                          (define confidence          (car pi))
-                          (define pes        (map car (cdr pi)))
-                          (define npes (map (lambda (pe)
-                                              (cons (curie->name (car pe))
-                                                    (curie->name (cdr pe))))
-                                            pes))
-                          (list confidence pes npes))
-                        (take/n instances 50))))
+(pretty-ranked ranked)
 |#
 
 
