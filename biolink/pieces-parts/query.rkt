@@ -273,8 +273,9 @@
 ;;; ... or just let the upstream reporter report edges specific to selected unknown results
 
 
-
 ;(load-databases #t)
+
+;(displayln "\nRunning query:")
 ;(define q (time (query/graph
                   ;((S imatinib) ;; represents a single concept
                    ;(X gene)     ;; represents multiple possibilities
@@ -283,5 +284,6 @@
                    ;(X->O positively-regulates))
                   ;(S S->X X X->O O))))
 
+;(displayln "\nBuilding report:")
 ;;(pretty-print (summarize/assoc (cdr q)))
 ;(pretty-print (report/paths '((S S->X X X->O O)) q))
