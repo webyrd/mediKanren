@@ -313,6 +313,7 @@
 ;(displayln "\nBuilding report:")
 ;(pretty-print (time (report/paths q)))
 
+#|
 (displayln "\nRunning 2-hop rhobtb2 query:")
 (define q (time (query/graph
                   ;; TODO: try constraining categories
@@ -325,6 +326,7 @@
 
 (displayln "\nBuilding report:")
 (pretty-print (time (report/paths q)))
+|#
 
 ;; TODO: consolidate synonymous edges
 
@@ -339,9 +341,8 @@
 
 (displayln "\nRunning 2-hop rhobtb2 query with concept categories:")
 (define q (time (query/graph
-                  ;; TODO: try constraining categories
                   ((X       drug)
-                   (Y       gene)
+                   (Y       gene-or-protein)
                    (rhobtb2 "UMLS:C1425762"))
                   ((X->Y       negatively-regulates)
                    (Y->rhobtb2 positively-regulates))
