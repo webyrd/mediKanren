@@ -11,6 +11,10 @@
                              (cons (string-replace c "UMLS:" "CUI:") acc))
                             ((string-prefix? c "CUI:")
                              (cons (string-replace c "CUI:" "UMLS:") acc))
+                            ((string-prefix? c "NCI:")
+                             (cons (string-replace c "NCI:" "NCIT:") acc))
+                            ((string-prefix? c "NCIT:")
+                             (cons (string-replace c "NCIT:" "NCI:") acc))
                             (else acc)))
                     curies curies)))
 
