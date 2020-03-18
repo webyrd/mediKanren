@@ -278,7 +278,7 @@
 ;;; ... or just let the upstream reporter report edges specific to selected unknown results
 
 
-;(load-databases #t)
+(load-databases #t)
 
 ;(displayln "\nRunning query:")
 ;(define q (time (query/graph
@@ -291,7 +291,7 @@
 
 ;(displayln "\nBuilding report:")
 ;;(pretty-print (summarize/assoc (cdr q)))
-;(pretty-print (report/paths q))
+;(pretty-print (time (report/paths q)))
 
 ;(displayln "\nRunning 1-hop rhobtb2 query:")
 ;(define q (time (query/graph
@@ -301,16 +301,27 @@
                   ;(X X->rhobtb2 rhobtb2))))
 
 ;(displayln "\nBuilding report:")
-;(pretty-print (report/paths q))
+;(pretty-print (time (report/paths q)))
 
-;(displayln "\nRunning 2-hop rhobtb2 query:")
-;(define q (time (query/graph
-                  ;((X       #f)
-                   ;(Y       #f)
-                   ;(rhobtb2 "UMLS:C1425762"))
-                  ;((X->Y       negatively-regulates)
-                   ;(Y->rhobtb2 positively-regulates))
-                  ;(X X->Y Y Y->rhobtb2 rhobtb2))))
+(displayln "\nRunning 2-hop rhobtb2 query:")
+(define q (time (query/graph
+                  ;; TODO: try constraining categories
+                  ((X       #f)
+                   (Y       #f)
+                   (rhobtb2 "UMLS:C1425762"))
+                  ((X->Y       negatively-regulates)
+                   (Y->rhobtb2 positively-regulates))
+                  (X X->Y Y Y->rhobtb2 rhobtb2))))
 
-;(displayln "\nBuilding report:")
-;(pretty-print (report/paths q))
+(displayln "\nBuilding report:")
+(pretty-print (time (report/paths q)))
+
+;; TODO: consolidate synonymous edges
+
+;; TODO: confidence with kg contribution
+;; TODO: confidence with semmed score
+;; TODO: confidence with counting
+
+;; TODO: include a drug-safe constraint
+;; TODO: try constraining by category
+;; TODO: try with rtx2
