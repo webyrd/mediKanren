@@ -252,8 +252,9 @@
   (cell concept=? (cons 'concept (list (curie->group curie)))))
 
 (define (edge/predicate predicates subject object)
-  (define edge
-    (cell equal? (cons 'predicate (find-exact-predicates predicates))))
+  (define ps (if predicates (find-exact-predicates predicates)
+               (run* (p) (predicateo p))))
+  (define edge (cell equal? (cons 'predicate ps)))
   (define update-subject? #f)
   (define update-object?  #f)
   (propagator
