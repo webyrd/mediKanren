@@ -75,6 +75,7 @@
                                "clinically_tested_suspended_phase_2"
                                "clinically_tested_suspended_phase_3"
                                "clinically_tested_suspended_phase_2_or_phase_3"
+                               "has_tradename"
                                ))
 (define gene      '(;; semmed
                     "gene"
@@ -397,7 +398,7 @@
 ;; TODO: try constraining by category
 ;; TODO: try with rtx2
 
-
+#|
 (displayln "\nRunning 2-hop tmprss2 down-up query with concept categories:")
 (define q1 (time (query/graph
                   ((X       drug)
@@ -413,7 +414,25 @@
 (displayln "\nRanking paths:")
 (define ranked (time (ranked-paths q1)))
 (pretty-ranked ranked)
+|#
 
+#|
+(define qu (time (query/graph
+                  ((X       #f)
+                   (Y       #f)
+                   (tmprss2 "UMLS:C1336641"))
+                  ((X->Y       negatively-regulates)
+                   (Y->tmprss2 positively-regulates))
+                  (X X->Y Y Y->tmprss2 tmprss2))))
+
+(call-with-output-file "newoutttt.scm"
+  (lambda (op)
+    (pretty-write (edges/query qu 'X->Y) op)))
+
+(call-with-output-file "newoutttt.scm"
+  (lambda (op)
+    (pretty-write (edges/query qu 'X->Y) op)))
+|#
 
 #|
 (displayln "\nRunning 2-hop tmprss2 up-down query with concept categories:")
@@ -452,3 +471,45 @@
 (pretty-ranked ranked)
 ;(pretty-ranked ranked 50)
 |#
+
+
+
+(displayln "\nRunning 2-hop rhobtb2 query with concept categories:")
+(define q3 (time (query/graph
+                  ((X       drug)
+                   (Y       gene-or-protein)
+                   (rhobtb2 "UMLS:C1425762")
+                   (T       #f ))
+                  ((X->Y       negatively-regulates)
+                   (Y->rhobtb2 positively-regulates)
+                   (X->T       drug-safe))
+                  (X X->Y Y Y->rhobtb2 rhobtb2)
+                  (X X->T T))))
+
+(displayln "\nBuilding report:")
+(pretty-print (time (report/query q3)))
+
+(displayln "\nRanking paths:")
+(define ranked3 (time (ranked-paths q3)))
+(pretty-ranked ranked3)
+(pretty-ranked (take ranked3 1))
+(pretty-ranked (drop ranked3 1))
+;(pretty-ranked ranked3 50)
+
+
+(define q4 (time (query/graph
+                  ((X       drug)
+                   (Y       gene-or-protein)
+                   (rhobtb2 "UMLS:C1425762")
+                   (T       #f))
+                  ((X->Y       negatively-regulates)
+                   (Y->rhobtb2 positively-regulates)
+                   (X->T       '("has_tradename")))
+                  (X X->Y Y Y->rhobtb2 rhobtb2)
+                  (X X->T T))))
+(define ranked4 (time (ranked-paths q4)))
+(pretty-ranked (take ranked4 1))
+(pretty-ranked (drop ranked4 1))
+
+(curies/query q4 'T)
+(edges/query q4 'X->T)
