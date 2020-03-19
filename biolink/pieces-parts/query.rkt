@@ -6,8 +6,8 @@
          gene drug disease phenotype
          (all-defined-out)
          (all-from-out "../common.rkt" "../mk-db.rkt"
-                       "propagator.rkt" "synonymize.rkt"))
-(require "../common.rkt" "../mk-db.rkt" "propagator.rkt" "synonymize.rkt"
+                       "propagator.rkt" "synonymize.rkt" "ontology.rkt"))
+(require "../common.rkt" "../mk-db.rkt" "propagator.rkt" "synonymize.rkt" "ontology.rkt"
          racket/list (except-in racket/match ==) racket/pretty
          racket/set racket/string)
 
