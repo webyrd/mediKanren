@@ -3,7 +3,6 @@
          (all-from-out "../common.rkt" "../mk-db.rkt"))
 (require "../common.rkt" "../mk-db.rkt")
 
-
 (define make-get-all-ontology-ancestors
   (lambda (subclass_of-pred-ls ontology-prefix-str)
     (lambda (S)
@@ -145,6 +144,7 @@
       (get-all-GO-ancestors S (set)))))
 |#
 
+#|
 (define get-curies/names-from-concepts
   (lambda (s)
     (map (lambda (c)
@@ -184,3 +184,4 @@
 (define S6 (keep 1 (find-concepts #t (list "GO:0007257"))))
 (define A6 (get-all-GO-ancestors S6))
 (pretty-print (get-curies/names-from-concepts A6))
+|#
