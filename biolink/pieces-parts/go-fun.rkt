@@ -4,6 +4,109 @@
 (require "../common.rkt" "../mk-db.rkt")
 
 
+(define make-get-all-ontology-ancestors
+  (lambda (subclass_of-pred-ls ontology-prefix-str)
+    (lambda (S)
+      (define get-all-ontology-ancestors
+        (lambda (S ancestors)
+          (match (run/graph
+                   ((S S)
+                    (O #f))
+                   ((S->O subclass_of-pred-ls))
+                   (S S->O O))
+            [(list name=>concepts name=>edges)
+             (let* ((c* (hash-ref name=>concepts 'O))
+                    (c* (filter (lambda (c) (not (set-member? ancestors c))) c*))
+                    (c* (filter (lambda (c) (string-prefix? (concept->curie c) ontology-prefix-str)) c*)))
+               (cond
+                 [(null? c*) ancestors]
+                 [else
+                  (let ((ancestors (let loop ((c* c*)
+                                              (ancestors ancestors))
+                                     (match c*
+                                       ['() ancestors]
+                                       [`(,c . ,c*)
+                                        (loop c* (set-add ancestors c))]))))
+                    (get-all-ontology-ancestors c* ancestors))]))])))
+      (get-all-ontology-ancestors S (set)))))
+
+(define get-all-GO-ancestors (make-get-all-ontology-ancestors '((rtx2 15 . "subclass_of")) "GO:"))
+(define get-all-OBO:GOCHE-ancestors (make-get-all-ontology-ancestors '((rtx2 15 . "subclass_of")) "OBO:GOCHE"))
+
+#|
+;; "substance with phytoestrogen role"
+(get-all-OBO:GOCHE-ancestors (keep 1 (find-concepts #t (list "OBO:GOCHE_76989"))))
+|#
+
+(define make-get-all-ontology-descendants
+  (lambda (subclass_of-pred-ls ontology-prefix-str)
+    (lambda (O)
+      (define get-all-ontology-descendants
+        (lambda (O descendants)
+          (match (run/graph
+                   ((S #f)
+                    (O O))
+                   ((S->O subclass_of-pred-ls))
+                   (S S->O O))
+            [(list name=>concepts name=>edges)
+             (let* ((c* (hash-ref name=>concepts 'S))
+                    (c* (filter (lambda (c) (not (set-member? descendants c))) c*))
+                    (c* (filter (lambda (c) (string-prefix? (concept->curie c) ontology-prefix-str)) c*)))
+               (cond
+                 [(null? c*) descendants]
+                 [else
+                  (let ((descendants (let loop ((c* c*)
+                                                (descendants descendants))
+                                       (match c*
+                                         ['() descendants]
+                                         [`(,c . ,c*)
+                                          (loop c* (set-add descendants c))]))))
+                    (get-all-ontology-descendants c* descendants))]))])))
+      (get-all-ontology-descendants O (set)))))
+
+(define get-all-GO-descendants (make-get-all-ontology-descendants '((rtx2 15 . "subclass_of")) "GO:"))
+(define get-all-OBO:GOCHE-descendants (make-get-all-ontology-descendants '((rtx2 15 . "subclass_of")) "OBO:GOCHE"))
+
+#|
+;; "substance with estrogen role"
+(get-all-OBO:GOCHE-descendants (keep 1 (find-concepts #t (list "OBO:GOCHE_50114"))))
+
+(set
+ '(rtx2
+   5606174
+   "OBO:GOCHE_76989"
+   "substance with phytoestrogen role"
+   (4 . "http://w3id.org/biolink/vocab/ChemicalSubstance")
+   (("iri" . "http://purl.obolibrary.org/obo/GOCHE_76989")
+    ("synonym" . "[]")
+    ("category_label" . "chemical_substance")
+    ("deprecated" . "False")
+    ("provided_by"
+     .
+     "http://purl.obolibrary.org/obo/go/extensions/go-plus.owl")
+    ("id" . "OBO:GOCHE_76989")
+    ("update_date" . "2019-08-02 18:27:55 GMT")
+    ("publications" . "[]")))
+ '(rtx2
+   5606175
+   "OBO:GOCHE_76988"
+   "substance with xenoestrogen role"
+   (4 . "http://w3id.org/biolink/vocab/ChemicalSubstance")
+   (("iri" . "http://purl.obolibrary.org/obo/GOCHE_76988")
+    ("synonym" . "[]")
+    ("category_label" . "chemical_substance")
+    ("deprecated" . "False")
+    ("provided_by"
+     .
+     "http://purl.obolibrary.org/obo/go/extensions/go-plus.owl")
+    ("id" . "OBO:GOCHE_76988")
+    ("update_date" . "2019-08-02 18:27:55 GMT")
+    ("publications" . "[]"))))
+|#
+
+
+
+#|
 ;; How can we tell we reached one of the 3 ultimate GO superclasses?
 ;;
 ;; biological_process   GO:0008150 has subclass_of predicate, but it is a subclass of BFO: CURIES, not GO: CURIES
@@ -40,6 +143,7 @@
                                         (loop c* (set-add ancestors c))]))))
                     (get-all-GO-ancestors c* ancestors))]))])))
       (get-all-GO-ancestors S (set)))))
+|#
 
 (define get-curies/names-from-concepts
   (lambda (s)
