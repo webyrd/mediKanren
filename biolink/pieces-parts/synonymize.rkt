@@ -1,6 +1,7 @@
 #lang racket
 (provide HGNC-CURIE->synonymized-concepts
          curie-aliases curie-synonyms curie->name curie->concepts
+         curie-synonyms/names
          (all-from-out "../common.rkt" "../mk-db.rkt"))
 (require "../common.rkt" "../mk-db.rkt")
 
@@ -12,6 +13,9 @@
   (or name? (ormap curie->name? (set->list (curie-synonyms curie)))))
 (define (curie->concepts curie)
   (find-concepts #t (set->list (curie-synonyms curie))))
+(define (curie-synonyms/names curie)
+  (define css (set->list (curie-synonyms curie)))
+  (map cons css (map curie->name css)))
 
 (define (curie-aliases curies)
   (list->set (foldl (lambda (c acc)

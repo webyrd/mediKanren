@@ -2,6 +2,7 @@
 (provide summarize summarize/assoc query query/graph report/query
          ranked-paths pretty-ranked edges/ranked curies/query edges/query
          positively-regulates negatively-regulates drug-safe
+         edges-between
          gene drug disease phenotype
          (all-defined-out)
          (all-from-out "../common.rkt" "../mk-db.rkt"
@@ -134,6 +135,15 @@
 (define imatinib "UMLS:C0935989")
 (define asthma   "UMLS:C0004096")
 
+(define (edges-between c1 c2)
+  (define c1s (curie->concepts c1))
+  (define c2s (curie->concepts c2))
+  (run* (e) (fresh (s o p db eid erest)
+              (== e `(,db ,eid ,s ,o ,p . ,erest))
+              (membero `(,db . ,s) c1s)
+              (membero `(,db . ,o) c2s)
+              (edgeo e))))
+
 (define (path->edges path)
   (if (and (pair? path) (null? (cdr path))) '()
     (cons (take path 3) (path->edges (drop path 2)))))
@@ -191,10 +201,10 @@
                    named-cells))
   (define csets (filter (lambda (kv) (eq? (cadr kv) 'concept)) kvs))
   (define esets (filter (lambda (kv) (eq? (cadr kv) 'edge))    kvs))
-  `((concepts: ,(map (lambda (cset) `(,(car cset) ,(length (cddr cset))))
-                     csets))
-    (edges: ,(map (lambda (eset) (cons (car eset) (length (cddr eset))))
-                  esets))))
+  `((concepts: . ,(map (lambda (cset) `(,(car cset) ,(length (cddr cset))))
+                       csets))
+    (edges: . ,(map (lambda (eset) `(,(car eset) ,(length (cddr eset))))
+                    esets))))
 
 (define (ranked-paths q)
   (define paths       (car q))
