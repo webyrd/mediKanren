@@ -353,33 +353,31 @@
 
 (load-databases #t)
 
-;(displayln "\nRunning query:")
-;(define q (time (query/graph
-                  ;((S imatinib) ;; represents a single concept
-                   ;(X gene)     ;; represents multiple possibilities
-                   ;(O asthma))  ;; represents a single concept
-                  ;((S->X negatively-regulates)
-                   ;(X->O positively-regulates))
-                  ;(S S->X X X->O O))))
 
-;(displayln "\nBuilding report:")
-;;(pretty-print (summarize/assoc (cdr q)))
-;(pretty-print (time (report/query q)))
+;;;; RHOBTB2 Queries
 
-;(displayln "\nRunning 1-hop rhobtb2 query:")
-;(define q (time (query/graph
-                  ;((X       #f)
-                   ;(rhobtb2 "UMLS:C1425762"))
-                  ;((X->rhobtb2 negatively-regulates))
-                  ;(X X->rhobtb2 rhobtb2))))
+;; 1-hop
+#|
+(displayln "\nRunning 1-hop rhobtb2 query:")
+(define q (time (query/graph
+                  ((X       #f)
+                   (rhobtb2 "UMLS:C1425762"))
+                  ((X->rhobtb2 negatively-regulates))
+                  (X X->rhobtb2 rhobtb2))))
 
-;(displayln "\nBuilding report:")
-;(pretty-print (time (report/query q)))
+(displayln "\nBuilding report:")
+(pretty-print (time (report/query q)))
 
+(displayln "\nRanking paths:")
+(define ranked (time (ranked-paths q)))
+(pretty-ranked ranked)
+|#
+
+
+;; Unconstrained 2-hop
 #|
 (displayln "\nRunning 2-hop rhobtb2 query:")
 (define q (time (query/graph
-                  ;; TODO: try constraining categories
                   ((X       #f)
                    (Y       #f)
                    (rhobtb2 "UMLS:C1425762"))
@@ -392,22 +390,80 @@
 
 (displayln "\nRanking paths:")
 (define ranked (time (ranked-paths q)))
-(for ((path-report ranked))
-     (define instances (cdr path-report))
-     (displayln `(path: ,(length instances) ,(car path-report)))
-     (pretty-print (take/n instances 20)))
+(pretty-ranked ranked)
 |#
 
-;; TODO: consolidate synonymous edges
 
-;; TODO: confidence with kg contribution
-;; TODO: confidence with semmed score
-;; TODO: confidence with counting
+;; Constrained 2-hop
+#|
+(displayln "\nRunning 2-hop rhobtb2 query with concept categories:")
+(define q (time (query/graph
+                  ((X       drug)
+                   (Y       gene-or-protein)
+                   (rhobtb2 "UMLS:C1425762"))
+                  ((X->Y       negatively-regulates)
+                   (Y->rhobtb2 positively-regulates))
+                  (X X->Y Y Y->rhobtb2 rhobtb2))))
 
-;; TODO: include a drug-safe constraint
-;; TODO: try constraining by category
-;; TODO: try with rtx2
+(displayln "\nBuilding report:")
+(pretty-print (time (report/query q)))
 
+(displayln "\nRanking paths:")
+(define ranked (time (ranked-paths q)))
+(pretty-ranked ranked)
+|#
+
+
+;; Drug safety constraint
+#|
+(displayln "\nRunning 2-hop rhobtb2 query with concept categories:")
+(define q3 (time (query/graph
+                  ((X       drug)
+                   (Y       gene-or-protein)
+                   (rhobtb2 "UMLS:C1425762")
+                   (T       #f))
+                  ((X->Y       negatively-regulates)
+                   (Y->rhobtb2 positively-regulates)
+                   (X->T       drug-safe))
+                  (X X->Y Y Y->rhobtb2 rhobtb2)
+                  (X X->T T))))
+
+(displayln "\nBuilding report:")
+(pretty-print (time (report/query q3)))
+
+(displayln "\nRanking paths:")
+(define ranked3 (time (ranked-paths q3)))
+(pretty-ranked (take ranked3 1))
+;(pretty-ranked (drop ranked3 1))
+|#
+
+
+;; has_tradename constraint
+#|
+(define q4 (time (query/graph
+                  ((X       drug)
+                   (Y       gene-or-protein)
+                   (rhobtb2 "UMLS:C1425762")
+                   (T       #f))
+                  ((X->Y       negatively-regulates)
+                   (Y->rhobtb2 positively-regulates)
+                   (X->T       '("has_tradename")))
+                  (X X->Y Y Y->rhobtb2 rhobtb2)
+                  (X X->T T))))
+(define ranked4 (time (ranked-paths q4)))
+(pretty-ranked (take ranked4 1))
+
+;(pretty-ranked (drop ranked4 1))
+;(curies/query q4 'T)
+;(edges/query q4 'X->T)
+|#
+
+
+
+
+;;;; TMPRSS2 Queries
+
+;; 2-hop down-up
 #|
 (displayln "\nRunning 2-hop tmprss2 down-up query with concept categories:")
 (define q1 (time (query/graph
@@ -424,26 +480,12 @@
 (displayln "\nRanking paths:")
 (define ranked (time (ranked-paths q1)))
 (pretty-ranked ranked)
+
+;(edges/ranked ranked 0 0 EDGE-KEY)
 |#
 
-#|
-(define qu (time (query/graph
-                  ((X       #f)
-                   (Y       #f)
-                   (tmprss2 "UMLS:C1336641"))
-                  ((X->Y       negatively-regulates)
-                   (Y->tmprss2 positively-regulates))
-                  (X X->Y Y Y->tmprss2 tmprss2))))
 
-(call-with-output-file "newoutttt.scm"
-  (lambda (op)
-    (pretty-write (edges/query qu 'X->Y) op)))
-
-(call-with-output-file "newoutttt.scm"
-  (lambda (op)
-    (pretty-write (edges/query qu 'X->Y) op)))
-|#
-
+;; 2-hop up-down
 #|
 (displayln "\nRunning 2-hop tmprss2 up-down query with concept categories:")
 (define q2 (time (query/graph
@@ -463,63 +505,40 @@
 |#
 
 
+;; Writing unconstrained 2-hop edges to file
 #|
-(displayln "\nRunning 2-hop rhobtb2 query with concept categories:")
-(define q (time (query/graph
-                  ((X       drug)
-                   (Y       gene-or-protein)
-                   (rhobtb2 "UMLS:C1425762"))
+(define qu (time (query/graph
+                  ((X       #f)
+                   (Y       #f)
+                   (tmprss2 "UMLS:C1336641"))
                   ((X->Y       negatively-regulates)
-                   (Y->rhobtb2 positively-regulates))
-                  (X X->Y Y Y->rhobtb2 rhobtb2))))
+                   (Y->tmprss2 positively-regulates))
+                  (X X->Y Y Y->tmprss2 tmprss2))))
 
-(displayln "\nBuilding report:")
-(pretty-print (time (report/query q)))
-
-(displayln "\nRanking paths:")
-(define ranked (time (ranked-paths q)))
-(pretty-ranked ranked)
-;(pretty-ranked ranked 50)
+(call-with-output-file "newoutttt.scm"
+  (lambda (op)
+    (pretty-write (edges/query qu 'X->Y) op)))
 |#
 
 
 
-(displayln "\nRunning 2-hop rhobtb2 query with concept categories:")
-(define q3 (time (query/graph
-                  ((X       drug)
-                   (Y       gene-or-protein)
-                   (rhobtb2 "UMLS:C1425762")
-                   (T       #f ))
-                  ((X->Y       negatively-regulates)
-                   (Y->rhobtb2 positively-regulates)
-                   (X->T       drug-safe))
-                  (X X->Y Y Y->rhobtb2 rhobtb2)
-                  (X X->T T))))
 
-(displayln "\nBuilding report:")
-(pretty-print (time (report/query q3)))
+;;;; Direct relationship example
 
-(displayln "\nRanking paths:")
-(define ranked3 (time (ranked-paths q3)))
-(pretty-ranked ranked3)
-(pretty-ranked (take ranked3 1))
-(pretty-ranked (drop ranked3 1))
-;(pretty-ranked ranked3 50)
+#|
+(define q (time (query/graph
+                  ((A "UMLS:C0812258") (B "UMLS:C1425762"))
+                  ((A->B #f))
+                  (A A->B B))))
+;; Ranking doesn't really make sense in this particular context.
+(define ranked (time (ranked-paths q)))
+;(pretty-ranked ranked)
+(map curie-synonyms/names (curies/query q 'A))
+|#
 
 
-(define q4 (time (query/graph
-                  ((X       drug)
-                   (Y       gene-or-protein)
-                   (rhobtb2 "UMLS:C1425762")
-                   (T       #f))
-                  ((X->Y       negatively-regulates)
-                   (Y->rhobtb2 positively-regulates)
-                   (X->T       '("has_tradename")))
-                  (X X->Y Y Y->rhobtb2 rhobtb2)
-                  (X X->T T))))
-(define ranked4 (time (ranked-paths q4)))
-(pretty-ranked (take ranked4 1))
-(pretty-ranked (drop ranked4 1))
-
-(curies/query q4 'T)
-(edges/query q4 'X->T)
+#|
+(curie-synonyms/names "UMLS:C0812258")
+(curie-synonyms/names "UMLS:C1425762")
+(define es (edges-between "UMLS:C0812258" "UMLS:C1425762"))
+|#
