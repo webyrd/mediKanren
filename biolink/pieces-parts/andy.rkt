@@ -1,3 +1,19 @@
+(report/query
+ (query/graph
+  ((X       "GTPI:8390")
+   (T       #f))
+  ((X->T       drug-safe))
+  (X X->T T)))
+;; =>
+#|
+(running object update: 0 0)
+(running edge update: 0)
+(running subject update: 1 1)
+(running edge update: 0)
+(running object update: 0 0)
+'((concepts: (X 1) (T 0)) (edges: (X->T 0)))
+|#
+
 (define bogus-upregulate-gene
   (lambda (gene-curie)
     (define q (time (query/graph
