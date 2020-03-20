@@ -108,6 +108,7 @@
       (cons 'indicated_for (curie-to-indicated_for curie))
       (cons 'contraindicated_for (curie-to-contraindicated_for curie))))))
 
+#|
 (define drug-info-from-bogo-edge
   (lambda (bogo-edge)
     (define curie (caar bogo-edge))
@@ -119,20 +120,36 @@
      (list (cons 'pubmeds pubmed-URLs)))))
 
 
+(define q (time (query/graph
+                 ((X       "UMLS:C0035527")
+                  (my-gene "UMLS:C1415326"))
+                 ((X->my-gene positively-regulates))
+                 (X X->my-gene my-gene))))
+
+(define edges/X->g (edges/ranked (ranked-paths q) 0 0))
+
+(map drug-info-from-bogo-edge edges/X->g)
+|#
+
+
+
+#|
+(run* (e)
+  (pmid-edgeo "29325932" e))
+|#
+
 
 
 ;; kdm1a
 (define kdm1a-directly-up (directly-upregulate-gene "HGNC:29079"))
 ;; returns the set of all query results (for X, for gene, for edges X->my-gene, etc.)
 
-(define kdm1a-Xs (curies/query kdm1a-directly-up 'X))
+(define kdm1a-directly-up-Xs (curies/query kdm1a-directly-up 'X))
 
 ;; each edge corresponds to an X in kdm1a-Xs
-(define edges/X->my-gene (edges/ranked (ranked-paths kdm1a-directly-up) 0 0))
+(define edges/X->kdm1a-directly-up (edges/ranked (ranked-paths kdm1a-directly-up) 0 0))
 
-(map drug-info-from-bogo-edge edges/X->my-gene)
-
-
+(define kdm1a-directly-up-drug-info (map drug-info-from-bogo-edge edges/X->kdm1a-directly-up))
 
 #|
 ;; alms1
