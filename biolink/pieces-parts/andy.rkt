@@ -108,7 +108,7 @@
       (cons 'indicated_for (curie-to-indicated_for curie))
       (cons 'contraindicated_for (curie-to-contraindicated_for curie))))))
 
-#|
+
 (define drug-info-from-bogo-edge
   (lambda (bogo-edge)
     (define curie (caar bogo-edge))
@@ -120,6 +120,8 @@
      (list (cons 'pubmeds pubmed-URLs)))))
 
 
+
+#|
 (define q (time (query/graph
                  ((X       "UMLS:C0035527")
                   (my-gene "UMLS:C1415326"))
