@@ -1,9 +1,11 @@
+#|
 (report/query
  (query/graph
   ((X       "GTPI:8390")
    (T       #f))
   ((X->T       drug-safe))
   (X X->T T)))
+|#
 ;; =>
 #|
 (running object update: 0 0)
@@ -14,6 +16,7 @@
 '((concepts: (X 1) (T 0)) (edges: (X->T 0)))
 |#
 
+#|
 (define bogus-upregulate-gene
   (lambda (gene-curie)
     (define q (time (query/graph
@@ -28,6 +31,7 @@
 
 (define a (bogus-upregulate-gene "HGNC:29079"))
 (report/query a)
+|#
 ;;
 ;; > (report/query a)
 ;; '((concepts: (X 1) (my-gene 1) (T 0)) (edges: (X->my-gene 1) (X->T 0)))
