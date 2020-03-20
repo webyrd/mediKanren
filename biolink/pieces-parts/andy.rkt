@@ -49,18 +49,15 @@
 (define drug-info-for-curie
   (lambda (curie)
     (map
-     cons
-     '(tradenames
-      clinical-trials
-      indicated_for
-      contraindicated_for)
-     (map
-      (lambda (a) (map curie-synonyms/names (curies/query a 'T)))
-      (list 
-       (curie-to-tradenames curie)
-       (curie-to-clinical-trials curie)
-       (curie-to-indicated_for curie)
-       (curie-to-contraindicated_for curie))))))
+     (lambda (l)
+       (match l
+         [`(,name . ,a)
+          (cons name (map curie-synonyms/names (curies/query a 'T)))]))
+     (list 
+      (cons 'tradenames (curie-to-tradenames curie))
+      (cons 'clinical-trials (curie-to-clinical-trials curie))
+      (cons 'indicated_for (curie-to-indicated_for curie))
+      (cons 'contraindicated_for (curie-to-contraindicated_for curie))))))
 
 
 
