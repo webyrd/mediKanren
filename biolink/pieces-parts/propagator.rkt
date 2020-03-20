@@ -260,6 +260,7 @@
     (thunk (concept-cost (subject 'ref)))
     (thunk
       (displayln `(running subject update: ,(concept-cost (subject 'ref))
+                           ,(car (subject 'ref))
                            ,(length (cdr (subject 'ref)))))
       (edge 'set! (edge-constrain/subject (edge 'ref) (subject 'ref)))))
   (propagator
@@ -267,13 +268,15 @@
     (thunk (concept-cost (object 'ref)))
     (thunk
       (displayln `(running object update: ,(concept-cost (object 'ref))
+                           ,(car (object 'ref))
                            ,(length (cdr (object 'ref)))))
       (edge 'set! (edge-constrain/object  (edge 'ref) (object  'ref)))))
   (propagator
     (list edge)
     (thunk (edge-cost (edge 'ref)))
     (thunk
-      (displayln `(running edge update: ,(edge-cost (edge 'ref))))
+      (displayln `(running edge update: ,(edge-cost (edge 'ref))
+                           ,(car (edge 'ref))))
       (define e (edge 'ref))
       (subject 'set! (concept-constrain (subject 'ref) (edge-subjects e)))
       (object  'set! (concept-constrain (object  'ref) (edge-objects  e)))))
