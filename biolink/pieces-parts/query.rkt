@@ -276,12 +276,19 @@
 (define (take/n xs n)
   (if (or (null? xs) (= n 0)) '() (cons (car xs) (take/n (cdr xs) (- n 1)))))
 
-(define (edges/ranked ranked path-pos edge-pos key)
+(define (edges/ranked-with-key ranked path-pos edge-pos key)
   (define path-report (list-ref ranked path-pos))
   (define instances   (cdr path-report))
   (list-ref (cdr (findf (lambda (i) (equal? (car (list-ref (cdr i) edge-pos)) key))
                         instances))
             edge-pos))
+
+(define (edges/ranked ranked path-pos edge-pos)
+  (define path-report (list-ref ranked path-pos))
+  (define instances   (cdr path-report))
+  (map (lambda (instance) (list-ref (cdr instance) edge-pos))
+       instances))
+
 
 (define (edges/query  q name) (cdr ((cdr (assoc name q)) 'ref)))
 (define (curies/query q name)
@@ -417,16 +424,7 @@
 ;; Drug safety constraint
 #|
 (displayln "\nRunning 2-hop rhobtb2 query with concept categories:")
-(define q3 (time (query/graph
-                  ((X       drug)
-                   (Y       gene-or-protein)
-                   (rhobtb2 "UMLS:C1425762")
-                   (T       #f))
-                  ((X->Y       negatively-regulates)
-                   (Y->rhobtb2 positively-regulates)
-                   (X->T       drug-safe))
-                  (X X->Y Y Y->rhobtb2 rhobtb2)
-                  (X X->T T))))
+
 
 (displayln "\nBuilding report:")
 (pretty-print (time (report/query q3)))
