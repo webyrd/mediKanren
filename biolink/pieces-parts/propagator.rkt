@@ -145,11 +145,11 @@
 (define (concept=? ca cb)
   (match* (ca cb)
     ((`(concept . ,as) `(concept  . ,bs))
-     (let loop ((as as) (bs bs))
-       (or (null? as) (null? bs)
-           (let ((a (car as)) (b (car bs)))
-             (and (group=? a b) (loop (cdr as) (cdr bs)))))))
-    ((_ _) (equal? ca cb))))
+     (equal? (list->set (map group-curie as))
+             (list->set (map group-curie bs))))
+    ;; TODO: if we ever find a way to reduce categories, this is not sound.
+    ((`(,tag-a . ,_) `(,tag-b . ,_))
+     (equal? tag-a tag-b))))
 
 (define (concept-intersect ca cb)
   (if (eq? ca cb) ca
