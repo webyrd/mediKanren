@@ -12,6 +12,9 @@
 
 (define a (bogus-upregulate-gene "HGNC:29079"))
 (report/query a)
+;;
+;; > (report/query a)
+;; '((concepts: (X 1) (my-gene 1) (T 0)) (edges: (X->my-gene 1) (X->T 0)))
 
 
 
