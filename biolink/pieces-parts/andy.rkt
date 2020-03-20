@@ -10,11 +10,72 @@
                      (X X->my-gene my-gene)
                      (X X->T T))))
 
-    (displayln "\nRanking paths")
-    (define ranked (time (ranked-paths q)))
+    q))
 
-    ranked))
+(define curie-to-anything
+  (lambda (curie predicate*)
+    (query/graph
+      ((X curie)
+       (T #f))
+      ((X->T predicate*))
+      (X X->T T))))
 
+(define curie-to-tradenames
+  (lambda (curie)
+    (curie-to-anything curie '("has_tradename"))))
+
+(define curie-to-clinical-trials
+  (lambda (curie)
+    (curie-to-anything curie '("clinically_tested_approved_unknown_phase"
+                               "clinically_tested_terminated_phase_2"
+                               "clinically_tested_terminated_phase_3"
+                               "clinically_tested_terminated_phase_2_or_phase_3"
+                               "clinically_tested_withdrawn_phase_3"
+                               "clinically_tested_withdrawn_phase_2_or_phase_3"
+                               "clinically_tested_withdrawn_phase_2"
+                               "clinically_tested_suspended_phase_2"
+                               "clinically_tested_suspended_phase_3"
+                               "clinically_tested_suspended_phase_2_or_phase_3"))))
+
+(define curie-to-indicated_for
+  (lambda (curie)
+    (curie-to-anything curie '("indicated_for"))))
+
+(define curie-to-contraindicated_for
+  (lambda (curie)
+    (curie-to-anything curie '("contraindicated_for"))))
+
+
+(define drug-info-for-curie
+  (lambda (curie)
+    (map
+     cons
+     '(tradenames
+      clinical-trials
+      indicated_for
+      contraindicated_for)
+     (map
+      (lambda (a) (map curie-synonyms/names (curies/query a 'T)))
+      (list 
+       (curie-to-tradenames curie)
+       (curie-to-clinical-trials curie)
+       (curie-to-indicated_for curie)
+       (curie-to-contraindicated_for curie))))))
+
+
+
+
+;; kdm1a
+(define kdm1a-directly-up (directly-upregulate-gene "HGNC:29079"))
+;; returns the set of all query results (for X, for gene, for edges X->gene, etc.)
+
+(define kdm1a-Xs (curies/query kdm1a-directly-up 'X))
+
+(define kdm1a-drug-report (map drug-info-for-curie Xs))
+
+
+
+#|
 ;; alms1
 (define alms1-directly-up (directly-upregulate-gene "HGNC:428"))
 (pretty-ranked (take alms1-directly-up 1))
@@ -30,15 +91,18 @@
 ;; nphp3
 (define nphp3-directly-up (directly-upregulate-gene "HGNC:7907"))
 (pretty-ranked (take nphp3-directly-up 1))
-
-;; kdm1a
-(define kdm1a-directly-up (directly-upregulate-gene "HGNC:29079"))
-(pretty-ranked (take kdm1a-directly-up 1))
+|#
 
 
 
 
 
+
+
+
+
+
+#|
 (define directly-downregulate-gene
   (lambda (gene-curie)
     (displayln "\nRunning 1-hop down query with concept categories and drug safety")
@@ -116,3 +180,4 @@
 
 ;; kdm1a
 (report-on-gene "HGNC:29079")
+|#
