@@ -71,7 +71,7 @@
 
 (define kdm1a-Xs (curies/query kdm1a-directly-up 'X))
 
-(define kdm1a-drug-report (map drug-info-for-curie Xs))
+(define kdm1a-drug-report (map drug-info-for-curie kdm1a-Xs))
 
 
 
