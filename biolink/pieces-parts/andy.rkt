@@ -1,3 +1,21 @@
+(define bogus-upregulate-gene
+  (lambda (gene-curie)
+    (define q (time (query/graph
+                     ((X       "GTPI:8390")
+                      (my-gene gene-curie)
+                      (T       #f))
+                     ((X->my-gene positively-regulates)
+                      (X->T       drug-safe))
+                     (X X->my-gene my-gene)
+                     (X X->T T))))
+    q))
+
+(define a (bogus-upregulate-gene "HGNC:29079"))
+(report/query a)
+
+
+
+
 (define directly-upregulate-gene
   (lambda (gene-curie)
     (displayln "\nRunning 1-hop up query with concept categories and drug safety")
@@ -46,6 +64,14 @@
     (curie-to-anything curie '("contraindicated_for"))))
 
 
+(define pubmed-URLs-from-bogo-edge
+  (lambda (bogo-edge)
+    (define concrete-edges (list-ref bogo-edge 2))
+    (remove-duplicates
+      (append*
+        (map pubmed-URLs-from-edge concrete-edges)))))
+
+
 (define drug-info-for-curie
   (lambda (curie)
     (map
@@ -59,16 +85,29 @@
       (cons 'indicated_for (curie-to-indicated_for curie))
       (cons 'contraindicated_for (curie-to-contraindicated_for curie))))))
 
+(define drug-info-from-bogo-edge
+  (lambda (bogo-edge)
+    (define curie (caar bogo-edge))
+    (define pubmed-URLs (pubmed-URLs-from-bogo-edge bogo-edge))
+    (append
+     (list (cons 'curie curie))
+     (list (cons 'curie-synonyms/names (curie-synonyms/names curie)))
+     (drug-info-for-curie curie)
+     (list (cons 'pubmeds pubmed-URLs)))))
+
 
 
 
 ;; kdm1a
 (define kdm1a-directly-up (directly-upregulate-gene "HGNC:29079"))
-;; returns the set of all query results (for X, for gene, for edges X->gene, etc.)
+;; returns the set of all query results (for X, for gene, for edges X->my-gene, etc.)
 
 (define kdm1a-Xs (curies/query kdm1a-directly-up 'X))
 
-(define kdm1a-drug-report (map drug-info-for-curie kdm1a-Xs))
+;; each edge corresponds to an X in kdm1a-Xs
+(define edges/X->my-gene (edges/ranked (ranked-paths kdm1a-directly-up) 0 0))
+
+(map drug-info-from-bogo-edge edges/X->my-gene)
 
 
 
