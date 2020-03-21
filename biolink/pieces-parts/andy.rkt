@@ -43,14 +43,17 @@
   (lambda (gene-curie)
     (displayln "\nRunning 1-hop up query with concept categories and drug safety")
     (define q (time (query/graph
-                     ((X       drug)
+                     (
+                      ;; concepts
+                      (X       drug)
                       (my-gene gene-curie)
                       (T       #f))
+                     ;; edges
                      ((X->my-gene positively-regulates)
                       (X->T       drug-safe))
+                     ;; paths
                      (X X->my-gene my-gene)
                      (X X->T T))))
-
     q))
 
 (define curie-to-anything
