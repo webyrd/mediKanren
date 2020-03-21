@@ -111,7 +111,7 @@
 (define kdm1a-directly-up-drug-info (map drug-info-from-bogo-edge edges/X->kdm1a-directly-up))
 
 
-
+#|
 (define kdm1a-directly-down (directly-downregulate-gene "HGNC:29079"))
 ;; returns the set of all query results (for X, for gene, for edges X->my-gene, etc.)
 
@@ -122,3 +122,4 @@
 
 ;; Does this diverge??? Or is it just slow???
 (define kdm1a-directly-down-drug-info (map drug-info-from-bogo-edge edges/X->kdm1a-directly-down))
+|#
