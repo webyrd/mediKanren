@@ -39,29 +39,38 @@
 
 
 
-(define directly-upregulate-gene
-  (lambda (gene-curie)
-    (displayln "\nRunning 1-hop up query with concept categories and drug safety")
-    (define q (time (query/graph
-                     (
-                      ;; concepts
-                      (X       drug)
-                      (my-gene gene-curie)
-                      (T       #f))
-                     ;; edges
-                     ((X->my-gene positively-regulates)
-                      (X->T       drug-safe))
-                     ;; paths
-                     (X X->my-gene my-gene)
-                     (X X->T T))))
-    q))
+(define make-directly-regulate-gene
+  (lambda (regulation-predicates)
+    (lambda (gene-curie)
+      (displayln "\nRunning 1-hop up query with concept categories and drug safety")
+      (define q (time (query/graph
+                       (
+                        ;; concepts
+                        (X       drug)
+                        (my-gene gene-curie)
+                        (T       #f))
+                       ;; edges
+                       ((X->my-gene regulation-predicates)
+                        (X->T       drug-safe))
+                       ;; paths
+                       (X X->my-gene my-gene)
+                       (X X->T T))))
+      q)))
+
+(define directly-upregulate-gene (make-directly-regulate-gene positively-regulates))
+(define directly-downregulate-gene (make-directly-regulate-gene negatively-regulates))
+
+
 
 (define curie-to-anything
   (lambda (curie predicate*)
     (query/graph
-      ((X curie)
+      (;; concepts
+       (X curie)
        (T #f))
+      ;; edges
       ((X->T predicate*))
+      ;; paths      
       (X X->T T))))
 
 (define curie-to-tradenames
@@ -155,6 +164,21 @@
 (define edges/X->kdm1a-directly-up (edges/ranked (ranked-paths kdm1a-directly-up) 0 0))
 
 (define kdm1a-directly-up-drug-info (map drug-info-from-bogo-edge edges/X->kdm1a-directly-up))
+
+
+
+(define kdm1a-directly-down (directly-downregulate-gene "HGNC:29079"))
+;; returns the set of all query results (for X, for gene, for edges X->my-gene, etc.)
+
+(define kdm1a-directly-down-Xs (curies/query kdm1a-directly-down 'X))
+
+;; each edge corresponds to an X in kdm1a-Xs
+(define edges/X->kdm1a-directly-down (edges/ranked (ranked-paths kdm1a-directly-down) 0 0))
+
+(define kdm1a-directly-down-drug-info (map drug-info-from-bogo-edge edges/X->kdm1a-directly-down))
+
+
+
 
 #|
 ;; alms1
