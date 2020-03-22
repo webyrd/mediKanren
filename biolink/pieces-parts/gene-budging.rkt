@@ -153,10 +153,9 @@
   "object" "object category" "object CURIE"
   "pub URL" "pub date" "pub sentence")
   (for-each (lambda (xs)
-	      (unless (null? xs)
-		;; TODO(namin2greg): I think we're ignoring unsafe drugs still...
-		(for-each (lambda (x) (printf "~a\t" x)) (car xs))
-		(printf "\n")))
+	      (for-each (lambda (x)
+			  (apply printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\n" x))
+			xs))
 	    infos))
 
 (define kdm1a-directly-up-drug-info-for-tsv (map drug-info-for-tsv-from-composite-edge edges/X->kdm1a-directly-up))
