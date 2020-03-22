@@ -109,21 +109,24 @@
      (append*
       (map (lambda (edge)
 	     (match edge
-		    [`(,db
-		       ,edge-id
-		       (,_ ,subject-curie ,subject-name (,_ . ,subject-cat) . ,_)
-		       (,_ ,object-curie ,object-name (,_ . ,object-cat) . ,_)
-		       (,_ . ,predicate) . ,_)
-		     (map (lambda (info)
-			    (match info
-				   [`(,pubmed-url ,pub-date ,subject-score ,object-score ,sentence)
-				    (list db
-					  subject-curie subject-cat subject-name
-					  predicate
-					  object-name object-cat object-curie
-					  pubmed-url pub-date sentence)]))
-			  (publications-info-alist-from-edge edge))
-		     ]))
+               [`(,db
+                  ,edge-id
+                  (,_ ,subject-curie ,subject-name (,_ . ,subject-cat) . ,_)
+                  (,_ ,object-curie ,object-name (,_ . ,object-cat) . ,_)
+                  (,_ . ,predicate) . ,_)
+                (map (lambda (info)
+                       (match info
+                         [`(,pubmed-url ,pub-date ,subject-score ,object-score ,sentence)
+                          (let ((subject-info (map cdr (drug-info-for-curie subject-curie))))
+                            (append
+                             (list db
+                                   subject-curie subject-cat subject-name
+                                   predicate
+                                   object-name object-cat object-curie
+                                   pubmed-url pub-date sentence)
+                             subject-info))]))
+                     (publications-info-alist-from-edge edge))
+                ]))
 	   (list-ref composite-edge 2)))))
 
 
@@ -146,24 +149,28 @@
 (define kdm1a-directly-up-drug-info (map drug-info-from-composite-edge edges/X->kdm1a-directly-up))
 
 (define (tsv-for infos)
-  (printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\n"
+  (printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\n"
   "db"
   "subject CURIE" "subject category" "subject"
   "predicate"
   "object" "object category" "object CURIE"
-  "pub URL" "pub date" "pub sentence")
+  "pub URL" "pub date" "pub sentence"
+  "tradenames" "clinical trials" "indicated for" "contraindicated for")
   (for-each (lambda (xs)
 	      (for-each (lambda (x)
-			  (apply printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\n" x))
+                          (apply printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\n" x))
 			xs))
 	    infos))
 
 (define kdm1a-directly-up-drug-info-for-tsv (map drug-info-for-tsv-from-composite-edge edges/X->kdm1a-directly-up))
 
 (define (go-tsv)
-  (tsv-for kdm1a-directly-up-drug-info-for-tsv)
-  )
-   
+  (tsv-for kdm1a-directly-up-drug-info-for-tsv))
+
+(with-output-to-file
+  "gene-budging-last.tsv"
+  go-tsv)
+
 #|
 ;; aurkb
 (define aurkb-directly-up (directly-upregulate-gene "HGNC:11390"))
