@@ -120,7 +120,7 @@
 				    (list db
 					  subject-curie subject-cat subject-name
 					  predicate
-					  object-curie object-cat object-name
+					  object-name object-cat object-curie
 					  pubmed-url pub-date sentence)]))
 			  (publications-info-alist-from-edge edge))
 		     ]))
@@ -150,7 +150,7 @@
   "db"
   "subject CURIE" "subject category" "subject"
   "predicate"
-  "object CURIE" "object category" "object"
+  "object" "object category" "object CURIE"
   "pub URL" "pub date" "pub sentence")
   (for-each (lambda (xs)
 	      (unless (null? xs)
