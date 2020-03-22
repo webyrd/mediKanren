@@ -5,19 +5,17 @@
 (define make-directly-regulate-gene
   (lambda (regulation-predicates)
     (lambda (gene-curie)
-      (displayln "\nRunning 1-hop up query with concept categories and drug safety")
+      (displayln "\nRunning 1-hop up query with concept categories")
       (define q (time (query/graph
                        (
                         ;; concepts
                         (X       drug)
                         (my-gene gene-curie)
-                        (T       #f))
+			)
                        ;; edges
-                       ((X->my-gene regulation-predicates)
-                        (X->T       drug-safe))
+                       ((X->my-gene regulation-predicates))
                        ;; paths
-                       (X X->my-gene my-gene)
-                       (X X->T T))))
+                       (X X->my-gene my-gene))))
       q)))
 
 (define directly-upregulate-gene (make-directly-regulate-gene positively-regulates))
@@ -65,10 +63,10 @@
     (curie-to-anything curie '("contraindicated_for"))))
 
 
-(define pubmed-URLs-from-bogo-edge
-  (lambda (bogo-edge)
-    ;;(printf "starting pubmed-URLs-from-bogo-edge\n")
-    (define concrete-edges (list-ref bogo-edge 2))
+(define pubmed-URLs-from-composite-edge
+  (lambda (composite-edge)
+    ;;(printf "starting pubmed-URLs-from-composite-edge\n")
+    (define concrete-edges (list-ref composite-edge 2))
     ;;(printf "concrete-edges length = ~s\n" (length concrete-edges))
     (let ((url-ls (map pubmed-URLs-from-edge concrete-edges)))
       ;;(printf "url-ls = ~s\n" url-ls)
@@ -92,11 +90,11 @@
       (cons 'contraindicated_for (curie-to-contraindicated_for curie))))))
 
 
-(define drug-info-from-bogo-edge
-  (lambda (bogo-edge)    
-    (define curie (caar bogo-edge))
+(define drug-info-from-composite-edge
+  (lambda (composite-edge)    
+    (define curie (caar composite-edge))
     ; (printf "curie = ~s\n" curie)
-    (define pubmed-URLs (pubmed-URLs-from-bogo-edge bogo-edge))
+    (define pubmed-URLs (pubmed-URLs-from-composite-edge composite-edge))
     ; (printf "calculating curie-synonyms/names\n")
     (define synonyms/names (curie-synonyms/names curie))
     ; (printf "calculated curie-synonyms/names of length ~s\n" (length synonyms/names))
@@ -105,6 +103,28 @@
      (list (cons 'curie-synonyms/names synonyms/names))
      (drug-info-for-curie curie)
      (list (cons 'pubmeds pubmed-URLs)))))
+
+(define drug-info-for-tsv-from-composite-edge
+  (lambda (composite-edge)
+     (append*
+      (map (lambda (edge)
+	     (match edge
+		    [`(,db
+		       ,edge-id
+		       (,_ ,subject-curie ,subject-name (,_ . ,subject-cat) . ,_)
+		       (,_ ,object-curie ,object-name (,_ . ,object-cat) . ,_)
+		       (,_ . ,predicate) . ,_)
+		     (map (lambda (info)
+			    (match info
+				   [`(,pubmed-url ,pub-date ,subject-score ,object-score ,sentence)
+				    (list db
+					  subject-curie subject-cat subject-name
+					  predicate
+					  object-curie object-cat object-name
+					  pubmed-url pub-date sentence)]))
+			  (publications-info-alist-from-edge edge))
+		     ]))
+	   (list-ref composite-edge 2)))))
 
 
 #|
@@ -123,8 +143,28 @@
 ;; each edge corresponds to an X in kdm1a-Xs
 (define edges/X->kdm1a-directly-up (edges/ranked (ranked-paths kdm1a-directly-up) 0 0))
 
-(define kdm1a-directly-up-drug-info (map drug-info-from-bogo-edge edges/X->kdm1a-directly-up))
+(define kdm1a-directly-up-drug-info (map drug-info-from-composite-edge edges/X->kdm1a-directly-up))
 
+(define (tsv-for infos)
+  (printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\n"
+  "db"
+  "subject CURIE" "subject category" "subject"
+  "predicate"
+  "object CURIE" "object category" "object"
+  "pub URL" "pub date" "pub sentence")
+  (for-each (lambda (xs)
+	      (unless (null? xs)
+		;; TODO(namin2greg): I think we're ignoring unsafe drugs still...
+		(for-each (lambda (x) (printf "~a\t" x)) (car xs))
+		(printf "\n")))
+	    infos))
+
+(define kdm1a-directly-up-drug-info-for-tsv (map drug-info-for-tsv-from-composite-edge edges/X->kdm1a-directly-up))
+
+(define (go-tsv)
+  (tsv-for kdm1a-directly-up-drug-info-for-tsv)
+  )
+   
 #|
 ;; aurkb
 (define aurkb-directly-up (directly-upregulate-gene "HGNC:11390"))
@@ -135,7 +175,7 @@
 ;; each edge corresponds to an X in aurkb-Xs
 (define edges/X->aurkb-directly-up (edges/ranked (ranked-paths aurkb-directly-up) 0 0))
 
-(define aurkb-directly-up-drug-info (map drug-info-from-bogo-edge edges/X->aurkb-directly-up))
+(define aurkb-directly-up-drug-info (map drug-info-from-composite-edge edges/X->aurkb-directly-up))
 |#
 
 #|
@@ -150,7 +190,7 @@
 (define edges/X->kdm1a-directly-down (edges/ranked (ranked-paths kdm1a-directly-down) 0 0))
 
 ;; 
-(define kdm1a-directly-down-drug-info (map drug-info-from-bogo-edge edges/X->kdm1a-directly-down))
+(define kdm1a-directly-down-drug-info (map drug-info-from-composite-edge edges/X->kdm1a-directly-down))
 |#
 
 
