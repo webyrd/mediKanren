@@ -168,7 +168,7 @@
     (printf "*** finished getting directly-~s-drug-info-for-tsv for gene CURIE ~s\n" direction the-gene-curie)
     
     (cons the-gene-curie directly-up/down-drug-info-for-tsv)
-    
+        
     ))
 
 (define dr-query1-up (make-dr-query1-up/down 'up directly-upregulate-gene))
@@ -188,17 +188,29 @@
 
   (printf "*** finding up-regulators for gene CURIE ~s\n" the-gene-curie)
 
-  (dr-query1-up the-gene-curie the-gene-symbol)
+  (define up-query-results (time (dr-query1-up the-gene-curie the-gene-symbol)))
     
   (printf "*** finding down-regulators for gene CURIE ~s\n" the-gene-curie)
 
-  (dr-query1-down the-gene-curie the-gene-symbol)
+  (define down-query-results (time (dr-query1-down the-gene-curie the-gene-symbol)))
     
-  (printf "*** finished processing gene CURIE ~s\n" the-gene-curie)   
+  (printf "*** writing results for gene CURIE ~s\n" the-gene-curie)
+
+  (define my-query-result (append up-query-results down-query-results))
+  
+  (define (go-tsv)
+    (tsv-for my-query-result))
+  
+  (with-output-to-file (format "~a-budging.tsv" the-gene-symbol)
+    go-tsv
+    #:exists 'replace)
+
+  (printf "*** finished processing gene CURIE ~s\n" the-gene-curie)
+    
   )
 
 (define (dr-query gene-curies)
-  (map dr-query1 gene-curies))
+  (for-each dr-query1 gene-curies))
 
 (define (tsv-for gene-curie/infos-list)
   (printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\n"
@@ -222,18 +234,11 @@
 
 
 
-;(define the-gene-curies (list "HGNC:11390" "HGNC:13557" "HGNC:2537"))
-(define the-gene-curies (list "HGNC:29079" "HGNC:11390" "HGNC:13557" "HGNC:2537"))
+; (define the-gene-curies (list "HGNC:11390" "HGNC:13557" "HGNC:2537"))
+; (define the-gene-curies (list "HGNC:29079" "HGNC:11390" "HGNC:13557" "HGNC:2537"))
 
-(define my-query-result (dr-query the-gene-curies))
+(define the-gene-curies (list "HGNC:29079"))
 
-(define (go-tsv)
-  (tsv-for my-query-result))
-
-(with-output-to-file
-  "gene-budging-last.tsv"
-  go-tsv
-  #:exists 'replace)
 
 #|
 ;; aurkb
