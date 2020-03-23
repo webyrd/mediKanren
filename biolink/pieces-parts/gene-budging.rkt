@@ -139,34 +139,62 @@
 
 (define the-gene-curie "HGNC:29079")
 
+
+
+(define (make-dr-query1-up/down direction directly-up/down-regulate-gene)
+  (lambda (the-gene-curie the-gene-symbol)
+
+    (printf "*** getting directly ~s for gene CURIE ~s\n" direction the-gene-curie)
+    
+    (define directly-up/down (time (directly-up/down-regulate-gene the-gene-curie)))
+    ;; returns the set of all query results (for X, for gene, for edges X->my-gene, etc.)
+
+    ;; unused
+    ;; (define directly-up/down-Xs (curies/query directly-up/down 'X))
+
+    (printf "*** getting edges/X->directly-~s for gene CURIE ~s\n" direction the-gene-curie)
+  
+    ;; each edge corresponds to an X in Xs
+    (define edges/X->directly-up/down (time (edges/ranked (ranked-paths directly-up/down) 0 0)))
+
+    (printf "*** getting directly-~s-drug-info for gene CURIE ~s\n" direction the-gene-curie)
+  
+    (define directly-up/down-drug-info (time (map drug-info-from-composite-edge edges/X->directly-up/down)))
+
+    (printf "*** getting directly-~s-drug-info-for-tsv for gene CURIE ~s\n" direction the-gene-curie)
+  
+    (define directly-up/down-drug-info-for-tsv (time (map drug-info-for-tsv-from-composite-edge edges/X->directly-up/down)))
+
+    (printf "*** finished getting directly-~s-drug-info-for-tsv for gene CURIE ~s\n" direction the-gene-curie)
+    
+    (cons the-gene-curie directly-up/down-drug-info-for-tsv)
+    
+    ))
+
+(define dr-query1-up (make-dr-query1-up/down 'up directly-upregulate-gene))
+
+(define dr-query1-down (make-dr-query1-up/down 'down directly-downregulate-gene))
+
+
 (define (dr-query1 the-gene-curie)
 
-  (printf "*** dr-query1 called for gene CURIE: ~s\n" the-gene-curie)
+  (printf "*** dr-query1 called for gene CURIE ~s\n" the-gene-curie)
 
-  (printf "*** getting directly up for gene CURIE: ~s\n" the-gene-curie)
+  (printf "*** getting gene symbol for gene CURIE ~s\n" the-gene-curie)
+
+  (define the-gene-symbol 'TODO)
+  
+  (printf "*** found gene symbol ~s for gene CURIE ~s\n" the-gene-curie)
+
+  (printf "*** finding up-regulators for gene CURIE ~s\n" the-gene-curie)
+
+  (dr-query1-up the-gene-curie the-gene-symbol)
     
-  (define directly-up (time (directly-upregulate-gene the-gene-curie)))
-  ;; returns the set of all query results (for X, for gene, for edges X->my-gene, etc.)
+  (printf "*** finding down-regulators for gene CURIE ~s\n" the-gene-curie)
 
-  ;; unused
-  ;; (define directly-up-Xs (curies/query directly-up 'X))
-
-  (printf "*** getting edges/X->directly-up for gene CURIE: ~s\n" the-gene-curie)
-  
-  ;; each edge corresponds to an X in Xs
-  (define edges/X->directly-up (time (edges/ranked (ranked-paths directly-up) 0 0)))
-
-  (printf "*** getting directly-up-drug-info for gene CURIE: ~s\n" the-gene-curie)
-  
-  (define directly-up-drug-info (time (map drug-info-from-composite-edge edges/X->directly-up)))
-
-  (printf "*** getting directly-up-drug-info-for-tsv for gene CURIE: ~s\n" the-gene-curie)
-  
-  (define directly-up-drug-info-for-tsv (time (map drug-info-for-tsv-from-composite-edge edges/X->directly-up)))
-
-  (printf "*** finished processing gene CURIE: ~s\n" the-gene-curie)
-  
-  (cons the-gene-curie directly-up-drug-info-for-tsv)
+  (dr-query1-down the-gene-curie the-gene-symbol)
+    
+  (printf "*** finished processing gene CURIE ~s\n" the-gene-curie)   
   )
 
 (define (dr-query gene-curies)
