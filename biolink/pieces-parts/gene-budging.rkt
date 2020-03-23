@@ -212,21 +212,22 @@
   (for-each dr-query1 gene-curies))
 
 (define (tsv-for gene-curie gene-symbol infos)
-  (printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\n"
-  "gene CURIE"
-  "gene symbol"
-  "db"
-  "subject CURIE" "subject category" "subject"
-  "predicate"
-  "object" "object category" "object CURIE"
-  "pub URL" "pub date" "pub sentence"
-  "tradenames" "clinical trials" "indicated for" "contraindicated for")
-  (for-each (lambda (xs)
-              (for-each (lambda (x)
-                          (apply printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\n"
-                                 (list gene-curie gene-symbol x)))
-                        xs))
-            infos))
+  (lambda ()
+    (printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\n"
+            "gene CURIE"
+            "gene symbol"
+            "db"
+            "subject CURIE" "subject category" "subject"
+            "predicate"
+            "object" "object category" "object CURIE"
+            "pub URL" "pub date" "pub sentence"
+            "tradenames" "clinical trials" "indicated for" "contraindicated for")
+    (for-each (lambda (xs)
+                (for-each (lambda (x)
+                            (apply printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\n"
+                                   gene-curie gene-symbol x))
+                          xs))
+              infos)))
 
 
 
