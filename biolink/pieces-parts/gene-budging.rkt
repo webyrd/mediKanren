@@ -193,15 +193,17 @@
   (printf "*** finding down-regulators for gene CURIE ~s\n" the-gene-curie)
 
   (define down-query-results (time (dr-query1-down the-gene-curie the-gene-symbol)))
-    
-  (printf "*** writing results for gene CURIE ~s\n" the-gene-curie)
-
+  
   (define my-query-result (append up-query-results down-query-results))
   
   (define (go-tsv)
     (tsv-for my-query-result))
+
+  (define output-file-name (format "~a-budging.tsv" the-gene-symbol))
   
-  (with-output-to-file (format "~a-budging.tsv" the-gene-symbol)
+  (printf "*** writing results for gene CURIE ~s to file ~s\n" the-gene-curie output-file-name)
+  
+  (with-output-to-file output-file-name
     go-tsv
     #:exists 'replace)
 
