@@ -137,8 +137,11 @@
 
 (printf "starting upregulation...\n")
 
+(define the-gene-curie "HGNC:29079")
+
+(define (dr-query1 the-gene-curie)
 ;; kdm1a
-(define kdm1a-directly-up (directly-upregulate-gene "HGNC:29079"))
+(define kdm1a-directly-up (directly-upregulate-gene the-gene-curie))
 ;; returns the set of all query results (for X, for gene, for edges X->my-gene, etc.)
 
 (define kdm1a-directly-up-Xs (curies/query kdm1a-directly-up 'X))
@@ -148,28 +151,48 @@
 
 (define kdm1a-directly-up-drug-info (map drug-info-from-composite-edge edges/X->kdm1a-directly-up))
 
-(define (tsv-for infos)
-  (printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\n"
+(define kdm1a-directly-up-drug-info-for-tsv (map drug-info-for-tsv-from-composite-edge edges/X->kdm1a-directly-up))
+
+(cons the-gene-curie kdm1a-directly-up-drug-info-for-tsv)
+)
+
+(define (dr-query gene-curies)
+  (map dr-query1 gene-curies))
+
+(define (tsv-for gene-curie/infos-list)
+  (printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\n"
+  "gene CURIE"
   "db"
   "subject CURIE" "subject category" "subject"
   "predicate"
   "object" "object category" "object CURIE"
   "pub URL" "pub date" "pub sentence"
   "tradenames" "clinical trials" "indicated for" "contraindicated for")
-  (for-each (lambda (xs)
-	      (for-each (lambda (x)
-                          (apply printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\n" x))
-			xs))
-	    infos))
+  (for-each (lambda (gene-curie/infos)
+	      (let ((the-gene-curie (car gene-curie/infos))
+		    (infos (cdr gene-curie/infos)))
+		(for-each (lambda (xs)
+			    (for-each (lambda (x)
+					(apply printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\n" (cons the-gene-curie x)))
+				      xs))
+			  infos)))
+	    gene-curie/infos-list))
 
-(define kdm1a-directly-up-drug-info-for-tsv (map drug-info-for-tsv-from-composite-edge edges/X->kdm1a-directly-up))
+
+
+
+;(define the-gene-curies (list "HGNC:11390" "HGNC:13557" "HGNC:2537"))
+(define the-gene-curies (list "HGNC:29079" "HGNC:11390" "HGNC:13557" "HGNC:2537"))
+
+(define my-query-result (dr-query the-gene-curies))
 
 (define (go-tsv)
-  (tsv-for kdm1a-directly-up-drug-info-for-tsv))
+  (tsv-for my-query-result))
 
 (with-output-to-file
   "gene-budging-last.tsv"
-  go-tsv)
+  go-tsv
+  #:exists 'replace)
 
 #|
 ;; aurkb
@@ -208,3 +231,4 @@
 ;; CTSL   HGNC:2537
 
 ;; include semmed sentences, when possible  (date would be nice)
+
