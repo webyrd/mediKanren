@@ -75,13 +75,15 @@
 
 (define drug-info-for-curie
   (lambda (curie)
-    ;;(printf "starting drug-info-for-curie\n")
+    (printf "*** starting drug-info-for-curie ~s\n" curie)
     (map
      (lambda (l)
        (match l
          [`(,name . ,q)
-          (let ((ls (map curie-synonyms/names (curies/query q 'T))))
-            (printf "ls length = ~s\n" (apply + (map length ls)))
+          (printf "*** calculating curie-synonyms/names list for curie ~s\n" curie)
+          (let ((ls (time (map curie-synonyms/names (curies/query q 'T)))))
+            (printf "*** calculated curie-synonyms/names list for curie ~s\n" curie)
+            (printf "*** ls length = ~s\n" (apply + (map length ls)))
             (cons name ls))]))
      (list 
       (cons 'tradenames (curie-to-tradenames curie))
@@ -93,11 +95,11 @@
 (define drug-info-from-composite-edge
   (lambda (composite-edge)    
     (define curie (caar composite-edge))
-    ; (printf "curie = ~s\n" curie)
+    (printf "*** drug-info-from-composite-edge for curie = ~s\n" curie)
     (define pubmed-URLs (pubmed-URLs-from-composite-edge composite-edge))
-    ; (printf "calculating curie-synonyms/names\n")
-    (define synonyms/names (curie-synonyms/names curie))
-    ; (printf "calculated curie-synonyms/names of length ~s\n" (length synonyms/names))
+    (printf "*** calculating curie-synonyms/names\n")
+    (define synonyms/names (time (curie-synonyms/names curie)))
+    (printf "*** calculated curie-synonyms/names of length ~s\n" (length synonyms/names))
     (append
      (list (cons 'curie curie))
      (list (cons 'curie-synonyms/names synonyms/names))
@@ -235,7 +237,14 @@
 ; (define the-gene-curies (list "HGNC:11390" "HGNC:13557" "HGNC:2537"))
 ; (define the-gene-curies (list "HGNC:29079" "HGNC:11390" "HGNC:13557" "HGNC:2537"))
 
-(define the-gene-curies (list "HGNC:29079"))
+; kdm1a
+; (define the-gene-curies (list "HGNC:29079"))
+
+; ACE2
+;(define the-gene-curies (list "HGNC:13557"))
+
+; CTSL
+;(define the-gene-curies (list "HGNC:2537"))
 
 
 #|
