@@ -1,6 +1,7 @@
 #lang racket
 (provide (all-defined-out))
-(require "query.rkt")
+(require "query.rkt"
+          racket/engine)
 
 (define make-directly-regulate-gene
   (lambda (regulation-predicates)
@@ -132,17 +133,6 @@
 	   (list-ref composite-edge 2)))))
 
 
-#|
-(pubmed-URLs-from-edge '(semmed 907404 (4417 "UMLS:C0023870" "Lithium" (4 . "chemical_substance") (("umls_type_label" . "(\"Pharmacologic Substance\" \"Element, Ion, or Isotope\")") ("xrefs" . "(\"SNOMEDCT_US:85899009\" \"LNC:LP16175-9\" \"LCH_NW:sh85077577\" \"USPMG:MTHU000811\" \"NCI_NCI-GLOSS:CDR0000476347\" \"MMSL:d00061\" \"MTHSPL:NOCODE\" \"CPM:32027\" \"UNII:9FN79X2M3F\" \"MESH:D008094\" \"SNOMEDCT_US:321719003\" \"PDQ:CDR0000039491\" \"NDFRT:N0000147892\" \"SNM:F-10380\" \"VANDF:4019803\" \"MEDCIN:199593\" \"RCD:XM0lB\" \"SNMI:C-15400\" \"CHV:0000007490\" \"NDDF:001532\" \"RCD:d6...\" \"NDFRT:N0000166224\" \"MTHSPL:9FN79X2M3F\" \"ATC:N05AN01\" \"DRUGBANK:DB01356\" \"LNC:MTHU004197\" \"AOD:0000019454\" \"PSY:28590\" \"CSP:1852-6098\" \"MTH:U002050\" \"LCH:U002722\" \"INCHIKEY:SIAPCJWMELPYOE-UHFFFAOYSA-N\" \"RXNORM:6448\" \"CHEMBL:CHEMBL2146126\" \"NCI:C95186\" \"NCI:C1318\")") ("id" . "UMLS:C0023870") ("umls_type" . "(\"T121\" \"T196\")"))) (7571 "UMLS:C1428785" "KDM1A gene" (2 . "gene") (("umls_type_label" . "(\"Gene or Genome\")") ("xrefs" . "(\"NCI_NCI-HGNC:HGNC:29079\" \"HGNC:HGNC:29079\" \"OMIM:609132\" \"NCI:C78141\" \"MTH:NOCODE\")") ("id" . "UMLS:C1428785") ("umls_type" . "(\"T028\")"))) (10 . "negatively_regulates") (("is_defined_by" . "semmeddb") ("negated" . "False") ("SEMMED_PRED" . "INHIBITS") ("pmids" . "21727907") ("provided_by" . "semmeddb_sulab") ("n_pmids" . "1") ("relation" . "semmeddb:negatively_regulates"))))
-|#
-
-
-(printf "starting upregulation...\n")
-
-(define the-gene-curie "HGNC:29079")
-
-
-
 (define (make-dr-query1-up/down direction directly-up/down-regulate-gene)
   (lambda (the-gene-curie the-gene-symbol)
 
@@ -207,11 +197,29 @@
     #:exists 'replace)
 
   (printf "*** finished processing gene CURIE ~s\n" the-gene-curie)
-    
+
+  'finished
   )
 
 (define (dr-query gene-curies)
-  (for-each dr-query1 gene-curies))
+  (for-each
+    (lambda (curie)
+      ;; 10 minute timeout per curie
+      (define timeout-ms (* 10 60 1000))
+      (printf "@@@ dr-query creating engine for curie ~s\n" curie)
+      (define eng (engine (lambda (p)
+                            (dr-query1 curie))))
+      (printf "@@@ dr-query running engine for ~s ms for curie ~s\n" timeout-ms curie)
+      (engine-run timeout-ms eng)
+      (printf "@@@ dr-query engine for curie ~s finished\n" curie)
+      (if (engine-result eng)
+          (printf "@@@ dr-query engine for curie ~s ran to completion\n" curie)
+          (printf "@@@ dr-query engine for curie ~s timed out!!\n" curie))
+      (printf "@@@ dr-query killing engine for curie ~s\n" curie)
+      (engine-kill eng)
+      (printf "@@@ dr-query killed engine for curie ~s\n" curie)
+      )
+    gene-curies))
 
 (define (tsv-for gene-curie gene-symbol infos)
   (lambda ()
