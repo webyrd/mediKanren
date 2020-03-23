@@ -140,21 +140,34 @@
 (define the-gene-curie "HGNC:29079")
 
 (define (dr-query1 the-gene-curie)
-;; kdm1a
-(define kdm1a-directly-up (directly-upregulate-gene the-gene-curie))
-;; returns the set of all query results (for X, for gene, for edges X->my-gene, etc.)
 
-(define kdm1a-directly-up-Xs (curies/query kdm1a-directly-up 'X))
+  (printf "*** dr-query1 called for gene CURIE: ~s\n" the-gene-curie)
 
-;; each edge corresponds to an X in kdm1a-Xs
-(define edges/X->kdm1a-directly-up (edges/ranked (ranked-paths kdm1a-directly-up) 0 0))
+  (printf "*** getting directly up for gene CURIE: ~s\n" the-gene-curie)
+    
+  (define directly-up (directly-upregulate-gene the-gene-curie))
+  ;; returns the set of all query results (for X, for gene, for edges X->my-gene, etc.)
 
-(define kdm1a-directly-up-drug-info (map drug-info-from-composite-edge edges/X->kdm1a-directly-up))
+  ;; unused
+  ;; (define directly-up-Xs (curies/query directly-up 'X))
 
-(define kdm1a-directly-up-drug-info-for-tsv (map drug-info-for-tsv-from-composite-edge edges/X->kdm1a-directly-up))
+  (printf "*** getting edges/X->directly-up for gene CURIE: ~s\n" the-gene-curie)
+  
+  ;; each edge corresponds to an X in Xs
+  (define edges/X->directly-up (edges/ranked (ranked-paths directly-up) 0 0))
 
-(cons the-gene-curie kdm1a-directly-up-drug-info-for-tsv)
-)
+  (printf "*** getting directly-up-drug-info for gene CURIE: ~s\n" the-gene-curie)
+  
+  (define directly-up-drug-info (map drug-info-from-composite-edge edges/X->directly-up))
+
+  (printf "*** getting directly-up-drug-info-for-tsv for gene CURIE: ~s\n" the-gene-curie)
+  
+  (define directly-up-drug-info-for-tsv (map drug-info-for-tsv-from-composite-edge edges/X->directly-up))
+
+  (printf "*** finished processing gene CURIE: ~s\n" the-gene-curie)
+  
+  (cons the-gene-curie directly-up-drug-info-for-tsv)
+  )
 
 (define (dr-query gene-curies)
   (map dr-query1 gene-curies))
