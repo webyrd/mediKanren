@@ -145,7 +145,7 @@
 
   (printf "*** getting directly up for gene CURIE: ~s\n" the-gene-curie)
     
-  (define directly-up (directly-upregulate-gene the-gene-curie))
+  (define directly-up (time (directly-upregulate-gene the-gene-curie)))
   ;; returns the set of all query results (for X, for gene, for edges X->my-gene, etc.)
 
   ;; unused
@@ -154,15 +154,15 @@
   (printf "*** getting edges/X->directly-up for gene CURIE: ~s\n" the-gene-curie)
   
   ;; each edge corresponds to an X in Xs
-  (define edges/X->directly-up (edges/ranked (ranked-paths directly-up) 0 0))
+  (define edges/X->directly-up (time (edges/ranked (ranked-paths directly-up) 0 0)))
 
   (printf "*** getting directly-up-drug-info for gene CURIE: ~s\n" the-gene-curie)
   
-  (define directly-up-drug-info (map drug-info-from-composite-edge edges/X->directly-up))
+  (define directly-up-drug-info (time (map drug-info-from-composite-edge edges/X->directly-up)))
 
   (printf "*** getting directly-up-drug-info-for-tsv for gene CURIE: ~s\n" the-gene-curie)
   
-  (define directly-up-drug-info-for-tsv (map drug-info-for-tsv-from-composite-edge edges/X->directly-up))
+  (define directly-up-drug-info-for-tsv (time (map drug-info-for-tsv-from-composite-edge edges/X->directly-up)))
 
   (printf "*** finished processing gene CURIE: ~s\n" the-gene-curie)
   
