@@ -166,8 +166,8 @@
     (define directly-up/down-drug-info-for-tsv (time (map drug-info-for-tsv-from-composite-edge edges/X->directly-up/down)))
 
     (printf "*** finished getting directly-~s-drug-info-for-tsv for gene CURIE ~s\n" direction the-gene-curie)
-    
-    (cons the-gene-curie directly-up/down-drug-info-for-tsv)
+
+    directly-up/down-drug-info-for-tsv
         
     ))
 
@@ -196,15 +196,12 @@
   
   (define my-query-result (append up-query-results down-query-results))
   
-  (define (go-tsv)
-    (tsv-for my-query-result))
-
   (define output-file-name (format "~a-budging.tsv" the-gene-symbol))
   
   (printf "*** writing results for gene CURIE ~s to file ~s\n" the-gene-curie output-file-name)
   
   (with-output-to-file output-file-name
-    go-tsv
+    (tsv-for the-gene-curie the-gene-symbol my-query-result)
     #:exists 'replace)
 
   (printf "*** finished processing gene CURIE ~s\n" the-gene-curie)
@@ -214,24 +211,22 @@
 (define (dr-query gene-curies)
   (for-each dr-query1 gene-curies))
 
-(define (tsv-for gene-curie/infos-list)
-  (printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\n"
+(define (tsv-for gene-curie gene-symbol infos)
+  (printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\n"
   "gene CURIE"
+  "gene symbol"
   "db"
   "subject CURIE" "subject category" "subject"
   "predicate"
   "object" "object category" "object CURIE"
   "pub URL" "pub date" "pub sentence"
   "tradenames" "clinical trials" "indicated for" "contraindicated for")
-  (for-each (lambda (gene-curie/infos)
-	      (let ((the-gene-curie (car gene-curie/infos))
-		    (infos (cdr gene-curie/infos)))
-		(for-each (lambda (xs)
-			    (for-each (lambda (x)
-					(apply printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\n" (cons the-gene-curie x)))
-				      xs))
-			  infos)))
-	    gene-curie/infos-list))
+  (for-each (lambda (xs)
+              (for-each (lambda (x)
+                          (apply printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\n"
+                                 (list gene-curie gene-symbol x)))
+                        xs))
+            infos))
 
 
 
