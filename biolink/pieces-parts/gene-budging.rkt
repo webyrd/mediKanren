@@ -181,8 +181,8 @@
   (printf "*** dr-query1 called for gene CURIE ~s\n" the-gene-curie)
 
   (printf "*** getting gene symbol for gene CURIE ~s\n" the-gene-curie)
-
-  (define the-gene-symbol 'TODO)
+  
+  (define the-gene-symbol (concept->name (car (find-concepts #t the-gene-curie))))
   
   (printf "*** found gene symbol ~s for gene CURIE ~s\n" the-gene-curie)
 
