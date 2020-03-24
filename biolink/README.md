@@ -166,6 +166,12 @@ neo4j stop
 
 ### Greg will do these
 
+* impose maximum on synonym sets, and gradually reduce allowed connections
+  * after each violation: stop synonym-concepto, then xrefs, then equivalent_to
+* filter for global consistency after propagation
+* improve edge constrainer to pay attention to both subject and object at once
+* separate composite edge construction from ranking
+
 * implement dbKanren
   * reduce corpus load time
     * reprocess corpus data using a flat binary format of length-encoded strings

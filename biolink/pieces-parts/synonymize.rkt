@@ -45,6 +45,12 @@
   (ormap (lambda (pre) (string-prefix? curie pre))
          '("MTHSPL:" "NDFRT:" "RXNORM:" "CHEMBL:")))
 
+
+;; TODO: impose maximum size on synonym sets
+;; anytime maximum is violated, start over while reducing connections
+;;   first, stop using synonym-concepto
+;;   next violation, stop using xrefs
+;;   then stop using equivalent_to (just return the starting curie)
 (define (curie-synonyms curie)
   (define same-as (find-exact-predicates (list "equivalent_to")))
   (define (xref-forward cs0)

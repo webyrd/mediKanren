@@ -186,6 +186,8 @@
         `(concept . ,(filter valid-group? gs))))
     c))
 
+;; TODO: these should look at the object at the same time, to avoid including
+;; irrelevant edges when possible.
 (define (edge-constrain/subject e c)
   (match c
     ;; TODO: optionally find edges with only category/any constraints
