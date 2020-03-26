@@ -109,10 +109,10 @@
 
 (define drug-info-for-tsv-from-composite-edge
   (lambda (composite-edge)
-    (append*
-      (match composite-edge
-        (`((,composite-subject . ,composite-object) ,score ,edges)
-          (define subject-info (map cdr (drug-info-for-curie composite-subject)))
+    (match composite-edge
+      (`((,composite-subject . ,composite-object) ,score ,edges)
+        (define subject-info (map cdr (drug-info-for-curie composite-subject)))
+        (append*
           (map (lambda (edge)
                  (define pub-info (publications-info-alist-from-edge edge))
                  (define pub-urls (pubmed-URLs-from-edge edge))
