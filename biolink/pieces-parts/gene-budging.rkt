@@ -110,34 +110,36 @@
 (define drug-info-for-tsv-from-composite-edge
   (lambda (composite-edge)
     (append*
-      (map (lambda (edge)
-             (define pub-info (publications-info-alist-from-edge edge))
-             (define pub-urls (pubmed-URLs-from-edge edge))
-             (match edge
-               [`(,db
-                   ,edge-id
-                   (,_ ,subject-curie ,subject-name (,_ . ,subject-cat) . ,_)
-                   (,_ ,object-curie ,object-name (,_ . ,object-cat) . ,_)
-                   (,_ . ,predicate) . ,_)
-                 (let ((subject-info (map cdr (drug-info-for-curie subject-curie))))
-                   (define (entry pubmed-url pub-date sentence)
-                     (append
-                       (list db
-                             subject-curie subject-cat subject-name
-                             predicate
-                             object-name object-cat object-curie
-                             pubmed-url pub-date sentence)
-                       subject-info))
-                   (cond ((pair? pub-info)
-                          (map (lambda (info)
-                                 (match info
-                                   [`(,pubmed-url ,pub-date ,subject-score ,object-score ,sentence)
-                                     (entry pubmed-url pub-date sentence)]))
-                               pub-info))
-                         ((pair? pub-urls)
-                          (map (lambda (url) (entry url "" "")) pub-urls))
-                         (else (list (entry "" "" "")))))]))
-           (list-ref composite-edge 2)))))
+      (match composite-edge
+        (`((,composite-subject . ,composite-object) ,score ,edges)
+          (define subject-info (map cdr (drug-info-for-curie composite-subject)))
+          (map (lambda (edge)
+                 (define pub-info (publications-info-alist-from-edge edge))
+                 (define pub-urls (pubmed-URLs-from-edge edge))
+                 (match edge
+                   [`(,db
+                       ,edge-id
+                       (,_ ,subject-curie ,subject-name (,_ . ,subject-cat) . ,_)
+                       (,_ ,object-curie ,object-name (,_ . ,object-cat) . ,_)
+                       (,_ . ,predicate) . ,_)
+                     (define (entry pubmed-url pub-date sentence)
+                       (append
+                         (list db
+                               subject-curie subject-cat subject-name
+                               predicate
+                               object-name object-cat object-curie
+                               pubmed-url pub-date sentence)
+                         subject-info))
+                     (cond ((pair? pub-info)
+                            (map (lambda (info)
+                                   (match info
+                                     [`(,pubmed-url ,pub-date ,subject-score ,object-score ,sentence)
+                                       (entry pubmed-url pub-date sentence)]))
+                                 pub-info))
+                           ((pair? pub-urls)
+                            (map (lambda (url) (entry url "" "")) pub-urls))
+                           (else (list (entry "" "" ""))))]))
+               edges))))))
 
 
 (define (make-dr-query1-up/down direction directly-up/down-regulate-gene)
