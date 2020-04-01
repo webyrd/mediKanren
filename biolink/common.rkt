@@ -1,6 +1,7 @@
 #lang racket/base
 (provide
   (all-from-out "mk.rkt")
+  find-concepts/name
   find-concepts
   find-isa-concepts
   find-concepts/options
@@ -450,6 +451,10 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
 
 (define (find-concepts via-cui? strings)
   (find-concepts/options #f #f 0 via-cui? strings))
+
+(define (find-concepts/name name)
+  (filter (lambda (c) (string=? (cadddr c) name))
+          (find-concepts #f (list name))))
 
 (define (find-predicates/concepts subject? object? concepts)
   (map (lambda (c)
