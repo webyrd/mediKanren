@@ -45,6 +45,7 @@
   (ormap (lambda (pre) (string-prefix? curie pre))
          '("MTHSPL:" "NDFRT:" "RXNORM:" "CHEMBL:")))
 (define ((curie-prefix? prefix) c) (string-prefix? (caddr c) prefix))
+(define curie-HGNC? (curie-prefix? "HGNC:"))
 (define curie-NCIT? (curie-prefix? "NCIT:"))
 (define curie-CUI?  (curie-prefix? "CUI:"))
 (define (any? x) #t)
@@ -58,6 +59,28 @@
     (list (list same-as     any?        any?)
           ;(list subclass-of curie-NCIT? curie-NCIT?)
           (list xref        curie-NCIT? curie-CUI?)))
+  (define suffixes/filters
+    (list (list " wt Allele" curie-HGNC? curie-NCIT?)))
+  (define (hack-names cs)
+    (append*
+      (map (lambda (s/fs)
+             (match-define (list suffix before? after?) s/fs)
+             (define (add-suffix c) (string-append (cadddr c) suffix))
+             (define (remove-suffix c)
+               (define n (cadddr c))
+               (substring n 0 (- (string-length n) (string-length suffix))))
+             (append
+               (filter after?
+                       (append*
+                         (map find-concepts/name
+                              (remove-duplicates
+                                (map add-suffix (filter before? cs))))))
+               (filter before?
+                       (append*
+                         (map find-concepts/name
+                              (remove-duplicates
+                                (map remove-suffix (filter after? cs))))))))
+           suffixes/filters)))
   (define (connect-edges cs)
     (append*
       (map (lambda (p/fs)
@@ -125,6 +148,7 @@
                       '()))
                (ids (append ids (map caddr cs)
                             (map caddr (connect-edges cs0))
+                            (map caddr (hack-names    cs0))
                             (if xref-concepto?
                               (append (xref-forward cs0) (xref-backward ids0))
                               '())))
