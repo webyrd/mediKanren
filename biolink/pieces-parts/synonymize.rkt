@@ -68,7 +68,9 @@
              (define (add-suffix c) (string-append (cadddr c) suffix))
              (define (remove-suffix c)
                (define n (cadddr c))
-               (substring n 0 (- (string-length n) (string-length suffix))))
+               (and (string-suffix? n suffix)
+                    (substring n 0 (- (string-length n)
+                                      (string-length suffix)))))
              (append
                (filter after?
                        (append*
@@ -78,8 +80,10 @@
                (filter before?
                        (append*
                          (map find-concepts/name
-                              (remove-duplicates
-                                (map remove-suffix (filter after? cs))))))))
+                              (filter-not
+                                not (remove-duplicates
+                                      (map remove-suffix
+                                           (filter after? cs)))))))))
            suffixes/filters)))
   (define (connect-edges cs)
     (append*
