@@ -38,6 +38,9 @@
 (define (curie-UMLS-drug? c)
   (and (string-prefix? (caddr c) "UMLS:")
        (string=? (cdar (cddddr c)) "chemical_substance")))
+(define (curie-NCIT-gene? c)
+  (and (string-prefix? (caddr c) "NCIT:")
+       (string=? (cdar (cddddr c)) "http://w3id.org/biolink/vocab/GeneSet")))
 (define (curie-xref-gene? curie)
   (ormap (lambda (pre) (string-prefix? curie pre))
          '("NCI:" "HGNC:")))
@@ -58,7 +61,7 @@
   (define preds/filters
     (list (list same-as     any?        any?)
           ;(list subclass-of curie-NCIT? curie-NCIT?)
-          (list xref        curie-NCIT? curie-CUI?)))
+          (list xref        curie-NCIT-gene? curie-CUI?)))
   (define suffixes/filters
     (list (list " wt Allele" curie-HGNC? curie-NCIT?)))
   (define (hack-names cs)
