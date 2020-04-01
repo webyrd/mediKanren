@@ -56,7 +56,7 @@
   (define xref        (find-exact-predicates (list "xref")))
   (define preds/filters
     (list (list same-as     any?        any?)
-          (list subclass-of curie-NCIT? curie-NCIT?)
+          ;(list subclass-of curie-NCIT? curie-NCIT?)
           (list xref        curie-NCIT? curie-CUI?)))
   (define (connect-edges cs)
     (append*
