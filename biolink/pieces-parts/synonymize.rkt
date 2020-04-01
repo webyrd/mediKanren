@@ -65,18 +65,21 @@
     (append*
       (map (lambda (s/fs)
              (match-define (list suffix before? after?) s/fs)
-             (define (add-suffix c) (string-append (cadddr c) suffix))
+             (define (add-suffix c)
+               (define n (cadddr c))
+               (and n (string-append n suffix)))
              (define (remove-suffix c)
                (define n (cadddr c))
-               (and (string-suffix? n suffix)
+               (and n (string-suffix? n suffix)
                     (substring n 0 (- (string-length n)
                                       (string-length suffix)))))
              (append
                (filter after?
                        (append*
                          (map find-concepts/name
-                              (remove-duplicates
-                                (map add-suffix (filter before? cs))))))
+                              (filter-not
+                                not (remove-duplicates
+                                      (map add-suffix (filter before? cs)))))))
                (filter before?
                        (append*
                          (map find-concepts/name
