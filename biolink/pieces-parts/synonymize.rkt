@@ -214,7 +214,7 @@
            (boolean? (car query-ls)))
        (extract-name/curie/category-from-concept-ls
         (cdr query-ls) els))
-      (else 
+      (else
        (match (car query-ls)
          [`(,db ,cui ,id ,name ,category ,properties-list)
           (extract-name/curie/category-from-concept-ls
@@ -230,15 +230,15 @@
            (boolean? (car query-ls)))
        (extract-concept-from-concept-ls
         (cdr query-ls) els curie kg))
-      (else 
+      (else
        (match (car query-ls)
          [`(,db ,cui ,id ,name ,category ,properties-list)
           (cond
             ((and (equal? db kg)
-                  (string-contains? id curie)) 
+                  (string-contains? id curie))
              (extract-concept-from-concept-ls
               (cdr query-ls)
-              (set-union 
+              (set-union
                `(,db ,cui ,id ,name ,category ,properties-list) els) curie kg))
             (else
              (extract-concept-from-concept-ls
@@ -253,12 +253,12 @@
            (boolean? (car query-ls)))
        (extract-curie-from-concept-ls
         (cdr query-ls) els curie kg))
-      (else 
+      (else
        (match (car query-ls)
          [`(,db ,cui ,id ,name ,category ,properties-list)
           (cond
             ((and (equal? db kg)
-                  (string-contains? id curie)) 
+                  (string-contains? id curie))
              (extract-curie-from-concept-ls
               (cdr query-ls)
               (cons
@@ -276,12 +276,12 @@
            (boolean? (car query-ls)))
        (extract-name-from-concept-ls
         (cdr query-ls) els curie kg))
-      (else 
+      (else
        (match (car query-ls)
          [`(,db ,cui ,id ,name ,category ,properties-list)
           (cond
             ((and (equal? db kg)
-                  (string-contains? id curie)) 
+                  (string-contains? id curie))
              (extract-name-from-concept-ls
               (cdr query-ls)
               (cons
@@ -303,7 +303,7 @@
       (displayln (format "CONCEPTS FOUND RETURNED FROM INITIAL INPUT CURIE: ~a" HGNC-gene-query))
       (newline)
       (pretty-print (extract-name/curie/category-from-concept-ls HGNC-gene-query '())))
-    
+
     (match-define
       (list A-->HGNC-input-->B=>concepts
             A-->HGNC-input-->B=>edges)
@@ -368,18 +368,18 @@
       (newline)
       (pretty-print (extract-name/curie/category-from-concept-ls A-->CUIg/concept-ls '()))
       (newline))
-    
+
     (define HGNC-NCBIGene-ENSEMBL-CUIg-NCITg/concept-ls
       (set-union
        HGNC-NCBIGene-ENSEMBL-CUIg-OMIM/concept-ls
        A-->CUIg/concept-ls))
 
 
-    ;; TODO, filter specifically on the NCITg concept if it exists!! 
+    ;; TODO, filter specifically on the NCITg concept if it exists!!
     (define NCITg-concept-ls
       A-->CUIg/concept-ls)
 
-    
+
 
     ;;get NCIT wt Allele
     (match-define
@@ -485,11 +485,11 @@
             A-->NCBI-input=>edges)
       (run/graph
         ((A #f)
-         (NCBIg (list NCBIGene-concept/rtx2))) 
+         (NCBIg (list NCBIGene-concept/rtx2)))
         ((--xref--> '((rtx2 3 . "xref"))))
         (A --xref--> NCBIg)))
 
-    (define A-->NCBIGene/concepts 
+    (define A-->NCBIGene/concepts
       (hash-ref A-->NCBI-input=>concepts 'A))
 
     (when DEBUG-SYNONYMIZE
@@ -499,7 +499,7 @@
       (pretty-print (extract-name/curie/category-from-concept-ls A-->NCBIGene/concepts '()))
       (newline))
 
-    (define NCBIGene-concept/orange 
+    (define NCBIGene-concept/orange
       (find-concepts
        #t
        (extract-curie-from-concept-ls
@@ -532,7 +532,7 @@
     ;; should have MESH protein id
     (define A-->CUIp-input/concepts
       (hash-ref A-->CUIp-input=>concepts 'A))
-    
+
     (when DEBUG-SYNONYMIZE
       (newline)
       (displayln "CONCEPTS FROM:\nA --xref--> CUI protein")
@@ -553,7 +553,7 @@
       (newline))
 
     (define molecular-entity/concept-ls/sans-UMLS
-      HGNC-NCBIGene-ENSEMBL-CUIg-NCITg-NCITwt-CUIwt-CUIp-UniProtKB-MESHp/concept-ls) 
+      HGNC-NCBIGene-ENSEMBL-CUIg-NCITg-NCITwt-CUIwt-CUIp-UniProtKB-MESHp/concept-ls)
 
 
     (define molecular-entity/curie-ls/CUI-ONLY
@@ -576,13 +576,13 @@
 
     (define molecular-entity/curie-ls/HGNC-ONLY
       (list (cadr (regexp-match #px"^HGNC:([0-9]+)" hgnc-curie))))
-    
-    
+
+
     ;; string append HGNC symbol to list of human suffixes
     (define HGNC-string-with-human-gene/protein-suffix-ls
       (map (lambda (str) (string-append (car molecular-entity/curie-ls/HGNC-ONLY) str)) human-gene/protein-suffix-ls))
 
-    ;; use this to filter find-concepts 
+    ;; use this to filter find-concepts
     (define HGNC-string-with-human-gene/protein-suffix-concept-ls
       (remove-duplicates
        (apply append
@@ -598,7 +598,7 @@
               ))
 
     (define molecular-entity-concept-ls/complete
-      (set-union filtered-HGNC-string-with-human-gene/protein-suffix-concept-ls 
+      (set-union filtered-HGNC-string-with-human-gene/protein-suffix-concept-ls
                  (set-union molecular-entity/concept-ls/sans-UMLS
                             molecular-entity/concept-ls/UMLS-ONLY)))
 
@@ -626,7 +626,7 @@
       (filter (lambda (c)
                 (member (string-downcase (concept->name c))
                         HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-ls))
-              HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-concept-ls)) 
+              HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-concept-ls))
 
     (define animal-genes/proteins-concept-ls filtered-HGNC-string-with-animal-model/bacteria/plant-gene/protein-suffix-concept-ls)
 
@@ -635,10 +635,10 @@
       (displayln "CONCEPT BUILDING FOR ANIMAL MODEL QUERY COMPLETE:\n")
       (pretty-print (extract-name/curie/category-from-concept-ls animal-genes/proteins-concept-ls '()))
       (newline))
-    
+
     (define all-genes/proteins (set-union human-gene/protein-concept-ls
                                           animal-genes/proteins-concept-ls))
-    
+
     (hash
 
      'all-genes/proteins
