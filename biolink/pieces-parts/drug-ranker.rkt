@@ -78,11 +78,114 @@
        (remove-item x (cdr ls)
                     (cons (car ls) els))))))
 
+
+(define f
+  (lambda (target-gene-ls els)
+    (define 1-hop/query
+      (lambda (target-gene)
+        (query/graph
+         ((X #f)
+          (TG target-gene))
+         ((X->TG #f))
+         (X X->TG TG))))
+    (let* (;;get all X's from X--all-preds-->Target-Gene
+           (1-hop-affector-genes/HGNC*
+            (curies/query (1-hop/query (car target-gene-ls)) 'X))
+           ;;synonymize all X's and filter to get only HGNCs from X's
+           (1-hop-affector-genes/HGNC*
+            (flatten
+             (remove-item
+              '()
+              (map
+               (lambda (ls) (filter/curie ls '() "HGNC:"))
+               (map
+                set->list
+                (map
+                 (lambda (ls) (curie-synonyms ls))
+                 1-hop-affector-genes/HGNC*)))
+              '()))))
+      (displayln (format "\n~a 1-HOP AFFECTOR GENE CONCEPTS FOUND!" (length 1-hop-affector-genes/HGNC*)))
+      (displayln (format "\n~a 1-HOP AFFECTOR GENES HGNC-IDs FOUND!\n~a" (length 1-hop-affector-genes/HGNC*) 1-hop-affector-genes/HGNC*))
+      (cond
+        ((null? 1-hop-affector-genes/HGNC*) els)
+        [else
+         (displayln (format "PREPARING 1-HOP AFFECTOR GENES FOR 2-HOP QUERY!"))
+         (let ((els (let loop ((1-hop-affector-genes/HGNC* 1-hop-affector-genes/HGNC*)
+                               (els els))
+                      (loop
+                       (cdr 1-hop-affector-genes/HGNC*) 
+                       (cons
+                        (flatten
+                         (remove-item
+                          '()
+                          (map
+                           (lambda (ls) (filter/curie ls '() "HGNC:"))
+                               (map
+                                set->list
+                                (map
+                                 (lambda (ls) (curie-synonyms ls))
+                                 (curies/query (1-hop/query (car 1-hop-affector-genes/HGNC*)) 'X)))) '()))
+                        els)))))
+           (1-hop/query target-gene-ls els))]))))
+
+;;(f '("HGNC:21625") '())
+
+(define NGLY1
+  (time (query/graph
+         ((X       #f)
+          (NGLY1 "HGNC:17646"))
+         ((X->NGLY1 #f))
+         (X X->NGLY1 NGLY1))))
+
+(define NGLY1/synonyms (curie-synonyms/names "HGNC:17646"))
+
+(define X->NGLY1/simple
+  (edge-matcher X->NGLY1 '()))
+
+(define 1-hop/concepts->NGLY1 (curies/query NGLY1 'X))
+
+(define X->NGLY1 (edges/query NGLY1 'X->NGLY1))
+
+(define 1-hop-affector-genes/NGLY1
+  (remove-item
+   '()
+   (map (lambda (ls) (gene-filter ls '()))
+        (map set->list (map (lambda (ls) (curie-synonyms ls)) 1-hop/concepts->NGLY1))) '()))
+
+(define 1-hop-affector-genes-HGNC/NGLY1
+  (remove-item
+   '()
+   (map (lambda (ls) (filter/curie ls '() "HGNC:"))
+        (map set->list (map (lambda (ls) (curie-synonyms ls)) 1-hop/concepts->NGLY1))) '()))
+
+(define 1-hop-affector-genes-names/NGLY1
+  (map (lambda (ls) (curie-synonyms/names ls))
+                      (flatten 1-hop-affector-genes-HGNC/NGLY1)))
+
+(define 1-hop-affector-drugs/NGLY1
+  (remove-item
+   '()
+   (map (lambda (ls) (drug-filter ls '()))
+        (map set->list (map (lambda (ls) (curie-synonyms ls)) 1-hop/concepts->NGLY1))) '()))
+
+(define 1-hop-affector-drugs-names/NGLY1
+  (map (lambda (ls) (curie-synonyms/names ls))
+                      (flatten 1-hop-affector-drugs/NGLY1)))
+
+(define 1-hop-affector-drugs-DRUGBANK/NGLY1 
+  (remove-item
+   '()
+   (map (lambda (ls) (filter/curie ls '() "DRUGBANK:"))
+        (map set->list (map (lambda (ls) (curie-synonyms ls)) 1-hop/concepts->NGLY1))) '()))
+
+;; use NGYL1 gene, much fewer edges
+
+
 #|
 ,en synonymize.rkt
 ,en query.rkt
 |#
-
+#|
 ;; 670 edges
 (define ACE2 (time (query/graph
                   ((X       #f)
@@ -141,24 +244,14 @@
    (map (lambda (ls) (filter/curie ls '() "DRUGBANK:"))
         (map set->list (map (lambda (ls) (curie-synonyms ls)) 1-hop/concepts->ACE2))) '()))
 
-
-
+|#
 
 #|start 2-hop affector gene code here|#
 #|
-1-hop-affector-genes-HGNC/ACE2
-
-(define f
-  (lambda (target-gene-ls number-of-hops els)
-    (cond
-      ((= number-of-hops 0) els)
-      (define 1-hop/query
-        (query/graph
-         ((X #f))
-         ((X->TG #f)
-          (X X->TG (car target-gene-ls)))))
-      )))
+(define viral-entry-gene-ls
+  '("HGNC:13557"))
 |#
+
 
 
 
