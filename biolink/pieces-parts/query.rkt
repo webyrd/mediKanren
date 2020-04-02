@@ -1,6 +1,7 @@
 #lang racket/base
 (provide summarize summarize/assoc query query/graph report/query
-         ranked-paths pretty-ranked edges/ranked curies/query edges/query
+         ranked-paths pretty-ranked edges/ranked
+         curies/query synonyms/query edges/query
          positively-regulates negatively-regulates drug-safe
          edges-between
          gene drug disease phenotype
@@ -289,10 +290,11 @@
   (map (lambda (instance) (list-ref (cdr instance) edge-pos))
        instances))
 
-
 (define (edges/query  q name) (cdr ((cdr (assoc name q)) 'ref)))
 (define (curies/query q name)
   (map group-curie (cdr ((cdr (assoc name q)) 'ref))))
+(define (synonyms/query q name)
+  (map group-curies (cdr ((cdr (assoc name q)) 'ref))))
 
 (define (pretty-ranked ranked (n #f))
   (for ((path-report ranked))
@@ -424,7 +426,6 @@
 ;; Drug safety constraint
 #|
 (displayln "\nRunning 2-hop rhobtb2 query with concept categories:")
-
 
 (displayln "\nBuilding report:")
 (pretty-print (time (report/query q3)))
