@@ -141,38 +141,24 @@
    (map (lambda (ls) (filter/curie ls '() "DRUGBANK:"))
         (map set->list (map (lambda (ls) (curie-synonyms ls)) 1-hop/concepts->ACE2))) '()))
 
-;; TODO make recursive query/graph to requery all 1-hop gene concepts, producing the 2-hop affector genes
-#|Making query/graph recursive|#
-(define recursive-test-query/graph
-  (lambda (gene-for-query)
-    (lambda ()
-      (define query/graph-2-hop-genes
-        (lambda (ancestors)
-          (match (query/graph
-                   ((X #f))
-                   ((X->gene-for-query #f))
-                   (X X->gene-for-query gene-for-query))
-            [(let* ((c* (curies/query gene-for-query 'X))
-                    (c* (remove-item
-                         '()
-                         (map (lambda (ls) (filter/curie ls '() "HGNC:"))
-                              (map set->list (map (lambda (ls) (curie-synonyms ls)) c*))) '())))
-               (cond
-                 [(null? c*) ancestors]
-                 [else
-                  (let ((ancestors (let loop ((c* c*)
-                                              (ancestors ancestors))
-                                     (match c*
-                                       ['() ancestors]
-                                       [`(,c . ,c*)
-                                        (loop c* (set-add ancestors c))]))))
-                    (get-all-ontology-ancestors c* ancestors))]))])))
-      (get-all-ontology-ancestors S (set)))))
-
-(define get-all-GO-ancestors (make-get-all-ontology-ancestors '((rtx2 15 . "subclass_of")) "GO:"))
-(define get-all-OBO:GOCHE-ancestors (make-get-all-ontology-ancestors '((rtx2 15 . "subclass_of")) "OBO:GOCHE"))
 
 
+
+#|start 2-hop affector gene code here|#
+#|
+1-hop-affector-genes-HGNC/ACE2
+
+(define f
+  (lambda (target-gene-ls number-of-hops els)
+    (cond
+      ((= number-of-hops 0) els)
+      (define 1-hop/query
+        (query/graph
+         ((X #f))
+         ((X->TG #f)
+          (X X->TG (car target-gene-ls)))))
+      )))
+|#
 
 
 
