@@ -3,7 +3,7 @@
          curie-aliases curie-synonyms curie->name curie->concepts
          curie-synonyms/names
          (all-from-out "../common.rkt" "../mk-db.rkt"))
-(require "../common.rkt" "../mk-db.rkt")
+(require "../common.rkt" "../mk-db.rkt" "../db.rkt" racket/runtime-path)
 
 (define (curie->name? curie)
   (define cs (find-concepts #t (list curie)))
@@ -53,7 +53,7 @@
 (define curie-CUI?  (curie-prefix? "CUI:"))
 (define (any? x) #t)
 
-(define (curie-synonyms curie)
+(define (curie-synonyms-raw curie)
   (define max-synonyms 100)
   (define same-as     (find-exact-predicates (list "equivalent_to" "encodes")))
   (define subclass-of (find-exact-predicates (list "subclass_of")))
@@ -166,6 +166,56 @@
                                   synonym-ids)))
           (if (set-empty? ids) synonym-ids
             (loop (set->list ids) (set-union synonym-ids ids))))))))
+
+(define-runtime-path path:data "../data/")
+(define (data-path path) (build-path path:data path))
+(define path:curie=>synonyms (data-path "curie-to-synonyms.scm"))
+(define path:synonyms        (data-path "synonyms.scm"))
+
+(define curie-synonyms
+  (if (and (file-exists? path:curie=>synonyms) (file-exists? path:synonyms))
+    (let* ((_ (printf "loading cached synonyms\n"))
+           (curie=>sid (time (call-with-input-file path:curie=>synonyms read)))
+           (synonyms   (time (call-with-input-file path:synonyms        read)))
+           (synonyms   (time (vector-map list->set synonyms))))
+      (printf "loaded ~s synonym classes for ~s curies\n"
+              (vector-length synonyms) (hash-count curie=>sid))
+      (lambda (curie) (vector-ref synonyms (hash-ref curie=>sid curie))))
+    curie-synonyms-raw))
+
+(define (curie-synonyms-build)
+  (when (or (file-exists? path:curie=>synonyms) (file-exists? path:synonyms))
+    (error "synonyms are already cached:" path:curie=>synonyms path:synonyms))
+  (call-with-output-file
+    path:curie=>synonyms
+    (lambda (out:curie=>synonyms)
+      (call-with-output-file
+        path:synonyms
+        (lambda (out:synonyms)
+          (write-string "#("     out:synonyms)
+          (write-string "#hash(" out:curie=>synonyms)
+          (time
+            (let db-loop ((dbs (databases)) (si 0) (seen (set)))
+              (printf "~s\n" (seconds->date (current-seconds)))
+              (printf "curies seen: ~s\n" (set-count seen))
+              (printf "synonym classes formed: ~s\n" si)
+              (unless (null? dbs)
+                (define cs (db:concept-cui-corpus (cdar dbs)))
+                (printf "finding synonyms for ~s curies in ~s\n"
+                        (vector-length cs) (caar dbs))
+                (let loop ((i 0) (si si) (seen seen))
+                  (cond ((= (vector-length cs) i)
+                         (db-loop (cdr dbs) si seen))
+                        ((set-member? seen (vector-ref cs i))
+                         (loop (+ i 1) si seen))
+                        (else
+                          (define ss (curie-synonyms-raw (vector-ref cs i)))
+                          (write (set->list ss) out:synonyms)
+                          (for ((c ss))
+                            (write `(,c . ,si) out:curie=>synonyms))
+                          (loop (+ i 1) (+ si 1) (set-union seen ss))))))))
+          (write-string ")" out:synonyms)
+          (write-string ")" out:curie=>synonyms))))))
 
 
 (define DEBUG-SYNONYMIZE #f)
