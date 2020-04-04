@@ -173,7 +173,8 @@
 (define path:synonyms        (data-path "synonyms.scm"))
 
 (define curie-synonyms
-  (if (and (file-exists? path:curie=>synonyms) (file-exists? path:synonyms))
+  (if (and (config-ref 'cache-synonyms?)
+           (file-exists? path:curie=>synonyms) (file-exists? path:synonyms))
     (let* ((_ (printf "loading cached synonyms\n"))
            (curie=>sid (time (call-with-input-file path:curie=>synonyms read)))
            (synonyms   (time (call-with-input-file path:synonyms        read)))
