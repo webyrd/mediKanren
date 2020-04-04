@@ -80,7 +80,9 @@
   path/data
   path:data
   path/root
-  path:root)
+  path:root
+
+  python->json)
 
 (require
   "db.rkt"
@@ -331,6 +333,29 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
 (define (pubmed-count e)
   (length (pubmed-ids-from-edge e)))
 
+(define (python->json py)
+  (define len (string-length py))
+  (let loop ((i 0) (start 0))
+    (cond ((= i len) (if (= start 0) py (substring py start)))
+          ((eqv? (string-ref py i) #\')
+           (string-append
+             (substring py start i) "\""
+             (let requote ((i (+ i 1)) (start (+ i 1)))
+               (cond ((eqv? (string-ref py i) #\')
+                      (string-append (substring py start i) "\""
+                                     (loop (+ i 1) (+ i 1))))
+                     ((eqv? (string-ref py i) #\\) (requote (+ i 2) start))
+                     ((eqv? (string-ref py i) #\")
+                      (string-append (substring py start i) "\\\""
+                                     (requote (+ i 1) (+ i 1))))
+                     (else (requote (+ i 1) start))))))
+          ((eqv? (string-ref py i) #\")
+           (let skip ((i (+ i 1)))
+             (cond ((eqv? (string-ref py i) #\") (loop (+ i 1) start))
+                   ((eqv? (string-ref py i) #\\) (skip (+ i 2)))
+                   (else                         (skip (+ i 1))))))
+          (else (loop (+ i 1) start)))))
+
 (define (publications-info-alist-from-edge-props eprops)
   (cond
     [(assoc "publications_info" eprops) ;; RTX2
@@ -341,7 +366,7 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
                              '())])
             (define pubs (cdr pr))
             (define pubs-json-str (string-replace pubs "'" "\""))
-            (define jason-ht (string->jsexpr pubs-json-str))
+            (define jason-ht (string->jsexpr (python->json pubs-json-str)))
             (hash-map jason-ht (lambda (k v)
                                  (cons (string-append
                                         PUBMED_URL_PREFIX
