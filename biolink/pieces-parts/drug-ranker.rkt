@@ -21,6 +21,7 @@
             (list `((,db) (,subject-name . ,subject-id) ,pred (,object-name . ,object-id))) 
             els))])))))
 
+
 (define gene-filter
   (lambda (ls els)
     (cond
@@ -78,20 +79,60 @@
        (remove-item x (cdr ls)
                     (cons (car ls) els))))))
 
+#|
+(define curie-to-anything
+  (lambda (curie predicate*)
+    ;;(printf "starting curie-to-anything with curie ~s and preds ~s\n" curie predicate*)
+    (let ((val (query/graph
+                ( ;; concepts
+                 (X curie)
+                 (T #f))
+                ;; edges
+                ((X->T predicate*))
+                ;; paths      
+                (X X->T T))))
+      ;;(printf "finished curie-to-anything with curie ~s and preds ~s\n" curie predicate*)
+      val)))
 
-(define f
+(define curie-to-tradenames
+  (lambda (curie)
+    (curie-to-anything curie '("has_tradename"))))
+
+(define curie-to-clinical-trials
+  (lambda (curie)
+    (curie-to-anything curie '("clinically_tested_approved_unknown_phase"
+                               "clinically_tested_terminated_phase_2"
+                               "clinically_tested_terminated_phase_3"
+                               "clinically_tested_terminated_phase_2_or_phase_3"
+                               "clinically_tested_withdrawn_phase_3"
+                               "clinically_tested_withdrawn_phase_2_or_phase_3"
+                               "clinically_tested_withdrawn_phase_2"
+                               "clinically_tested_suspended_phase_2"
+                               "clinically_tested_suspended_phase_3"
+                               "clinically_tested_suspended_phase_2_or_phase_3"))))
+
+(define curie-to-indicated_for
+  (lambda (curie)
+    (curie-to-anything curie '("indicated_for"))))
+
+(define curie-to-contraindicated_for
+  (lambda (curie)
+    (curie-to-anything curie '("contraindicated_for"))))
+
+|#
+
+(define 2-hop-gene-lookup
   (lambda (target-gene-ls els)
     (define 1-hop/query
       (lambda (target-gene)
-        (query/graph
-         ((X #f)
-          (TG target-gene))
-         ((X->TG #f))
-         (X X->TG TG))))
-    (let* (;;get all X's from X--all-preds-->Target-Gene
-           (1-hop-affector-genes/HGNC*
-            (curies/query (1-hop/query (car target-gene-ls)) 'X))
-           ;;synonymize all X's and filter to get only HGNCs from X's
+        (printf "\nQUERY/GRAPH RUNNING ON:   ~a\n" target-gene)
+        (time (query/graph
+               ((X #f)
+                (TG target-gene))
+               ((X->TG #f))
+               (X X->TG TG)))))
+    (let* ((1-hop-affector-genes/HGNC*
+            (synonyms/query (1-hop/query (car target-gene-ls)) 'X))
            (1-hop-affector-genes/HGNC*
             (flatten
              (remove-item
@@ -100,35 +141,28 @@
                (lambda (ls) (filter/curie ls '() "HGNC:"))
                (map
                 set->list
-                (map
-                 (lambda (ls) (curie-synonyms ls))
-                 1-hop-affector-genes/HGNC*)))
+                1-hop-affector-genes/HGNC*))
               '()))))
-      (displayln (format "\n~a 1-HOP AFFECTOR GENE CONCEPTS FOUND!" (length 1-hop-affector-genes/HGNC*)))
-      (displayln (format "\n~a 1-HOP AFFECTOR GENES HGNC-IDs FOUND!\n~a" (length 1-hop-affector-genes/HGNC*) 1-hop-affector-genes/HGNC*))
+      (printf "\n\n~a 1-HOP AFFECTOR GENE CONCEPTS FOUND!\n" (length 1-hop-affector-genes/HGNC*))
+      (printf "\n\n~a 1-HOP AFFECTOR GENES HGNC-IDs FOUND!\n\n~a" (length 1-hop-affector-genes/HGNC*) 1-hop-affector-genes/HGNC*)
       (cond
-        ((null? 1-hop-affector-genes/HGNC*) els)
-        [else
-         (displayln (format "PREPARING 1-HOP AFFECTOR GENES FOR 2-HOP QUERY!"))
-         (let ((els (let loop ((1-hop-affector-genes/HGNC* 1-hop-affector-genes/HGNC*)
-                               (els els))
-                      (loop
-                       (cdr 1-hop-affector-genes/HGNC*) 
-                       (cons
-                        (flatten
-                         (remove-item
-                          '()
-                          (map
-                           (lambda (ls) (filter/curie ls '() "HGNC:"))
-                               (map
-                                set->list
-                                (map
-                                 (lambda (ls) (curie-synonyms ls))
-                                 (curies/query (1-hop/query (car 1-hop-affector-genes/HGNC*)) 'X)))) '()))
-                        els)))))
-           (1-hop/query target-gene-ls els))]))))
+        ((null? target-gene-ls)
+         (cons 2-hop-affector-gene/edges els))
+        (else
+         (displayln (format "\n\nPREPARING 1-HOP AFFECTOR GENES FOR 2-HOP QUERY!\n\n"))
+         (let ((2-hop-affector-gene/edges (let loop ((1-hop-affector-genes/HGNC* 1-hop-affector-genes/HGNC*)
+                                                     (2-hop-affector-gene/edges '()))
+                                            (cond
+                                              ((null? 1-hop-affector-genes/HGNC*) 2-hop-affector-gene/edges)
+                                              (else
+                                               (loop
+                                                (cdr 1-hop-affector-genes/HGNC*) 
+                                                (cons (edges/query (1-hop/query (car 1-hop-affector-genes/HGNC*)) 'X->TG)
+                                                      2-hop-affector-gene/edges)))))))
+           (1-hop/query (car target-gene-ls))))))))
 
-;;(f '("HGNC:21625") '())
+(define 2-hop-affector-genes/NGLY1
+  (2-hop-gene-lookup '("HGNC:21625") '()))
 
 (define NGLY1
   (time (query/graph
@@ -137,6 +171,14 @@
          ((X->NGLY1 #f))
          (X X->NGLY1 NGLY1))))
 
+
+#|
+(define NGLY1
+  (time (query/graph
+         ((X       #f)
+          (NGLY1 "HGNC:17646"))
+         ((X->NGLY1 #f))
+         (X X->NGLY1 NGLY1))))
 (define NGLY1/synonyms (curie-synonyms/names "HGNC:17646"))
 
 (define X->NGLY1/simple
@@ -146,12 +188,14 @@
 
 (define X->NGLY1 (edges/query NGLY1 'X->NGLY1))
 
+;; dont have to map curie-synonyms 
 (define 1-hop-affector-genes/NGLY1
   (remove-item
    '()
    (map (lambda (ls) (gene-filter ls '()))
         (map set->list (map (lambda (ls) (curie-synonyms ls)) 1-hop/concepts->NGLY1))) '()))
 
+;; use filter 
 (define 1-hop-affector-genes-HGNC/NGLY1
   (remove-item
    '()
@@ -178,8 +222,12 @@
    (map (lambda (ls) (filter/curie ls '() "DRUGBANK:"))
         (map set->list (map (lambda (ls) (curie-synonyms ls)) 1-hop/concepts->NGLY1))) '()))
 
+(define X->NGLY1/preds
+  (remove-duplicates (map (lambda (ls) (list-ref ls 2)) X->NGLY1/simple)))
+
 ;; use NGYL1 gene, much fewer edges
 
+|#
 
 #|
 ,en synonymize.rkt
@@ -205,7 +253,7 @@
 
 ;;all unique predicates in the X->ACE2 edges, only 29 unique ones
 (define X->ACE2/preds
-  (remove-duplicates (map (lambda (ls) (list-ref ls 2)) X->ACE2/simple)))
+(remove-duplicates (map (lambda (ls) (list-ref ls 2)) X->ACE2/simple)))
 
 ;; all Gene concept X's + synonyms in the X--pred-->ACE2 edges
 ;; seems like there are 57 gene concepts
@@ -342,251 +390,6 @@
 |#
 
 
-
-#|
-#|GENE BUDGER CODE STARTS HERE|#
-;; ACE2 = curie for gene-budger code
-;; how is the budger code built? Do you take a query built q -- an edge and 
-
-
-;;creates a query/graph shell without the curie, gene-curie has yet to be defined
-(define make-directly-regulate-gene
-  (lambda (regulation-predicates)
-    (lambda (gene-curie)
-      (displayln "\nRunning 1-hop up query with concept categories")
-      (define q (time (query/graph
-                       (
-                        ;; concepts
-                        (X       drug)
-                        (my-gene gene-curie)
-			)
-                       ;; edges
-                       ((X->my-gene regulation-predicates))
-                       ;; paths
-                       (X X->my-gene my-gene))))
-      q)))
-
-
-;; creates the upregulates and downregulates query/graph shells
-(define directly-upregulate-gene (make-directly-regulate-gene positively-regulates))
-(define directly-downregulate-gene (make-directly-regulate-gene negatively-regulates))
-
-;;creates the shell to plug in a predicate once we have synonymized curies 
-(define curie-to-anything
-  (lambda (curie predicate*)
-    ;;(printf "starting curie-to-anything with curie ~s and preds ~s\n" curie predicate*)
-    (let ((val (query/graph
-                ( ;; concepts
-                 (X curie)
-                 (T #f))
-                ;; edges
-                ((X->T predicate*))
-                ;; paths      
-                (X X->T T))))
-      ;;(printf "finished curie-to-anything with curie ~s and preds ~s\n" curie predicate*)
-      val)))
-
-
-;; gives trade name for MTHSPL drug
-(define curie-to-tradenames
-  (lambda (curie)
-    (curie-to-anything curie '("has_tradename"))))
-
-;; gives clinical trial info for DRUGBANK concepts 
-(define curie-to-clinical-trials
-  (lambda (curie)
-    (curie-to-anything curie '("clinically_tested_approved_unknown_phase"
-                               "clinically_tested_terminated_phase_2"
-                               "clinically_tested_terminated_phase_3"
-                               "clinically_tested_terminated_phase_2_or_phase_3"
-                               "clinically_tested_withdrawn_phase_3"
-                               "clinically_tested_withdrawn_phase_2_or_phase_3"
-                               "clinically_tested_withdrawn_phase_2"
-                               "clinically_tested_suspended_phase_2"
-                               "clinically_tested_suspended_phase_3"
-                               "clinically_tested_suspended_phase_2_or_phase_3"))))
-
-;; for MESH
-(define curie-to-indicated_for
-  (lambda (curie)
-    (curie-to-anything curie '("indicated_for"))))
-
-(define curie-to-contraindicated_for
-  (lambda (curie)
-    (curie-to-anything curie '("contraindicated_for")))) 
-
-
-(define pubmed-URLs-from-composite-edge
-  (lambda (composite-edge)
-    ;;(printf "starting pubmed-URLs-from-composite-edge\n")
-    (define concrete-edges (list-ref composite-edge 2))
-    ;;(printf "concrete-edges length = ~s\n" (length concrete-edges))
-    (let ((url-ls (map pubmed-URLs-from-edge concrete-edges)))
-      ;;(printf "url-ls = ~s\n" url-ls)
-      (remove-duplicates (append* url-ls)))))
-
-
-(define drug-info-for-curie
-  (lambda (curie)
-    (printf "*** starting drug-info-for-curie ~s\n" curie)
-    (map
-     (lambda (l)
-       (match l
-         [`(,name . ,q)
-          (printf "*** calculating curie-synonyms/names list for curie ~s\n" curie)
-          (let ((ls (time (map curie-synonyms/names (curies/query q 'T)))))
-            (printf "*** calculated curie-synonyms/names list for curie ~s\n" curie)
-            (printf "*** ls length = ~s\n" (apply + (map length ls)))
-            (cons name ls))]))
-     (list 
-      (cons 'tradenames (curie-to-tradenames curie))
-      (cons 'clinical-trials (curie-to-clinical-trials curie))
-      (cons 'indicated_for (curie-to-indicated_for curie))
-      (cons 'contraindicated_for (curie-to-contraindicated_for curie))))))
-
-
-(define drug-info-for-tsv-from-composite-edge
-  (lambda (composite-edge)
-    (match composite-edge
-      (`((,composite-subject . ,composite-object) ,score ,edges)
-        (define subject-info (map cdr (drug-info-for-curie composite-subject)))
-        (append*
-          (map (lambda (edge)
-                 (define pub-info (publications-info-alist-from-edge edge))
-                 (define pub-urls (pubmed-URLs-from-edge edge))
-                 (match edge
-                   [`(,db
-                       ,edge-id
-                       (,_ ,subject-curie ,subject-name (,_ . ,subject-cat) . ,_)
-                       (,_ ,object-curie ,object-name (,_ . ,object-cat) . ,_)
-                       (,_ . ,predicate) . ,_)
-                     (define (entry pubmed-url pub-date sentence)
-                       (append
-                         (list db
-                               subject-curie subject-cat subject-name
-                               predicate
-                               object-name object-cat object-curie
-                               pubmed-url pub-date sentence)
-                         subject-info))
-                     (cond ((pair? pub-info)
-                            (map (lambda (info)
-                                   (match info
-                                     [`(,pubmed-url ,pub-date ,subject-score ,object-score ,sentence)
-                                       (entry pubmed-url pub-date sentence)]))
-                                 pub-info))
-                           ((pair? pub-urls)
-                            (map (lambda (url) (entry url "" "")) pub-urls))
-                           (else (list (entry "" "" ""))))]))
-               edges))))))
-
-
-(define (make-dr-query1-up/down direction directly-up/down-regulate-gene)
-  (lambda (the-gene-curie the-gene-symbol)
-
-    (printf "*** getting directly ~s for gene CURIE ~s\n" direction the-gene-curie)
-    
-    (define directly-up/down (time (directly-up/down-regulate-gene the-gene-curie)))
-    ;; returns the set of all query results (for X, for gene, for edges X->my-gene, etc.)
-
-    ;; unused
-    ;; (define directly-up/down-Xs (curies/query directly-up/down 'X))
-
-    (printf "*** getting edges/X->directly-~s for gene CURIE ~s\n" direction the-gene-curie)
-  
-    ;; each edge corresponds to an X in Xs
-    (define edges/X->directly-up/down (time (edges/ranked (ranked-paths directly-up/down) 0 0)))
-
-    (printf "*** getting directly-~s-drug-info for gene CURIE ~s\n" direction the-gene-curie)
-  
-    (define directly-up/down-drug-info (time (map drug-info-from-composite-edge edges/X->directly-up/down)))
-
-    (printf "*** getting directly-~s-drug-info-for-tsv for gene CURIE ~s\n" direction the-gene-curie)
-  
-    (define directly-up/down-drug-info-for-tsv (time (map drug-info-for-tsv-from-composite-edge edges/X->directly-up/down)))
-
-    (printf "*** finished getting directly-~s-drug-info-for-tsv for gene CURIE ~s\n" direction the-gene-curie)
-
-    directly-up/down-drug-info-for-tsv
-        
-    ))
-
-(define dr-query1-up (make-dr-query1-up/down 'up ACE2))
-
-(define dr-query1-down (make-dr-query1-up/down 'down ACE2))
-
-
-(define (dr-query1 the-gene-curie)
-
-  (printf "*** dr-query1 called for gene CURIE ~s\n" the-gene-curie)
-
-  (printf "*** getting gene symbol for gene CURIE ~s\n" the-gene-curie)
-  
-  (define the-gene-symbol (concept->name (car (find-concepts #t (list the-gene-curie)))))
-  
-  (printf "*** found gene symbol ~s for gene CURIE ~s\n" the-gene-symbol the-gene-curie)
-
-  (printf "*** finding up-regulators for gene CURIE ~s\n" the-gene-curie)
-
-  (define up-query-results (time (dr-query1-up the-gene-curie the-gene-symbol)))
-    
-  (printf "*** finding down-regulators for gene CURIE ~s\n" the-gene-curie)
-
-  (define down-query-results (time (dr-query1-down the-gene-curie the-gene-symbol)))
-  
-  (define my-query-result (append up-query-results down-query-results))
-  
-  (define output-file-name (format "~a-budging.tsv" the-gene-symbol))
-  
-  (printf "*** writing results for gene CURIE ~s to file ~s\n" the-gene-curie output-file-name)
-  
-  (with-output-to-file output-file-name
-    (tsv-for the-gene-curie the-gene-symbol my-query-result)
-    #:exists 'replace)
-
-  (printf "*** finished processing gene CURIE ~s\n" the-gene-curie)
-
-  'finished
-  )
-
-(define (dr-query gene-curies)
-  (for-each
-    (lambda (curie)
-      ;; 10 minute timeout per curie
-      (define timeout-ms (* 10 60 1000))
-      (printf "@@@ dr-query creating engine for curie ~s\n" curie)
-      (define eng (engine (lambda (p)
-                            (dr-query1 curie))))
-      (printf "@@@ dr-query running engine for ~s ms for curie ~s\n" timeout-ms curie)
-      (engine-run timeout-ms eng)
-      (printf "@@@ dr-query engine for curie ~s finished\n" curie)
-      (if (engine-result eng)
-          (printf "@@@ dr-query engine for curie ~s ran to completion\n" curie)
-          (printf "@@@ dr-query engine for curie ~s timed out!!\n" curie))
-      (printf "@@@ dr-query killing engine for curie ~s\n" curie)
-      (engine-kill eng)
-      (printf "@@@ dr-query killed engine for curie ~s\n" curie)
-      )
-    gene-curies))
-
-(define (tsv-for gene-curie gene-symbol infos)
-  (lambda ()
-    (printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\n"
-            "gene CURIE"
-            "gene symbol"
-            "db"
-            "subject CURIE" "subject category" "subject"
-            "predicate"
-            "object" "object category" "object CURIE"
-            "pub URL" "pub date" "pub sentence"
-            "tradenames" "clinical trials" "indicated for" "contraindicated for")
-    (for-each (lambda (xs)
-                (for-each (lambda (x)
-                            (apply printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\n"
-                                   gene-curie gene-symbol x))
-                          xs))
-              infos)))
-
-#|
 
 
 
