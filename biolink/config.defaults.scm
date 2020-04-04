@@ -7,6 +7,7 @@
                robokop
                rtx
                ))
+ (cache-synonyms? . #t)
 
  (query-results.write-to-file?  . #t)  ;; #t will write the query and results to file, #f will not
  (query-results.file-name       . "last.sx")
