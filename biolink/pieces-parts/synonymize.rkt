@@ -15,9 +15,9 @@
   (find-concepts #t (set->list (curie-synonyms curie))))
 (define (curie-synonyms/names curie)
   ;; (printf "curie-synonyms/names for curie ~s\n" curie)
-  (define css (set->list (time (curie-synonyms curie))))
+  (define css (set->list (curie-synonyms curie)))
   ;; (printf "css = ~s\n" css)
-  (map cons css (time (map curie->name css))))
+  (map cons css (map curie->name css)))
 
 (define (curie-aliases curies)
   (foldl (lambda (c acc)
@@ -175,9 +175,9 @@
 (define curie-synonyms
   (if (and (file-exists? path:curie=>synonyms) (file-exists? path:synonyms))
     (let* ((_ (printf "loading cached synonyms\n"))
-           (curie=>sid (time (call-with-input-file path:curie=>synonyms read)))
-           (synonyms   (time (call-with-input-file path:synonyms        read)))
-           (synonyms   (time (vector-map list->set synonyms))))
+           (curie=>sid (call-with-input-file path:curie=>synonyms read))
+           (synonyms   (call-with-input-file path:synonyms        read))
+           (synonyms   (vector-map list->set synonyms)))
       (printf "loaded ~s synonym classes for ~s curies\n"
               (vector-length synonyms) (hash-count curie=>sid))
       (lambda (curie) (vector-ref synonyms (hash-ref curie=>sid curie))))

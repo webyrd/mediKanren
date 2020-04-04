@@ -7,16 +7,16 @@
   (lambda (regulation-predicates)
     (lambda (gene-curie)
       (displayln "\nRunning 1-hop up query with concept categories")
-      (define q (time (query/graph
-                       (
-                        ;; concepts
-                        (X       drug)
-                        (my-gene gene-curie)
-			)
-                       ;; edges
-                       ((X->my-gene regulation-predicates))
-                       ;; paths
-                       (X X->my-gene my-gene))))
+      (define q (query/graph
+                 (
+                  ;; concepts
+                  (X       drug)
+                  (my-gene gene-curie)
+		  )
+                 ;; edges
+                 ((X->my-gene regulation-predicates))
+                 ;; paths
+                 (X X->my-gene my-gene)))
       q)))
 
 (define directly-upregulate-gene (make-directly-regulate-gene positively-regulates))
@@ -76,15 +76,15 @@
 
 (define drug-info-for-curie
   (lambda (curie)
-    (printf "*** starting drug-info-for-curie ~s\n" curie)
+    ; (printf "*** starting drug-info-for-curie ~s\n" curie)
     (map
      (lambda (l)
        (match l
          [`(,name . ,q)
-          (printf "*** calculating curie-synonyms/names list for curie ~s\n" curie)
-          (let ((ls (time (map curie-synonyms/names (curies/query q 'T)))))
-            (printf "*** calculated curie-synonyms/names list for curie ~s\n" curie)
-            (printf "*** ls length = ~s\n" (apply + (map length ls)))
+          ; (printf "*** calculating curie-synonyms/names list for curie ~s\n" curie)
+          (let ((ls (map curie-synonyms/names (curies/query q 'T))))
+            ; (printf "*** calculated curie-synonyms/names list for curie ~s\n" curie)
+            ; (printf "*** ls length = ~s\n" (apply + (map length ls)))
             (cons name ls))]))
      (list 
       (cons 'tradenames (curie-to-tradenames curie))
@@ -96,11 +96,11 @@
 (define drug-info-from-composite-edge
   (lambda (composite-edge)    
     (define curie (caar composite-edge))
-    (printf "*** drug-info-from-composite-edge for curie = ~s\n" curie)
+    ; (printf "*** drug-info-from-composite-edge for curie = ~s\n" curie)
     (define pubmed-URLs (pubmed-URLs-from-composite-edge composite-edge))
-    (printf "*** calculating curie-synonyms/names\n")
-    (define synonyms/names (time (curie-synonyms/names curie)))
-    (printf "*** calculated curie-synonyms/names of length ~s\n" (length synonyms/names))
+    ; (printf "*** calculating curie-synonyms/names\n")
+    (define synonyms/names (curie-synonyms/names curie))
+    ; (printf "*** calculated curie-synonyms/names of length ~s\n" (length synonyms/names))
     (append
      (list (cons 'curie curie))
      (list (cons 'curie-synonyms/names synonyms/names))
@@ -145,26 +145,26 @@
 (define (make-dr-query1-up/down direction directly-up/down-regulate-gene)
   (lambda (the-gene-curie the-gene-symbol)
 
-    (printf "*** getting directly ~s for gene CURIE ~s\n" direction the-gene-curie)
+    ; (printf "*** getting directly ~s for gene CURIE ~s\n" direction the-gene-curie)
     
-    (define directly-up/down (time (directly-up/down-regulate-gene the-gene-curie)))
+    (define directly-up/down (directly-up/down-regulate-gene the-gene-curie))
     ;; returns the set of all query results (for X, for gene, for edges X->my-gene, etc.)
 
     ;; unused
     ;; (define directly-up/down-Xs (curies/query directly-up/down 'X))
 
-    (printf "*** getting edges/X->directly-~s for gene CURIE ~s\n" direction the-gene-curie)
+    ; (printf "*** getting edges/X->directly-~s for gene CURIE ~s\n" direction the-gene-curie)
   
     ;; each edge corresponds to an X in Xs
-    (define edges/X->directly-up/down (time (edges/ranked (ranked-paths directly-up/down) 0 0)))
+    (define edges/X->directly-up/down (edges/ranked (ranked-paths directly-up/down) 0 0))
 
     (printf "*** getting directly-~s-drug-info for gene CURIE ~s\n" direction the-gene-curie)
   
-    (define directly-up/down-drug-info (time (map drug-info-from-composite-edge edges/X->directly-up/down)))
+    (define directly-up/down-drug-info (map drug-info-from-composite-edge edges/X->directly-up/down))
 
     (printf "*** getting directly-~s-drug-info-for-tsv for gene CURIE ~s\n" direction the-gene-curie)
   
-    (define directly-up/down-drug-info-for-tsv (time (map drug-info-for-tsv-from-composite-edge edges/X->directly-up/down)))
+    (define directly-up/down-drug-info-for-tsv (map drug-info-for-tsv-from-composite-edge edges/X->directly-up/down))
 
     (printf "*** finished getting directly-~s-drug-info-for-tsv for gene CURIE ~s\n" direction the-gene-curie)
 
@@ -189,23 +189,23 @@
 
   (printf "*** finding up-regulators for gene CURIE ~s\n" the-gene-curie)
 
-  (define up-query-results (time (dr-query1-up the-gene-curie the-gene-symbol)))
+  (define up-query-results (dr-query1-up the-gene-curie the-gene-symbol))
     
-  (printf "*** finding down-regulators for gene CURIE ~s\n" the-gene-curie)
+  ; (printf "*** finding down-regulators for gene CURIE ~s\n" the-gene-curie)
 
-  (define down-query-results (time (dr-query1-down the-gene-curie the-gene-symbol)))
+  (define down-query-results (dr-query1-down the-gene-curie the-gene-symbol))
   
   (define my-query-result (append up-query-results down-query-results))
   
   (define output-file-name (format "~a-budging.tsv" the-gene-symbol))
   
-  (printf "*** writing results for gene CURIE ~s to file ~s\n" the-gene-curie output-file-name)
+  ; (printf "*** writing results for gene CURIE ~s to file ~s\n" the-gene-curie output-file-name)
   
   (with-output-to-file output-file-name
     (tsv-for the-gene-curie the-gene-symbol my-query-result)
     #:exists 'replace)
 
-  (printf "*** finished processing gene CURIE ~s\n" the-gene-curie)
+  ; (printf "*** finished processing gene CURIE ~s\n" the-gene-curie)
 
   'finished
   )
@@ -215,18 +215,18 @@
     (lambda (curie)
       ;; 10 minute timeout per curie
       (define timeout-ms (* 10 60 1000))
-      (printf "@@@ dr-query creating engine for curie ~s\n" curie)
+      ; (printf "@@@ dr-query creating engine for curie ~s\n" curie)
       (define eng (engine (lambda (p)
                             (dr-query1 curie))))
-      (printf "@@@ dr-query running engine for ~s ms for curie ~s\n" timeout-ms curie)
+      ; (printf "@@@ dr-query running engine for ~s ms for curie ~s\n" timeout-ms curie)
       (engine-run timeout-ms eng)
-      (printf "@@@ dr-query engine for curie ~s finished\n" curie)
-      (if (engine-result eng)
-          (printf "@@@ dr-query engine for curie ~s ran to completion\n" curie)
-          (printf "@@@ dr-query engine for curie ~s timed out!!\n" curie))
-      (printf "@@@ dr-query killing engine for curie ~s\n" curie)
+      ; (printf "@@@ dr-query engine for curie ~s finished\n" curie)
+      ; (if (engine-result eng)
+      ;   (printf "@@@ dr-query engine for curie ~s ran to completion\n" curie)
+      ;   (printf "@@@ dr-query engine for curie ~s timed out!!\n" curie))
+      ;(printf "@@@ dr-query killing engine for curie ~s\n" curie)
       (engine-kill eng)
-      (printf "@@@ dr-query killed engine for curie ~s\n" curie)
+      ;(printf "@@@ dr-query killed engine for curie ~s\n" curie)
       )
     gene-curies))
 
