@@ -365,8 +365,7 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
                              ((error-display-handler) (exn-message v) v)
                              '())])
             (define pubs (cdr pr))
-            (define pubs-json-str (string-replace pubs "'" "\""))
-            (define jason-ht (string->jsexpr (python->json pubs-json-str)))
+            (define jason-ht (string->jsexpr (python->json pubs)))
             (hash-map jason-ht (lambda (k v)
                                  (cons (string-append
                                         PUBMED_URL_PREFIX
