@@ -176,9 +176,9 @@
   (if (and (config-ref 'cache-synonyms?)
            (file-exists? path:curie=>synonyms) (file-exists? path:synonyms))
     (let* ((_ (printf "loading cached synonyms\n"))
-           (curie=>sid (call-with-input-file path:curie=>synonyms read))
-           (synonyms   (call-with-input-file path:synonyms        read))
-           (synonyms   (vector-map list->set synonyms)))
+           (curie=>sid (time (call-with-input-file path:curie=>synonyms read)))
+           (synonyms   (time (call-with-input-file path:synonyms        read)))
+           (synonyms   (time (vector-map list->set synonyms))))
       (printf "loaded ~s synonym classes for ~s curies\n"
               (vector-length synonyms) (hash-count curie=>sid))
       (lambda (curie) (vector-ref synonyms (hash-ref curie=>sid curie))))
