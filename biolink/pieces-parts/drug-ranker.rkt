@@ -4,10 +4,10 @@
          racket/engine)
 
 ;;get simple pieces of edges
-(define edge-matcher
+(define edge-matcher/SPO
   (lambda (ls els)
     (cond
-      ((null? ls) (set-union els))
+      ((null? ls) els)
       (else
        (match (car ls)
          [`(,db ,edge-cui
@@ -15,31 +15,11 @@
                (,object-cui ,object-id ,object-name (,_ . ,object-category) ,object-props-assoc)
                (,_ . ,pred)
                ,pred-props-assoc)
-          (edge-matcher
+          (edge-matcher/SPO
            (cdr ls)
            (set-union
             (list `((,db) (,subject-name . ,subject-id) ,pred (,object-name . ,object-id))) 
             els))])))))
-
-(define edge-matcher/by-subject-type
-  (lambda (ls els subject-filter)
-    (cond
-      ((null? ls) (set-union els))
-      (else
-       (match (car ls)
-         [`(,db ,edge-cui
-               (,subject-cui ,subject-id ,subject-name (,_ . ,subject-category) ,subject-props-assoc)
-               (,object-cui ,object-id ,object-name (,_ . ,object-category) ,object-props-assoc)
-               (,_ . ,pred)
-               ,pred-props-assoc)
-          (cond
-            ((subject-name)))
-          (edge-matcher/by-subject-type
-           (cdr ls)
-           (set-union
-            (list `((,db) (,subject-name . ,subject-id) ,pred (,object-name . ,object-id))) 
-            els))])))))
-
 
 (define gene-filter
   (lambda (ls els)
@@ -98,48 +78,6 @@
        (remove-item x (cdr ls)
                     (cons (car ls) els))))))
 
-#|
-(define curie-to-anything
-  (lambda (curie predicate*)
-    ;;(printf "starting curie-to-anything with curie ~s and preds ~s\n" curie predicate*)
-    (let ((val (query/graph
-                ( ;; concepts
-                 (X curie)
-                 (T #f))
-                ;; edges
-                ((X->T predicate*))
-                ;; paths      
-                (X X->T T))))
-      ;;(printf "finished curie-to-anything with curie ~s and preds ~s\n" curie predicate*)
-      val)))
-
-(define curie-to-tradenames
-  (lambda (curie)
-    (curie-to-anything curie '("has_tradename"))))
-
-(define curie-to-clinical-trials
-  (lambda (curie)
-    (curie-to-anything curie '("clinically_tested_approved_unknown_phase"
-                               "clinically_tested_terminated_phase_2"
-                               "clinically_tested_terminated_phase_3"
-                               "clinically_tested_terminated_phase_2_or_phase_3"
-                               "clinically_tested_withdrawn_phase_3"
-                               "clinically_tested_withdrawn_phase_2_or_phase_3"
-                               "clinically_tested_withdrawn_phase_2"
-                               "clinically_tested_suspended_phase_2"
-                               "clinically_tested_suspended_phase_3"
-                               "clinically_tested_suspended_phase_2_or_phase_3"))))
-
-(define curie-to-indicated_for
-  (lambda (curie)
-    (curie-to-anything curie '("indicated_for"))))
-
-(define curie-to-contraindicated_for
-  (lambda (curie)
-    (curie-to-anything curie '("contraindicated_for"))))
-
-|#
-
 (define 2-hop-gene-lookup
   (lambda (target-gene-ls els)
     (define 1-hop/query
@@ -165,35 +103,140 @@
       (printf "\n\n~a 1-HOP AFFECTOR GENE CONCEPTS FOUND!\n" (length 1-hop-affector-genes/HGNC*))
       (printf "\n\n~a 1-HOP AFFECTOR GENES HGNC-IDs FOUND!\n\n~a" (length 1-hop-affector-genes/HGNC*) 1-hop-affector-genes/HGNC*)
       (cond
-        ((null? target-gene-ls)
-         (cons 2-hop-affector-gene/edges els))
+        ((null? target-gene-ls) els)
         (else
          (displayln (format "\n\nPREPARING 1-HOP AFFECTOR GENES FOR 2-HOP QUERY!\n\n"))
          (let ((2-hop-affector-gene/edges (let loop ((1-hop-affector-genes/HGNC* 1-hop-affector-genes/HGNC*)
-                                                     (2-hop-affector-gene/edges '()))
+                                                     (els-2 '()))
                                             (cond
-                                              ((null? 1-hop-affector-genes/HGNC*) 2-hop-affector-gene/edges)
+                                              ((null? 1-hop-affector-genes/HGNC*) els-2)
                                               (else
                                                (loop
                                                 (cdr 1-hop-affector-genes/HGNC*) 
                                                 (cons
-                                                 ;; filter 2-hop affector edges by
-                                                 ;; gene
-                                                 ;; drug
                                                  (edges/query (1-hop/query (car 1-hop-affector-genes/HGNC*)) 'X->TG)
-                                                      2-hop-affector-gene/edges)))))))
-           2-hop-affector-gene/edges))))))
+                                                 els-2)))))))
+           (append* 2-hop-affector-gene/edges els)))))))
 
-(define 2-hop-affector-genes/NGLY1
+;; list of 47 lists, each with the 2-hop edges
+;; [X] X-->1-HOP-AFFECTOR-GENE [1-HOP-AFFECTOR GENE] 
+;; need to filter by X
+(define 2-hop-affector-edges/NGLY1
   (2-hop-gene-lookup '("HGNC:21625") '()))
+
+(define gene-concept?
+  (lambda (x)
+    (or
+     (boolean? (car x))
+     (string-prefix? (car x) "HGNC:")
+     (string-prefix? (car x) "ENSEMBL:")
+     (string-prefix? (car x) "UniProtKB:")
+     (string-prefix? (car x) "NCBIGene:")
+     (string-prefix? (car x) "NCBIGENE:"))))
+
+(define drug-concept?
+  (lambda (x)
+    (or (boolean? (car x))
+        (string-prefix? (car x) "CHEBI:")
+        (string-prefix? (car x) "CHEMBL:")
+        (string-prefix? (car x) "CHEMBL.")
+        (string-prefix? (car x) "KEGG:")
+        (string-prefix? (car x) "KEGG.")
+        (string-prefix? (car x) "DRUGBANK:")
+        (string-prefix? (car x) "RXNORM:"))))
+
+(define affector-gene-edge?
+  (lambda (ls)
+    (match (car ls)
+      [`(,db ,edge-cui
+             (,subject-cui ,subject-id ,subject-name (,_ . ,subject-category) ,subject-props-assoc)
+             (,object-cui ,object-id ,object-name (,_ . ,object-category) ,object-props-assoc)
+             (,_ . ,pred)
+             ,pred-props-assoc)
+       (cond
+         ((gene-concept? `(,subject-id))
+          (list (car ls)))
+         (else
+          #f))])))
+
+(define filter-edges-by-affector-type
+  (lambda (ls els-gene els-drug)
+    (cond
+      ((null? ls)
+       (list els-gene
+             els-drug))
+      (else
+       (match (car ls)
+      [`(,db ,edge-cui
+             (,subject-cui ,subject-id ,subject-name (,_ . ,subject-category) ,subject-props-assoc)
+             (,object-cui ,object-id ,object-name (,_ . ,object-category) ,object-props-assoc)
+             (,_ . ,pred)
+             ,pred-props-assoc)
+       (cond
+         ((drug-concept? `(,subject-id))
+          (filter-edges-by-affector-type
+           (cdr ls)
+           els-gene
+           (cons (car ls) els-drug)))
+         ((gene-concept? `(,subject-id))
+          (filter-edges-by-affector-type
+           (cdr ls)
+           (cons (car ls) els-gene)
+           els-drug))
+         (else
+          (filter-edges-by-affector-type
+           (cdr ls)
+           els-gene
+           els-drug)))])))))
+
+;; we need a function to inspect each edge in a list
+;; and determine if its subject is: A: Drug B: Gene
+
+(define 2-hop-affector-gene/drugs-edges/NGLY1
+  (map (lambda (ls) (filter-edges-by-affector-type ls '() '())) 2-hop-affector-edges/NGLY1))
+
+#|
+(define 2-hop-affector-drugs-edges/NGLY1
+  (map (lambda (ls) (filter-edges-by-affector-type ls '() '())) 2-hop-affector-edges/NGLY1))
+
+(define 2-hop-affector-gene-edges/NGL1Y
+  (map (lambda (ls) (affector-gene-edge? ls)) 2-hop-affector-edges/NGLY1))
+
+(define 2-hop-affector-gene-edges/NGLY1
+  (map (lambda (x) (filter affector-gene-edge? x)) 2-hop-affector-edges/NGLY1))
+
+(define 2-hop-affector-drug-edges/NGLY1
+  (map (lambda (x) (filter affector-drug-edge? x)) 2-hop-affector-edges/NGLY1))
+|#
+
+#|
+(map concept->name (map (lambda (ls) (edge->subject ls)) 2-hop-affector-edges/NGLY1))
+
+(map (lambda (ls) (edge->subject ls)) 2-hop-affector-edges/NGLY1)
+
+
+;; gives names of all subjects in edge list 
+(map concept->name (map edge->subject 2-hop-affector-edges/NGLY1))
+|#
+
+#|
+;; gives all preds
+(map edge->pred (car 2-hop-affector-edges/NGLY1))
+
+;; gives all concept names 
+(map concept->name (map edge->object (car 2-hop-affector-genes/NGLY1)))
+|#
+
+
+#|
 
 (define NGLY1
   (time (query/graph
          ((X       #f)
-          (NGLY1 "HGNC:17646"))
+(NGLY1 "HGNC:17646"))
          ((X->NGLY1 #f))
          (X X->NGLY1 NGLY1))))
-
+|#
 
 #|
 (define NGLY1
@@ -468,5 +511,3 @@ Gives the all --predicate-->Object
 |#
 
 
-|#
-|#
