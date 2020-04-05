@@ -21,6 +21,25 @@
             (list `((,db) (,subject-name . ,subject-id) ,pred (,object-name . ,object-id))) 
             els))])))))
 
+(define edge-matcher/by-subject-type
+  (lambda (ls els subject-filter)
+    (cond
+      ((null? ls) (set-union els))
+      (else
+       (match (car ls)
+         [`(,db ,edge-cui
+               (,subject-cui ,subject-id ,subject-name (,_ . ,subject-category) ,subject-props-assoc)
+               (,object-cui ,object-id ,object-name (,_ . ,object-category) ,object-props-assoc)
+               (,_ . ,pred)
+               ,pred-props-assoc)
+          (cond
+            ((subject-name)))
+          (edge-matcher/by-subject-type
+           (cdr ls)
+           (set-union
+            (list `((,db) (,subject-name . ,subject-id) ,pred (,object-name . ,object-id))) 
+            els))])))))
+
 
 (define gene-filter
   (lambda (ls els)
@@ -157,9 +176,13 @@
                                               (else
                                                (loop
                                                 (cdr 1-hop-affector-genes/HGNC*) 
-                                                (cons (edges/query (1-hop/query (car 1-hop-affector-genes/HGNC*)) 'X->TG)
+                                                (cons
+                                                 ;; filter 2-hop affector edges by
+                                                 ;; gene
+                                                 ;; drug
+                                                 (edges/query (1-hop/query (car 1-hop-affector-genes/HGNC*)) 'X->TG)
                                                       2-hop-affector-gene/edges)))))))
-           (1-hop/query (car target-gene-ls))))))))
+           2-hop-affector-gene/edges))))))
 
 (define 2-hop-affector-genes/NGLY1
   (2-hop-gene-lookup '("HGNC:21625") '()))
