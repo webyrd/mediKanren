@@ -2,8 +2,15 @@
 (require
   "csv.rkt"
   "repr.rkt"
+  json
   racket/match
   )
+
+(define (json-simplify json)
+  (if (and (string? json) (< 0 (string-length json))
+           (eqv? #\" (string-ref json 0)))
+    (string->jsexpr json)
+    json))
 
 (define argv (current-command-line-arguments))
 (define argv-expected '#(DATA_DIR GRAPH_DIR))
@@ -83,14 +90,15 @@
   (define nodeprops (csv-records in-nodeprop))
   (define first-nodeprop (nodeprops 'next))
   (when (not first-nodeprop) (error "nodeprop file is empty"))
-  (match-define (list cui key val) first-nodeprop)
+  (match-define (list cui key raw-val) first-nodeprop)
 
   (let loop ((count 1) (current-cui cui))
     (define props
       (let loop-props ((row (nodeprops 'current)))
         (match row
-          ((list (? (lambda (cui) (equal? current-cui cui))) key val)
-           (cons (cons key val) (loop-props (nodeprops 'next))))
+          ((list (? (lambda (cui) (equal? current-cui cui))) key raw-val)
+           (cons (cons key (json-simplify raw-val))
+                 (loop-props (nodeprops 'next))))
           (_ '()))))
     (add-concept current-cui props)
     (when (= 0 (remainder count 10000))
@@ -168,7 +176,7 @@
   (define first-edgeprop (edgeprops 'next))
   (when (not (and first-edge first-edgeprop)) (error "empty edge files"))
   (match-define (list eid0 subject-cui object-cui) first-edge)
-  (match-define (list eid key val) first-edgeprop)
+  (match-define (list eid key raw-val) first-edgeprop)
   (when (not (equal? eid0 eid)) (error "mismatching edge ids:" eid0 eid))
 
   (let loop ((count 1) (current-eid eid) (subject-cui subject-cui)
@@ -176,8 +184,9 @@
     (define props
       (let loop-props ((row (edgeprops 'current)))
         (match row
-          ((list (? (lambda (eid) (equal? current-eid eid))) key val)
-           (cons (cons key val) (loop-props (edgeprops 'next))))
+          ((list (? (lambda (eid) (equal? current-eid eid))) key raw-val)
+           (cons (cons key (json-simplify raw-val))
+                 (loop-props (edgeprops 'next))))
           (_ '()))))
     (add-edge subject-cui object-cui props)
     (when (= 0 (remainder count 100000))
