@@ -15,18 +15,23 @@
 
 ## Ingesting new data sources
 
-### Downloading neo4j data in CSV format
+### Downloading neo4j data in TSV format
 
 * Obtain username, password, host, and port of the neo4j instance.
 * `cd` to the kgx repo.
 * Modify `config.yml` to use the instance information you obtained.  Set the `outputname` here to describe your data source, e.g., `robokop`.
 * Run the download script via `python3`, likely with this command: `python3 neo4j_download.py` (For a typical data source, the download may take an hour or so.)
 
-### Converting CSVs to mediKanren format
+### Converting TSVs (or CSVs) to mediKanren format
 
 * `cd` to the `biolink` subdirectory of the `mediKanren` repo (which is this repo).
-* Move or copy the downloaded CSV files to an appropriately-named subdirectory of the `biolink/data` directory.  We'll assume your datasource is named `NAME`, and will live at `biolink/data/NAME`.
-* Perform conversion by running: (For a typical data source, conversion may take an hour or so.)
+* Move or copy the downloaded TSV (or CSV) files to an appropriately-named subdirectory of the `biolink/data` directory.  We'll assume your datasource is named `NAME`, and will live at `biolink/data/NAME`.
+* For TSV files, perform conversion by running: (For a typical data source, conversion may take an hour or so.)
+```
+racket tsv-graph-to-db.rkt data NAME
+racket build-string-index.rkt data NAME
+```
+* For CSV files, perform conversion by running: (For a typical data source, conversion may take an hour or so.)
 ```
 racket csv-graph-to-db.rkt data NAME
 racket build-string-index.rkt data NAME
@@ -46,17 +51,17 @@ Within racket, running this should produce sensible results:
 (run 10 (e) (db:edgeo NAME e)))
 ```
 
-### Back up CSV source data
+### Back up TSV (or CSV) source data
 
-If CSVs are downloaded from a remote source, then after the CSVs are grouped in a directory, yet before running racket conversion scripts, first create a zip for backup:
+If TSVs are downloaded from a remote source, then after the TSVs are grouped in a directory, yet before running racket conversion scripts, first create a zip for backup:
 ```
 cd data
-zip -r semmed.csv.zip semmed
+zip -r semmed.tsv.zip semmed
 ```
 
 This isn't necessary for neo4j dumps because the dump is a reliable source (though doing so could still save the self-download time).  Remote sources are not reliable.
 
-To backup the CSV->mediKanren work:
+To backup the TSV->mediKanren work:
 ```
 cd data
 zip -r robokop.db.zip robokop
@@ -70,7 +75,7 @@ Follow these instructions to set up a local instance using the dump file.  Then 
 
 ### Start a local neo4j instance from a dump file
 
-Assuming `neo4j` is already stopped, convert a Robokop (or RTX) `X.dump` to CSV format via:
+Assuming `neo4j` is already stopped, convert a Robokop (or RTX) `X.dump` to TSV format via:
 
 ```
 neo4j-admin load --from X.dump --database graph.db --force  # If this is your first time, remove the --force option.
@@ -81,7 +86,7 @@ time python3 neo4j_download.py
 neo4j stop
 ```
 
-Then follow the instructions for converting the CSVs to mediKanren format.
+Then follow the instructions for converting the TSVs to mediKanren format.
 
 (If you've just set neo4j up for the first time and kgx failed due to authorization, try visiting localhost:7474 in the browser, and logging in with username=neo4j password=neo4j.  You'll be prompted to set a new password.  Set it to be consistent with the password in your kgx config file.)
 
@@ -180,8 +185,6 @@ neo4j stop
 * index gene aliasing data
 
 * consolidate db generation with one script
-
-* update `csv->db` process to account for JSON values produced by new kgx dump
 
 * reorganize directory structure
   * lift biolink to main directory, moving current main contents somewhere else

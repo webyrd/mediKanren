@@ -1,6 +1,6 @@
 #lang racket/base
 (require
-  "csv.rkt"
+  "tsv.rkt"
   "repr.rkt"
   json
   racket/match
@@ -24,10 +24,10 @@
   (expand-user-path (build-path data-dir graph-dir fname)))
 
 ;; Input
-;; We don't need anything from *.node.csv to build the DB.
-(define fnin-nodeprop (string-append graph-dir ".nodeprop.csv"))
-(define fnin-edge     (string-append graph-dir ".edge.csv"))
-(define fnin-edgeprop (string-append graph-dir ".edgeprop.csv"))
+;; We don't need anything from *.node.tsv to build the DB.
+(define fnin-nodeprop (string-append graph-dir ".nodeprop.tsv"))
+(define fnin-edge     (string-append graph-dir ".edge.tsv"))
+(define fnin-edgeprop (string-append graph-dir ".edgeprop.tsv"))
 
 ;; Output
 (define fnout-concepts             "concepts.scm")
@@ -39,13 +39,13 @@
 (define fnout-edges-by-object      "edges-by-object.bytes")
 (define (fname-offset fname) (string-append fname ".offset"))
 
-(define nodeprop-header-expected ":ID,propname,value")
-(define edgeprop-header-expected ":ID,propname,value")
-(define edge-header-expected     ":ID,:START,:END")
+(define nodeprop-header-expected ":ID\tpropname\tvalue")
+(define edgeprop-header-expected ":ID\tpropname\tvalue")
+(define edge-header-expected     ":ID\t:START\t:END")
 (define (validate-header header-expected in)
   (define header-found (read-line in 'any))
   (when (not (equal? header-found header-expected))
-    (error "unexpected CSV header:" header-found header-expected)))
+    (error "unexpected TSV header:" header-found header-expected)))
 
 (define cui=>id&cat (hash))
 
@@ -87,7 +87,7 @@
                       (vector cui category-id name (filter other-key? props)))
         (set! id (+ id 1)))))
 
-  (define nodeprops (csv-records in-nodeprop))
+  (define nodeprops (tsv-records in-nodeprop))
   (define first-nodeprop (nodeprops 'next))
   (when (not first-nodeprop) (error "nodeprop file is empty"))
   (match-define (list cui key raw-val) first-nodeprop)
@@ -170,8 +170,8 @@
                       (vector subject pid object (filter other-key? props)))
         (set! id (+ id 1)))))
 
-  (define edges (csv-records in-edge))
-  (define edgeprops (csv-records in-edgeprop))
+  (define edges (tsv-records in-edge))
+  (define edgeprops (tsv-records in-edgeprop))
   (define first-edge (edges 'next))
   (define first-edgeprop (edgeprops 'next))
   (when (not (and first-edge first-edgeprop)) (error "empty edge files"))
