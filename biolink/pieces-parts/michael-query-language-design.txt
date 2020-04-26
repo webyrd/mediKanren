@@ -1,0 +1,135 @@
+(define-simple-predicate regulates
+  (upregulates downregulates))
+
+(define-predicate (regulates e)
+  (edges (e (primitive-predicate '(upregulates downregulates)))))
+
+(define-predicate (treats-safely e)
+  (edges
+    (e treats))
+  (where
+    (has-property e treats-safely-predicates))))
+
+(define-category (safe-drug drg)
+  (concepts (drg drug) (dis disease))
+  (edges
+    (drg -- e -- dis treats-safely))))
+
+(define-category (druggable-gene g)
+  (concepts (drg safe-drug) (g gene))
+  (edges
+    (drg -- g regulates))))
+
+(query
+  (select
+    (curie d) (name d) (curie g) (name g) (pubmed e))
+  (concepts
+    (d safe-drug)
+    (g druggable-gene))
+  (edges
+    (d -- e -- g regulates)))
+
+
+(query
+  (select (pubmed e1) (pubmed e2))
+  (concepts
+    (d safe-drug)
+    (g1 druggable-gene)
+    (g2 gene))
+  (edges
+    (d -- e1 -- g1 regulates)
+    (g1 -- e2 -- g2 regulates))
+  (limit 10))
+
+
+; this is a comment
+(define-concept (kinome g)
+  (concept
+    (g gene)
+    (h hgnc))
+  (where
+    (synonymous g h)
+    (in-list (hgnc-id h) kinome-list)))
+
+(query
+  (concept
+    (d (from-list precomputed-drugs) drug)))
+
+(query
+  (select (pubmed e1) (pubmed e2))
+  (concepts
+    (d safe-drug)
+    (g1 druggable-gene)
+    (g2 gene))
+  (edges
+    (e1 : d regulates g1))
+  (where
+    (has-pubmed e1))
+  (limit 10))
+
+
+(define-fragment (safely-upregulates-2hop d int g)
+  (concepts
+    (d safe-drug)
+    (int gene)
+    (g gene))
+  (edge
+    (e1 : d upregulates int)
+    (e2 : int upregulates g)))
+
+(query
+  (select (name d) (name g))
+  (safely-upregulates-2hop d int g)
+  (where
+    (in-list g gene-list)))
+
+
+Compilation:
+
+(concept
+  (id category))
+=>
+(fresh (id)
+  (concepto id)
+  (category id))
+
+
+
+
+(query
+  (select
+    (curie D) (name D) (predicate Eup) (curie D) (name D) (category D)
+    (pubmed Eup [#:url #:date #:sentence]))
+  (concepts
+   (D drug)
+   (G gene))
+  (edges
+   (Eup : D upregulates G)))
+
+
+; macros for select, concepts, edges, and where syntax
+
+(define-selector-syntax pubmed
+  (syntax-parser
+    [(_ [attr ...+] edge)
+     #'(select-lambda ((property edge "pmid") (property edge "publication"))
+         ??)]))
+
+(define upregulates-list '(?? ...))
+(define-predicate-syntax upregulates
+  (lambda (_)
+    #'(predicates upregulates-list)))
+
+(define drug-categories-list '(?? ...))
+(define-category-syntax drug
+  (lambda (_)
+    #'(categories drug-categories-list))
+
+(define-category-syntax FDA-approved-drug
+  (syntax-parser
+    [(C _)
+     #'(query-fragment
+         (concepts
+           (C (categories drug-categories)))
+         (where
+           (property C "fda-approved" #t)))]))
