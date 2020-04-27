@@ -2,11 +2,633 @@
 (provide (all-defined-out))
 (require "query.rkt"
          racket/engine)
+;;not druggable 
+#;(define all-hgncs
+  '("HGNC:894"))
+
+;; HGNC:892, HGNC:1270 error in the constraint solver 
+
+#;(define all-hgncs
+  (file->list "/Users/michaelpatton/git/mediKanren/biolink/data/all-hgnc-curies.scm"))
+
+#;(define ARDS-gene-ls
+  (map (lambda (x) (string-append "HGNC:" x))
+       (map number->string
+            '(4818
+              7516
+              8583
+              320
+              1936
+              2766
+              3655
+              5992
+              6000
+              6014
+              6018
+              5962
+              5973
+              5981
+              5986
+              16830
+              17020
+              6709
+              6922
+              7097
+              7797
+              8947
+              10798
+              10799
+              10803
+              11362
+              17192
+              11847
+              11892
+              11908
+              12036
+              3542
+              4443
+              21581
+              9052
+              12726
+              2707
+              333
+              338
+              3374
+              3763
+              5273
+              6363
+              6848
+              6858
+              7590
+              30092
+              12680
+              1232
+              3999
+              5013
+              5014
+              7782
+              2874
+              11181
+              11920
+              186
+              13633
+              348
+              600
+              1550
+              2595
+              2884
+              3553
+              9237
+              9386
+              12554
+              12698
+              4603
+              6027
+              4035
+              4053
+              51
+              290
+              17731
+              4095
+              4595
+              5293))))
+
+
+#|
+(define anti-coag-list
+  '("RXNORM:11289"
+    "CUI:C0043031" 
+    "RXNORM:1546356"
+    "CUI:C2348066" 
+    "RXNORM:1114195"
+    "CUI:C1739768" 
+    "RXNORM:1364430"
+    "CUI:C1831808" 
+    "RXNORM:1599538"
+    "CUI:C2975435" 
+    "RXNORM:280611"
+    "CUI:C0916062" 
+    "RXNORM:152610"
+    "CUI:C0592532" 
+    "RXNORM:67109"
+    "CUI:C0206461"
+    "RXNORM:67108"
+    "CUI:C0206460" 
+    "RXNORM:67031"
+    "CUI:C0206232" 
+    "RXNORM:69528"
+    "CUI:C0215717" 
+    "RXNORM:75960"
+    "CUI:C0254215" 
+    "RXNORM:69646"
+    "CUI:C0216278" 
+    "RXNORM:5224"
+    "CUI:C0019134"))
+|#
+#|
+;; EWSR1 genes
+(define EWSR1-gene-ls
+  (map (lambda (x) (string-append "HGNC:" x))
+       (map number->string
+            '(38
+              14899
+              943
+              320
+              19990
+              489
+              490
+              2013
+              638
+              14103
+              15607
+              14872
+              974
+              24176
+              14343
+              1325
+              1389
+              1537
+              26295
+              1705
+              20455
+              2174
+              2191
+              22990
+              2333
+              24292
+              2498
+              2530
+              20348
+              2907
+              2908
+              2926
+              3010
+              3016
+              32188
+              19087
+              3154
+              27234
+              27683
+              30114
+              34236
+              3603
+              13590
+
+              3761
+              3800
+              3801
+              3817
+              25491
+              4092
+              4122
+              4131
+              4882
+              5141
+              17087
+              5466
+              25251
+              23236
+              48664
+              6617
+              6664
+              16895
+              17200
+              14575
+              17082
+              7159
+              7171
+              7514
+              7614
+              29832
+              13395
+              7746
+              7775
+              16191
+              19321
+              27106
+              7909
+              41983
+              7952
+              8126
+              8134
+              19316
+              8604
+              17270
+              16068
+              14180
+              27559
+              8890
+              8906
+              30065
+              19255
+              29037
+              14683
+
+              26303
+              20331
+              688
+              20457
+              13441
+              13655
+              24188
+              32455
+              18386
+              18387
+              10798
+              10799
+              10801
+              10802
+              10803
+              16192
+              11046
+              11049
+              11073
+              16698
+              15592
+              18065
+              15885
+              11568
+              11581
+              11595
+              20329
+              27916
+              11950
+              30887
+              20670
+              29315
+              15466
+              12769
+              19221
+              16804
+              13083))))
+
+|#
 
 
 
-(define gene-list
+
+#|proviral gene list for 2-hop|#
+;;"HGNC:11876" TMPRSS2
+;;"HGNC:8568" FURIN
+
+;; ANO1 for haley
+;; 21625 ano1
+;; 2244 = 24 genes
+#|
+(define pro-viral-gene-list
   '())
+|#
+#|
+"HGNC:15631"
+    "HGNC:15632"
+    "HGNC:11876"
+    "HGNC:8568"
+    "HGNC:13557"
+    "HGNC:3009"
+|#
+
+
+#|
+;; alzheimer's genes                    ; ;
+(define pro-viral-gene-list             ; ;
+  (map symbol->string                   ; ;
+       '(HGNC:1052
+         HGNC:2095
+         HGNC:613
+         HGNC:37                        ; ;
+         HGNC:2334                      ; ;
+         HGNC:15514                     ; ;
+         HGNC:13375                     ; ;
+         HGNC:1659                      ; ;
+         HGNC:14284                     ; ;
+         HGNC:14258                     ; ;
+         HGNC:620                       ; ;
+         HGNC:6893                      ; ;
+         HGNC:9508                      ; ;
+         HGNC:9509                      ; ;
+         HGNC:17761)))                           ; ;
+|#
+
+
+#|
+(define pro-viral-gene-list             ; ;
+'("HGNC:11876"                          ; ;
+"HGNC:8568"                             ; ;
+"HGNC:7850"                             ; ;
+"HGNC:11320"                            ; ;
+"HGNC:8883"                             ; ;
+"HGNC:1776"                             ; ;
+"HGNC:2232"                             ; ;
+"HGNC:2537"                             ; ;
+))                                      ; ;
+|#
+;; just TMPRSS2
+#;(define pro-viral-gene-list
+  '("HGNC:11876"))
+#|
+(define pro-viral-gene-list
+  '("CHEBI:6887"))
+|#
+
+#|
+#|
+;pro-viral kinases
+NME2
+ABI1
+PFTK1
+CDK5R2
+COPB2
+CTSL
+|#
+
+(define pro-viral-gene-list
+'("HGNC:7850"
+"HGNC:11320"
+"HGNC:8883"
+"HGNC:1776"
+"HGNC:2232"
+"HGNC:2537"))
+|#
+
+#|
+;;anti-viral kinases
+CLK1
+MAP2K6
+CSNK1G1
+EPHA3
+CDK6
+AURKB
+GCK
+DGKD
+|#
+#|
+;; short 2hop "HGNC:8122"
+(define pro-viral-gene-list
+  '("HGNC:24591"))
+|#
+#;(define pro-viral-gene-list
+  '("HGNC:24591"
+    "HGNC:19356"
+    "HGNC:10941"
+    "HGNC:51"
+    "HGNC:28756"
+    "HGNC:76"
+    "HGNC:2707"
+    "HGNC:13557"
+    "HGNC:7976"
+    "HGNC:338"
+    "HGNC:790"
+    "HGNC:868"
+    "HGNC:864"
+    "HGNC:13919"
+    "HGNC:990"
+    "HGNC:991"
+    "HGNC:992"
+    "HGNC:995"
+    "HGNC:1103"
+    "HGNC:1125"
+    "HGNC:25142"
+    "HGNC:1471"
+    "HGNC:1527"
+    "HGNC:1641"
+    "HGNC:1859"
+    "HGNC:24537"
+    "HGNC:2228"
+    "HGNC:2230"
+    "HGNC:2231"
+    "HGNC:2232"
+    "HGNC:2234"
+    "HGNC:2237"
+    "HGNC:2243"
+    "HGNC:9605"
+    "HGNC:7421"
+    "HGNC:52028"
+    "HGNC:2459"
+    "HGNC:2460"
+    "HGNC:2552"
+    "HGNC:2712"
+    "HGNC:28777"
+    "HGNC:2716"
+    "HGNC:2746"
+    "HGNC:2976"
+    "HGNC:3189"
+    "HGNC:3277"
+    "HGNC:3275"
+    "HGNC:3272"
+    "HGNC:3293"
+    "HGNC:3723"
+    "HGNC:18169"
+    "HGNC:3538"
+    "HGNC:23397"
+    "HGNC:3711"
+    "HGNC:33276"
+    "HGNC:8568"
+    "HGNC:14375"
+    "HGNC:4181"
+    "HGNC:19687"
+    "HGNC:4296"
+    "HGNC:4616"
+    "HGNC:14453"
+    "HGNC:4853"
+    "HGNC:4897"
+    "HGNC:5031"
+    "HGNC:24921"
+    "HGNC:5960"
+    "HGNC:6053"
+    "HGNC:6118"
+    "HGNC:6204"
+    "HGNC:6395"
+    "HGNC:29531"
+    "HGNC:25726"
+    "HGNC:6664"
+    "HGNC:29620"
+    "HGNC:3332"
+    "HGNC:6897"
+    "HGNC:6943"
+    "HGNC:18873"
+    "HGNC:7113"
+    "HGNC:7114"
+    "HGNC:3942"
+    "HGNC:7460"
+    "HGNC:7684"
+    "HGNC:18591"
+    "HGNC:25242"
+    "HGNC:7910"
+    "HGNC:16885"
+    "HGNC:8068"
+    "HGNC:3255"
+    "HGNC:8869"
+    "HGNC:8912"
+    "HGNC:9437"
+    "HGNC:9281"
+    "HGNC:14650"
+    "HGNC:9380"
+    "HGNC:9531"
+    "HGNC:17822"
+    "HGNC:9828"
+    "HGNC:3402"
+    "HGNC:10019"
+    "HGNC:10312"
+    "HGNC:10480"
+    "HGNC:18276"
+    "HGNC:1228"
+    "HGNC:10803"
+    "HGNC:8157"
+    "HGNC:10905"
+    "HGNC:13621"
+    "HGNC:30669"
+    "HGNC:30615"
+    "HGNC:11364"
+    "HGNC:11728"
+    "HGNC:11766"
+    "HGNC:11849"
+    "HGNC:16627"
+    "HGNC:2236"
+    "HGNC:6021"
+    "HGNC:11850"
+    "HGNC:11876"
+    "HGNC:12019"
+    "HGNC:12458"
+    "HGNC:12666"
+    "HGNC:23663"
+    "HGNC:12825"
+    "HGNC:11320"
+    "HGNC:171"
+    "HGNC:172"
+    "HGNC:19041"
+    "HGNC:375"
+    "HGNC:376"
+    "HGNC:52650"
+    "HGNC:1078"
+    "HGNC:33814"
+    "HGNC:1459"
+    "HGNC:1674"
+    "HGNC:1776"
+    "HGNC:15483"
+    "HGNC:1994"
+    "HGNC:19083"
+    "HGNC:2068"
+    "HGNC:2700"
+    "HGNC:2855"
+    "HGNC:3061"
+    "HGNC:3255"
+    "HGNC:24649"
+    "HGNC:3767"
+    "HGNC:4922"
+    "HGNC:18360"
+    "HGNC:6193"
+    "HGNC:6514"
+    "HGNC:6524"
+    "HGNC:6843"
+    "HGNC:6846"
+    "HGNC:19035"
+    "HGNC:7381"
+    "HGNC:7529"
+    "HGNC:7648"
+    "HGNC:9404"
+    "HGNC:9612"
+    "HGNC:9618"
+    "HGNC:9671"
+    "HGNC:11403"
+    "HGNC:11404"
+    "HGNC:11406"
+    "HGNC:11904"
+    "HGNC:9437"))
+
+(define anti-viral-gene-list
+  '("HGNC:3009"
+    "HGNC:4617"
+    "HGNC:7114"
+    "HGNC:8984"
+    "HGNC:14650"
+    "HGNC:10819"
+    "HGNC:12458"
+    "HGNC:257"
+    "HGNC:289"
+    "HGNC:376"
+    "HGNC:14311"
+    "HGNC:11390"
+    "HGNC:913"
+    "HGNC:16902"
+    "HGNC:1057"
+    "HGNC:19341"
+    "HGNC:1492"
+    "HGNC:1678"
+    "HGNC:1777"
+    "HGNC:1782"
+    "HGNC:1786"
+    "HGNC:1791"
+    "HGNC:1991"
+    "HGNC:31736"
+    "HGNC:1995"
+    "HGNC:2071"
+    "HGNC:13659"
+    "HGNC:2363"
+    "HGNC:2454"
+    "HGNC:2455"
+    "HGNC:2457"
+    "HGNC:10637"
+    "HGNC:2674"
+    "HGNC:2676"
+    "HGNC:2704"
+    "HGNC:2849"
+    "HGNC:2850"
+    "HGNC:2851"
+    "HGNC:2857"
+    "HGNC:3070"
+    "HGNC:3071"
+    "HGNC:3091"
+    "HGNC:3386"
+    "HGNC:3387"
+    "HGNC:3388"
+    "HGNC:3389"
+    "HGNC:3431"
+    "HGNC:3655"
+    "HGNC:4036"
+    "HGNC:4119"
+    "HGNC:4195"
+    "HGNC:4291"
+    "HGNC:4545"
+    "HGNC:20565"
+    "HGNC:15566"
+    "HGNC:6171"
+    "HGNC:6307"
+    "HGNC:15719"
+    "HGNC:29798"
+    "HGNC:18608"
+    "HGNC:6840"
+    "HGNC:6847"
+    "HGNC:6849"
+    "HGNC:6850"
+    "HGNC:6871"
+    "HGNC:6886"
+    "HGNC:17574"
+    "HGNC:7110"
+    "HGNC:7111"
+    "HGNC:16243"
+    "HGNC:7601"
+    "HGNC:15576"
+    "HGNC:11399"
+    "HGNC:7850"
+    "HGNC:18981"
+    "HGNC:8883"
+    "HGNC:9529"
+    "HGNC:10251"
+    "HGNC:10812"
+    "HGNC:6773"
+    "HGNC:16852"
+    "HGNC:11394"
+    "HGNC:16835"
+    "HGNC:29259"
+    "HGNC:26160"
+    "HGNC:11847"
+    "HGNC:17995"
+    "HGNC:16473"
+    "HGNC:17797"
+    "HGNC:487"
+    "HGNC:2852"))
+
+
 
 #|HELPER FUNCTIONS|#
 (define inner-loop/csv
@@ -712,11 +1334,15 @@ subject-name
     (define 1-hop/query
       (lambda (target-gene)
         (printf "\nQUERY/GRAPH RUNNING ON:   ~a\n" target-gene)
-        (time (query/graph
+        (cond
+          ((null? target-gene)
+           (cons "NO_QUERY_CONCEPT" els))
+          (else
+           (time (query/graph
                ((X #f)
                 (TG target-gene))
                ((X->TG #f))
-               (X X->TG TG)))))
+               (X X->TG TG)))))))
     (cond
       ((null? target-gene-ls) els)
       (else
@@ -1031,6 +1657,27 @@ subject-name
       (else
        (error (format "EXPORT ERROR WITH EDGE: ~a\n" path))))))
 
+(define column-headers/1hop
+  '("edge_id"
+    "db"
+    "subject_linker_name"              
+    "subject_linker_curie"
+    "predicate_symbol"
+    "fda_approved"
+    "target_object_linker_name"
+    "target_object_linker_curie"
+    "subject_name"
+    "subject_curie" 
+    "subject_category"
+    "predicate"              
+    "target_object_name"
+    "target_object_curie"
+    "target_object_category"
+    "rxnorm_drug_id"
+    "pubmed_number"
+    "pub_urls"                            
+    ))
+
 (define get-2hop-paths-for-single-1hop-affector-gene
   (lambda (all-2hop-paths-for-single-affector-gene)
     (cond
@@ -1064,19 +1711,19 @@ subject-name
           (number->string (date-day (seconds->date (current-seconds))))
           (number->string (date-year (seconds->date (current-seconds))))))
 
-(define export-path/proviral
-  "/Users/michaelpatton/git/automated_medikanren_queries/covid19/proviral_gene_2hop/")
+(define export-path
+  "/Users/michaelpatton/git/automated_medikanren_queries/covid19/proviral_genes/")
 
 (define export-path/antiviral
   "/Users/michaelpatton/git/automated_medikanren_queries/covid19/antiviral_gene_2hop/")
 
-(define directory-path/proviral 
-  (format "~a~a/" export-path/proviral export-date))
+(define directory-path 
+  (format "~a~a/" export-path export-date))
         
 (define make-export-directory/proviral
-  (if (directory-exists? directory-path/proviral)
+  (if (directory-exists? directory-path)
       (error (format "CHECK FILE, IT MAY EXIST"))
-      (make-directory directory-path/proviral)))
+      (make-directory directory-path)))
 
 (define handle-2hop-query
   (time
@@ -1085,7 +1732,7 @@ subject-name
        ((null? curie) (void))
        (else
         (let* ()
-
+          
           (define curie-synonyms/CURIE
             (curie-synonyms/names curie))
 
@@ -1105,22 +1752,49 @@ subject-name
           (printf "\nBEGINNING 1-HOP LOOKUP ON CONCEPT: ~a aka ~a\n" curie curie-str/EXPORT)
 
           (printf "\n~a aka ~a SYNONYMS GATHERED FROM ALL KNOWLEDGE-GRAPHS:\n\n~a\n\n" curie curie-str/EXPORT curie-synonyms/CURIE)
-          #|
           
+          
+          #|          
           (define 1-hop-affector/BIOLINK-edges
             (1-hop-gene-lookup (list curie) '()))
           |#
 
           #|
-          (define 1-hop-affector/BIOLINK-edges
+          ;;; DRUG-LOOKUP!
+          (define 1-hop-affector-drug/BIOLINK-edges
             (1-hop-drug-lookup/allowable-predicates/drug-->X (list curie) '() allowable-predicates))
+
+          
+          
+          ;; #### DRUG LOOKUP FILES
+          (define drug--pred-->X/path
+            (format "~a~a--ALLp-->X.tsv" directory-path gene-ls-name))
+          (define drug--pred-->X/port
+            (open-output-file drug--pred-->X/path #:exists 'append))
+
+          (export-column-headers
+           column-headers/1hop
+           drug--pred-->X/port
+           drug--pred-->X/path)
+
+          (outer-loop
+           1-hop-affector-drug/EXPORT-edges           
+           drug--pred-->X/port)
+        
+          
+          ;; #### DRUG LOOKUP FILES
+
           |#
           
+          
+          ;;GENE-LOOKUP!
           (printf "\n1-hop-affector/BIOLINK-edges\n")
           (define 1-hop-affector/BIOLINK-edges
             (1-hop-gene-lookup/allowable-predicates (list curie) '() allowable-predicates))
+
           
-          
+   
+                             
           ;;trying predicate bumpers
           (printf "\n1-hop-affector-drug+gene/BIOLINK-edges\n")
           (define 1-hop-affector-drug+gene/BIOLINK-edges
@@ -1135,8 +1809,6 @@ subject-name
           (define 1-hop-affector-drug/BIOLINK-edges
             (remove-item '() (map cdr 1-hop-affector-drug+gene/BIOLINK-edges) '()))
           
-
-
           (printf "\n1-hop-affector-gene/EXPORT-edges\n")
           (define 1-hop-affector-gene/EXPORT-edges
             (get-export-edges
@@ -1144,9 +1816,9 @@ subject-name
               '()
               (map (lambda (x) (match-edge/with-S/O-gene-linker-ids x '())) 1-hop-affector-gene/BIOLINK-edges)
               '())))
-
           
-                             
+          
+          
           (printf "\n1-hop-affector-drug/EXPORT-edges\n")
           (define 1-hop-affector-drug/EXPORT-edges
             (get-export-edges
@@ -1155,62 +1827,22 @@ subject-name
               (map (lambda (x) (match-edge/with-S/O-gene-linker-ids x '())) 1-hop-affector-drug/BIOLINK-edges)
               '())
              ))
-
+          
           ;;(pretty-print (car 1-hop-affector-drug/EXPORT-edges))
 
           (printf "\n1-HOP LOOKUP FOR ~a COMPLETE!\n" curie-str/EXPORT)
-          
+  
           (define 1-hop-affector-gene/path
-            (format "~a1HOP-AFFECTOR-GENES--ALLp-->~a.tsv" directory-path/proviral gene-ls-name))
+            (format "~a1HOP-AFFECTOR-GENES--ALLp-->~a.tsv" directory-path gene-ls-name))
           (define 1-hop-affector-drug/path
-            (format "~a1HOP-AFFECTOR-DRUGS--ALLp-->~a.tsv" directory-path/proviral gene-ls-name))
+            (format "~a1HOP-AFFECTOR-DRUGS--ALLp-->~a.tsv" directory-path gene-ls-name))
         
           (define 1-hop-affector-gene/port
             (open-output-file 1-hop-affector-gene/path #:exists 'append))
           (define 1-hop-affector-drug/port
             (open-output-file 1-hop-affector-drug/path #:exists 'append))
-
-
-          (define column-headers/1hop
-            '("edge_id"
-              "db"
-              "subject_linker_name"              
-              "subject_linker_curie"
-              "predicate_symbol"
-              "fda_approved"
-              "target_object_linker_name"
-              "target_object_linker_curie"
-              "subject_name"
-              "subject_curie" 
-              "subject_category"
-              "predicate"              
-              "target_object_name"
-              "target_object_curie"
-              "target_object_category"
-              "rxnorm_drug_id"
-              "pubmed_number"
-              "pub_urls"                            
-              ))
+                             
           
-          
-          #|
-          (define column-headers/1hop
-            '("db"
-              "subject_name"
-              "subject_curie" 
-              "subject_linker_curie"              
-              "subject_category"
-              "predicate"
-              "predicate_symbol"
-              "target_object_name"
-              "target_object_curie"
-              "target_object_linker_curie"
-              "target_object_category"
-              "pubmed_number"
-              "pubmed_ids"              
-              ))
-          |#
-
           (export-column-headers
            column-headers/1hop
            1-hop-affector-gene/port
@@ -1228,79 +1860,10 @@ subject-name
           (outer-loop
            1-hop-affector-drug/EXPORT-edges
            1-hop-affector-drug/port)
-
-          #|csv export|#
-          #|
-          (define 1-hop-affector-gene/path-csv
-            (format "~a1HOP_AFFECTOR_GENES_ALLp_PROVIRAL_GENES.csv" directory-path/proviral))
-          (define 1-hop-affector-drug/path-csv
-            (format "~a1HOP_AFFECTOR_DRUGS_ALLp_PROVIRAL_GENES.csv" directory-path/proviral))
-        
-          (define 1-hop-affector-gene/port-csv
-            (open-output-file 1-hop-affector-gene/path-csv #:exists 'append))
-          (define 1-hop-affector-drug/port-csv
-            (open-output-file 1-hop-affector-drug/path-csv #:exists 'append))
           
-          (export-column-headers/csv
-           column-headers/1hop
-           1-hop-affector-gene/port-csv
-           1-hop-affector-gene/path-csv)
-
-          (outer-loop/csv
-           1-hop-affector-gene/EXPORT-edges
-           1-hop-affector-gene/port-csv)
-        
-          (export-column-headers/csv
-           column-headers/1hop
-           1-hop-affector-drug/port-csv
-           1-hop-affector-drug/path-csv)
-
-          (outer-loop/csv
-           1-hop-affector-drug/EXPORT-edges
-           1-hop-affector-drug/port-csv)
-          |#
-          #|end csv export|#
-
-
-          #|
-          (define 1-hop-affector-gene-specific/path
-            (format "~a1HOP-AFFECTOR-GENES--ALLp-->~a.tsv" directory-path/proviral curie-str/EXPORT))
-          (define 1-hop-affector-drug-specific/path
-            (format "~a1HOP-AFFECTOR-DRUGS--ALLp-->~a.tsv" directory-path/proviral curie-str/EXPORT))
-
-          (define 1-hop-affector-gene-specific/port
-            (open-output-file 1-hop-affector-gene-specific/path #:exists 'append))
-          (define 1-hop-affector-drug-specific/port
-            (open-output-file 1-hop-affector-drug-specific/path #:exists 'append))
-
-          (export-column-headers
-           column-headers/1hop
-           1-hop-affector-gene-specific/port
-           1-hop-affector-gene-specific/path)
-
-          (outer-loop
-           1-hop-affector-gene/EXPORT-edges
-           1-hop-affector-gene-specific/port)
-        
-          (export-column-headers
-           column-headers/1hop
-           1-hop-affector-drug-specific/port
-           1-hop-affector-drug-specific/path)
-
-          (outer-loop
-           1-hop-affector-drug/EXPORT-edges
-           1-hop-affector-drug-specific/port)
-          
-          |#
-
           (printf "\n1-HOP EXPORT COMPLETE:\nAFFECTOR-GENES-->ALL-PREDICATES-->~a\n" curie-str/EXPORT) 
-
           (printf "\n1-HOP EXPORT COMPLETE:\nAFFECTOR-DRUGS-->ALL-PREDICATES-->~a\n" curie-str/EXPORT)
-
-
-          
-
-          
+                   
           #|START 2-HOP LOOKUP|#
           (printf "\nBEGINNING 2-HOP LOOKUP ON CONCEPT: ~a aka ~a\n" curie curie-str/EXPORT)
           
@@ -1309,8 +1872,6 @@ subject-name
             (time
              (2-hop-gene-lookup (list curie) '())))
           |#
-
-
           #|
           ;; trying predicate bumpers
           (printf "\n2-hop-affector/BIOLINK-edges\n")
@@ -1318,7 +1879,6 @@ subject-name
             (time
              (2-hop-gene-lookup/allowable-predicates (list curie) '() allowable-predicates)))
           
-
           (printf "\n2-hop-affector-drug+gene/BIOLINK-edges\n")
           (define 2-hop-affector-drug+gene/BIOLINK-edges
             (time
@@ -1346,19 +1906,9 @@ subject-name
                     '())
                    )))
 
-          #|
-          ;; comment this out for now, don't need 2-hop affector genes until 3-hop affector drugs are computed
-          (printf "\n2-hop-affector-gene/EXPORT-edges\n")
-          (define 2-hop-affector-gene/EXPORT-edges
-            (time (get-export-edges (map (lambda (x) (match-edge/with-S/O-gene-linker-ids x '())) 2-hop-affector-gene/BIOLINK-edges))))
-          |#
-          
-          #|EXPORT 2-hop affector drugs|#
-          ;; do i need to export 2-hop files if I am going to concatanate them?
-
-          
+                    
           (define 2-hop-affector-drug/path
-            (format "~a2HOP-AFFECTOR-DRUGS--ALLp-->1HOP-AFFECTOR-GENES-->ALLp-->~a.tsv" directory-path/proviral gene-ls-name))
+            (format "~a2HOP-AFFECTOR-DRUGS--ALLp-->1HOP-AFFECTOR-GENES-->ALLp-->~a.tsv" directory-path gene-ls-name))
           (define 2-hop-affector-drug/port
             (open-output-file 2-hop-affector-drug/path #:exists 'append))
 
@@ -1371,10 +1921,16 @@ subject-name
            2-hop-affector-drug/EXPORT-edges
            2-hop-affector-drug/port)
 
+          
           #|
-
+          ;; comment this out for now, don't need 2-hop affector genes until 3-hop affector drugs are computed
+          (printf "\n2-hop-affector-gene/EXPORT-edges\n")
+          (define 2-hop-affector-gene/EXPORT-edges
+            (time (get-export-edges (map (lambda (x) (match-edge/with-S/O-gene-linker-ids x '())) 2-hop-affector-gene/BIOLINK-edges))))
+          |#                    
+          #|
           (define 2-hop-affector-drug-specific/path
-            (format "~a2HOP-AFFECTOR-DRUGS--ALLp-->~a.tsv" directory-path/proviral curie-str/EXPORT))
+            (format "~a2HOP-AFFECTOR-DRUGS--ALLp-->~a.tsv" directory-path curie-str/EXPORT))
           (define 2-hop-affector-drug-specific/port
             (open-output-file 2-hop-affector-drug-specific/path #:exists 'append))
           
@@ -1382,13 +1938,14 @@ subject-name
            column-headers/1hop
            2-hop-affector-drug-specific/port
            2-hop-affector-drug-specific/path)
-
           (outer-loop
            2-hop-affector-drug/EXPORT-edges
            2-hop-affector-drug-specific/port)
           
-          (printf "\n2-HOP EXPORT COMPLETE:\nAFFECTOR-DRUGS--ALL-PREDICATES-->1-HOP-AFFECTOR GENE of ~a\n" curie-str/EXPORT)            |#
-          #| ####2-hop PATH LINKER ID CODE START HERE#### |#
+          (printf "\n2-HOP EXPORT COMPLETE:\nAFFECTOR-DRUGS--ALL-PREDICATES-->1-HOP-AFFECTOR GENE of ~a\n" curie-str/EXPORT)
+          |#
+          
+
            #|        
           (printf "\n\n2-HOP PATH:\n2-HOP-AFFECTOR-DRUG--ALL-PREDICATES-->1-HOP-AFFECTOR-GENE--ALL-PREDICATES-->~a\n\n" curie-str/EXPORT)
           |#
@@ -1403,7 +1960,7 @@ subject-name
                  2-hop-affector-drug/EXPORT-edges)))))
           
           (define 2-hop-affector-drug-->1hop-gene-->target-gene-paths/path
-            (format "~a2HOP-AFFECTOR-DRUGS--ALLp-->1HOP-AFFECTOR-GENES--ALLp-->PROVIRAL-GENES.tsv" directory-path/proviral))
+            (format "~a2HOP-AFFECTOR-DRUGS--ALLp-->1HOP-AFFECTOR-GENES--ALLp-->PROVIRAL-GENES.tsv" directory-path))
           (define 2-hop-affector-drug-->1hop-gene-->target-gene-paths/port
             (open-output-file 2-hop-affector-drug-->1hop-gene-->target-gene-paths/path #:exists 'append))
 
@@ -1464,14 +2021,22 @@ subject-name
            2-hop-affector-drug-->1hop-gene-->target-gene-paths-specific/port)
           |#
 
-          #|
-          
-          (define 2-hop-affector-drug-->1hop-gene-->target-gene-paths-specific/path
-          (format "~a2HOP-AFFECTOR-GENES--ALLp-->1HOP-AFFECTOR-GENES--ALLp-->~a.tsv" directory-path/proviral curie-str/EXPORT))
-          (define 2-hop-affector-drug-->1hop-gene-->target-gene-paths-specific/port
-            (open-output-file 2-hop-affector-drug-->1hop-gene-->target-gene-paths-specific/path  #:exists 'append))
+          |#
+          )
+        
+        (pretty-print "QUERY FINISHED!")
 
-          
+        )))))
+
+(start-function all-hgncs "HUMAN-GENOME")
+
+
+          #|
+
+          (define 2-hop-affector-drug-->1hop-gene-->target-gene-paths-specific/path
+          (format "~a2HOP-AFFECTOR-GENES--ALLp-->1HOP-AFFECTOR-GENES--ALLp-->~a.tsv" directory-path curie-str/EXPORT))
+          (define 2-hop-affector-drug-->1hop-gene-->target-gene-paths-specific/port
+            (open-output-file 2-hop-affector-drug-->1hop-gene-->target-gene-paths-specific/path  #:exists 'append))          
 
           
           (printf "\nBUILDING 2-HOP GENE PATHS FOR CONCEPT: ~a aka ~a\n\n" curie curie-str/EXPORT)
@@ -1492,7 +2057,7 @@ subject-name
               2-hop-gene-path/EXPORT-edges))))
 
           (define 2-hop-affector-gene-paths/path
-            (format "~a2HOP-AFFECTOR-GENES--ALLp-->1HOP-AFFECTOR-GENES--ALLp-->PROVIRAL-GENES.tsv" directory-path/proviral))
+            (format "~a2HOP-AFFECTOR-GENES--ALLp-->1HOP-AFFECTOR-GENES--ALLp-->PROVIRAL-GENES.tsv" directory-path))
           (define 2-hop-affector-gene-paths/port
             (open-output-file 2-hop-affector-gene-paths/path #:exists 'append))
           
@@ -1534,7 +2099,7 @@ subject-name
            2-hop-affector-gene-paths/port)
           
           (define 2-hop-affector-gene-paths-specific/path
-          (format "~a2HOP-AFFECTOR-GENES--ALLp-->1HOP-AFFECTOR-GENES--ALLp-->~a.tsv" directory-path/proviral curie-str/EXPORT))
+          (format "~a2HOP-AFFECTOR-GENES--ALLp-->1HOP-AFFECTOR-GENES--ALLp-->~a.tsv" directory-path curie-str/EXPORT))
           (define 2-hop-affector-gene-paths-specific/port
             (open-output-file 2-hop-affector-gene-paths-specific/path #:exists 'append))
           
@@ -1547,21 +2112,3 @@ subject-name
            2-hop-gene-paths-connected/EXPORT-edges
            2-hop-affector-gene-paths-specific/port)
           |#
-
-          
-          #|
-          (printf "\n2-HOP PATH EXPORT COMPLETE FOR CONCEPT: ~a aka ~a\n" curie curie-str/EXPORT)
-          |#
-          
-          |#
-          
-        
-          )
-        
-        (pretty-print "QUERY FINISHED!")
-
-        )))))
-
-(start-function gene-list "NAME-GENE-LIST")
-
-
