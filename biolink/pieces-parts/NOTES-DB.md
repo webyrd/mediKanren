@@ -7,3 +7,5 @@
   - implementation not relational, escapes to Racket and uses indexes according to where the variables are
 - common.rkt provides conde/databases to lookup over all knowledge sources (databases). Uses tagging to disambiguate the knowledge source.
 - dbKanren would enable more things to be done relationally as in Datalog. Express fixpoint computations relationally instead of in Racket. Also will be able to mix top-down and bottom-up relations. Top-down queries prune the search space quickly.
+- propagators are for implementing finite joints.
+
