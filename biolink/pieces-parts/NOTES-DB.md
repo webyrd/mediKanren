@@ -1,0 +1,9 @@
+- db.rkt exposes the data, and indexes.
+  - Only lookup what you need by offset.
+- mk-db.rkt bridges the gap between db and mk.
+- db:edgeo in mk-db.rkt
+  - db represents an entire database, that contains tables and indexes
+  - edge is miniKanren term to populate
+  - implementation not relational, escapes to Racket and uses indexes according to where the variables are
+- common.rkt provides conde/databases to lookup over all knowledge sources (databases). Uses tagging to disambiguate the knowledge source.
+- dbKanren would enable more things to be done relationally as in Datalog. Express fixpoint computations relationally instead of in Racket. Also will be able to mix top-down and bottom-up relations. Top-down queries prune the search space quickly.
