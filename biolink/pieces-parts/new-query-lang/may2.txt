@@ -1,0 +1,35 @@
+Query-defined concepts imply subqueries with existentials. To get this to work correctly in general, we need to implement a global consistency algorithm that is aware of whether each variable is part of the top-level, visible query.
+
+Example:
+
+(define-category (bar C)
+  (concepts
+    [A' baz]
+    [B' baz]
+    [C baz])
+  (edges
+    [e1 : A' foo B]
+    [e2 : B' foo C]
+    [e3 : C foo A]))
+
+(query
+  (concepts
+    [A bar]
+    [B bar]
+    [C bar])
+  (edges
+    [e1 : A foo B]
+    [e2 : B foo C]
+    [e3 : C foo A]))
+
+Or, safe-drug query. We only want one copy of the drug, though there are multiple diseases it safely treats.
+
+For now we will pre-compute categories like safe-drug. To then use these precomputed categories, we need an extension to query/graph that accepts a list of curies.
+
+Greg:
+ * add list of curies feature
+ * add safe-drug and human-gene precomputed lists
+
+Next time:
+ * write logic to get globally consistent results out of ranked-paths.
+
