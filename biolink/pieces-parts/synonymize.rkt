@@ -181,7 +181,10 @@
            (synonyms   (time (vector-map list->set synonyms))))
       (printf "loaded ~s synonym classes for ~s curies\n"
               (vector-length synonyms) (hash-count curie=>sid))
-      (lambda (curie) (vector-ref synonyms (hash-ref curie=>sid curie))))
+      (lambda (curie)
+        (define idx (hash-ref curie=>sid curie #f))
+        (if idx (vector-ref synonyms (hash-ref curie=>sid curie))
+          (curie-synonyms-raw curie))))
     curie-synonyms-raw))
 
 (define (curie-synonyms-build)
