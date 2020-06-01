@@ -20,6 +20,32 @@
 "targets"
 |#
 
+(define gene/protein-concept?
+  (lambda (x)
+    (or
+     (string-prefix? x "HGNC:")
+     (string-prefix? x "ENSEMBL:")
+     (string-prefix? x "UniProtKB:")
+     (string-prefix? x "NCBIGene:")
+     (string-prefix? x "NCBIGENE:"))))
+
+(define drug-concept?
+  (lambda (x)
+    (or (string-prefix? x "CHEBI:")
+        (string-prefix? x "CHEMBL:")
+        (string-prefix? x "CHEMBL.")
+        (string-prefix? x "KEGG:")
+        (string-prefix? x "KEGG.")
+        (string-prefix? x "DRUGBANK:")
+        (string-prefix? x "RXNORM:"))))
+
+(define disease-concept?
+  (lambda (x)
+    (or (string-prefix? x "OMIM:")
+        (string-prefix? x "DOID:")
+        (string-prefix? x "MONDO:")
+        (string-prefix? x "HP:"))))
+
 (define positively-regulates '(;; common
                                "causes" "positively_regulates" "produces"
                                ;; robokop
