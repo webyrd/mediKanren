@@ -455,13 +455,33 @@
 |#
 
 #|
-(displayln "\nRunning 2-hop rhobtb2 query with concept categories via filter:")
+(displayln "\nRunning 2-hop rhobtb2 query with concept categories via curie filter:")
 (define q (time (query/graph
                   ((X       drug-concept?)
                    (Y       gene-or-protein)
                    (rhobtb2 "UMLS:C1425762"))
                   ((X->Y       negatively-regulates)
                    (Y->rhobtb2 positively-regulates))
+                  (X X->Y Y Y->rhobtb2 rhobtb2))))
+
+(displayln "\nBuilding report:")
+(pretty-print (time (report/query q)))
+
+(displayln "\nRanking paths:")
+(define ranked (time (ranked-paths q)))
+(pretty-ranked ranked)
+|#
+
+#|
+(displayln "\nRunning 2-hop rhobtb2 query with concept categories w/ edge filter:")
+(define ((edge/db? db) e) (eq? db (car e)))
+(define q (time (query/graph
+                  ((X       drug)
+                   (Y       gene-or-protein)
+                   (rhobtb2 "UMLS:C1425762"))
+                  ((X->Y       negatively-regulates (edge/db? 'robokop))
+                   ;(X->Y       negatively-regulates (edge/db? 'semmed))
+                   (Y->rhobtb2 positively-regulates (edge/db? 'uab-pmi)))
                   (X X->Y Y Y->rhobtb2 rhobtb2))))
 
 (displayln "\nBuilding report:")
