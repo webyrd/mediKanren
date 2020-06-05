@@ -176,7 +176,7 @@
     (cons (take path 3) (path->edges (drop path 2)))))
 
 ;; TODO: catch naming errors
-(define (query concepts edge-predicates paths)
+(define (query concepts edge-constraints paths)
   (define edges (append* (map path->edges paths)))
   (define csets (map cons (map car concepts)
                      (map (lambda (c)
@@ -186,10 +186,15 @@
                                   (else           (concept/category c))))
                           (map cdr concepts))))
   (define esets
-    (map (lambda (e) (let ((s (car e)) (p (cadr e)) (o (caddr e)))
-                       (cons p (edge/predicate (cdr (assoc p edge-predicates))
-                                               (cdr (assoc s csets))
-                                               (cdr (assoc o csets))))))
+    (map (lambda (e) (let* ((s       (car e))
+                            (p       (cadr e))
+                            (o       (caddr e))
+                            (scxs    (cdr (assoc s csets)))
+                            (ocxs    (cdr (assoc o csets)))
+                            (ecxs    (cdr (assoc p edge-constraints)))
+                            (preds   (car ecxs))
+                            (efilter (and (pair? (cdr ecxs)) (cadr ecxs))))
+                       (cons p (edge/predicate/filter efilter preds scxs ocxs))))
          edges))
   (cons paths (append csets esets)))
 
@@ -211,10 +216,10 @@
   (map cons (map car named-cells) (map summarize (map cdr named-cells))))
 
 (define-syntax-rule (query/graph ((concept-name initial) ...)
-                                 ((edge-name predicate) ...)
+                                 ((edge-name edge-constraints ...) ...)
                                  path ...)
   (let ((q (query `((concept-name . ,initial)   ...)
-                  `((edge-name    . ,predicate) ...)
+                  `((edge-name ,edge-constraints ...) ...)
                   '(path ...))))
     (run!)
     q))
