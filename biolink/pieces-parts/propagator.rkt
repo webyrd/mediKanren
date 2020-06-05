@@ -1,7 +1,7 @@
 #lang racket/base
 (provide group-curie group-curies group-categories group-concepts
          concept/any concept/category concept/curie-filter concept/curie
-         edge/predicate run!)
+         edge/predicate edge/predicate/filter run!)
 (require "synonymize.rkt"
          racket/function racket/list (except-in racket/match ==) racket/set)
 
@@ -207,13 +207,14 @@
           (define (valid-eg? e)
             (ormap (lambda (g) (group-member? g (cadr (caddr e)))) gs))
           `(edge . ,(filter valid-eg? es)))
-        (`(predicate . ,ps)
+        (`(predicate ,ps ,valid?)
           (define cs (append* (map group-concepts gs)))
-          (define es (run* (e) (fresh (s o p db eid erest)
-                                 (== e `(,db ,eid ,s ,o ,p . ,erest))
-                                 (membero `(,db . ,s) cs)
-                                 (membero `(,db . ,p) ps)
-                                 (edgeo e))))
+          (define es0 (run* (e) (fresh (s o p db eid erest)
+                                  (== e `(,db ,eid ,s ,o ,p . ,erest))
+                                  (membero `(,db . ,s) cs)
+                                  (membero `(,db . ,p) ps)
+                                  (edgeo e))))
+          (define es (if valid? (filter valid? es0) es0))
           `(edge . ,es))))))
 
 (define (edge-constrain/object e c)
@@ -228,13 +229,14 @@
           (define (valid-eg? e)
             (ormap (lambda (g) (group-member? g (cadr (cadddr e)))) gs))
           `(edge . ,(filter valid-eg? es)))
-        (`(predicate . ,ps)
+        (`(predicate ,ps ,valid?)
           (define cs (append* (map group-concepts gs)))
-          (define es (run* (e) (fresh (s o p db eid erest)
-                                 (== e `(,db ,eid ,s ,o ,p . ,erest))
-                                 (membero `(,db . ,o) cs)
-                                 (membero `(,db . ,p) ps)
-                                 (edgeo e))))
+          (define es0 (run* (e) (fresh (s o p db eid erest)
+                                         (== e `(,db ,eid ,s ,o ,p . ,erest))
+                                         (membero `(,db . ,o) cs)
+                                         (membero `(,db . ,p) ps)
+                                         (edgeo e))))
+          (define es (if valid? (filter valid? es0) es0))
           `(edge . ,es))))))
 
 (define (edge-subjects e)
@@ -263,11 +265,12 @@
   (cell concept=? (cons 'concept (list (curie->group curie)))))
 (define (concept/curie-filter f) (cell concept=? (cons 'curie-filter f)))
 
-;; TODO: db filter on edges
 (define (edge/predicate predicates subject object)
+  (edge/predicate/filter #f predicates subject object))
+(define (edge/predicate/filter valid? predicates subject object)
   (define ps (if predicates (find-exact-predicates predicates)
                (run* (p) (predicateo p))))
-  (define edge (cell equal? (cons 'predicate ps)))
+  (define edge (cell equal? (list 'predicate ps valid?)))
   (propagator
     (list subject)
     (thunk (concept-cost (subject 'ref)))
