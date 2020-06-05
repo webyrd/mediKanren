@@ -180,9 +180,10 @@
   (define edges (append* (map path->edges paths)))
   (define csets (map cons (map car concepts)
                      (map (lambda (c)
-                            (cond ((string? c) (concept/curie c))
-                                  ((not c)     (concept/any))
-                                  (else        (concept/category c))))
+                            (cond ((string? c)    (concept/curie c))
+                                  ((not c)        (concept/any))
+                                  ((procedure? c) (concept/curie-filter c))
+                                  (else           (concept/category c))))
                           (map cdr concepts))))
   (define esets
     (map (lambda (e) (let ((s (car e)) (p (cadr e)) (o (caddr e)))
