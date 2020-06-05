@@ -449,6 +449,23 @@
 (pretty-ranked ranked)
 |#
 
+#|
+(displayln "\nRunning 2-hop rhobtb2 query with concept categories via filter:")
+(define q (time (query/graph
+                  ((X       drug-concept?)
+                   (Y       gene-or-protein)
+                   (rhobtb2 "UMLS:C1425762"))
+                  ((X->Y       negatively-regulates)
+                   (Y->rhobtb2 positively-regulates))
+                  (X X->Y Y Y->rhobtb2 rhobtb2))))
+
+(displayln "\nBuilding report:")
+(pretty-print (time (report/query q)))
+
+(displayln "\nRanking paths:")
+(define ranked (time (ranked-paths q)))
+(pretty-ranked ranked)
+|#
 
 ;; Drug safety constraint
 #|
