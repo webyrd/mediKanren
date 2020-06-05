@@ -1,6 +1,7 @@
 #lang racket/base
 (provide group-curie group-curies group-categories group-concepts
-         concept/any concept/category concept/curie edge/predicate run!)
+         concept/any concept/category concept/curie-filter concept/curie
+         edge/predicate run!)
 (require "synonymize.rkt"
          racket/function racket/list (except-in racket/match ==) racket/set)
 
@@ -155,11 +156,15 @@
   (if (eq? ca cb) ca
     (match* (ca cb)
       (('(any) _)      cb)
-      ((_      '(any)) ca)
-      ((`(concept  . ,_)    `(category . ,_)) (concept-intersect cb ca))
+      ((_ '(any)) ca)
+      ((`(concept . ,_) `(category     . ,_)) (concept-intersect cb ca))
+      ((`(concept . ,_) `(curie-filter . ,_)) (concept-intersect cb ca))
       ((`(category . ,cats) `(concept  . ,groups))
        (define (valid-group? g)
          (ormap (lambda (cat) (set-member? (group-categories g) cat)) cats))
+       `(concept . ,(filter valid-group? groups)))
+      ((`(curie-filter . ,f) `(concept . ,groups))
+       (define (valid-group? g) (ormap f (set->list (group-curies g))))
        `(concept . ,(filter valid-group? groups)))
       ((`(concept . ,as) `(concept  . ,bs))
        (define changed? #f)
@@ -180,6 +185,8 @@
       ('(any) `(concept . ,(curies->groups curies)))
       (`(category . ,cats)
         (concept-intersect c `(concept . ,(curies->groups curies))))
+      (`(curie-filter . ,f)
+        (concept-intersect c `(concept . ,(curies->groups curies))))
       (`(concept . ,gs)
         (define (valid-group? g)
           (ormap (lambda (curie) (group-member? g curie)) curies))
@@ -191,8 +198,9 @@
 (define (edge-constrain/subject e c)
   (match c
     ;; TODO: optionally find edges with only category/any constraints
-    ('(any)           e)
-    (`(category . ,_) e)
+    ('(any)               e)
+    (`(category . ,_)     e)
+    (`(curie-filter . ,_) e)
     (`(concept  . ,gs)
       (match e
         (`(edge . ,es)
@@ -211,8 +219,9 @@
 (define (edge-constrain/object e c)
   (match c
     ;; TODO: optionally find edges with only category/any constraints
-    ('(any)           e)
-    (`(category . ,_) e)
+    ('(any)               e)
+    (`(category . ,_)     e)
+    (`(curie-filter . ,_) e)
     (`(concept  . ,gs)
       (match e
         (`(edge . ,es)
@@ -252,7 +261,9 @@
   (cell concept=? (cons 'category (find-exact-categories categories))))
 (define (concept/curie curie)
   (cell concept=? (cons 'concept (list (curie->group curie)))))
+(define (concept/curie-filter f) (cell concept=? (cons 'curie-filter f)))
 
+;; TODO: db filter on edges
 (define (edge/predicate predicates subject object)
   (define ps (if predicates (find-exact-predicates predicates)
                (run* (p) (predicateo p))))
