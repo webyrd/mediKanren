@@ -58,3 +58,34 @@
 
 - more exploratory data mining?
   - as opposed to excel sheet
+
+- when doing up/down regulation, the information comes from semmed db
+  - check against other databases like GO
+- broad has hightroughput experiments
+  - cancer cells + thousands of drugs figuring out gene expression levels
+  - you get quantitive information, an entire profile
+  - can be 2 TB of data
+  - noisy data
+  - across tissue types
+- drug gene budger website
+  - use broad data
+  - to predict whether a drug up or down regulate this gene, with quantitative score
+
+- finding a 'safe' drug to regulate a gene
+  - this drug might have an effect on many genes
+  - look at 2-hop queries: drug -> gene -> gene, -> regulates.
+  - 2-hop queries are a tricky ranking problem
+  - you want to know the off target effects
+
+- at least two notions of ranking
+  - because data is incomplete, or contradictory, or wrong (because of bad NLP)
+  - one notion of ranking: what's the confidence you have this is true
+  - other notion: assuming it's true, how well does it work?
+  - how can you display a query where you express preferences
+  - trade-offs
+
+- goal: improving the ranking for 1- & 2-hop queries for gene budging
+
+- also: how to visualize it?
+
+- or better ways to determine whether a drug is safe
