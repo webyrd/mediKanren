@@ -128,7 +128,7 @@
      - do the counting, and see if we get a similar answer
 
 - Recommended Books
-  - Molecuar Biology Quick Start
+  - Molecular Biology Quick Start
     https://www.cshlpress.com/default.tpl?cart=1592597073832848389&fromlink=T&linkaction=full&linksortby=oop_title&--eqSKUdatarq=1019
   - A Genetic Switch, Phage Lambda Revisited
     https://www.cshlpress.com/default.tpl?cart=1592597118832862691&fromlink=T&linkaction=full&linksortby=oop_title&--eqSKUdatarq=468
