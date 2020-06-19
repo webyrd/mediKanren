@@ -121,9 +121,14 @@
     - drugs that normally have an effect on one gene(s), will have an effect on a totally different gene(s)
   - experiment in vitro: cut tumor out, and test various drugs in wells for them
   - done in leukemia
-    - tested every single FDA approve drugs against it
+    - tested every single FDA approved drugs against it
     - narrowed it down to 300
    - Are there datasets that showed tumor vs drug that worked?
      - more machine learning, but maybe can combine with reasoning
      - do the counting, and see if we get a similar answer
-  
+
+- Recommended Books
+  - Molecuar Biology Quick Start
+    https://www.cshlpress.com/default.tpl?cart=1592597073832848389&fromlink=T&linkaction=full&linksortby=oop_title&--eqSKUdatarq=1019
+  - A Genetic Switch, Phage Lambda Revisited
+    https://www.cshlpress.com/default.tpl?cart=1592597118832862691&fromlink=T&linkaction=full&linksortby=oop_title&--eqSKUdatarq=468
