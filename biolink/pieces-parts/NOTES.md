@@ -89,3 +89,39 @@
 - also: how to visualize it?
 
 - or better ways to determine whether a drug is safe
+
+- certain class of queries are really import for both COVID-19 and oncology
+  - set of genes we want to upregulate and set of genes we want to downregulate
+  - one drug can have several effects in the sets of genes, some in the wrong direction, some indirect effects
+
+- for COVID-19
+  - in the COVID universe of gene
+  - an interactome (genetic relation in knock out experiments where virus is impacted)
+  - what are the direct interactors
+  - how to group those in related pathways
+  - how can modulate a pathway?
+  - optimization problem with multiple genes to target
+  - priotization
+  - genetic set from COVID, predictions on the drugs, explanation
+  - other optimization: in vitro screening, say 40 hits, pick one drug per pathway
+  - use reactome to look at cellular pathway information
+  - genetic information: don't use this drug if patient has this gene
+    - https://www.pharmgkb.org/
+  - get the list of drugs that have been successful in fighting the replication of the virus
+    - to test our logic
+    - fights the mechanics of the replication, e.g. the hijacking of organelle, it's not a full human test!
+    - a hit means an attack of how to build a virus
+    
+
+- for Cancer:
+  - same spirit as COVID-19
+  - sequence the tumor, sequence the person, compare the two
+  - if i see a promoter in front of a gene that shouldnt be there
+  - experiment in vitro: cut tumor out, and test various drugs in wells for them
+  - done in leukemia
+    - tested every single FDA approve drugs against it
+    - narrowed it down to 300
+   - Are there datasets that showed tumor vs drug that worked?
+     - more machine learning, but maybe can combine with reasoning
+     - do the counting, and see if we get a similar answer
+  
