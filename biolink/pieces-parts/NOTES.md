@@ -116,7 +116,8 @@
 - for Cancer:
   - same spirit as COVID-19
   - sequence the tumor, sequence the person, compare the two
-  - if i see a promoter in front of a gene that shouldnt be there
+  - if i see a promoter in front of a gene that shouldnt be there,
+    - then targetting the promotor will not do what is expected
   - experiment in vitro: cut tumor out, and test various drugs in wells for them
   - done in leukemia
     - tested every single FDA approve drugs against it
