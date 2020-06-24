@@ -4,7 +4,7 @@
      (query/graph
       ((X a-drug)
        (O #f))
-      ((X->O #f (lambda (e) (member (cdr (list-ref e 4)) predicates))))
+      ((X->O predicates))
       (X X->O O))))
   (map curie-synonyms/names (curies/query q 'O)))
 
