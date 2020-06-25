@@ -47,7 +47,7 @@ name-file.node-props.scm
 			  (headers (cdr header)))
 	   (when (not (null? props))
 	     (unless (string=? "" (car props))
-	       (fprintf node-props-export-file "~s\t~s\t~s\n" node (car headers) (car props)))
+	       (fprintf node-props-export-file "~a\t~a\t~s\n" node (car headers) (car props)))
 	     (loop-inner (cdr props) (cdr headers))))
 	 (loop
 	  (set-add seen-nodes node)

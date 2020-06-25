@@ -49,7 +49,7 @@ ex-row: 1 edge_label biolink:has_gene_product
 			  (headers (cddr header)))
 	   (when (not (null? props))
 	     (unless (string=? "" (car props))
-	       (fprintf edge-props-export-file "~a\t~s\t~s\n" i (car headers) (car props)))
+	       (fprintf edge-props-export-file "~a\t~a\t~s\n" i (car headers) (car props)))
 	     (loop-inner (cdr props) (cdr headers)))))
        (loop
 	(+ 1 i)
