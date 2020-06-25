@@ -18,7 +18,7 @@ name-file.node-props.scm
 (define node-export-path
   (format "~acovid19.node.tsv" export-path))
 (define node-props-export-path
-  (format "~acovid19.nodeprops.tsv" export-path))
+  (format "~acovid19.nodeprop.tsv" export-path))
 
 (define nodes-export-file
   (open-output-file node-export-path))

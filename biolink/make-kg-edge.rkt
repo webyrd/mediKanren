@@ -23,7 +23,7 @@ ex-row: 1 edge_label biolink:has_gene_product
 (define edges-export-path
   (format "~acovid19.edge.tsv" export-path))
 (define edge-props-export-path
-  (format "~acovid19.edgeprops.tsv" export-path))
+  (format "~acovid19.edgeprop.tsv" export-path))
 
 (define edges-export-file
   (open-output-file edges-export-path))
