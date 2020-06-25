@@ -40,6 +40,8 @@ name-file.node-props.scm
       (else
        (let* ((line (string-split line-str "\t"))
 	      (node (car line)))
+	 (when (set-member? seen-nodes node)
+	   (error 'make-kg-node (format "already seen node: ~a" node)))
 	 (fprintf nodes-export-file "~s\n" node)
 	 (let loop-inner ((props (cdr line))
 			  (headers (cdr header)))
