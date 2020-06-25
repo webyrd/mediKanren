@@ -2,51 +2,32 @@
 (provide (all-defined-out))
 
 #|
-name-file.edge.scm
-:ID :START :END
-
-ex-row: 1 ENSEMBL:ENSG00000004059 ENSEMBL:ENSP00000000233
-
-name-file.edge-props.scm
-:ID propname value
-
-ex-row: 1 edge_label biolink:has_gene_product
-        1 provided_by blah
-        1
-
 name-file.node.scm
 :ID
 
 name-file.node-props.scm
 :ID propname value 
-
 |#
 
 
 (define directory-path
-  "/Users/michaelpatton/Desktop/data 2/merged/")
-
+  "data/covid19/")
 (define nodes-file
   "merged-kg_nodes.tsv")
-
-(define export-path
-  (format "~a" (path->string (find-system-path 'desk-dir))))
-
+(define export-path directory-path)
 (define node-export-path
   (format "~acovid19.node.tsv" export-path))
-
-(define nodes-export-file
-  (open-output-file node-export-path))
-
 (define node-props-export-path
   (format "~acovid19.nodeprops.tsv" export-path))
 
+(define nodes-export-file
+  (open-output-file node-export-path))
+(fprintf nodes-export-file ":ID\n")
 (define node-props-export-file
   (open-output-file node-props-export-path))
-
+(fprintf node-props-export-file ":ID\tpropname\tvalue\n")
 (define input-nodes
-  (open-input-file (format "~a/~a" directory-path nodes-file)))
-
+  (open-input-file (format "~a~a" directory-path nodes-file)))
 (let* ((header (read-line input-nodes))
        (header (string-split header "\t")))
   (let loop ((seen-nodes (set))

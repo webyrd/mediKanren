@@ -13,44 +13,26 @@ name-file.edge-props.scm
 ex-row: 1 edge_label biolink:has_gene_product
         1 provided_by blah
         1 
-
-name-file.node.scm
-:ID
-
-name-file.node-props.scm
-:ID propname value 
-
 |#
 
-
 (define directory-path
-  "/Users/michaelpatton/Desktop/data 2/merged/")
-
+  "data/covid19/")
 (define edges-file
   "merged-kg_edges.tsv")
-
-
-(define export-path
-  (format "~a" (path->string (find-system-path 'desk-dir))))
-
+(define export-path directory-path)
 (define edges-export-path
   (format "~acovid19.edge.tsv" export-path))
-
-(define edges-export-file
-  (open-output-file edges-export-path))
-
 (define edge-props-export-path
   (format "~acovid19.edgeprops.tsv" export-path))
 
+(define edges-export-file
+  (open-output-file edges-export-path))
+(fprintf edges-export-file ":ID\t:START\t:END\n")
 (define edge-props-export-file
   (open-output-file edge-props-export-path))
-
+(fprintf edge-props-export-file ":ID\tpropname\tvalue\n")
 (define input-edges
-  (open-input-file (format "~a/~a" directory-path edges-file)))
-
-(define input-nodes
-  (open-input-file (format "~a/~a" directory-path nodes-file)))
-
+  (open-input-file (format "~a~a" directory-path edges-file)))
 (let* ((header (read-line input-edges))
        (header (string-split header "\t")))
   (let loop ((i 0)
