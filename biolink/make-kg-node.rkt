@@ -42,7 +42,7 @@ name-file.node-props.scm
 	      (node (car line)))
 	 (when (set-member? seen-nodes node)
 	   (error 'make-kg-node (format "already seen node: ~a" node)))
-	 (fprintf nodes-export-file "~s\n" node)
+	 (fprintf nodes-export-file "~a\n" node)
 	 (let loop-inner ((props (cdr line))
 			  (headers (cdr header)))
 	   (when (not (null? props))

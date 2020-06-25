@@ -44,7 +44,7 @@ ex-row: 1 edge_label biolink:has_gene_product
        (close-output-port edge-props-export-file))
       (else
        (let ((line (string-split line-str "\t")))
-	 (fprintf edges-export-file "~a\t~s\t~s\n" i (car line) (cadr line))
+	 (fprintf edges-export-file "~a\t~a\t~a\n" i (car line) (cadr line))
 	 (let loop-inner ((props (cddr line))
 			  (headers (cddr header)))
 	   (when (not (null? props))
