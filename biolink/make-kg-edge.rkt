@@ -11,8 +11,8 @@ name-file.edge-props.scm
 :ID propname value
 
 ex-row: 1 edge_label biolink:has_gene_product
-        1 provided_by blah
-        1 
+	1 provided_by blah
+	1
 |#
 
 (define directory-path
@@ -36,7 +36,7 @@ ex-row: 1 edge_label biolink:has_gene_product
 (let* ((header (read-line input-edges))
        (header (string-split header "\t")))
   (let loop ((i 0)
-             (line-str (read-line input-edges)))
+	     (line-str (read-line input-edges)))
     (cond
       ((eof-object? line-str)
        (close-input-port input-edges)
@@ -44,18 +44,13 @@ ex-row: 1 edge_label biolink:has_gene_product
        (close-output-port edge-props-export-file))
       (else
        (let ((line (string-split line-str "\t")))
-         (fprintf edges-export-file "~a\t~a\t~a\n" i (car line) (cadr line))
-         (let loop-inner ((props (cddr line))
-                          (headers (cddr header)))
-           (when (not (null? props))
-             (unless (string=? "" (car props))
-               (fprintf edge-props-export-file "~a\t~a\t~a\n" i (car headers) (car props)))             
-             (loop-inner (cdr props) (cdr headers)))))
+	 (fprintf edges-export-file "~a\t~s\t~s\n" i (car line) (cadr line))
+	 (let loop-inner ((props (cddr line))
+			  (headers (cddr header)))
+	   (when (not (null? props))
+	     (unless (string=? "" (car props))
+	       (fprintf edge-props-export-file "~a\t~s\t~s\n" i (car headers) (car props)))
+	     (loop-inner (cdr props) (cdr headers)))))
        (loop
-        (+ 1 i)
-        (read-line input-edges))))))
-
-
-
-
- 
+	(+ 1 i)
+	(read-line input-edges))))))

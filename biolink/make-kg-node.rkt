@@ -6,7 +6,7 @@ name-file.node.scm
 :ID
 
 name-file.node-props.scm
-:ID propname value 
+:ID propname value
 |#
 
 
@@ -31,7 +31,7 @@ name-file.node-props.scm
 (let* ((header (read-line input-nodes))
        (header (string-split header "\t")))
   (let loop ((seen-nodes (set))
-             (line-str (read-line input-nodes)))
+	     (line-str (read-line input-nodes)))
     (cond
       ((eof-object? line-str)
        (close-input-port input-nodes)
@@ -39,19 +39,14 @@ name-file.node-props.scm
        (close-output-port node-props-export-file))
       (else
        (let* ((line (string-split line-str "\t"))
-              (node (car line)))
-         (fprintf nodes-export-file "~a\n" node)
-         (let loop-inner ((props (cdr line))
-                          (headers (cdr header)))
-           (when (not (null? props))
-             (unless (string=? "" (car props))
-               (fprintf node-props-export-file "~a\t~a\t~a\n" node (car headers) (car props)))             
-             (loop-inner (cdr props) (cdr headers))))
-         (loop        
-          (set-add seen-nodes node)
-          (read-line input-nodes)))))))
-
-
-
-
- 
+	      (node (car line)))
+	 (fprintf nodes-export-file "~s\n" node)
+	 (let loop-inner ((props (cdr line))
+			  (headers (cdr header)))
+	   (when (not (null? props))
+	     (unless (string=? "" (car props))
+	       (fprintf node-props-export-file "~s\t~s\t~s\n" node (car headers) (car props)))
+	     (loop-inner (cdr props) (cdr headers))))
+	 (loop
+	  (set-add seen-nodes node)
+	  (read-line input-nodes)))))))
