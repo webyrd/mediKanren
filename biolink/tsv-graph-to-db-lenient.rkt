@@ -149,7 +149,10 @@
 	(if (not (and subject object))
 	    (begin
 	      (printf "skipping edge\n")
-	      ;;(set! id (+ id 1))
+	      (unless subject
+		(printf "missing subject ~a\n" subject-cui))
+	      (unless object
+		(printf "missing object ~a\n" object-cui))
 	      )
 	    (let ()
         (define (required-prop props key)
