@@ -47,6 +47,10 @@
 
 (require racket/list racket/port racket/set racket/stream racket/string)
 
+(define (read-list/string s)
+  (define datum (call-with-input-string s read))
+  (if (list? datum) datum '()))
+
 (define (concept-cui c)      (vector-ref c 0))
 (define (concept-category c) (vector-ref c 1))
 (define (concept-name c)     (vector-ref c 2))
@@ -62,7 +66,7 @@
                   (if rib (map (lambda (curie)
                                  (string-join (dedup (string-split curie ":"))
                                               ":"))
-                               (call-with-input-string (cdr rib) read)) '()))
+                               (read-list/string (cdr rib))) '()))
                 '("same_as" "equivalent_identifiers"))))
 (define (concept->xrefs c)
   (define props (concept-props c))
@@ -75,7 +79,7 @@
                   (if rib (map (lambda (curie)
                                  (string-join (dedup (string-split curie ":"))
                                               ":"))
-                               (call-with-input-string (cdr rib) read)) '()))
+                               (read-list/string (cdr rib))) '()))
                 '("xrefs"))))
 
 ;; This is the edge representation for edges.scm, not for edges-by-X.detail.
