@@ -27,7 +27,7 @@ ex-row: 1 edge_label biolink:has_gene_product
 (define nodes (set))
 (let loop ((line (read-line nodes-import-file)))
   (unless (eof-object? line)
-    (set! nodes (set-add nodes line))
+    (set! nodes (set-add nodes (car (string-split line "\t"))))
     (loop (read-line nodes-import-file))))
 
 (define edges-file
