@@ -6,11 +6,6 @@ large-scale relations.
 
 ## TODO
 
-* materialized-relation
-  * eventually, tables (primary or index) will be independent helper relations
-  * but for now, the main relation will directly join with appropriate helper
-    tables to avoid performance issues with naive DFS strategy
-
 * stop using cells: procs should return mk syntax or opaque constraints
   * opaque relations (their procs return (constrain (relate ,proc) ,args))
   * interpretations (possibly for multiple evaluation strategies) should be
@@ -30,6 +25,9 @@ large-scale relations.
     * types as ranges of values
   * disequality constraints punch holes in continuous ranges
   * descriptions for subsumption and/or simplification with other constraints
+
+* materialized-relation
+  * tables as independent helper relations providing constraints
 
 * define tables that use column-oriented layout
 
