@@ -16,10 +16,10 @@
 (define (db-path fname)
   (path->string (expand-user-path (build-path db-dir fname))))
 
-(define fnin->stream (case file-suffix
-                       (("csv") csv->stream)
-                       (("tsv") tsv->stream)
-                       (else (error "invalid file suffix:" file-suffix))))
+(define dsv->stream (case file-suffix
+                      (("csv") csv->stream)
+                      (("tsv") tsv->stream)
+                      (else (error "invalid file suffix:" file-suffix))))
 (define header-delimiter (case file-suffix
                            (("csv") ",")
                            (("tsv") "\t")
@@ -40,31 +40,35 @@
                                                header-delimiter)))
     (error "unexpected header:" header-found header-expected)))
 
+(define (materialize-dsv-stream in header . mat-args)
+  (let ((mat (apply materializer mat-args)))
+    (validate-header header in)
+    (define count 0)
+    (time (begin (s-each (dsv->stream in)
+                         (lambda (x)
+                           (when (= 0 (remainder count 100000))
+                             (printf "Ingested ~s rows\n" count))
+                           (mat 'put x)
+                           (set! count (+ count 1))))
+                 (printf "Processing ingesting ~s rows\n" count)
+                 (mat 'close)
+                 (printf "Finished processing ~s rows\n" count)))))
+
 ;; materialize the (concept curie property value) relation if not present
 (unless (directory-exists? (db-path "concept"))
   (printf "buildling relation: ~s; ~s\n"
           (db-path fnin.nodeprop) (db-path "concept"))
   (let/files ((in (db-path fnin.nodeprop))) ()
-    (let ((mat (materializer
-                 ;; input columns
-                 '(curie property value) buffer-size (db-path "concept")
-                 ;; attribute names, types, and internal key name for indexing
-                 '(curie property value) '(string string string) 'id
-                 ;; primary table columns (without any sorted-columns)
-                 '(((curie property value) . ())
-                   ;; index table columns (without any sorted-columns)
-                   ((value property id)    . ())))))
-      (validate-header header.nodeprop in)
-      (define count 0)
-      (time (begin (s-each (fnin->stream in)
-                           (lambda (x)
-                             (when (= 0 (remainder count 10000))
-                               (printf "Ingested ~s rows\n" count))
-                             (mat 'put x)
-                             (set! count (+ count 1))))
-                   (printf "Processing ingesting ~s rows\n" count)
-                   (mat 'close)
-                   (printf "Finished processing ~s rows\n" count))))))
+    (materialize-dsv-stream
+      in header.nodeprop
+      ;; input columns
+      '(curie property value) buffer-size (db-path "concept")
+      ;; attribute names, types, and internal key name for indexing
+      '(curie property value) '(string string string) 'id
+      ;; primary table columns (without any sorted-columns)
+      '(((curie property value) . ())
+        ;; index table columns (without any sorted-columns)
+        ((value property id)    . ())))))
 
 (time (let ()
         ;; baseline
