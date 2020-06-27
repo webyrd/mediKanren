@@ -53,7 +53,7 @@
                  ;; primary table columns (without any sorted-columns)
                  '(((curie property value) . ())
                    ;; index table columns (without any sorted-columns)
-                   ((property value id)    . ())))))
+                   ((value property id)    . ())))))
       (validate-header header.nodeprop in)
       (define count 0)
       (time (begin (s-each (fnin->stream in)
