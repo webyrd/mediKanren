@@ -55,8 +55,16 @@
                    ;; index table columns (without any sorted-columns)
                    ((property value id)    . ())))))
       (validate-header header.nodeprop in)
-      (time (begin (s-each (fnin->stream in) (lambda (x) (mat 'put x)))
-                   (mat 'close))))))
+      (define count 0)
+      (time (begin (s-each (fnin->stream in)
+                           (lambda (x)
+                             (when (= 0 (remainder count 10000))
+                               (printf "Ingested ~s rows\n" count))
+                             (mat 'put x)
+                             (set! count (+ count 1))))
+                   (printf "Processing ingesting ~s rows\n" count)
+                   (mat 'close)
+                   (printf "Finished processing ~s rows\n" count))))))
 
 (time (let ()
         ;; baseline
