@@ -306,8 +306,7 @@ ranked-paths: ranked-paths takes a query/graph and uses a ranking system to retu
 
 ;; finds the edges from qc that are O->M
 (edges/query qc 'O->M)
-;; finds the number of curies and edges in qc
-;; the number of genes that are in the same pathway
+;; finds the the number of genes that are in the same pathway
 (length (curies/query qc 'O))
 (length (edges/query qc 'O))
 
