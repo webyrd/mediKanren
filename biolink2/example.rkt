@@ -79,41 +79,15 @@
 		      '(:id :start :end)
 		      '(string string string))
 
-#;
 (materialize-relation "predicateprop" fnin.edgeprop header.edgeprop
 		      '(:id property value)
 		      '(string string string))
-#|
-Does not work
-...
-Ingested 134100000 rows
-<: contract violation
-  expected: real?
-  given: #<void>
-  context...:
-   condition->exn
-   do-raise
-   dynamic-wind
-   /Users/namin/code/rel/mediKanren2/biolink2/dbk/codec.rkt:115:0: encode-nat
-   /Users/namin/code/rel/mediKanren2/biolink2/dbk/method.rkt:25:28
-   /Users/namin/code/rel/mediKanren2/biolink2/example.rkt:48:25
-   /Users/namin/code/rel/mediKanren2/biolink2/dbk/stream.rkt:48:0: s-each
-   /Applications/Racket v7.7/collects/racket/private/more-scheme.rkt:336:52
-   time-apply
-   /Users/namin/code/rel/mediKanren2/biolink2/example.rkt:43:0: materialize-dsv-stream
-   call-with-input-file
-   call-with-values
-   call-in-empty-metacontinuation-frame
-   body of "/Users/namin/code/rel/mediKanren2/biolink2/example.rkt"
-   for-loop
-   run-module-instance!
-|#
 
 (time (let ()
         ;; baseline
         (define-materialized-relation concept 'disk  (db-path "concept"))
 	(define-materialized-relation predicate 'disk  (db-path "predicate"))
-	;;(define-materialized-relation predicateprop 'disk  (db-path "predicateprop"))
+	(define-materialized-relation predicateprop 'disk  (db-path "predicateprop"))
         ;; ~4x faster retrieval; ~400x slower loading
         ;(define-materialized-relation concept 'bytes (db-path "concept"))
         ;; ~10x faster retrieval; ~6000x slower loading
@@ -121,7 +95,7 @@ Ingested 134100000 rows
         (time (pretty-print
 	       (run 10 (curie1 k1 v1 curie2 k2 v2)
 		    (fresh (id)
-		       ;;(predicateprop id "edge_label" "biolink:has_gene_product")
+		       (predicateprop id "edge_label" "biolink:has_gene_product")
 		       (predicate id curie1 curie2)
 		       (concept curie1 k1 v1)
 		       (concept curie2 k2 v2)))))
