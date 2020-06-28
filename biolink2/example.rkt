@@ -62,43 +62,43 @@
     (let/files ((in (db-path fnin))) ()
       (materialize-dsv-stream
         in header
-	;; input columns
-	fields buffer-size (db-path name)
-	;; attribute names, types, and internal key name for indexing
-	fields types 'id
-	;; primary table columns (without any sorted-columns)
-	`((,fields . ())
-	  ;; index table columns (without any sorted-columns)
-	  (,(append (cdr fields) (list 'id)) . ()))))))
+        ;; input columns
+        fields buffer-size (db-path name)
+        ;; attribute names, types, and internal key name for indexing
+        fields types 'id
+        ;; primary table columns (without any sorted-columns)
+        `((,fields . ())
+          ;; index table columns (without any sorted-columns)
+          (,(append (cdr fields) (list 'id)) . ()))))))
 
 (materialize-relation "concept" fnin.nodeprop header.nodeprop
-		      '(curie property value)
-		      '(string string string))
+                      '(curie property value)
+                      '(string string string))
 
 (materialize-relation "predicate" fnin.edge header.edge
-		      '(:id :start :end)
-		      '(string string string))
+                      '(:id :start :end)
+                      '(string string string))
 
 (materialize-relation "predicateprop" fnin.edgeprop header.edgeprop
-		      '(:id property value)
-		      '(string string string))
+                      '(:id property value)
+                      '(string string string))
 
 (time (let ()
         ;; baseline
         (define-materialized-relation concept 'disk  (db-path "concept"))
-	(define-materialized-relation predicate 'disk  (db-path "predicate"))
-	(define-materialized-relation predicateprop 'disk  (db-path "predicateprop"))
+        (define-materialized-relation predicate 'disk  (db-path "predicate"))
+        (define-materialized-relation predicateprop 'disk  (db-path "predicateprop"))
         ;; ~4x faster retrieval; ~400x slower loading
         ;(define-materialized-relation concept 'bytes (db-path "concept"))
         ;; ~10x faster retrieval; ~6000x slower loading
         ;(define-materialized-relation concept 'scm   (db-path "concept"))
         (time (pretty-print
-	       (run 10 (curie1 k1 v1 curie2 k2 v2)
-		    (fresh (id)
-		       (predicateprop id "edge_label" "biolink:has_gene_product")
-		       (predicate id curie1 curie2)
-		       (concept curie1 k1 v1)
-		       (concept curie2 k2 v2)))))
+               (run 10 (curie1 k1 v1 curie2 k2 v2)
+                    (fresh (id)
+                       (predicateprop id "edge_label" "biolink:has_gene_product")
+                       (predicate id curie1 curie2)
+                       (concept curie1 k1 v1)
+                       (concept curie2 k2 v2)))))
         (newline)
 
         (time (pretty-print
