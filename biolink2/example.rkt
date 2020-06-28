@@ -54,32 +54,77 @@
                  (mat 'close)
                  (printf "Finished processing ~s rows\n" count)))))
 
-;; materialize the (concept curie property value) relation if not present
-(unless (directory-exists? (db-path "concept"))
-  (printf "buildling relation: ~s; ~s\n"
-          (db-path fnin.nodeprop) (db-path "concept"))
-  (let/files ((in (db-path fnin.nodeprop))) ()
-    (materialize-dsv-stream
-      in header.nodeprop
-      ;; input columns
-      '(curie property value) buffer-size (db-path "concept")
-      ;; attribute names, types, and internal key name for indexing
-      '(curie property value) '(string string string) 'id
-      ;; primary table columns (without any sorted-columns)
-      '(((curie property value) . ())
-        ;; index table columns (without any sorted-columns)
-        ((value property id)    . ())))))
+;; materialize a relation if not present
+(define (materialize-relation name fnin header fields types)
+  (unless (directory-exists? (db-path name))
+    (printf "buildling relation: ~s; ~s\n"
+            (db-path fnin) (db-path name))
+    (let/files ((in (db-path fnin))) ()
+      (materialize-dsv-stream
+        in header
+	;; input columns
+	fields buffer-size (db-path name)
+	;; attribute names, types, and internal key name for indexing
+	fields types 'id
+	;; primary table columns (without any sorted-columns)
+	`((,fields . ())
+	  ;; index table columns (without any sorted-columns)
+	  (,(append (cdr fields) (list 'id)) . ()))))))
+
+(materialize-relation "concept" fnin.nodeprop header.nodeprop
+		      '(curie property value)
+		      '(string string string))
+
+(materialize-relation "predicate" fnin.edge header.edge
+		      '(:id :start :end)
+		      '(string string string))
+
+#;
+(materialize-relation "predicateprop" fnin.edgeprop header.edgeprop
+		      '(:id property value)
+		      '(string string string))
+#|
+Does not work
+...
+Ingested 134100000 rows
+<: contract violation
+  expected: real?
+  given: #<void>
+  context...:
+   condition->exn
+   do-raise
+   dynamic-wind
+   /Users/namin/code/rel/mediKanren2/biolink2/dbk/codec.rkt:115:0: encode-nat
+   /Users/namin/code/rel/mediKanren2/biolink2/dbk/method.rkt:25:28
+   /Users/namin/code/rel/mediKanren2/biolink2/example.rkt:48:25
+   /Users/namin/code/rel/mediKanren2/biolink2/dbk/stream.rkt:48:0: s-each
+   /Applications/Racket v7.7/collects/racket/private/more-scheme.rkt:336:52
+   time-apply
+   /Users/namin/code/rel/mediKanren2/biolink2/example.rkt:43:0: materialize-dsv-stream
+   call-with-input-file
+   call-with-values
+   call-in-empty-metacontinuation-frame
+   body of "/Users/namin/code/rel/mediKanren2/biolink2/example.rkt"
+   for-loop
+   run-module-instance!
+|#
 
 (time (let ()
         ;; baseline
         (define-materialized-relation concept 'disk  (db-path "concept"))
+	(define-materialized-relation predicate 'disk  (db-path "predicate"))
+	;;(define-materialized-relation predicateprop 'disk  (db-path "predicateprop"))
         ;; ~4x faster retrieval; ~400x slower loading
         ;(define-materialized-relation concept 'bytes (db-path "concept"))
         ;; ~10x faster retrieval; ~6000x slower loading
         ;(define-materialized-relation concept 'scm   (db-path "concept"))
         (time (pretty-print
-                (run 10 (curie k v)
-                  (concept curie k v))))
+	       (run 10 (curie1 k1 v1 curie2 k2 v2)
+		    (fresh (id)
+		       ;;(predicateprop id "edge_label" "biolink:has_gene_product")
+		       (predicate id curie1 curie2)
+		       (concept curie1 k1 v1)
+		       (concept curie2 k2 v2)))))
         (newline)
 
         (time (pretty-print
