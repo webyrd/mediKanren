@@ -3,8 +3,6 @@
   "../db.rkt"
   "query.rkt")
 
-;; TODO: make sure this runs with rtx2.
-
 #|
 This line binds the identifier S to the result of the following expression,
 which takes the first concept containing the curie string "UniProtKB:P51587."
@@ -61,13 +59,17 @@ documented in Racket Documentation
 (sort (remove-duplicates (map provider Es)) string<=?)
 
 ;; This line filters out the edges in Es that have the GO ontology (gene_ontology) as a provider
-(define goEs (filter (lambda (e) (string=? "gene_ontology" (provider e))) Es))
+;; (define goEs (filter (lambda (e) (string=? "gene_ontology" (provider e))) Es))
+
+(define go-provider-string "(\"http://purl.obolibrary.org/obo/go-plus.owl\")")
+
+(define goEs (filter (lambda (e) (string=? go-provider-string (provider e))) Es))
 
 ;; This line checks the number of such edges using length
-(length (filter (lambda (e) (string=? "gene_ontology" (provider e))) Es))
+(length (filter (lambda (e) (string=? go-provider-string (provider e))) Es))
 
 ;; This line binds the identifier E to the first edge in Es that has the GO ontology as a provider
-(define E (car (filter (lambda (e) (string=? "gene_ontology" (provider e))) Es)))
+(define E (car (filter (lambda (e) (string=? go-provider-string (provider e))) Es)))
 
 
 #|
