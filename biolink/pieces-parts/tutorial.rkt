@@ -176,8 +176,8 @@ query/graph: runs the query graph given subject and object concepts, documented 
 ;; defines a list of the providers that indicate the GO ontology
 (define go-providers
   (list
-   "OMIM"
-   "gene_ontology"))
+   "(\"http://purl.obolibrary.org/obo/go-plus.owl\")"
+   "(\"http://purl.bioontology.org/ontology/OMIM\")"))
 
 
 ;; function that takes in a provider and checks if it is a GO provider using the list defined above (go-providers)
