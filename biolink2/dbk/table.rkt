@@ -299,12 +299,6 @@
      (when out-offset (close-output-port out-offset))
      (cons otype item-count))))
 
-(define (checked-file-position chunk i item-count chunk-count)
-  (let ((fp (file-position chunk)))
-    (if (void? fp)
-	(error "file-position returned void:" i item-count chunk-count)
-	fp)))
-
 (define (multi-sorter out-chunk out-offset buffer-size type value<)
   (let ((v (make-vector buffer-size)) (chunk-count 0) (item-count 0) (i 0))
     (method-lambda
@@ -312,8 +306,8 @@
                    (set! i (+ i 1))
                    (when (= i buffer-size)
                      (vector-sort! v value<)
-                     (for ((x (in-vector v))) (when (void? x) (error "x is void:" type i item-count chunk-count)) (encode out-chunk type x))
-                     (encode out-offset 'nat (checked-file-position out-chunk i item-count chunk-count))
+                     (for ((x (in-vector v))) (encode out-chunk type x))
+                     (encode out-offset 'nat (file-position out-chunk))
                      (set! item-count  (+ item-count buffer-size))
                      (set! chunk-count (+ chunk-count 1))
                      (set! i           0)))
