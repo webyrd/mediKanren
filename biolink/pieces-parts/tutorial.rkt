@@ -136,14 +136,13 @@ the number of "provided_by" predicates that appear in the file, documented in Ra
 
 ;; We can also use a miniKanren query instead:
 (define edges (run 10000 (e) (edgeo e)))
-(define e  (car edges))
-(remove-duplicates
- (map (lambda (e)
-          (let ((p (assoc "provided_by" (list-ref e 5))))
-            (if p
-                (cdr p)
-                #f)))
-        edges))
+(remove-duplicates (map provider edges))
+(define (edge-relation e)
+  (let ((a (assoc "relation" (list-ref e 5))))
+    (if a
+        (cdr a)
+        a)))
+(remove-duplicates (map edge-relation edges))
 
 #|
 This defines qb as the query/graph subsequently defined
@@ -191,12 +190,12 @@ query/graph: runs the query graph given subject and object concepts, documented 
 
 
 ;; function that takes in a provider and checks if it is a GO provider using the list defined above (go-providers)
-(define ((edge/provider? p) e)
+(define (edge/go-provider? e)
   (member (provider e) go-providers))
 
 ;; function that takes in a provider and checks if it is not a GO provider
-(define ((edge/not-provider? p) e)
-  (not ((edge/provider? p) e)))
+(define (edge/not-go-provider? e)
+  (not (edge/go-provider? e)))
 
 #|
 This defines qa as the run of the query/graph subsequently defined, which found two different paths from subject to object,
@@ -217,8 +216,8 @@ query/graph: runs the query graph given subject and object concepts, documented 
 		  (S "UniProtKB:P51587")
 		  (O #f)
 		  )
-		 ((S-1>O #f (edge/not-provider? 'go))
-		  (S-2>O #f (edge/provider? 'go)))
+		 ((S-1>O #f edge/not-go-provider?)
+		  (S-2>O #f edge/go-provider?))
 		 (S S-1>O O)
 		 (S S-2>O O))))
 
@@ -247,19 +246,18 @@ query/graph: runs the query graph given subject and object concepts, documented 
 		  (O1 #f)
 		  (O2 #f)
 		  )
-		 ((S->O1 #f (edge/not-provider? 'go))
-		  (S->O2 #f (edge/provider? 'go)))
+		 ((S->O1 #f edge/not-go-provider?)
+		  (S->O2 #f edge/go-provider?))
 		 (S S->O1 O1)
 		 (S S->O2 O2))))
+(pretty-print (time (report/query q)))
 
-;; TODO: does not seem to work in rtx2
 #|
 This function checks whether the relation in a pathway is "involved-in," which
 would indicate that the relationship is part of the GO ontology
 |#
 (define (go-pathway? e)
-  (string=? "involved_in"
-	    (cdr (assoc "relation" (list-ref e 5)))))
+  (string-contains? "involved_in" (or (edge-relation e) "")))
 
 (define (unique-gene? g)
   (not (string=? "UniProtKB:P51587" g)))
@@ -302,6 +300,7 @@ query/graph: runs the query graph given subject and object concepts, documented 
 		  (S2->O #f go-pathway?))
 		 (S1 S1->O O)
 		 (S2 S2->O O))))
+(pretty-print (time (report/query qd)))
 
 #|
  Each edge is given a score based on a set of parameters, and every edge with the same score is put in a composite edge that can be identified by that score.
@@ -344,5 +343,3 @@ query/graph: runs the query graph given subject and object concepts, documented 
 (pretty-print (time (report/query qcomp)))
 (define rcomp (ranked-paths qcomp))
 rcomp
-
-
