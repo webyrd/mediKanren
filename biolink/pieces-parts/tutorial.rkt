@@ -135,14 +135,17 @@ the number of "provided_by" predicates that appear in the file, documented in Ra
 |#
 
 ;; We can also use a miniKanren query instead:
-(define edges (run 10000 (e) (edgeo e)))
+(define edges (run 1000 (e) (edgeo e)))
 (remove-duplicates (map provider edges))
 (define (edge-relation e)
   (let ((a (assoc "relation" (list-ref e 5))))
     (if a
         (cdr a)
         a)))
+(define (predicate e)
+  (cdr (list-ref e 4)))
 (remove-duplicates (map edge-relation edges))
+(remove-duplicates (map predicate edges))
 
 #|
 This defines qb as the query/graph subsequently defined
@@ -256,8 +259,7 @@ query/graph: runs the query graph given subject and object concepts, documented 
 This function checks whether the relation in a pathway is "involved-in," which
 would indicate that the relationship is part of the GO ontology
 |#
-(define (go-pathway? e)
-  (string-contains? "involved_in" (or (edge-relation e) "")))
+(define go-pathway '("involved_in"))
 
 (define (unique-gene? g)
   (not (string=? "UniProtKB:P51587" g)))
@@ -282,8 +284,8 @@ query/graph: runs the query graph given subject and object concepts, documented 
 		  (O #f)
 		  (S2 gene)
 		  )
-		 ((S1->O #f go-pathway?)
-		  (S2->O #f go-pathway?))
+		 ((S1->O go-pathway)
+		  (S2->O go-pathway))
 		 (S1 S1->O O)
 		 (S2 S2->O O))))
 
@@ -296,8 +298,8 @@ query/graph: runs the query graph given subject and object concepts, documented 
 		  (O #f)
 		  (S2 gene)
 		  )
-		 ((S1->O #f go-pathway?)
-		  (S2->O #f go-pathway?))
+		 ((S1->O go-pathway)
+		  (S2->O go-pathway))
 		 (S1 S1->O O)
 		 (S2 S2->O O))))
 (pretty-print (time (report/query qd)))
@@ -315,11 +317,11 @@ ranked-paths: ranked-paths takes a query/graph and uses a ranking system to retu
 ;; prints the ranked-paths
 (pretty-print (time (ranked-paths qc)))
 
-;; finds the edges from qc that are O->M
-(edges/query qc 'O->M)
+;; finds the edges from qc that are S2->O
+(edges/query qc 'S2->O)
 ;; finds the the number of genes that are in the same pathway
-(length (curies/query qc 'O))
-(length (edges/query qc 'O))
+(length (curies/query qc 'S2))
+(length (edges/query qc 'S2->O))
 
 
 #|
