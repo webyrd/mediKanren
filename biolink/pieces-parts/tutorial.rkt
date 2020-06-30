@@ -134,6 +134,16 @@ the number of "provided_by" predicates that appear in the file, documented in Ra
 	  (loop (+ 1 n))))))
 |#
 
+;; We can also use a miniKanren query instead:
+(define edges (run 10000 (e) (edgeo e)))
+(define e  (car edges))
+(remove-duplicates
+ (map (lambda (e)
+          (let ((p (assoc "provided_by" (list-ref e 5))))
+            (if p
+                (cdr p)
+                #f)))
+        edges))
 
 #|
 This defines qb as the query/graph subsequently defined
