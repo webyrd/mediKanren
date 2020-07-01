@@ -6,6 +6,11 @@ large-scale relations.
 
 ## TODO
 
+* replace relation/tables with a memory-only option for materialized-relation
+  * take a vector as a source instead of a directory path
+    * attribute-names attribute-types source-columns key-name tables indexes
+  * sort vector in-memory, vector-map and re-sort as necessary for indexing
+
 * stop using cells: procs should return mk syntax or opaque constraints
   * opaque relations (their procs return (constrain (relate ,proc) ,args))
   * interpretations (possibly for multiple evaluation strategies) should be

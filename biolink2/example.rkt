@@ -1,7 +1,7 @@
 #lang racket/base
 (require "dbk/dbk.rkt" racket/function racket/pretty racket/string)
 
-(define buffer-size 10000)  ;; main memory used for external sorting
+(define buffer-size 100000)  ;; main memory used for external sorting
 
 (define argv (current-command-line-arguments))
 (define argv-expected '#(DATA_DIR DB_NAME INPUT_SUFFIX))
@@ -44,15 +44,15 @@
   (let ((mat (apply materializer mat-args)))
     (validate-header header in)
     (define count 0)
-    (time (begin (s-each (dsv->stream in)
-                         (lambda (x)
-                           (when (= 0 (remainder count 100000))
-                             (printf "Ingested ~s rows\n" count))
-                           (mat 'put x)
-                           (set! count (+ count 1))))
-                 (printf "Processing ingesting ~s rows\n" count)
-                 (mat 'close)
-                 (printf "Finished processing ~s rows\n" count)))))
+    (time (s-each (dsv->stream in)
+                  (lambda (x)
+                    (when (= 0 (remainder count 100000))
+                      (printf "Ingested ~s rows\n" count))
+                    (mat 'put x)
+                    (set! count (+ count 1)))))
+    (printf "Processing ~s rows\n" count)
+    (time (mat 'close))
+    (printf "Finished processing ~s rows\n" count)))
 
 ;; materialize a relation if not present
 (define (materialize-relation name fnin header fields types)
@@ -62,48 +62,56 @@
     (let/files ((in (db-path fnin))) ()
       (materialize-dsv-stream
         in header
-        ;; input columns
-        fields buffer-size (db-path name)
-        ;; attribute names, types, and internal key name for indexing
-        fields types 'id
-        ;; primary table columns (without any sorted-columns)
-        `((,fields . ())
-          ;; index table columns (without any sorted-columns)
-          (,(append (cdr fields) (list 'id)) . ()))))))
+        `((buffer-size     . ,buffer-size)    ; optional
+          (path            . ,(db-path name))
+          (source-columns  . ,fields)         ; optional given attribute-names
+          (attribute-names . ,fields)
+          (attribute-types . ,types)
+          (tables  ((columns . ,fields)))     ; optional if same order as attribute-names
+          (indexes ((columns . ,(reverse (cdr fields))))))))))
 
 (materialize-relation "concept" fnin.nodeprop header.nodeprop
                       '(curie property value)
                       '(string string string))
 
-(materialize-relation "predicate" fnin.edge header.edge
+(materialize-relation "edge" fnin.edge header.edge
                       '(:id :start :end)
                       '(string string string))
 
-(materialize-relation "predicateprop" fnin.edgeprop header.edgeprop
+(materialize-relation "edge-prop" fnin.edgeprop header.edgeprop
                       '(:id property value)
                       '(string string string))
 
 (time (let ()
-        ;; baseline
-        (define-materialized-relation concept 'disk  (db-path "concept"))
-        (define-materialized-relation predicate 'disk  (db-path "predicate"))
-        (define-materialized-relation predicateprop 'disk  (db-path "predicateprop"))
         ;; ~4x faster retrieval; ~400x slower loading
-        ;(define-materialized-relation concept 'bytes (db-path "concept"))
+        ;(define-materialized-relation concept   `((path . ,(db-path "concept")) (retrieval-type . bytes)))
         ;; ~10x faster retrieval; ~6000x slower loading
-        ;(define-materialized-relation concept 'scm   (db-path "concept"))
+        ;(define-materialized-relation concept   `((path . ,(db-path "concept")) (retrieval-type . scm)))
+        ;; baseline; including (retrieval-type . disk) is optional
+        (define-materialized-relation concept   `((path . ,(db-path "concept"))))
+        (define-materialized-relation edge      `((path . ,(db-path "edge"))))
+        (define-materialized-relation edge-prop `((path . ,(db-path "edge-prop"))))
+        (time (pretty-print
+               (run 10 (curie1 name1 predicate curie2 name2)
+                    (fresh (eid)
+                       (edge-prop eid "edge_label" predicate)
+                       (edge eid curie1 curie2)
+                       (concept curie1 "name" name1)
+                       (concept curie2 "name" name2)))))
+        (newline)
+
         (time (pretty-print
                (run 10 (curie1 k1 v1 curie2 k2 v2)
                     (fresh (id)
-                       (predicateprop id "edge_label" "biolink:has_gene_product")
-                       (predicate id curie1 curie2)
+                       (edge-prop id "edge_label" "biolink:has_gene_product")
+                       (edge id curie1 curie2)
                        (concept curie1 k1 v1)
                        (concept curie2 k2 v2)))))
         (newline)
 
         (time (pretty-print
-                (run 600 (curie k v)
+                (run 600 (curie name)
                   (concept curie "category" "chemical_substance")
-                  (concept curie k v))))
+                  (concept curie "name" name))))
         (newline)
         ))
