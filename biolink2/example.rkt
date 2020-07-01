@@ -55,7 +55,7 @@
     (printf "Finished processing ~s rows\n" count)))
 
 ;; materialize a relation if not present
-(define (materialize-relation name fnin header fields types)
+(define (materialize-relation name fnin header fields types indexes)
   (unless (directory-exists? (db-path name))
     (printf "buildling relation: ~s; ~s\n"
             (db-path fnin) (db-path name))
@@ -68,19 +68,22 @@
           (attribute-names . ,fields)
           (attribute-types . ,types)
           (tables  ((columns . ,fields)))     ; optional if same order as attribute-names
-          (indexes ((columns . ,(reverse (cdr fields))))))))))
+          (indexes . ,(map (lambda (i) (list (cons 'columns i))) indexes)))))))
 
 (materialize-relation "concept" fnin.nodeprop header.nodeprop
                       '(curie property value)
-                      '(string string string))
+                      '(string string string)
+                      '((value property)))
 
 (materialize-relation "edge" fnin.edge header.edge
                       '(:id :start :end)
-                      '(string string string))
+                      '(string string string)
+                      '((:start :end) (:end :start)))
 
 (materialize-relation "edge-prop" fnin.edgeprop header.edgeprop
                       '(:id property value)
-                      '(string string string))
+                      '(string string string)
+                      '((value property)))
 
 (time (let ()
         ;; ~4x faster retrieval; ~400x slower loading
