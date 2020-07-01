@@ -4,6 +4,14 @@
 (require "codec.rkt" "method.rkt" "mk.rkt" "stream.rkt" "table.rkt"
          racket/file racket/function racket/list racket/pretty racket/set)
 
+(define (alist-ref alist key (default (void)))
+  (define kv (assoc key alist))
+  (cond (kv              (cdr kv))
+        ((void? default) (error "missing key in association list:" key alist))
+        (else            default)))
+(define (alist-remove alist key)
+  (filter (lambda (kv) (not (equal? (car kv) key))) alist))
+
 ;; * extensional relation:
 ;;   * schema:
 ;;     * heading: set of attributes and their types
@@ -30,46 +38,6 @@
 ;; index for multiple prefixes.  The virtual table reorders its columns to put
 ;; an alternate sorted column first.
 
-;; example sources
-;`#(stream ,s pos  #(w x y z) ())  ;; not even a 0 because cannot guarantee sorting
-;; what about the tuple types for a stream?
-
-;`#(table ,t1 #f   #(w x y z) (0))   ;; unnamed pos
-;`#(table ,t1 pos  #(w x y z) (0 1)) ;; main storage, suffix (x y z) (i.e., prefix truncated by 1) is also sorted in the same pos order
-;`#(table ,t2 #f   #(y pos)   (0))   ;; index
-;`#(table ,t3 pos2 #(z pos)   (0))   ;; index, names its own implicit position pos2 (theoretically usable by other indices)
-;`#(table ,t4 #f   #(w pos2)  (0))   ;; index of index (is this even useful? maybe to simulate an index for (w z pos))
-
-;; TODO: should we be more structured about sources?
-;; single stream vs. table + indices
-;; or is this just specifying a particular realization of relation-instance's method-lambda?
-;`#(table ,t1 #(w x y z) pos
-         ;(#(,t1-virtual #(x w y z)))
-         ;(#(,t2 #(y #f))
-          ;#(,t3 #(z #f))))
-
-(define (source type data position-name? attributes sorted-offsets)
-  (unless (member type '(table stream)) (error "invalid source type:" type))
-  (define as  (vector->list attributes))
-  (define pas (cons position-name? as))
-  (define bad (filter-not symbol? as))
-  (unless (null? bad) (error "invalid attribute names:" bad))
-  (unless (or (not position-name?) (symbol? position-name?))
-    (error "invalid optional position attribute name:" position-name?))
-  (unless (= (length (remove-duplicates pas)) (length pas))
-    (error "duplicate attributes:" pas))
-  (foldl (lambda (i prev)
-           (unless (and (exact? i) (integer? i)
-                        (< prev i (vector-length attributes)))
-             (error "invalid sorted column offsets:" sorted-offsets))
-           i) -1 sorted-offsets)
-  (vector type data position-name? attributes sorted-offsets))
-(define (source-type           s) (vector-ref s 0))
-(define (source-data           s) (vector-ref s 1))
-(define (source-position-name? s) (vector-ref s 2))
-(define (source-attributes     s) (vector-ref s 3))
-(define (source-sorted-offsets s) (vector-ref s 4))
-
 ;; TODO: no real need to specify sorted columns since we can add virtual tables
 ;; TODO: could also use virtual tables for implicit position column, but the
 ;;       number of virtual tables needed could grow linearly with number of
@@ -79,6 +47,11 @@
 ;;       and indices would be normal tables that explicitly mention the
 ;;       position column.  Is this acceptable?
 ;; TODO: index subsumption
+
+;; TODO: should we interpret degree constraints to find useful special cases?
+;; * functional dependency
+;; * bijection (one-to-one mapping via opposing functional dependencies)
+;; * uniqueness (functional dependency to full set of of attributes)
 
 ;; example degree constraints
 ;; TODO: are range lower bounds useful?
@@ -92,37 +65,6 @@
 (define (degree-upper-bound d) (vector-ref d 1))
 (define (degree-domain      d) (vector-ref d 2))
 (define (degree-range       d) (vector-ref d 3))
-
-;; TODO: should we specify sources directly, or pass a pre-built body that may
-;;       have been constructed in an arbitrary way?
-(define (relation-instance attribute-names attribute-types degrees sources)
-  (unless (= (vector-length attribute-names) (vector-length attribute-types))
-    (error "mismatching attribute names and types:"
-           attribute-names attribute-types))
-  (define as (vector->list attribute-names))
-  (unless (= (length (remove-duplicates as)) (length as))
-    (error "duplicate attributes:" as))
-  (when (null? sources) (error "empty relation sources for:" attribute-names))
-  (unless (andmap (let ((sas (vector->list (source-attributes (car sources)))))
-                    (lambda (a) (member a sas))) as)
-    (error "main source attributes do not cover relation attributes:"
-           (source-attributes (car sources))
-           attribute-names))
-  (define ras (list->set as))
-  ;; TODO:
-  ;; guarantee attribute-types match? how?
-
-  ;; TODO: should we interpret degree constraints to find useful special cases?
-  ;; * functional dependency
-  ;; * bijection (one-to-one mapping via opposing functional dependencies)
-  ;; * uniqueness (functional dependency to full set of of attributes)
-
-  (method-lambda
-    ((attribute-names) attribute-names)
-    ((attribute-types) attribute-types)
-    ;((degrees)         degrees)
-    ;; TODO:
-    ))
 
 (define (make-relation/stream attribute-names attribute-types s)
   ;; TODO: optional type validation of stream data?
@@ -145,8 +87,25 @@
     ((_ (name attr ...) se)
      (define name (relation/stream name (attr ...) se)))))
 
-(define (materializer source-names buffer-size directory-path
-                      attribute-names attribute-types key table-descriptions)
+(define (materializer kwargs)
+  ;; TODO: configurable default buffer-size
+  (define buffer-size        (alist-ref kwargs 'buffer-size 100000))
+  (define directory-path     (alist-ref kwargs 'path))
+  (define attribute-names    (alist-ref kwargs 'attribute-names))
+  (define attribute-types    (alist-ref kwargs 'attribute-types
+                                        (map (lambda (_) #f) attribute-names)))
+  (define source-names       (alist-ref kwargs 'source-columns
+                                        attribute-names))
+  (define key                (alist-ref kwargs 'key-name #t))
+  (define index-descriptions
+    (map (lambda (itd)
+           (cons (cons 'columns (append (alist-ref itd 'columns) (list key)))
+                 (alist-remove itd 'columns)))
+         (alist-ref kwargs 'indexes '())))
+  (define table-descriptions
+    (append (alist-ref kwargs 'tables
+                       `(((columns . ,attribute-names))))
+            index-descriptions))
   (define (unique?! as) (unless (= (length (remove-duplicates as)) (length as))
                           (error "duplicates:" as)))
   (unique?! source-names)
@@ -163,7 +122,7 @@
     (error "empty list of table descriptions for:" attribute-names))
   (define index-tds            (cdr table-descriptions))
   (define primary-td           (car table-descriptions))
-  (define primary-column-names (car primary-td))
+  (define primary-column-names (alist-ref primary-td 'columns))
   (define primary-column-types (map (lambda (n) (hash-ref name=>type n))
                                     primary-column-names))
   (define primary-source-names (if key (cons key primary-column-names)
@@ -195,14 +154,13 @@
   (method-lambda
     ((put x) (primary-t 'put x))
     ((close) (define primary-info (primary-t 'close))
-             (define key-type (nat-type/max
-                                (cdr (assoc 'length primary-info))))
+             (define key-type (nat-type/max (alist-ref primary-info 'length)))
              (define index-ts
                (let* ((name=>type (hash-set name=>type key key-type))
                       (name->type (lambda (n) (hash-ref name=>type n))))
                  (map (lambda (fname td)
-                        (define column-names   (car td))
-                        (define sorted-columns (cdr td))
+                        (define column-names   (alist-ref td 'columns))
+                        (define sorted-columns (alist-ref td 'sorted '()))
                         (tabulator primary-source-names buffer-size fname
                                    column-names (map name->type column-names)
                                    #f sorted-columns))
@@ -220,7 +178,10 @@
                            metadata-out)
              (close-output-port metadata-out))))
 
-(define (materialized-relation relation-name retrieval-type directory-path)
+(define (materialized-relation kwargs)
+  (define relation-name  (alist-ref kwargs 'relation-name))
+  (define directory-path (alist-ref kwargs 'path))
+  (define retrieval-type (alist-ref kwargs 'retrieval-type 'disk))
   (define dpath (if #f (path->string (build-path "TODO: configurable base"
                                                  directory-path))
                   directory-path))
@@ -325,8 +286,8 @@
 
 (define-syntax define-materialized-relation
   (syntax-rules ()
-    ((_ name retrieval-type directory-path)
-     (define name (materialized-relation 'name retrieval-type directory-path)))))
+    ((_ name kwargs) (define name (materialized-relation
+                                    `((relation-name . name) . ,kwargs))))))
 
 ;; TODO: attribute-types should be verified with tables
 (define (make-relation/tables attribute-names attribute-types attrs/tables)
@@ -355,10 +316,10 @@
      (define env (map cons attribute-names args))
      (let loop ((attrs (car attrs/main-table)) (t (cdr attrs/main-table)))
        (define (finish) (constrain `(retrieve ,(t 'stream))
-                                   (map (lambda (attr) (cdr (assoc attr env)))
+                                   (map (lambda (attr) (alist-ref env attr))
                                         attrs)))
        (cond ((null? attrs) (finish))
-             (else (define v (cdr (assoc (car attrs) env)))
+             (else (define v (alist-ref env (car attrs)))
                    (if (not (ground? v)) (finish)
                      (loop (cdr attrs) (table-project t v)))))))))
 
@@ -376,6 +337,27 @@
     ;; TODO: specify types
     ((_ (name attr ...) as/ts)
      (define name (relation/tables name (attr ...) as/ts)))))
+
+;; TODO: mk constraint integration
+;; When a variable is unified, its constraints are queued for re-evaluation
+;; (e.g., bounds refinement, propagation).
+;; When an index constraint incorporates a unified value as prefix, it needs to
+;; update itself, attaching to the next prefix variable(s) (might be more than
+;; one variable due to either sorted columns (multiple index orders) or if a
+;; column includes pair/vector values) in the index (if any).
+
+;; constraint info:
+;; * descriptions used for subsumption
+;;   * #(,relation ,attributes-satisfied ,attributes-pending)
+;;   * within a relation, table constraint A subsumes B if
+;;     B's attributes-pending is a prefix of A's
+;;     AND
+;;     B does not have any attributes-satisfied that A does not have
+;; * lower and upper domain bounds
+
+;; Relations built on streams do not provide typical constraints since they
+;; only support linear scanning.  Accessing them should probably be treated as
+;; search (as with conde).
 
 ;; example: safe-drug -(predicate)-> gene
 #|
@@ -413,4 +395,25 @@
 ;; branch/subtree?  In other words, resolving the internal node can be seen as
 ;; removing it, which disconnects the query graph.  The disconnected subgraphs
 ;; are independent, and so could be solved independently to avoid re-solving
-;; each one multiple times.
+;; each one multiple times.  This is sort of an on-the-fly tree decomposition.
+;; Before fully solving each independent problem, ensure that each is
+;; satisfiable.  Existential-only paths can stop after satisfiability check.
+
+;; Comparing join structures to loop structures:
+;; * iterative joining is naturally right-associative (think of nested for loops
+;;   in a result position)
+;;   * for x in (intersect ...):
+;;       for y in (intersect ...):
+;;         for z in (intersect ...):
+;;         ...
+;; * intermediate computations correspond to left-factorings (prefix of joins)
+;;   (think of nested for loops in a generating position)
+;;   * intermediate = (for x in (intersect ...):
+;;                       for y in (intersect ...):
+;;                         return (x, y))
+;;     for z in (intersect ... intermediate ...):
+;;       ...
+;;   * computing intermediates reduces downstream duplication of effort, but
+;;     risks useless effort up front, and the intermediate result uses extra
+;;     space and probably requires indexing to integrate with the rest of the
+;;     computation
