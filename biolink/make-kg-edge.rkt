@@ -34,7 +34,7 @@ ex-row: 1 edge_label biolink:has_gene_product
 (define input-edges
   (open-input-file (format "~a~a" directory-path edges-file)))
 (let* ((header (read-line input-edges))
-       (header (string-split header "\t" #:trim? #f)))
+       (header (cdr (string-split header "\t" #:trim? #f))))
   (let loop ((i 0)
              (line-str (read-line input-edges)))
     (cond
@@ -43,7 +43,7 @@ ex-row: 1 edge_label biolink:has_gene_product
        (close-output-port edges-export-file)
        (close-output-port edge-props-export-file))
       (else
-        (let ((line (string-split line-str "\t" #:trim? #f)))
+        (let ((line (cdr (string-split line-str "\t" #:trim? #f))))
           (fprintf edges-export-file "~a\t~a\t~a\n" i (car line) (cadr line))
           (let loop-inner ((props (cddr line))
                            (headers (cddr header)))
