@@ -95,12 +95,10 @@
         (define-materialized-relation edge      `((path . ,(db-path "edge"))))
         (define-materialized-relation edge-prop `((path . ,(db-path "edge-prop"))))
         (time (pretty-print
-               (run 10 (curie1 name1 predicate curie2 name2)
+               (run 10 (curie1 predicate curie2)
                     (fresh (eid)
                        (edge-prop eid "edge_label" predicate)
-                       (edge eid curie1 curie2)
-                       (concept curie1 "name" name1)
-                       (concept curie2 "name" name2)))))
+                       (edge eid curie1 curie2)))))
         (newline)
 
         (time (pretty-print
