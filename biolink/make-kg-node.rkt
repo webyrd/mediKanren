@@ -29,7 +29,7 @@ name-file.node-props.scm
 (define input-nodes
   (open-input-file (format "~a~a" directory-path nodes-file)))
 (let* ((header (read-line input-nodes))
-       (header (string-split header "\t")))
+       (header (string-split header "\t" #:trim? #f)))
   (let loop ((seen-nodes (set))
              (line-str (read-line input-nodes)))
     (cond
@@ -38,7 +38,7 @@ name-file.node-props.scm
        (close-output-port nodes-export-file)
        (close-output-port node-props-export-file))
       (else
-        (let* ((line (string-split line-str "\t"))
+        (let* ((line (string-split line-str "\t" #:trim? #f))
                (node (car line)))
           (when (set-member? seen-nodes node)
             (error 'make-kg-node (format "already seen node: ~a" node)))
