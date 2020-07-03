@@ -51,7 +51,7 @@
   (cond ((string-prefix? s "(")
          (define datum (call-with-input-string s read))
          (if (list? datum) datum '()))
-        (else s)))
+        (else (list s))))
 
 (define (concept-cui c)      (vector-ref c 0))
 (define (concept-category c) (vector-ref c 1))
