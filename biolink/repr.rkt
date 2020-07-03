@@ -48,8 +48,10 @@
 (require racket/list racket/port racket/set racket/stream racket/string)
 
 (define (read-list/string s)
-  (define datum (call-with-input-string s read))
-  (if (list? datum) datum '()))
+  (cond ((string-prefix? s "(")
+         (define datum (call-with-input-string s read))
+         (if (list? datum) datum '()))
+        (else s)))
 
 (define (concept-cui c)      (vector-ref c 0))
 (define (concept-category c) (vector-ref c 1))
