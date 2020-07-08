@@ -1,11 +1,6 @@
 #lang racket
 (provide (all-defined-out))
 
-;; https://github.com/NCATSTranslator/Text-Mining-Provider-Roadmap/blob/add-sample-text-mined-kg-in-kgx-format/sample-kg/README.md
-
-;; https://github.com/NCATSTranslator/Text-Mining-Provider-Roadmap/tree/add-sample-text-mined-kg-in-kgx-format/sample-kg/text-mined/kgx/v0.1
-
-
 #|
 name-file.edge.scm
 :ID :START :END
