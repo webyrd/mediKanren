@@ -2,6 +2,11 @@
 (provide (all-defined-out))
 (require json net/url)
 
+(define (js-count js)
+  (cond ((pair? js) (foldl + 0 (map js-count js)))
+        ((hash? js) (foldl + 0 (hash-map js (lambda (k v) (js-count v)))))
+        (else       1)))
+
 ;; Broad Institute KP
 (define url.broad
   "https://translator.broadinstitute.org/molepro_reasoner")
