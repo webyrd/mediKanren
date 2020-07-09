@@ -1,6 +1,7 @@
 #lang racket/base
 (require
   "common.rkt"
+  "open-api/api-query.rkt"
   racket/file
   racket/list
   (except-in racket/match ==)
@@ -10,6 +11,7 @@
   web-server/servlet
   web-server/servlet-env
   web-server/managers/none
+  web-server/private/gzip
   xml
   )
 
@@ -168,6 +170,12 @@ query_result_clear.addEventListener('click', function(){
   (hash 'id id 'type pred 'source_id src 'target_id tgt 'attrs attrs))
 
 (define (message->response msg)
+  (define broad-response (time (api-query (string-append url.broad path.query)
+                                          (hash 'message msg))))
+  (define broad-results (hash-ref broad-response 'response))
+  (printf "broad response:\n~s\n" (hash-ref broad-response 'status))
+  (pretty-print (hash-ref broad-response 'headers))
+  (printf "broad result size: ~s\n" (js-count broad-results))
   ;; NOTE: ignore 'results and 'knowledge_graph until we find a use for them.
   (define qgraph (hash-ref msg 'query_graph hash-empty))
   (define nodes
@@ -206,26 +214,40 @@ query_result_clear.addEventListener('click', function(){
     (hash-map name=>concepts (lambda (name xs) (map concept->result xs))))
   (define kedges
     (hash-map name=>edges    (lambda (name xs) (map edge->result xs))))
-  (hash 'results
-        (append* (map (lambda (p)
-                        (define qsrc  (symbol->string (car p)))
-                        (define qname (cadr p))
-                        (define qedge (symbol->string qname))
-                        (define qtgt  (symbol->string (caddr p)))
-                        (map (lambda (e)
-                               (define r (edge->result e))
-                               (define id  (hash-ref r 'id))
-                               (define src (hash-ref r 'source_id))
-                               (define tgt (hash-ref r 'target_id))
-                               (hash 'edge_bindings
-                                     (list (hash 'qg_id qedge 'kg_id id))
-                                     'node_bindings
-                                     (list (hash 'qg_id qsrc  'kg_id src)
-                                           (hash 'qg_id qtgt  'kg_id tgt))))
-                             (hash-ref name=>edges qname)))
-                      paths))
-        'knowledge_graph (hash 'nodes (append* knodes)
-                               'edges (append* kedges))))
+  (merge-results
+    (list broad-results
+          (hash 'results
+                (append* (map (lambda (p)
+                                (define qsrc  (symbol->string (car p)))
+                                (define qname (cadr p))
+                                (define qedge (symbol->string qname))
+                                (define qtgt  (symbol->string (caddr p)))
+                                (map (lambda (e)
+                                       (define r (edge->result e))
+                                       (define id  (hash-ref r 'id))
+                                       (define src (hash-ref r 'source_id))
+                                       (define tgt (hash-ref r 'target_id))
+                                       (hash 'edge_bindings
+                                             (list (hash 'qg_id qedge 'kg_id id))
+                                             'node_bindings
+                                             (list (hash 'qg_id qsrc  'kg_id src)
+                                                   (hash 'qg_id qtgt  'kg_id tgt))))
+                                     (hash-ref name=>edges qname)))
+                              paths))
+                'knowledge_graph (hash 'nodes (append* knodes)
+                                       'edges (append* kedges))))))
+
+(define (merge-results rs)
+  (let loop ((rs rs) (results '()) (nodes '()) (edges '()))
+    (cond ((null? rs) (hash 'results         results
+                            'knowledge_graph (hash 'nodes nodes
+                                                   'edges edges)))
+          (else (define r (car rs))
+                (define kg (hash-ref r  'knowledge_graph hash-empty))
+                (loop (cdr rs)
+                      (append (hash-ref r  'results '()) results)
+                      (append (hash-ref kg 'nodes   '()) nodes)
+                      (append (hash-ref kg 'edges   '()) edges))))))
 
 (define (predicates)
   ;; TODO: at greater expense, we could restrict each list of predicates
@@ -249,6 +271,8 @@ query_result_clear.addEventListener('click', function(){
                  (map (lambda (c) (cons (string->symbol c) dps)) dcs)))
              (map (lambda (c) (cons (string->symbol c) dcps)) dcs))
            dbs))))
+(define predicates-cached
+  (gzip/bytes (string->bytes/utf-8 (jsexpr->string (predicates)))))
 (define (query jsdata)
   (cond ((or (eof-object? jsdata) (not (hash? jsdata))) 'null)
         (else (message->response
@@ -257,24 +281,25 @@ query_result_clear.addEventListener('click', function(){
 (define (respond code message headers mime-type body)
   (response/full code (string->bytes/utf-8 message)
                  (current-seconds) mime-type headers
-                 (list (string->bytes/utf-8 body))))
+                 (list body)))
+(define (OK mime-type body (gzip? #t))
+  (respond 200 "OK" (list (make-header #"Content-Encoding" #"gzip"))
+           mime-type (if gzip? (gzip/bytes (string->bytes/utf-8 body)) body)))
 (define (not-found req)
   (respond 404 "Not Found" '() mime:html
-           (xexpr->html-string (not-found.html
-                                 (url->string (request-uri req))))))
-(define (index req)
-  (respond 200 "ok" '() mime:html (xexpr->html-string index.html)))
-(define (/index.js     req) (respond 200 "ok" '() mime:js   index.js))
-(define (/schema.json  req) (respond 200 "ok" '() mime:text schema.json.txt))
-(define (/schema.yaml  req) (respond 200 "ok" '() mime:text schema.yaml.txt))
-(define (/schema.html  req) (respond 200 "ok" '() mime:html schema.html))
-(define (/schema.html2 req) (respond 200 "ok" '() mime:html schema.html2))
-(define (/predicates req)
-  (respond 200 "OK" '() mime:json (jsexpr->string (predicates))))
-(define (/query req)
-  (respond 200 "OK" '() mime:json
-           (jsexpr->string
-             (query (bytes->jsexpr (request-post-data/raw req))))))
+           (string->bytes/utf-8
+             (xexpr->html-string
+               (not-found.html (url->string (request-uri req)))))))
+(define (index         req) (OK mime:html (xexpr->html-string index.html)))
+(define (/index.js     req) (OK mime:js   index.js))
+(define (/schema.json  req) (OK mime:text schema.json.txt))
+(define (/schema.yaml  req) (OK mime:text schema.yaml.txt))
+(define (/schema.html  req) (OK mime:html schema.html))
+(define (/schema.html2 req) (OK mime:html schema.html2))
+(define (/predicates   req) (OK mime:json predicates-cached #f))
+(define (/query        req)
+  (OK mime:json
+      (jsexpr->string (query (bytes->jsexpr (request-post-data/raw req))))))
 
 (define (start)
   (define-values (dispatch _)
@@ -293,6 +318,8 @@ query_result_clear.addEventListener('click', function(){
                  ;; only possible because we're not using web continuations.
                  #:manager (create-none-manager #f)
                  #:servlet-regexp #rx""
+                 #:listen-ip #f  ;; comment this to disable external connection
+                 #:port 8080
                  #:launch-browser? #f))
 
 (module+ main (start))
