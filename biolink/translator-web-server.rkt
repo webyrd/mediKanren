@@ -258,23 +258,21 @@ query_result_clear.addEventListener('click', function(){
   (response/full code (string->bytes/utf-8 message)
                  (current-seconds) mime-type headers
                  (list (string->bytes/utf-8 body))))
+(define (OK mime-type body) (respond 200 "OK" '() mime-type body))
 (define (not-found req)
   (respond 404 "Not Found" '() mime:html
            (xexpr->html-string (not-found.html
                                  (url->string (request-uri req))))))
-(define (index req)
-  (respond 200 "ok" '() mime:html (xexpr->html-string index.html)))
-(define (/index.js     req) (respond 200 "ok" '() mime:js   index.js))
-(define (/schema.json  req) (respond 200 "ok" '() mime:text schema.json.txt))
-(define (/schema.yaml  req) (respond 200 "ok" '() mime:text schema.yaml.txt))
-(define (/schema.html  req) (respond 200 "ok" '() mime:html schema.html))
-(define (/schema.html2 req) (respond 200 "ok" '() mime:html schema.html2))
-(define (/predicates req)
-  (respond 200 "OK" '() mime:json (jsexpr->string (predicates))))
-(define (/query req)
-  (respond 200 "OK" '() mime:json
-           (jsexpr->string
-             (query (bytes->jsexpr (request-post-data/raw req))))))
+(define (index         req) (OK mime:html (xexpr->html-string index.html)))
+(define (/index.js     req) (OK mime:js   index.js))
+(define (/schema.json  req) (OK mime:text schema.json.txt))
+(define (/schema.yaml  req) (OK mime:text schema.yaml.txt))
+(define (/schema.html  req) (OK mime:html schema.html))
+(define (/schema.html2 req) (OK mime:html schema.html2))
+(define (/predicates   req) (OK mime:json (jsexpr->string (predicates))))
+(define (/query        req)
+  (OK mime:json
+      (jsexpr->string (query (bytes->jsexpr (request-post-data/raw req))))))
 
 (define (start)
   (define-values (dispatch _)
