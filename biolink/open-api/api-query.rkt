@@ -41,33 +41,61 @@
               (hash 'edges edges
                     'nodes nodes))))
 
-;; test predicates available on Broad Institute KG
-;(pretty-print
-  ;(api-query (string-append url.broad path.predicates)))
+(module+ main
+  ;; test predicates available on Broad Institute KG
+  ;(pretty-print
+    ;(api-query (string-append url.broad path.predicates)))
 
-;(pretty-print
-  ;(api-query (string-append url.broad path.query)
-             ;(js-query (list (hash 'id        "e00"
-                                   ;'source_id "n00"
-                                   ;'target_id "n01"
-                                   ;'type      "affects"))
-                       ;(list (hash 'curie "CID:2244"
-                                   ;'id    "n00"
-                                   ;'type  "chemical_substance")
-                             ;(hash 'id    "n01"
-                                   ;'type  "gene")))))
+  ;(pretty-print
+    ;(api-query (string-append url.broad path.query)
+               ;(js-query (list (hash 'id        "e00"
+                                     ;'source_id "n00"
+                                     ;'target_id "n01"
+                                     ;'type      "affects"))
+                         ;(list (hash 'curie "CID:2244"
+                                     ;'id    "n00"
+                                     ;'type  "chemical_substance")
+                               ;(hash 'id    "n01"
+                                     ;'type  "gene")))))
 
-;(pretty-print
-  ;(api-query (string-append url.unsecret path.predicates)))
+  ;(js-count
+    ;(time (api-query (string-append url.unsecret path.predicates))))
 
-(pretty-print
-  (api-query (string-append url.unsecret path.query)
-             (js-query (list (hash 'id        "e00"
-                                   'source_id "n00"
-                                   'target_id "n01"
-                                   'type      "affects"))
-                       (list (hash 'curie "CHEBI:15365"
-                                   'id    "n00"
-                                   'type  "chemical_substance")
-                             (hash 'id    "n01"
-                                   'type  "gene")))))
+  ;(pretty-print
+    ;(time
+      ;(api-query (string-append url.unsecret path.query)
+                 ;(js-query (list (hash 'id        "e00"
+                                       ;'source_id "n00"
+                                       ;'target_id "n01"
+                                       ;'type      "causes"))
+                           ;(list (hash 'curie "UMLS:C0004096"
+                                       ;'id    "n01"
+                                       ;'type  "disease")
+                                 ;(hash 'id    "n00"
+                                       ;'type  "gene"))))))
+
+  ;(pretty-print
+    ;(time
+      ;(api-query (string-append url.broad path.query)
+                 ;(js-query (list (hash 'id        "e00"
+                                       ;'source_id "n00"
+                                       ;'target_id "n01"
+                                       ;'type      "causes"))
+                           ;(list (hash 'curie "UMLS:C0004096"
+                                       ;'id    "n01"
+                                       ;'type  "disease")
+                                 ;(hash 'id    "n00"
+                                       ;'type  "gene"))))))
+
+  (pretty-print
+    (time (api-query (string-append url.unsecret path.query)
+                     (js-query (list (hash 'id        "e00"
+                                           'source_id "n00"
+                                           'target_id "n01"
+                                           'type      "affects"))
+                               (list (hash 'curie "CID:2244"
+                                           'id    "n00"
+                                           'type  "chemical_substance")
+                                     (hash 'id    "n01"
+                                           'type  "gene"))))))
+)
