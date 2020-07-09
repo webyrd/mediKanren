@@ -250,7 +250,8 @@ query_result_clear.addEventListener('click', function(){
                  (map (lambda (c) (cons (string->symbol c) dps)) dcs)))
              (map (lambda (c) (cons (string->symbol c) dcps)) dcs))
            dbs))))
-(define predicates-cached (jsexpr->string (predicates)))
+(define predicates-cached
+  (gzip/bytes (string->bytes/utf-8 (jsexpr->string (predicates)))))
 (define (query jsdata)
   (cond ((or (eof-object? jsdata) (not (hash? jsdata))) 'null)
         (else (message->response
@@ -260,9 +261,9 @@ query_result_clear.addEventListener('click', function(){
   (response/full code (string->bytes/utf-8 message)
                  (current-seconds) mime-type headers
                  (list body)))
-(define (OK mime-type body)
+(define (OK mime-type body (gzip? #t))
   (respond 200 "OK" (list (make-header #"Content-Encoding" #"gzip"))
-           mime-type (gzip/bytes (string->bytes/utf-8 body))))
+           mime-type (if gzip? (gzip/bytes (string->bytes/utf-8 body)) body)))
 (define (not-found req)
   (respond 404 "Not Found" '() mime:html
            (string->bytes/utf-8
@@ -274,7 +275,7 @@ query_result_clear.addEventListener('click', function(){
 (define (/schema.yaml  req) (OK mime:text schema.yaml.txt))
 (define (/schema.html  req) (OK mime:html schema.html))
 (define (/schema.html2 req) (OK mime:html schema.html2))
-(define (/predicates   req) (OK mime:json predicates-cached))
+(define (/predicates   req) (OK mime:json predicates-cached #f))
 (define (/query        req)
   (OK mime:json
       (jsexpr->string (query (bytes->jsexpr (request-post-data/raw req))))))
