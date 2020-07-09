@@ -228,6 +228,18 @@ query_result_clear.addEventListener('click', function(){
         'knowledge_graph (hash 'nodes (append* knodes)
                                'edges (append* kedges))))
 
+(define (merge-results rs)
+  (let loop ((rs rs) (results '()) (nodes '()) (edges '()))
+    (cond ((null? rs) (hash 'results         results
+                            'knowledge_graph (hash 'nodes nodes
+                                                   'edges edges)))
+          (else (define r (car rs))
+                (define kg (hash-ref r  'knowledge_graph hash-empty))
+                (loop (cdr rs)
+                      (append (hash-ref r  'results '()) results)
+                      (append (hash-ref kg 'nodes   '()) nodes)
+                      (append (hash-ref kg 'edges   '()) edges))))))
+
 (define (predicates)
   ;; TODO: at greater expense, we could restrict each list of predicates
   ;; to those reflected by existing edges for the corresponding categories.
