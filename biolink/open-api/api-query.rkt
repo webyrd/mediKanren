@@ -1,34 +1,48 @@
 #lang racket
 (provide (all-defined-out))
-(require net/url)
-(require json)
+(require json net/url)
 
 ;; Broad Institute KP
-(define url
-  "https://translator.broadinstitute.org/molepro_reasoner/") 
-(define predicates
+(define url.broad
+  "https://translator.broadinstitute.org/molepro_reasoner/")
+(define path.predicates
   "/predicates")
+(define path.query
+  "/query")
 
-(define test
-  (string-append url predicates))
+(define (api-query url-string (optional-post-jsexpr (void)))
+  (define-values (status headers in)
+    (if (void? optional-post-jsexpr)
+      (http-sendrecv/url
+        (string->url url-string)
+        #:method "GET")
+      (http-sendrecv/url
+        (string->url url-string)
+        #:method "POST"
+        #:data (jsexpr->string optional-post-jsexpr)
+        #:headers '("Content-Type: application/json; charset=utf-8"))))
+  (hash 'status status
+        'headers headers
+        'response (string->jsexpr (port->string in))))
 
-(define api-query
-  (lambda (api-url)
-    (call/input-url
-     (string->url api-url)
-     get-pure-port
-     (lambda (port)
-       (string->jsexpr (port->string port))))))
+(define (js-query edges nodes)
+  (hash 'message
+        (hash 'query_graph
+              (hash 'edges edges
+                    'nodes nodes))))
 
 ;; test predicates available on Broad Institute KG
-(api-query test)
+(pretty-print
+  (api-query (string-append url.broad path.predicates)))
 
-
-(define query-hash
-  (hash 'message (list (hash 'query_graph "query_graph" 'id "e00" 'source_id "n00" 'target_id "n01" 'type "affects" ))))  
-
-(define test-query (string-append url (jsexpr->string query-hash)))
-
-
-
-
+(pretty-print
+  (api-query (string-append url.broad path.query)
+             (js-query (list (hash 'id        "e00"
+                                   'source_id "n00"
+                                   'target_id "n01"
+                                   'type      "affects"))
+                       (list (hash 'curie "CID:2244"
+                                   'id    "n00"
+                                   'type  "chemical_substance")
+                             (hash 'id    "n01"
+                                   'type  "gene")))))
