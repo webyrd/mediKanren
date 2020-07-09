@@ -291,6 +291,8 @@ query_result_clear.addEventListener('click', function(){
                  ;; only possible because we're not using web continuations.
                  #:manager (create-none-manager #f)
                  #:servlet-regexp #rx""
+                 #:listen-ip #f  ;; comment this to disable external connection
+                 #:port 8080
                  #:launch-browser? #f))
 
 (module+ main (start))
