@@ -5,6 +5,8 @@
 ;; Broad Institute KP
 (define url.broad
   "https://translator.broadinstitute.org/molepro_reasoner")
+(define url.unsecret
+  "https://unsecret.ncats.io")
 (define path.predicates
   "/predicates")
 (define path.query
@@ -32,16 +34,31 @@
                     'nodes nodes))))
 
 ;; test predicates available on Broad Institute KG
-(pretty-print
-  (api-query (string-append url.broad path.predicates)))
+;(pretty-print
+  ;(api-query (string-append url.broad path.predicates)))
+
+;(pretty-print
+  ;(api-query (string-append url.broad path.query)
+             ;(js-query (list (hash 'id        "e00"
+                                   ;'source_id "n00"
+                                   ;'target_id "n01"
+                                   ;'type      "affects"))
+                       ;(list (hash 'curie "CID:2244"
+                                   ;'id    "n00"
+                                   ;'type  "chemical_substance")
+                             ;(hash 'id    "n01"
+                                   ;'type  "gene")))))
+
+;(pretty-print
+  ;(api-query (string-append url.unsecret path.predicates)))
 
 (pretty-print
-  (api-query (string-append url.broad path.query)
+  (api-query (string-append url.unsecret path.query)
              (js-query (list (hash 'id        "e00"
                                    'source_id "n00"
                                    'target_id "n01"
                                    'type      "affects"))
-                       (list (hash 'curie "CID:2244"
+                       (list (hash 'curie "CHEBI:15365"
                                    'id    "n00"
                                    'type  "chemical_substance")
                              (hash 'id    "n01"
