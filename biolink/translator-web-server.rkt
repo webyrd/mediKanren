@@ -249,6 +249,7 @@ query_result_clear.addEventListener('click', function(){
                  (map (lambda (c) (cons (string->symbol c) dps)) dcs)))
              (map (lambda (c) (cons (string->symbol c) dcps)) dcs))
            dbs))))
+(define predicates-cached (jsexpr->string (predicates)))
 (define (query jsdata)
   (cond ((or (eof-object? jsdata) (not (hash? jsdata))) 'null)
         (else (message->response
@@ -269,7 +270,7 @@ query_result_clear.addEventListener('click', function(){
 (define (/schema.yaml  req) (OK mime:text schema.yaml.txt))
 (define (/schema.html  req) (OK mime:html schema.html))
 (define (/schema.html2 req) (OK mime:html schema.html2))
-(define (/predicates   req) (OK mime:json (jsexpr->string (predicates))))
+(define (/predicates   req) (OK mime:json predicates-cached))
 (define (/query        req)
   (OK mime:json
       (jsexpr->string (query (bytes->jsexpr (request-post-data/raw req))))))
