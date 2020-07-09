@@ -1,6 +1,7 @@
 #lang racket/base
 (require
   "common.rkt"
+  "open-api/api-query.rkt"
   racket/file
   racket/list
   (except-in racket/match ==)
@@ -169,6 +170,12 @@ query_result_clear.addEventListener('click', function(){
   (hash 'id id 'type pred 'source_id src 'target_id tgt 'attrs attrs))
 
 (define (message->response msg)
+  (define broad-response (time (api-query (string-append url.broad path.query)
+                                          (hash 'message msg))))
+  (define broad-results (hash-ref broad-response 'response))
+  (printf "broad response:\n~s\n" (hash-ref broad-response 'status))
+  (pretty-print (hash-ref broad-response 'headers))
+  (printf "broad result size: ~s\n" (js-count broad-results))
   ;; NOTE: ignore 'results and 'knowledge_graph until we find a use for them.
   (define qgraph (hash-ref msg 'query_graph hash-empty))
   (define nodes
@@ -207,26 +214,28 @@ query_result_clear.addEventListener('click', function(){
     (hash-map name=>concepts (lambda (name xs) (map concept->result xs))))
   (define kedges
     (hash-map name=>edges    (lambda (name xs) (map edge->result xs))))
-  (hash 'results
-        (append* (map (lambda (p)
-                        (define qsrc  (symbol->string (car p)))
-                        (define qname (cadr p))
-                        (define qedge (symbol->string qname))
-                        (define qtgt  (symbol->string (caddr p)))
-                        (map (lambda (e)
-                               (define r (edge->result e))
-                               (define id  (hash-ref r 'id))
-                               (define src (hash-ref r 'source_id))
-                               (define tgt (hash-ref r 'target_id))
-                               (hash 'edge_bindings
-                                     (list (hash 'qg_id qedge 'kg_id id))
-                                     'node_bindings
-                                     (list (hash 'qg_id qsrc  'kg_id src)
-                                           (hash 'qg_id qtgt  'kg_id tgt))))
-                             (hash-ref name=>edges qname)))
-                      paths))
-        'knowledge_graph (hash 'nodes (append* knodes)
-                               'edges (append* kedges))))
+  (merge-results
+    (list broad-results
+          (hash 'results
+                (append* (map (lambda (p)
+                                (define qsrc  (symbol->string (car p)))
+                                (define qname (cadr p))
+                                (define qedge (symbol->string qname))
+                                (define qtgt  (symbol->string (caddr p)))
+                                (map (lambda (e)
+                                       (define r (edge->result e))
+                                       (define id  (hash-ref r 'id))
+                                       (define src (hash-ref r 'source_id))
+                                       (define tgt (hash-ref r 'target_id))
+                                       (hash 'edge_bindings
+                                             (list (hash 'qg_id qedge 'kg_id id))
+                                             'node_bindings
+                                             (list (hash 'qg_id qsrc  'kg_id src)
+                                                   (hash 'qg_id qtgt  'kg_id tgt))))
+                                     (hash-ref name=>edges qname)))
+                              paths))
+                'knowledge_graph (hash 'nodes (append* knodes)
+                                       'edges (append* kedges))))))
 
 (define (merge-results rs)
   (let loop ((rs rs) (results '()) (nodes '()) (edges '()))
