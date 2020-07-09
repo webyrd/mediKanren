@@ -4,7 +4,7 @@
 
 ;; Broad Institute KP
 (define url.broad
-  "https://translator.broadinstitute.org/molepro_reasoner/")
+  "https://translator.broadinstitute.org/molepro_reasoner")
 (define path.predicates
   "/predicates")
 (define path.query
