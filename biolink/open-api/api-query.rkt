@@ -19,18 +19,21 @@
 
 (define (api-query url-string (optional-post-jsexpr (void)))
   (define-values (status headers in)
-    (if (void? optional-post-jsexpr)
-      (http-sendrecv/url
-        (string->url url-string)
-        #:method "GET")
-      (http-sendrecv/url
-        (string->url url-string)
-        #:method "POST"
-        #:data (jsexpr->string optional-post-jsexpr)
-        #:headers '("Content-Type: application/json; charset=utf-8"))))
+    (time (if (void? optional-post-jsexpr)
+            (http-sendrecv/url
+              (string->url url-string)
+              #:method "GET")
+            (http-sendrecv/url
+              (string->url url-string)
+              #:method "POST"
+              #:data (jsexpr->string optional-post-jsexpr)
+              #:headers '("Content-Type: application/json; charset=utf-8")))))
+  (define response-string (time (port->string in)))
+  (displayln (string-length response-string))
+  (pretty-print headers)
   (hash 'status status
         'headers headers
-        'response (string->jsexpr (port->string in))))
+        'response (string->jsexpr response-string)))
 
 (define (js-query edges nodes)
   (hash 'message
