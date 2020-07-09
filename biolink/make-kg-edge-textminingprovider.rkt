@@ -12,19 +12,23 @@ name-file.edge-props.scm
 |#
 
 (define directory-path
-  "data/textminingprovider/"
+  ;; "data/textminingprovider/"
+  "data/sri_semmeddb/"
   )
 (define edges-file
-  "sample-craft-edges.v0.1.kgx.tsv"
+  ;; "sample-craft-edges.v0.1.kgx.tsv"
+  "semmeddb_edges.tsv"
   )
 (define export-path directory-path)
 (define edges-export-path
   (format
-   "~atextminingprovider.edge.tsv"
+   ;; "~atextminingprovider.edge.tsv"
+   "~asri_semmeddb.edge.tsv"
    export-path))
 (define edge-props-export-path
   (format
-   "~atextminingprovider.edgeprop.tsv"
+   ;; "~atextminingprovider.edgeprop.tsv"
+   "~asri_semmeddb.edgeprop.tsv"
    export-path))
 
 (define edges-export-file

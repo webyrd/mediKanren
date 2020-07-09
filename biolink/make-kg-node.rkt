@@ -11,23 +11,27 @@ name-file.node-props.scm
 
 
 (define directory-path
-  "data/covid19/"
+  ;; "data/covid19/"
   ;; "data/textminingprovider/"
+  "data/sri_semmeddb/"
   )
 (define nodes-file
-  "merged-kg_nodes.tsv"
+  ;; "merged-kg_nodes.tsv"
   ;; "sample-craft-nodes.v0.1.kgx.tsv"
+  "semmeddb_nodes.tsv"
   )
 (define export-path directory-path)
 (define node-export-path
   (format
-   "~acovid19.node.tsv"
+   ;; "~acovid19.node.tsv"
    ;; "~atextminingprovider.node.tsv"
+   "~asri_semmeddb.node.tsv"
    export-path))
 (define node-props-export-path
   (format
-   "~acovid19.nodeprop.tsv"
+   ;; "~acovid19.nodeprop.tsv"
    ;; "~atextminingprovider.nodeprop.tsv"
+   "~asri_semmeddb.nodeprop.tsv"
    export-path))
 
 (define nodes-export-file
