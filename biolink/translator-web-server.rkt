@@ -10,6 +10,7 @@
   web-server/servlet
   web-server/servlet-env
   web-server/managers/none
+  web-server/private/gzip
   xml
   )
 
@@ -258,12 +259,15 @@ query_result_clear.addEventListener('click', function(){
 (define (respond code message headers mime-type body)
   (response/full code (string->bytes/utf-8 message)
                  (current-seconds) mime-type headers
-                 (list (string->bytes/utf-8 body))))
-(define (OK mime-type body) (respond 200 "OK" '() mime-type body))
+                 (list body)))
+(define (OK mime-type body)
+  (respond 200 "OK" (list (make-header #"Content-Encoding" #"gzip"))
+           mime-type (gzip/bytes (string->bytes/utf-8 body))))
 (define (not-found req)
   (respond 404 "Not Found" '() mime:html
-           (xexpr->html-string (not-found.html
-                                 (url->string (request-uri req))))))
+           (string->bytes/utf-8
+             (xexpr->html-string
+               (not-found.html (url->string (request-uri req)))))))
 (define (index         req) (OK mime:html (xexpr->html-string index.html)))
 (define (/index.js     req) (OK mime:js   index.js))
 (define (/schema.json  req) (OK mime:text schema.json.txt))
