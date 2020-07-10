@@ -60,7 +60,7 @@
           (indexes . ,(map (lambda (i) (list (cons 'columns i))) indexes)))))))
 
 (materialize-relation "concept" fnin.concepts header.concepts
-                      '(id name domain vocab class code)                      
+                      '(id name domain vocab class code)
                       '(string string string string string string)
                       '((vocab code)
                         (name)
@@ -147,7 +147,7 @@
 
 ;; all indexes have implicit index made on first arg/no need to index separately
 
- 
+
 
 
 (time (let ()
@@ -160,7 +160,7 @@
         (time (pretty-print
                (run 10 (id name domain vocab class code)
                  (concept id name domain "RxNorm" class "763521")
-                 (concept id name domain vocab class code))))        
+                 (concept id name domain vocab class code))))
         (newline)
         ;; make a new relation that reflects what you want from edge
         (define-relation (concise-edge dataset subject object chi_sq_p)
