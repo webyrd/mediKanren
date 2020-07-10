@@ -1,5 +1,7 @@
 #lang racket/base
-(require "dbk/dbk.rkt" racket/function racket/pretty racket/string racket/list)
+(require "dbk/dbk.rkt"
+         (except-in racket/match ==)
+         racket/function racket/list racket/pretty racket/string)
 
 ;; racket ex_cohd.rkt data cohd-v2
 (define buffer-size 100000)  ;; main memory used for external sorting
@@ -60,10 +62,13 @@
 
 (materialize-relation
   "concept" fnin.concepts header.concepts
-  (lambda (row) (cons (string->number (car row)) (cdr row)))
-  '(id name domain vocab class code)
-  '(string string string string string string)
-  '((vocab code)
+  (lambda (row)
+    (match-define (list id name domain vocab class code) row)
+    (list (string->number id) (string-append (string-upcase vocab) ":" code)
+          name domain class))
+  '(id curie name domain class)
+  '(nat string string string string)
+  '((curie)
     (name)
     (class)
     (domain)))
@@ -89,16 +94,15 @@
         (define-materialized-relation concept `((path . ,(db-path "concept"))))
         (define-materialized-relation edge    `((path . ,(db-path "edge"))))
         (time (pretty-print
-               (run 10 (id name domain vocab class code)
-                 (concept id name domain "RxNorm" class "763521")
-                 (concept id name domain vocab class code))))
+                (run 10 (id name domain class)
+                  (concept id "RXNORM:763521" name domain class))))
         (newline)
         ;; make a new relation that reflects what you want from edge
         (define-relation (concise-edge dataset subject object chi_sq_p)
           (fresh (concept_count prevalence chi_sq_t expected_count ln_ratio rel_freq1 rel_freq2)
             (edge dataset subject object concept_count prevalence chi_sq_t chi_sq_p expected_count ln_ratio rel_freq1 rel_freq2)))
         (time (pretty-print
-               (run 10 (id name dataset subject chi_sq_p)
-                 (fresh (domain class)
-                   (concept id name domain "SNOMED" class "62208003")
-                   (concise-edge dataset subject id chi_sq_p)))))))
+                (run 10 (id name dataset subject chi_sq_p)
+                  (fresh (domain class)
+                    (concept id "SNOMED:62208003" name domain class)
+                    (concise-edge dataset subject id chi_sq_p)))))))
