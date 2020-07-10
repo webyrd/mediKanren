@@ -27,11 +27,12 @@
   (when (not (equal? header-found (string-join header-expected "\t")))
     (error "unexpected header:" header-found header-expected)))
 
-(define (materialize-dsv-stream in header . mat-args)
+(define (materialize-dsv-stream in header transform . mat-args)
   (let ((mat (apply materializer mat-args)))
     (validate-header header in)
     (define count 0)
-    (time (s-each (tsv->stream in)
+    (time (s-each (if transform (s-map transform (tsv->stream in))
+                    (tsv->stream in))
                   (lambda (x)
                     (when (= 0 (remainder count 100000))
                       (printf "Ingested ~s rows\n" count))
@@ -41,16 +42,14 @@
     (time (mat 'close))
     (printf "Finished processing ~s rows\n" count)))
 
-
-
 ;; materialize a relation if not present
-(define (materialize-relation name fnin header fields types indexes)
+(define (materialize-relation name fnin header transform fields types indexes)
   (unless (directory-exists? (db-path name))
     (printf "buildling relation: ~s; ~s\n"
             (db-path fnin) (db-path name))
     (let/files ((in (db-path fnin))) ()
       (materialize-dsv-stream
-        in header
+        in header transform
         `((buffer-size     . ,buffer-size)    ; optional
           (path            . ,(db-path name))
           (source-columns  . ,fields)         ; optional given attribute-names
@@ -59,96 +58,27 @@
           (tables  ((columns . ,fields)))     ; optional if same order as attribute-names
           (indexes . ,(map (lambda (i) (list (cons 'columns i))) indexes)))))))
 
-(materialize-relation "concept" fnin.concepts header.concepts
-                      '(id name domain vocab class code)
-                      '(string string string string string string)
-                      '((vocab code)
-                        (name)
-                        (class)
-                        (domain)))
+(materialize-relation
+  "concept" fnin.concepts header.concepts
+  (lambda (row) (cons (string->number (car row)) (cdr row)))
+  '(id name domain vocab class code)
+  '(string string string string string string)
+  '((vocab code)
+    (name)
+    (class)
+    (domain)))
 
-
-(let ((name "concept")
-      (fnin fnin.concepts)
-      (header header.concepts)
-      (fields '(id name domain vocab class code))
-      (types '(nat string string string string string))
-      (indexes '((vocab code)
-                 (name)
-                 (class)
-                 (domain))))
-  (unless (directory-exists? (db-path name))
-    (printf "buildling relation: ~s; ~s\n"
-            (db-path fnin) (db-path name))
-    (let/files ((in (db-path fnin))) ()
-               (let ((in in)
-                     (header header)
-                     (mat-args `((buffer-size     . ,buffer-size) ; optional
-                                 (path            . ,(db-path name))
-                                 (source-columns  . ,fields) ; optional given attribute-names
-                                 (attribute-names . ,fields)
-                                 (attribute-types . ,types)
-                                 (tables  ((columns . ,fields))) ; optional if same order as attribute-names
-                                 (indexes . ,(map (lambda (i) (list (cons 'columns i))) indexes)))))
-                 (let ((mat (materializer mat-args)))
-                   (validate-header header in)
-                   (define count 0)
-                   (time (s-each (s-map (lambda (row)
-                                          (cons (string->number (car row)) (cdr row)))
-                                        (tsv->stream in))
-                                 (lambda (x)
-                                   (when (= 0 (remainder count 100000))
-                                     (printf "Ingested ~s rows\n" count))
-                                   (mat 'put x)
-                                   (set! count (+ count 1)))))
-                   (printf "Processing ~s rows\n" count)
-                   (time (mat 'close))
-                   (printf "Finished processing ~s rows\n" count))))))
-
-
-
-
-(let ((name "edges")
-      (fnin fnin.edges)
-      (header header.edges)
-      (fields '(dataset subject object concept_count prevalence chi_sq_t chi_sq_p expected_count ln_ratio rel_freq1 rel_freq2))
-      (types '(nat nat nat nat string string string string string string string))
-      (indexes '((subject object)
-                 (object))))
-  (unless (directory-exists? (db-path name))
-    (printf "buildling relation: ~s; ~s\n"
-            (db-path fnin) (db-path name))
-    (let/files ((in (db-path fnin))) ()
-               (let ((in in)
-                     (header header)
-                     (mat-args `((buffer-size     . ,buffer-size) ; optional
-                                 (path            . ,(db-path name))
-                                 (source-columns  . ,fields) ; optional given attribute-names
-                                 (attribute-names . ,fields)
-                                 (attribute-types . ,types)
-                                 (tables  ((columns . ,fields))) ; optional if same order as attribute-names
-                                 (indexes . ,(map (lambda (i) (list (cons 'columns i))) indexes)))))
-                 (let ((mat (materializer mat-args)))
-                   (validate-header header in)
-                   (define count 0)
-                   (time (s-each (s-map (lambda (row)
-                                          (define-values (left right) (split-at row 4))
-                                          (append (map string->number left) right))
-                                        (tsv->stream in))
-                                 (lambda (x)
-                                   (when (= 0 (remainder count 100000))
-                                     (printf "Ingested ~s rows\n" count))
-                                   (mat 'put x)
-                                   (set! count (+ count 1)))))
-                   (printf "Processing ~s rows\n" count)
-                   (time (mat 'close))
-                   (printf "Finished processing ~s rows\n" count))))))
-
+(materialize-relation
+  "edge" fnin.edges header.edges
+  (lambda (row)
+    (define-values (left right) (split-at row 4))
+    (append (map string->number left) right))
+  '(dataset subject object concept_count prevalence chi_sq_t chi_sq_p expected_count ln_ratio rel_freq1 rel_freq2)
+  '(nat nat nat nat string string string string string string string)
+  '((subject object)
+    (object)))
 
 ;; all indexes have implicit index made on first arg/no need to index separately
-
-
-
 
 (time (let ()
         ;; ~4x faster retrieval; ~400x slower loading
