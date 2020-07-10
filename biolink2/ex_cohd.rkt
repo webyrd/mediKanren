@@ -1,31 +1,20 @@
 #lang racket/base
 (require "dbk/dbk.rkt" racket/function racket/pretty racket/string racket/list)
 
-
-;; racket ex_cohd.rkt data cohd-v2 tsv
+;; racket ex_cohd.rkt data cohd-v2
 (define buffer-size 100000)  ;; main memory used for external sorting
 
 (define argv (current-command-line-arguments))
-(define argv-expected '#(DATA_DIR DB_NAME INPUT_SUFFIX))
+(define argv-expected '#(DATA_DIR DB_NAME))
 (when (not (= (vector-length argv-expected) (vector-length argv)))
   (error "command line argument mismatch:" argv-expected argv))
 
-(define data-dir    (vector-ref argv 0))
-(define db-name     (vector-ref argv 1))
-(define file-suffix (vector-ref argv 2))
+(define data-dir (vector-ref argv 0))
+(define db-name  (vector-ref argv 1))
 (define db-dir
   (path->string (expand-user-path (build-path data-dir db-name))))
 (define (db-path fname)
   (path->string (expand-user-path (build-path db-dir fname))))
-
-(define dsv->stream (case file-suffix
-                      (("csv") csv->stream)
-                      (("tsv") tsv->stream)
-                      (else (error "invalid file suffix:" file-suffix))))
-(define header-delimiter (case file-suffix
-                           (("csv") ",")
-                           (("tsv") "\t")
-                           (else (error "invalid file suffix:" file-suffix))))
 
 ;; Input
 (define fnin.concepts "concepts.txt")
@@ -33,18 +22,16 @@
 (define header.concepts '("concept_id" "concept_name" "domain_id" "vocabulary_id" "concept_class_id" "concept_code"))
 (define header.edges '("dataset_id" "concept_id_1" "concept_id_2" "concept_count" "concept_prevalence" "chi_square_t" "chi_square_p" "expected_count" "ln_ratio" "rel_freq_1" "rel_freq_2"))
 
-
 (define (validate-header header-expected in)
   (define header-found (read-line in 'any))
-  (when (not (equal? header-found (string-join header-expected
-                                               header-delimiter)))
+  (when (not (equal? header-found (string-join header-expected "\t")))
     (error "unexpected header:" header-found header-expected)))
 
 (define (materialize-dsv-stream in header . mat-args)
   (let ((mat (apply materializer mat-args)))
     (validate-header header in)
     (define count 0)
-    (time (s-each (dsv->stream in)
+    (time (s-each (tsv->stream in)
                   (lambda (x)
                     (when (= 0 (remainder count 100000))
                       (printf "Ingested ~s rows\n" count))
@@ -108,7 +95,7 @@
                    (define count 0)
                    (time (s-each (s-map (lambda (row)
                                           (cons (string->number (car row)) (cdr row)))
-                                        (dsv->stream in))
+                                        (tsv->stream in))
                                  (lambda (x)
                                    (when (= 0 (remainder count 100000))
                                      (printf "Ingested ~s rows\n" count))
@@ -147,7 +134,7 @@
                    (time (s-each (s-map (lambda (row)
                                           (define-values (left right) (split-at row 4))
                                           (append (map string->number left) right))
-                                        (dsv->stream in))
+                                        (tsv->stream in))
                                  (lambda (x)
                                    (when (= 0 (remainder count 100000))
                                      (printf "Ingested ~s rows\n" count))
