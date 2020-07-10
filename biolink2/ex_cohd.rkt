@@ -86,7 +86,8 @@
         ;; ~10x faster retrieval; ~6000x slower loading
         ;(define-materialized-relation concept   `((path . ,(db-path "concept")) (retrieval-type . scm)))
         ;; baseline; including (retrieval-type . disk) is optional
-        (define-materialized-relation concept   `((path . ,(db-path "concept"))))
+        (define-materialized-relation concept `((path . ,(db-path "concept"))))
+        (define-materialized-relation edge    `((path . ,(db-path "edge"))))
         (time (pretty-print
                (run 10 (id name domain vocab class code)
                  (concept id name domain "RxNorm" class "763521")
@@ -94,8 +95,8 @@
         (newline)
         ;; make a new relation that reflects what you want from edge
         (define-relation (concise-edge dataset subject object chi_sq_p)
-          (fresh (edge concept_count prevalence chi_sq_t expected_count ln_ratio rel_freq1 rel_freq2)
-              (edge dataset subject object concept_count prevalence chi_sq_t chi_sq_p expected_count ln_ratio rel_freq1 rel_freq2)))
+          (fresh (concept_count prevalence chi_sq_t expected_count ln_ratio rel_freq1 rel_freq2)
+            (edge dataset subject object concept_count prevalence chi_sq_t chi_sq_p expected_count ln_ratio rel_freq1 rel_freq2)))
         (time (pretty-print
                (run 10 (id name dataset subject chi_sq_p)
                  (fresh (domain class)
