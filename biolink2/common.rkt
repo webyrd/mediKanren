@@ -1,7 +1,7 @@
 #lang racket/base
 (provide
   (all-from-out "dbk/dbk.rkt")
-  path/data path/root path.data path.root
+  path-simple path/data path/root path.data path.root
 
   config config-ref load-config
 
@@ -14,13 +14,12 @@
   racket/list racket/port racket/runtime-path racket/string)
 
 (define-runtime-path path.root ".")
+(define (path-simple path) (path->string (simplify-path path)))
 (define (path/root relative-path)
-  (path->string (build-path path.root relative-path)))
+  (path-simple (build-path path.root relative-path)))
 (define path.data (path/root "data"))
 (define (path/data relative-path)
-  (path->string (build-path path.data relative-path)))
-
-(define (path-simple path) (path->string (simplify-path path)))
+  (path-simple (build-path path.data relative-path)))
 
 (define (read/file path)  (with-input-from-file  path read))
 (define (read/string str) (with-input-from-string str read))
