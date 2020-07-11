@@ -6,10 +6,12 @@
   config config-ref load-config
 
   read/file read/string
+
+  validate-header
   )
 (require
   "dbk/dbk.rkt"
-  racket/list racket/port racket/runtime-path)
+  racket/list racket/port racket/runtime-path racket/string)
 
 (define-runtime-path path.root ".")
 (define (path/root relative-path)
@@ -53,3 +55,8 @@
   (define (user-defined? kv) (member (car kv) user-keys))
   (set-box! box.config
             (append config.user (filter-not user-defined? config.defaults))))
+
+(define (validate-header in header-expected delimiter)
+  (define header-found (read-line in 'any))
+  (when (not (equal? header-found (string-join header-expected delimiter)))
+    (error "unexpected header:" header-found header-expected)))
