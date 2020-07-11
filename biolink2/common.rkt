@@ -9,6 +9,8 @@
 
   validate-header
   materialize-relation
+
+  appendo membero
   )
 (require
   "dbk/dbk.rkt"
@@ -92,3 +94,18 @@
           (attribute-types . ,types)
           (tables  ((columns . ,fields)))
           (indexes . ,(map (lambda (i) (list (cons 'columns i))) indexes)))))))
+
+(define-relation (appendo xs ys xsys)
+  (conde ((== '() xs) (== xsys ys))
+         ((fresh (a d dys)
+            (== `(,a . ,d)  xs)
+            (== `(,a . ,dys) xsys)
+            (appendo d ys dys)))))
+
+(define-relation (membero x xs)
+  (fresh (y rest)
+    (== `(,y . ,rest) xs)
+    (conde
+      ((== x y))
+      (;(=/= x y)  ;; TODO: uncomment once we have =/=
+       (membero x rest)))))
