@@ -9,7 +9,7 @@
          racket/file racket/function racket/list racket/match racket/set
          racket/vector)
 
-(define (s-encode out type s) (s-each s (lambda (v) (encode out type v))))
+(define (s-encode out type s) (s-each (lambda (v) (encode out type v)) s))
 (define (s-decode in type)
   (thunk (let loop () (if (eof-object? (peek-byte in)) '()
                         (cons (decode in type) (thunk (loop)))))))
@@ -214,21 +214,17 @@
 (define (value-table-file-name  prefix) (string-append prefix ".value.table"))
 (define (offset-table-file-name prefix) (string-append prefix ".offset.table"))
 
-(define (tabulator source-names buffer-size file-prefix
+(define (tabulator buffer-size file-prefix
                    column-names column-types key-name sorted-columns)
   (define (unique?! as) (unless (= (length (remove-duplicates as)) (length as))
                           (error "duplicates:" as)))
   (unless (= (length column-names) (length column-types))
     (error "mismatching column names and types:" column-names column-types))
-  (unique?! source-names)
   (unique?! column-names)
-  (when (or (member key-name column-names) (member key-name source-names))
-    (error "key name must be distinct:" key-name column-names source-names))
-  (unless (subset? column-names source-names)
-    (error "column names not covered by source:" column-names source-names))
+  (when (member key-name column-names)
+    (error "key name must be distinct:" key-name column-names))
   (unless (subset? sorted-columns column-names)
     (error "unknown sorted column names:" sorted-columns column-names))
-  (define column-ixs (map (lambda (a) (index-of source-names a)) column-names))
   (define row-type column-types)  ;; TODO: possibly change this to tuple?
   (define row<     (compare-><? (type->compare row-type)))
   (define row-size (sizeof row-type (void)))
@@ -239,7 +235,7 @@
   (define tsorter (sorter #t value-file-name offset-file-name buffer-size
                           row-type row<))
   (method-lambda
-    ((put x) (tsorter 'put (map (lambda (ix) (list-ref x ix)) column-ixs)))
+    ((put x) (tsorter 'put x))
     ((close) (match-define (cons offset-type item-count) (tsorter 'close))
              `((value-file-size   . ,(file-size value-file-name))
                (value-file-time   . ,(file-or-directory-modify-seconds

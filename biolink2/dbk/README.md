@@ -6,11 +6,6 @@ large-scale relations.
 
 ## TODO
 
-* replace relation/tables with a memory-only option for materialized-relation
-  * take a vector as a source instead of a directory path
-    * attribute-names attribute-types source-columns key-name tables indexes
-  * sort vector in-memory, vector-map and re-sort as necessary for indexing
-
 * stop using cells: procs should return mk syntax or opaque constraints
   * opaque relations (their procs return (constrain (relate ,proc) ,args))
   * interpretations (possibly for multiple evaluation strategies) should be
@@ -25,11 +20,23 @@ large-scale relations.
 * domain constraints
   * a var's possible values are the intersection of one or more as bounded sets
     * disagreeing bounds are refined by incremental intersection
-  * discrete values from a finite relation
-  * continuous ranges of values from an infinite relation
-    * types as ranges of values
+  * continuous/discrete sets
+    * discrete values from a finite relation
+    * mix of discrete and continuous ranges of values for an infinite relation
+    * ordered, disjoint, singletons and open intervals
+      * usual total order
+    * abstract elements representing endpoints in widest open interval
+      * or consider () the smallest, and #t the largest value
+        * would mean moving booleans to the top of the total order
+    * define intersection involving intervals
   * disequality constraints punch holes in continuous ranges
-  * descriptions for subsumption and/or simplification with other constraints
+  * description metadata
+    * for subsumption and/or simplification with other constraints
+
+* replace relation/tables with a memory-only option for materialized-relation
+  * take a vector as a source instead of a directory path
+    * attribute-names attribute-types source-columns key-name tables indexes
+  * sort vector in-memory, vector-map and re-sort as necessary for indexing
 
 * materialized-relation
   * tables as independent helper relations providing constraints
@@ -37,7 +44,7 @@ large-scale relations.
 * define tables that use column-oriented layout
 
 * how do we express columns of suffix type?
-  * it would have this representation type: `#(suffix count len)
+  * it would have this representation type: `#(suffix count len)`
   * but it would use a different comparison operator
 
 

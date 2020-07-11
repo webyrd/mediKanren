@@ -2,6 +2,7 @@
 (provide relation/stream define-relation/stream define-relation/tables
          materializer materialized-relation define-materialized-relation)
 (require "codec.rkt" "method.rkt" "mk.rkt" "stream.rkt" "table.rkt"
+         (except-in racket/match ==)
          racket/file racket/function racket/list racket/pretty racket/set)
 
 (define (alist-ref alist key (default (void)))
@@ -94,8 +95,6 @@
   (define attribute-names    (alist-ref kwargs 'attribute-names))
   (define attribute-types    (alist-ref kwargs 'attribute-types
                                         (map (lambda (_) #f) attribute-names)))
-  (define source-names       (alist-ref kwargs 'source-columns
-                                        attribute-names))
   (define key                (alist-ref kwargs 'key-name #t))
   (define index-descriptions
     (map (lambda (itd)
@@ -108,11 +107,7 @@
             index-descriptions))
   (define (unique?! as) (unless (= (length (remove-duplicates as)) (length as))
                           (error "duplicates:" as)))
-  (unique?! source-names)
   (unique?! attribute-names)
-  (unless (subset? (set-remove attribute-names key) source-names)
-    (error "missing source names for attributes:"
-           source-names (set-remove attribute-names key)))
   (unless (= (length attribute-names) (length attribute-types))
     (error "mismatching attribute names and types:"
            attribute-names attribute-types))
@@ -128,8 +123,8 @@
   (define primary-source-names (if key (cons key primary-column-names)
                                  primary-column-names))
   (unique?! primary-column-names)
-  (when (or (member key primary-column-names) (member key source-names))
-    (error "key name must be distinct:" key primary-column-names source-names))
+  (when (member key primary-column-names)
+    (error "key name must be distinct:" key primary-column-names))
   (unless (equal? (set-remove (list->set attribute-names) key)
                   (list->set primary-column-names))
     (error "primary columns must include all non-key attributes:"
@@ -147,30 +142,44 @@
                                              "index." (number->string i)))))
          (range (length index-tds))))
   (define metadata-out (open-output-file metadata-fname))
-  (define primary-t
-    (tabulator source-names buffer-size primary-fname
-               primary-column-names primary-column-types
-               key (cdr primary-td)))
+  (define primary-t (tabulator buffer-size primary-fname
+                               primary-column-names primary-column-types
+                               key (cdr primary-td)))
   (method-lambda
     ((put x) (primary-t 'put x))
     ((close) (define primary-info (primary-t 'close))
              (define key-type (nat-type/max (alist-ref primary-info 'length)))
-             (define index-ts
+             (define index-tts
                (let* ((name=>type (hash-set name=>type key key-type))
-                      (name->type (lambda (n) (hash-ref name=>type n))))
+                      (name->type (lambda (n) (hash-ref name=>type n)))
+                      (ss.sources (generate-temporaries primary-source-names))
+                      (name=>ss (make-immutable-hash
+                                  (map cons primary-source-names ss.sources))))
                  (map (lambda (fname td)
                         (define column-names   (alist-ref td 'columns))
                         (define sorted-columns (alist-ref td 'sorted '()))
-                        (tabulator primary-source-names buffer-size fname
-                                   column-names (map name->type column-names)
-                                   #f sorted-columns))
+                        (define ss.columns
+                          (map (lambda (n) (hash-ref name=>ss n))
+                               column-names))
+                        (define transform
+                          (eval-syntax
+                            #`(lambda (row)
+                                (match-define (list #,@ss.sources) row)
+                                (list #,@ss.columns))))
+                        (cons transform
+                              (tabulator buffer-size fname
+                                         column-names (map name->type column-names)
+                                         #f sorted-columns)))
                       index-fnames index-tds)))
+             (define index-transforms (map car index-tts))
+             (define index-tables     (map cdr index-tts))
              (let/files ((in (value-table-file-name primary-fname))) ()
                (define primary-s (s-decode in primary-column-types))
-               (s-each (if key (s-enumerate 0 primary-s) primary-s)
-                       (lambda (x) (for-each (lambda (t) (t 'put x))
-                                             index-ts))))
-             (define index-infos  (map (lambda (t) (t 'close)) index-ts))
+               (s-each (lambda (x) (for-each (lambda (transform t)
+                                               (t 'put (transform x)))
+                                             index-transforms index-tables))
+                       (if key (s-enumerate 0 primary-s) primary-s)))
+             (define index-infos (map (lambda (t) (t 'close)) index-tables))
              (pretty-write `((attribute-names . ,attribute-names)
                              (attribute-types . ,attribute-types)
                              (primary-table   . ,primary-info)

@@ -33,13 +33,13 @@
   (let ((mat (apply materializer mat-args)))
     (validate-header header in)
     (define count 0)
-    (time (s-each (if transform (s-map transform (tsv->stream in))
-                    (tsv->stream in))
-                  (lambda (x)
+    (time (s-each (lambda (x)
                     (when (= 0 (remainder count 100000))
                       (printf "Ingested ~s rows\n" count))
                     (mat 'put x)
-                    (set! count (+ count 1)))))
+                    (set! count (+ count 1)))
+                  (if transform (s-map transform (tsv->stream in))
+                    (tsv->stream in))))
     (printf "Processing ~s rows\n" count)
     (time (mat 'close))
     (printf "Finished processing ~s rows\n" count)))
@@ -54,7 +54,6 @@
         in header transform
         `((buffer-size     . ,buffer-size)    ; optional
           (path            . ,(db-path name))
-          (source-columns  . ,fields)         ; optional given attribute-names
           (attribute-names . ,fields)
           (attribute-types . ,types)
           (tables  ((columns . ,fields)))     ; optional if same order as attribute-names

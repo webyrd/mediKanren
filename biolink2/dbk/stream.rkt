@@ -45,8 +45,8 @@
                          (if (procedure? ss0) (thunk (next (ss0)))
                            (loop (cdr ss-pending) (cons ss0 rss)))))))))
 
-(define (s-each s p) (let ((s (s-force s)))
-                       (unless (null? s) (p (car s)) (s-each (cdr s) p))))
+(define (s-each p s) (let ((s (s-force s)))
+                       (unless (null? s) (p (car s)) (s-each p (cdr s)))))
 
 (define (s-fold n s acc f)
   (if (and n (= n 0)) (cons acc s)
