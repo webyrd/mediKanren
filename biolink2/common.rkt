@@ -38,12 +38,15 @@
   (define path.config.defaults (path/root "config.defaults.scm"))
   (when verbose? (printf "loading configuration defaults: ~a\n"
                          (path-simple path.config.defaults)))
-  (when verbose? (printf "loading configuration overrides: ~a\n"
-                         (path-simple path.config.user)))
   (define config.defaults (read/file path.config.defaults))
-  (define config.user     (if (file-exists? path.config.user)
-                            (read/file path.config.user)
-                            '()))
+  (when verbose? (if (file-exists? path.config.user)
+                   (printf "loading configuration overrides: ~a\n"
+                           (path-simple path.config.user))
+                   (printf "configuration overrides not present: ~a\n"
+                           (path-simple path.config.user))))
+  (define config.user (if (file-exists? path.config.user)
+                        (read/file path.config.user)
+                        '()))
   (unless (and (list? config.user) (andmap pair? config.user))
     (error "invalid configuration overrides:" config.user))
   (define user-keys (map car config.user))
