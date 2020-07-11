@@ -1,20 +1,15 @@
 #lang racket/base
-(require "dbk/dbk.rkt" racket/function racket/pretty racket/string)
-
-(define buffer-size 100000)  ;; main memory used for external sorting
+(require "common.rkt" racket/pretty)
 
 (define argv (current-command-line-arguments))
-(define argv-expected '#(DATA_DIR DB_NAME INPUT_SUFFIX))
+(define argv-expected '#(DB_NAME INPUT_SUFFIX))
 (when (not (= (vector-length argv-expected) (vector-length argv)))
   (error "command line argument mismatch:" argv-expected argv))
 
-(define data-dir    (vector-ref argv 0))
-(define db-name     (vector-ref argv 1))
-(define file-suffix (vector-ref argv 2))
-(define db-dir
-  (path->string (expand-user-path (build-path data-dir db-name))))
-(define (db-path fname)
-  (path->string (expand-user-path (build-path db-dir fname))))
+(define db-name     (vector-ref argv 0))
+(define file-suffix (vector-ref argv 1))
+(define (db-relative-path path) (path->string (build-path db-name path)))
+(define (db-path path) (path/data (db-relative-path path)))
 
 (define dsv->stream (case file-suffix
                       (("csv") csv->stream)
@@ -34,55 +29,27 @@
 (define header.nodeprop '(":ID" "propname" "value"))
 (define header.edgeprop '(":ID" "propname" "value"))
 (define header.edge     '(":ID" ":START"   ":END"))
-(define (validate-header header-expected in)
-  (define header-found (read-line in 'any))
-  (when (not (equal? header-found (string-join header-expected
-                                               header-delimiter)))
-    (error "unexpected header:" header-found header-expected)))
 
-(define (materialize-dsv-stream in header . mat-args)
-  (let ((mat (apply materializer mat-args)))
-    (validate-header header in)
-    (define count 0)
-    (time (s-each (lambda (x)
-                    (when (= 0 (remainder count 100000))
-                      (printf "Ingested ~s rows\n" count))
-                    (mat 'put x)
-                    (set! count (+ count 1)))
-                  (dsv->stream in)))
-    (printf "Processing ~s rows\n" count)
-    (time (mat 'close))
-    (printf "Finished processing ~s rows\n" count)))
+(define (materialize-db-relation
+          name fnin header transform fields types indexes)
+  (materialize-relation
+    (db-relative-path name) (db-relative-path fnin) header header-delimiter
+    dsv->stream transform fields types indexes))
 
-;; materialize a relation if not present
-(define (materialize-relation name fnin header fields types indexes)
-  (unless (directory-exists? (db-path name))
-    (printf "buildling relation: ~s; ~s\n"
-            (db-path fnin) (db-path name))
-    (let/files ((in (db-path fnin))) ()
-      (materialize-dsv-stream
-        in header
-        `((buffer-size     . ,buffer-size)    ; optional
-          (path            . ,(db-path name))
-          (attribute-names . ,fields)
-          (attribute-types . ,types)
-          (tables  ((columns . ,fields)))     ; optional if same order as attribute-names
-          (indexes . ,(map (lambda (i) (list (cons 'columns i))) indexes)))))))
+(materialize-db-relation "concept" fnin.nodeprop header.nodeprop #f
+                         '(curie property value)
+                         '(string string string)
+                         '((value property)))
 
-(materialize-relation "concept" fnin.nodeprop header.nodeprop
-                      '(curie property value)
-                      '(string string string)
-                      '((value property)))
+(materialize-db-relation "edge" fnin.edge header.edge #f
+                         '(:id :start :end)
+                         '(string string string)
+                         '((:start :end) (:end :start)))
 
-(materialize-relation "edge" fnin.edge header.edge
-                      '(:id :start :end)
-                      '(string string string)
-                      '((:start :end) (:end :start)))
-
-(materialize-relation "edge-prop" fnin.edgeprop header.edgeprop
-                      '(:id property value)
-                      '(string string string)
-                      '((value property)))
+(materialize-db-relation "edge-prop" fnin.edgeprop header.edgeprop #f
+                         '(:id property value)
+                         '(string string string)
+                         '((value property)))
 
 (time (let ()
         ;; ~4x faster retrieval; ~400x slower loading
