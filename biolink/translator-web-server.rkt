@@ -7,6 +7,7 @@
   (except-in racket/match ==)
   racket/pretty
   racket/runtime-path
+  racket/string
   json
   web-server/servlet
   web-server/servlet-env
@@ -14,6 +15,10 @@
   web-server/private/gzip
   xml
   )
+
+(define (alist-ref alist key default)
+  (define kv (assoc key alist))
+  (if kv (cdr kv) default))
 
 (print-as-expression #f)
 (pretty-print-abbreviate-read-macros #f)
@@ -271,34 +276,47 @@ query_result_clear.addEventListener('click', function(){
                  (map (lambda (c) (cons (string->symbol c) dps)) dcs)))
              (map (lambda (c) (cons (string->symbol c) dcps)) dcs))
            dbs))))
-(define predicates-cached
-  (gzip/bytes (string->bytes/utf-8 (jsexpr->string (predicates)))))
+(define predicates-cached (string->bytes/utf-8 (jsexpr->string (predicates))))
+(define predicates-cached-gzip (gzip/bytes predicates-cached))
 (define (query jsdata)
   (cond ((or (eof-object? jsdata) (not (hash? jsdata))) 'null)
         (else (message->response
                 (olift (hash-ref (olift jsdata) 'message hash-empty))))))
-
+(define (accepts-gzip? req)
+  (member "gzip" (map string-trim
+                      (string-split (alist-ref (request-headers req)
+                                               'accept-encoding "") ","))))
 (define (respond code message headers mime-type body)
   (response/full code (string->bytes/utf-8 message)
                  (current-seconds) mime-type headers
                  (list body)))
-(define (OK mime-type body (gzip? #t))
-  (respond 200 "OK" (list (make-header #"Content-Encoding" #"gzip"))
-           mime-type (if gzip? (gzip/bytes (string->bytes/utf-8 body)) body)))
+(define (OK req extra-headers mime-type body (body-gzipped? #f))
+  (define gzip? (accepts-gzip? req))
+  (define headers (if gzip? (cons (make-header #"Content-Encoding" #"gzip")
+                                  extra-headers)
+                    extra-headers))
+  (define bytes.body (if (string? body) (string->bytes/utf-8 body) body))
+  (define payload (if (and gzip? (not body-gzipped?)) (gzip/bytes bytes.body)
+                    bytes.body))
+  (respond 200 "OK" headers mime-type payload))
 (define (not-found req)
   (respond 404 "Not Found" '() mime:html
            (string->bytes/utf-8
              (xexpr->html-string
                (not-found.html (url->string (request-uri req)))))))
-(define (index         req) (OK mime:html (xexpr->html-string index.html)))
-(define (/index.js     req) (OK mime:js   index.js))
-(define (/schema.json  req) (OK mime:text schema.json.txt))
-(define (/schema.yaml  req) (OK mime:text schema.yaml.txt))
-(define (/schema.html  req) (OK mime:html schema.html))
-(define (/schema.html2 req) (OK mime:html schema.html2))
-(define (/predicates   req) (OK mime:json predicates-cached #f))
+(define (index         req)
+  (pretty-print `(request-headers: ,(request-headers req)))
+  (OK req '() mime:html (xexpr->html-string index.html)))
+(define (/index.js     req) (OK req '() mime:js   index.js))
+(define (/schema.json  req) (OK req '() mime:text schema.json.txt))
+(define (/schema.yaml  req) (OK req '() mime:text schema.yaml.txt))
+(define (/schema.html  req) (OK req '() mime:html schema.html))
+(define (/schema.html2 req) (OK req '() mime:html schema.html2))
+(define (/predicates   req) (if (accepts-gzip? req)
+                              (OK req '() mime:json predicates-cached-gzip #t)
+                              (OK req '() mime:json predicates-cached #f)))
 (define (/query        req)
-  (OK mime:json
+  (OK req '() mime:json
       (jsexpr->string (query (bytes->jsexpr (request-post-data/raw req))))))
 
 (define (start)
