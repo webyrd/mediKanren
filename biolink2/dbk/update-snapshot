@@ -1,0 +1,10 @@
+#!/bin/bash
+set -eufo pipefail
+
+here="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$here"
+git pull
+git reset --hard master
+commit_hash=$(git show | head -n 1 | cut -f 2 -d ' ')
+printf "https://github.com/gregr/dbKanren\n$commit_hash" > SNAPSHOT
