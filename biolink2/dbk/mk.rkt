@@ -5,17 +5,15 @@
   (struct-out disj)
   (struct-out conj)
   (struct-out constrain)
-  (struct-out relate)
   (struct-out var)
   ground?
 
-  relations relations-ref relations-set!
-  make-relation/proc
-  relation/proc relation letrec-relations define-relation/proc define-relation
+  make-relation-proc relations relations-ref relations-set!
+  relation letrec-relations define-relation
   conj* disj* fresh conde use query run^ run run*
   == =/= absento symbolo numbero stringo
   <=o +o *o string<=o string-appendo string-symbolo string-numbero
-  retrieve
+  walk* retrieve/dfs
 
   pretty-query pretty-goal pretty-term
   )
@@ -26,7 +24,6 @@
                                    #:constructor-name make-query)
 (struct use       (proc args desc) #:prefab #:name make-use
                                    #:constructor-name make-use)
-(struct relate    (proc args desc) #:prefab)
 (struct disj      (g1 g2)          #:prefab)
 (struct conj      (g1 g2)          #:prefab)
 (struct constrain (op terms)       #:prefab)
@@ -48,57 +45,43 @@
 (define-constraint (string-appendo t1 t2 t3))
 (define-constraint (string-symbolo t1 t2))
 (define-constraint (string-numbero t1 t2))
-(define (retrieve s args) (constrain `(retrieve ,s) args))
+(define (relate proc args) (constrain `(relate ,proc) args))
 
 (define relation-registry     (make-weak-hasheq '()))
 (define (relations)           (hash->list relation-registry))
 (define (relations-ref  proc) (hash-ref relation-registry proc))
 (define (relations-set! proc k v)
   (hash-set! relation-registry proc (hash-set (relations-ref proc) k v)))
-(define (relations-register! proc proc-cell name attributes)
+(define (relations-register! proc name attributes)
   (hash-set! relation-registry proc
-             (make-hash `((cell                       . ,proc-cell)
-                          (name                       . ,name)
-                          (attribute-names            . ,attributes)
-                          (attribute-types            . #f)
-                          (integrity-constraints      . #f)
-                          (location                   . #f)
-                          (monotonic-dependencies     . #f)
-                          (non-monotonic-dependencies . #f)
-                          (analysis                   . #f)))))
+             (make-immutable-hash
+               `((name                       . ,name)
+                 (expand                     . #f)
+                 (attribute-names            . ,attributes)
+                 (attribute-types            . #f)
+                 (integrity-constraints      . #f)
+                 (location                   . #f)
+                 (monotonic-dependencies     . #f)
+                 (non-monotonic-dependencies . #f)
+                 (analysis                   . #f)))))
 
-(define (make-relation/proc name attributes proc)
-  (letrec ((pc (let ((p proc)) (method-lambda
-                                 ((ref)      p)
-                                 ((set! new) (set! p new)))))
-           (r  (lambda args
-                 (relate (lambda args (apply (pc 'ref) args)) args r))))
-    (relations-register! r pc name attributes)
-    r))
-;; TODO: use make-relation/proc?
-(define-syntax relation/proc
-  (syntax-rules ()
-    ((_ name (attr ...) proc)
-     (letrec ((pc   (let ((p proc)) (method-lambda
-                                      ((ref)      p)
-                                      ((set! new) (set! p new)))))
-              (name (lambda (attr ...)
-                      (relate (lambda (attr ...) ((pc 'ref) attr ...))
-                              (list attr ...) name))))
-       (relations-register! name pc 'name '(attr ...))
-       name))))
+(define (make-relation-proc name attributes)
+  (define n ((make-syntax-introducer) (datum->syntax #f name)))
+  (eval-syntax
+    #`(letrec ((#,n (lambda args (relate #,n args))))
+        (relations-register! #,n '#,name '(#,@attributes))
+        #,n)))
+
 (define-syntax relation
   (syntax-rules ()
     ((_ name (param ...) g ...)
-     (relation/proc name (param ...) (lambda (param ...) (fresh () g ...))))))
+     (let ((r (make-relation-proc 'name '(param ...))))
+       (relations-set! r 'expand (lambda (param ...) (fresh () g ...)))
+       r))))
 (define-syntax letrec-relations
   (syntax-rules ()
     ((_ (((name param ...) g ...) ...) body ...)
      (letrec ((name (relation name (param ...) g ...)) ...) body ...))))
-(define-syntax define-relation/proc
-  (syntax-rules ()
-    ((_ (name attr ...) proc)
-     (define name (relation/proc name (attr ...) proc)))))
 (define-syntax define-relation
   (syntax-rules ()
     ((_ (name param ...) g ...)
@@ -143,27 +126,36 @@
   (syntax-rules () ((_   body ...)                (run #f body ...))))
 
 ;; TODO: move beyond DFS once other strategies are ready
-(define (query->stream q)
+(define (query->stream q) ((query->dfs q) (state-empty)))
+(define (query->dfs q)
   (match-define `#s(query ,g ,x ,desc) q)
-  (thunk
-    (let loop ((st (state-empty)) (g g) (gs '()))
-      (define (fail)   (state-undo! st) '())
-      (define (return) (cond ((null? gs) (define result (pretty-term x))
-                                         (state-undo! st)
-                                         (list result))
-                             (else       (loop st (car gs) (cdr gs)))))
-      (match g
-        (`#s(conj ,g1 ,g2) (loop st g1 (cons g2 gs)))
-        (`#s(disj ,g1 ,g2) (s-append (loop (state-new st) g1 gs)
-                                     (thunk (loop st g2 gs))))
-        (`#s(relate   ,proc  ,args ,desc) (loop st (relate-expand g) gs))
-        (`#s(constrain (retrieve ,s) ,args)
-          (let ((s (s-force s)))
-            (if (null? s) fail
-              (loop st (disj (== (car s) args)
-                             (constrain `(retrieve ,(cdr s)) args))
-                    gs))))
-        (`#s(constrain == (,t1 ,t2)) ((if (unify* st t1 t2) return fail)))))))
+  (define (return st) (let ((result (pretty-term x)))
+                        (state-undo! st)
+                        (list result)))
+  (goal->dfs g return))
+(define (fail/dfs st) (state-undo! st) '())
+(define (mplus/dfs k1 k2) (lambda (st) (s-append (k1 (state-new st))
+                                                 (thunk (k2 st)))))
+(define (retrieve/dfs k s args)
+  (lambda (st) (let ((s (s-force s)))
+                 ((if (null? s) fail/dfs
+                    (mplus/dfs (goal->dfs (== (car s) args) k)
+                               (retrieve/dfs k (cdr s) args)))
+                  st))))
+(define (goal->dfs g k)
+  (define loop goal->dfs)
+  (match g
+    (`#s(conj ,g1 ,g2) (loop g1 (loop g2 k)))
+    (`#s(disj ,g1 ,g2) (mplus/dfs (loop g1 k) (loop g2 k)))
+    (`#s(constrain (relate ,proc) ,args)
+      (define r (relations-ref proc))
+      (define apply/dfs (hash-ref r 'apply/dfs #f))
+      (cond (apply/dfs (apply/dfs k args))
+            (else (define ex (hash-ref r 'expand #f))
+                  (unless ex (error "no interpretation for:" proc args))
+                  (lambda (st) ((loop (apply ex (walk* args)) k) st)))))
+    (`#s(constrain == (,t1 ,t2))
+      (lambda (st) ((if (unify* st t1 t2) k fail/dfs) st)))))
 
 (struct state (assignments constraints) #:mutable)
 (define (state-empty)  (state '() '()))
@@ -243,8 +235,6 @@
         ((pair?   t) (and (ground? (car t)) (ground? (cdr t))))
         ((vector? t) (andmap ground? (vector->list t)))
         (else        #t)))
-;; TODO: walk* decision should be made by relate-proc instead
-(define (relate-expand r) (apply (relate-proc r) (walk* (relate-args r))))
 ;; TODO: constraint satisfaction
 
 (define (pretty-printer)

@@ -1,5 +1,6 @@
 #lang racket/base
 (provide bisect bisect-next
+         vector-table? vector-table-sort! vector-dedup
          table/metadata table/vector table/bytes table/port
          table/bytes/offsets table/port/offsets sorter tabulator encoder
          table-project table-intersect-start table-cross table-join
@@ -98,12 +99,24 @@
 (define (table/vector cols types v)
   (table (lambda (i) (vector-ref v i)) cols types 0 0 (vector-length v)))
 
-(define (table/metadata retrieval-type file-prefix info-alist)
+(define (vector-table? types v)
+  (define v< (compare-><? (type->compare types)))
+  (define i (- (vector-length v) 1))
+  (or (<= i 0) (let loop ((i (- i 1)) (next (vector-ref v i)))
+                 (define current (vector-ref v i))
+                 (and (v< current next) (or (= i 0) (loop (- i 1) current))))))
+(define (vector-table-sort! types v)
+  (vector-sort! v (compare-><? (type->compare types))))
+(define (vector-dedup v) (list->vector (s-dedup (vector->list v))))
+
+(define (table/metadata retrieval-type directory-path info-alist)
   ;(define (warning . args) (printf "warning: ~s\n" args))
   (define (warning . args) (error "warning:" args))
-  (define fname.value  (value-table-file-name  file-prefix))
-  (define fname.offset (offset-table-file-name file-prefix))
-  (define info (make-immutable-hash info-alist))
+  (define info         (make-immutable-hash info-alist))
+  (define path-prefix
+    (path->string (build-path directory-path (hash-ref info 'file-prefix))))
+  (define fname.value  (value-table-file-name  path-prefix))
+  (define fname.offset (offset-table-file-name path-prefix))
   (define offset-type  (hash-ref info 'offset-type))
   (define column-names (hash-ref info 'column-names))
   (define column-types (hash-ref info 'column-types))
@@ -214,7 +227,7 @@
 (define (value-table-file-name  prefix) (string-append prefix ".value.table"))
 (define (offset-table-file-name prefix) (string-append prefix ".offset.table"))
 
-(define (tabulator buffer-size file-prefix
+(define (tabulator buffer-size directory-path file-prefix
                    column-names column-types key-name sorted-columns)
   (define (unique?! as) (unless (= (length (remove-duplicates as)) (length as))
                           (error "duplicates:" as)))
@@ -228,16 +241,17 @@
   (define row-type column-types)  ;; TODO: possibly change this to tuple?
   (define row<     (compare-><? (type->compare row-type)))
   (define row-size (sizeof row-type (void)))
-  (make-parent-directory* file-prefix)
-  (define value-file-name  (value-table-file-name file-prefix))
+  (define path-prefix (path->string (build-path directory-path file-prefix)))
+  (define value-file-name  (value-table-file-name path-prefix))
   (define offset-file-name (and (not row-size)
-                                (offset-table-file-name file-prefix)))
+                                (offset-table-file-name path-prefix)))
   (define tsorter (sorter #t value-file-name offset-file-name buffer-size
                           row-type row<))
   (method-lambda
     ((put x) (tsorter 'put x))
     ((close) (match-define (cons offset-type item-count) (tsorter 'close))
-             `((value-file-size   . ,(file-size value-file-name))
+             `((file-prefix       . ,file-prefix)
+               (value-file-size   . ,(file-size value-file-name))
                (value-file-time   . ,(file-or-directory-modify-seconds
                                        value-file-name))
                (offset-file-size  . ,(and offset-file-name

@@ -1,5 +1,6 @@
 #lang racket/base
-(require "mk.rkt" "relation.rkt" "table.rkt" racket/function racket/pretty)
+(require "mk.rkt" "relation.rkt" "stream.rkt" "table.rkt"
+         racket/function racket/pretty)
 (print-as-expression #f)
 (pretty-print-abbreviate-read-macros #f)
 
@@ -33,11 +34,14 @@
     ((1 2 3 4) (5))
     ((1 2 3 4 5) ())))
 
-(define-relation/stream
+(define-relation/tables
   (tripleo i x y z)
-  (thunk '((a b c)
-           (d e f)
-           (g h i))))
+  i (table/vector '(x y z) '(#f #f #f)
+                  (list->vector
+                    (map list->vector
+                         (s-take #f (thunk '((a b c)
+                                             (d e f)
+                                             (g h i))))))))
 
 (test 'tripleo-all
   (run* (i x y z) (tripleo i x y z))
@@ -55,50 +59,49 @@
            ((== z 'i))))
   '((0 a b c) (2 g h i)))
 
-((hash-ref (relations-ref tripleo) 'cell)
- 'set!
- (lambda args
-   (constrain '(retrieve ((10 r s t) (11 u v w) (12 x y z))) args)))
+;((hash-ref (relations-ref tripleo) 'cell)
+ ;'set!
+ ;(lambda args
+   ;(constrain '(retrieve ((10 r s t) (11 u v w) (12 x y z))) args)))
 
-(test 'tripleo-rewired-filter-before
-  (run* (i x y z)
-    (conde ((== i 11))
-           ((== i 12)))
-    (tripleo i x y z))
-  '((11 u v w) (12 x y z)))
-(test 'tripleo-rewired-filter-after
-  (run* (i x y z)
-    (tripleo i x y z)
-    (conde ((== i 10))
-           ((== i 12))))
-  '((10 r s t) (12 x y z)))
+;(test 'tripleo-rewired-filter-before
+  ;(run* (i x y z)
+    ;(conde ((== i 11))
+           ;((== i 12)))
+    ;(tripleo i x y z))
+  ;'((11 u v w) (12 x y z)))
+;(test 'tripleo-rewired-filter-after
+  ;(run* (i x y z)
+    ;(tripleo i x y z)
+    ;(conde ((== i 10))
+           ;((== i 12))))
+  ;'((10 r s t) (12 x y z)))
 
-((hash-ref (relations-ref appendo) 'cell)
- 'set!
- (lambda args
-   (constrain '(retrieve ((10 20 30) (100 200 300))) args)))
+;((hash-ref (relations-ref appendo) 'cell)
+ ;'set!
+ ;(lambda args
+   ;(constrain '(retrieve ((10 20 30) (100 200 300))) args)))
 
-(test 'appendo-rewired
-  (run* (a b c) (appendo a b c))
-  '((10 20 30) (100 200 300)))
+;(test 'appendo-rewired
+  ;(run* (a b c) (appendo a b c))
+  ;'((10 20 30) (100 200 300)))
 
 (define-relation/tables
-  (triple2o x y z)
-  (list (cons '(y z x) (table/vector
-                         '(y z x) '(#f #f #f)
-                         #(#(a b  0)
-                           #(a b  1)
-                           #(a b  2)
-                           #(a b  3)
-                           #(a c  4)
-                           #(a c  5)
-                           #(a c  6)
-                           #(b a  7)
-                           #(b d  8)
-                           #(b f  9)
-                           #(b q 10)
-                           #(c a 11)
-                           #(c d 12))))))
+  (triple2o x y z) #f (table/vector
+                        '(y z x) '(#f #f #f)
+                        #(#(a b  0)
+                          #(a b  1)
+                          #(a b  2)
+                          #(a b  3)
+                          #(a c  4)
+                          #(a c  5)
+                          #(a c  6)
+                          #(b a  7)
+                          #(b d  8)
+                          #(b f  9)
+                          #(b q 10)
+                          #(c a 11)
+                          #(c d 12))))
 
 (test 'triple2o-all
   (run* (x y z) (triple2o x y z))

@@ -1,6 +1,6 @@
 #lang racket/base
-(provide s-next s-force s-split s-take s-drop s-append
-         s-filter s-map s-each s-fold s-scan s-group s-memo s-enumerate)
+(provide s-next s-force s-split s-take s-drop s-append s-filter s-map s-each
+         s-fold s-scan s-group s-memo s-enumerate s-dedup)
 (require racket/function)
 
 (define (s-next  s) (if (procedure? s)          (s)  s))
@@ -82,3 +82,14 @@
   (cond ((null? s) '())
         ((pair? s) (cons (cons i (car s)) (s-enumerate (+ i 1) (cdr s))))
         (else      (thunk                 (s-enumerate i           (s))))))
+
+;; NOTE: only adjacent duplicates are removed
+(define (s-dedup s)
+  (define (loop x s)
+    (cond ((null? s) (list x))
+          ((pair? s) (if (equal? x (car s)) (loop x (cdr s))
+                       (cons x (loop (car s) (cdr s)))))
+          (else      (thunk (loop x (s))))))
+  (cond ((null? s) '())
+        ((pair? s) (loop (car s) (cdr s)))
+        (else      (thunk (s-dedup (s))))))

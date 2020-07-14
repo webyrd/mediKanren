@@ -1,5 +1,5 @@
 #lang racket/base
-(provide relation/stream define-relation/stream define-relation/tables
+(provide define-relation/tables
          materializer materialized-relation define-materialized-relation)
 (require "codec.rkt" "method.rkt" "mk.rkt" "stream.rkt" "table.rkt"
          (except-in racket/match ==)
@@ -67,27 +67,6 @@
 (define (degree-domain      d) (vector-ref d 2))
 (define (degree-range       d) (vector-ref d 3))
 
-(define (make-relation/stream attribute-names attribute-types s)
-  ;; TODO: optional type validation of stream data?
-  (method-lambda
-    ((attribute-names) attribute-names)
-    ((attribute-types) attribute-types)
-    ((apply args)      (constrain `(retrieve ,s) args))))
-
-(define-syntax relation/stream
-  (syntax-rules ()
-    ;; TODO: specify types
-    ((_ name (attr ...) se)
-     (let ((r/s (make-relation/stream '(attr ...) '(attr ...)
-                                      (s-enumerate 0 se))))
-       (relation/proc name (attr ...)
-                      (lambda (attr ...) (r/s 'apply (list attr ...))))))))
-(define-syntax define-relation/stream
-  (syntax-rules ()
-    ;; TODO: specify types
-    ((_ (name attr ...) se)
-     (define name (relation/stream name (attr ...) se)))))
-
 (define (materializer kwargs)
   ;; TODO: configurable default buffer-size
   (define buffer-size        (alist-ref kwargs 'buffer-size 100000))
@@ -135,18 +114,19 @@
                   directory-path))
   (make-directory* dpath)
   (define metadata-fname (path->string (build-path dpath "metadata.scm")))
-  (define primary-fname  (path->string (build-path dpath "primary")))
-  (define index-fnames
-    (map (lambda (i)
-           (path->string (build-path dpath (string-append
-                                             "index." (number->string i)))))
+  (define primary-fprefix "primary")
+  (define primary-fname (path->string (build-path dpath primary-fprefix)))
+  (define index-fprefixes
+    (map (lambda (i) (string-append "index." (number->string i)))
          (range (length index-tds))))
   (define metadata-out (open-output-file metadata-fname))
-  (define primary-t (tabulator buffer-size primary-fname
+  (define primary-t (tabulator buffer-size dpath primary-fprefix
                                primary-column-names primary-column-types
                                key (cdr primary-td)))
   (method-lambda
     ((put x) (primary-t 'put x))
+    ;; TODO: factor out index building to allow incrementally adding new ones
+    ;; (incremental builds need to be initiated by caller, not here)
     ((close) (define primary-info (primary-t 'close))
              (define key-type (nat-type/max (alist-ref primary-info 'length)))
              (define index-tts
@@ -167,10 +147,10 @@
                                 (match-define (list #,@ss.sources) row)
                                 (list #,@ss.columns))))
                         (cons transform
-                              (tabulator buffer-size fname
+                              (tabulator buffer-size dpath fname
                                          column-names (map name->type column-names)
                                          #f sorted-columns)))
-                      index-fnames index-tds)))
+                      index-fprefixes index-tds)))
              (define index-transforms (map car index-tts))
              (define index-tables     (map cdr index-tts))
              (let/files ((in (value-table-file-name primary-fname))) ()
@@ -188,91 +168,99 @@
              (close-output-port metadata-out))))
 
 (define (materialized-relation kwargs)
-  (define relation-name  (alist-ref kwargs 'relation-name))
+  (define name  (alist-ref kwargs 'relation-name))
+  ;; TODO: vector/stream source as an alternative to file source
+  ;; given an appropriate source, build indexes here, on the spot?
   (define directory-path (alist-ref kwargs 'path))
   (define retrieval-type (alist-ref kwargs 'retrieval-type 'disk))
   (define dpath (if #f (path->string (build-path "TODO: configurable base"
                                                  directory-path))
                   directory-path))
-  (let/files ((in (path->string (build-path dpath "metadata.scm")))) ()
-    (define info-alist (read in))
-    (when (eof-object? info-alist) (error "corrupt relation metadata:" dpath))
-    (define info (make-immutable-hash info-alist))
-    (define attribute-names    (hash-ref info 'attribute-names))
-    (define attribute-types    (hash-ref info 'attribute-types))
-    (define primary-info-alist (hash-ref info 'primary-table))
-    (define primary-info       (make-immutable-hash primary-info-alist))
-    (define fn.primary (path->string (build-path dpath "primary")))
-    (define primary-t
-      (table/metadata retrieval-type fn.primary primary-info-alist))
-    (define primary-key-name     (hash-ref primary-info 'key-name))
-    (define primary-column-names (primary-t 'columns))
-    (define key-name (and (member primary-key-name attribute-names)
-                          primary-key-name))
-    (define index-info-alists (hash-ref info 'index-tables))
-    (define index-infos (map make-immutable-hash index-info-alists))
-    (define index-ts
-      (map (lambda (i info)
-             (define fn.index
-               (path->string (build-path dpath (string-append
-                                                 "index."
-                                                 (number->string i)))))
-             (table/metadata retrieval-type fn.index info))
-           (range (length index-info-alists))
-           index-info-alists))
-    ;; TODO: consider sorted-columns for out-of-order satifying
-    (define (advance-table env col=>ts t)
-      (define cols (t 'columns))
-      (cond ((= 0 (t 'length)) #f)
-            ((null? cols)      col=>ts)
-            ((equal? (car cols) primary-key-name)
-             (hash-update col=>ts (car cols) (lambda (ts) (cons t ts)) '()))
-            (else (define col (car cols))
-                  (define v (hash-ref env col))
-                  (if (ground? v)
-                    (advance-table env col=>ts (table-project t v))
-                    (hash-update col=>ts col (lambda (ts) (cons t ts)) '())))))
-    (define (advance-tables env col=>ts ts)
-      (foldl (lambda (t col=>ts) (and col=>ts (advance-table env col=>ts t)))
-             col=>ts ts))
-    (define (loop cols t0 env col=>ts0 acc)
-      (define k+ts
-        (and col=>ts0
-             (let ((ts (hash-ref col=>ts0 primary-key-name '())))
-               (if (null? ts) (list (t0 'key))
-                 (table-intersect-start
-                   (cons ((car ts) 'drop< (t0 'key)) (cdr ts)))))))
-      (define col=>ts
-        (and k+ts (hash-set col=>ts0 primary-key-name (cdr k+ts))))
-      (define t (and k+ts (t0 'drop-key< (car k+ts))))
-      (cond ((or (not k+ts) (= (t 'length) 0)) '())
-            ((null? cols)
-             (s-map (lambda (suffix) (foldl cons suffix acc))
-                    (if key-name (s-enumerate (t 'key) (t 'stream)) '(()))))
-            (else (define col          (car cols))
-                  (define v            (hash-ref    env     col))
-                  (define col=>ts//col (hash-remove col=>ts col))
-                  (define ixts         (hash-ref    col=>ts col '()))
-                  (if (ground? v) (loop (cdr cols) (table-project t v) env
-                                        (advance-tables env col=>ts//col ixts)
-                                        acc)
-                    (let ((v+ts (table-intersect-start (cons t ixts))))
-                      (if (not v+ts) '()
-                        (let* ((v    (car v+ts))
-                               (t    (cadr v+ts))
-                               (ixts (cddr v+ts)))
-                          (thunk (s-append
-                                   (let* ((env (hash-set env col v))
-                                          (col=>ts (advance-tables
-                                                     env col=>ts//col ixts)))
-                                     (loop (cdr cols) (table-project t v) env
-                                           col=>ts (cons v acc)))
-                                   (loop cols (t 'drop<= v) env
-                                         (advance-tables env col=>ts//col ixts)
-                                         acc))))))))))
-    (make-relation/proc
-      relation-name attribute-names
-      (lambda args
+  (define info-alist
+    (let/files ((in (path->string (build-path dpath "metadata.scm")))) ()
+      (read in)))
+  (when (eof-object? info-alist) (error "corrupt relation metadata:" dpath))
+  (define info (make-immutable-hash info-alist))
+  (define attribute-names    (hash-ref info 'attribute-names))
+  (define attribute-types    (hash-ref info 'attribute-types))
+  (define primary-info-alist (hash-ref info 'primary-table))
+  (define primary-info       (make-immutable-hash primary-info-alist))
+  (define primary-t (table/metadata retrieval-type dpath primary-info-alist))
+  (define primary-key-name     (hash-ref primary-info 'key-name))
+  (define primary-column-names (primary-t 'columns))
+  (define key-name (and (member primary-key-name attribute-names)
+                        primary-key-name))
+  (define index-ts
+    (map (lambda (info) (table/metadata retrieval-type dpath info))
+         (hash-ref info 'index-tables)))
+  (relation/tables name attribute-names primary-key-name primary-t index-ts))
+
+(define-syntax define-materialized-relation
+  (syntax-rules ()
+    ((_ name kwargs) (define name (materialized-relation
+                                    `((relation-name . name) . ,kwargs))))))
+
+(define (relation/tables
+          relation-name attribute-names primary-key-name primary-t index-ts)
+  (define primary-column-names (primary-t 'columns))
+  (define key-name (and (member primary-key-name attribute-names)
+                        primary-key-name))
+  ;; TODO: consider sorted-columns for out-of-order satifying
+  (define (advance-table env col=>ts t)
+    (define cols (t 'columns))
+    (cond ((= 0 (t 'length)) #f)
+          ((null? cols)      col=>ts)
+          ((equal? (car cols) primary-key-name)
+           (hash-update col=>ts (car cols) (lambda (ts) (cons t ts)) '()))
+          (else (define col (car cols))
+                (define v (hash-ref env col))
+                (if (ground? v)
+                  (advance-table env col=>ts (table-project t v))
+                  (hash-update col=>ts col (lambda (ts) (cons t ts)) '())))))
+  (define (advance-tables env col=>ts ts)
+    (foldl (lambda (t col=>ts) (and col=>ts (advance-table env col=>ts t)))
+           col=>ts ts))
+  (define (loop cols t0 env col=>ts0 acc)
+    (define k+ts
+      (and col=>ts0
+           (let ((ts (hash-ref col=>ts0 primary-key-name '())))
+             (if (null? ts) (list (t0 'key))
+               (table-intersect-start
+                 (cons ((car ts) 'drop< (t0 'key)) (cdr ts)))))))
+    (define col=>ts
+      (and k+ts (hash-set col=>ts0 primary-key-name (cdr k+ts))))
+    (define t (and k+ts (t0 'drop-key< (car k+ts))))
+    (cond ((or (not k+ts) (= (t 'length) 0)) '())
+          ((null? cols)
+           (s-map (lambda (suffix) (foldl cons suffix acc))
+                  (if key-name (s-enumerate (t 'key) (t 'stream)) '(()))))
+          (else (define col          (car cols))
+                (define v            (hash-ref    env     col))
+                (define col=>ts//col (hash-remove col=>ts col))
+                (define ixts         (hash-ref    col=>ts col '()))
+                (if (ground? v) (loop (cdr cols) (table-project t v) env
+                                      (advance-tables env col=>ts//col ixts)
+                                      acc)
+                  (let ((v+ts (table-intersect-start (cons t ixts))))
+                    (if (not v+ts) '()
+                      (let* ((v    (car v+ts))
+                             (t    (cadr v+ts))
+                             (ixts (cddr v+ts)))
+                        (thunk (s-append
+                                 (let* ((env (hash-set env col v))
+                                        (col=>ts (advance-tables
+                                                   env col=>ts//col ixts)))
+                                   (loop (cdr cols) (table-project t v) env
+                                         col=>ts (cons v acc)))
+                                 (loop cols (t 'drop<= v) env
+                                       (advance-tables env col=>ts//col ixts)
+                                       acc))))))))))
+  (define r (make-relation-proc relation-name attribute-names))
+  (relations-set!
+    r 'apply/dfs
+    (lambda (k as)
+      (lambda (st)
+        (define args (walk* as))
         (unless (= (length args) (length attribute-names))
           (error "invalid number of arguments:" attribute-names args))
         (define env (make-immutable-hash (map cons attribute-names args)))
@@ -291,61 +279,16 @@
                     (define result-stream
                       (loop primary-column-names primary-t env
                             (advance-tables env (hash) index-ts) '()))
-                    (constrain `(retrieve ,result-stream) ordered-args)))))))
-
-(define-syntax define-materialized-relation
-  (syntax-rules ()
-    ((_ name kwargs) (define name (materialized-relation
-                                    `((relation-name . name) . ,kwargs))))))
-
-;; TODO: attribute-types should be verified with tables
-(define (make-relation/tables attribute-names attribute-types attrs/tables)
-  (when (null? attrs/tables)
-    (error "relation/tables must include at least one table:"
-           attribute-names attribute-types))
-  (define attrs/main-table    (car attrs/tables))
-  (define attrss/index-tables (cdr attrs/tables))
-  (let ((main-attrs (car attrs/main-table)))
-    (for-each
-      (lambda (name)
-        (unless (member name main-attrs)
-          (error "missing attribute in primary table:" name attrs/main-table)))
-      attribute-names)
-    (for-each
-      (lambda (name)
-        (unless (member name attribute-names)
-          (error "unknown attribute in primary table:" name attribute-names)))
-      main-attrs))
-  (method-lambda
-    ((attribute-names) attribute-names)
-    ((attribute-types) attribute-types)
-    ((apply args)
-     ;; TODO: make use of index tables; later, use the constraint system
-     ;; for now, index whatever possible from main table, then stream the rest
-     (define env (map cons attribute-names args))
-     (let loop ((attrs (car attrs/main-table)) (t (cdr attrs/main-table)))
-       (define (finish) (constrain `(retrieve ,(t 'stream))
-                                   (map (lambda (attr) (alist-ref env attr))
-                                        attrs)))
-       (cond ((null? attrs) (finish))
-             (else (define v (alist-ref env (car attrs)))
-                   (if (not (ground? v)) (finish)
-                     (loop (cdr attrs) (table-project t v)))))))))
-
-(define-syntax relation/tables
-  (syntax-rules ()
-    ;; TODO: specify types
-    ((_ name (attr ...) as/ts)
-     (let ((r/s (make-relation/tables '(attr ...) '(attr ...) as/ts)))
-       (relation/proc name (attr ...)
-                      (lambda (attr ...) (r/s 'apply (list attr ...))))))))
+                    ((retrieve/dfs k result-stream ordered-args) st))))))
+  r)
 
 ;; TODO: need a higher level interface than this
 (define-syntax define-relation/tables
   (syntax-rules ()
     ;; TODO: specify types
-    ((_ (name attr ...) as/ts)
-     (define name (relation/tables name (attr ...) as/ts)))))
+    ((_ (name attr ...) primary-key-name primary-t index-ts ...)
+     (define name (relation/tables 'name '(attr ...) 'primary-key-name
+                                   primary-t (list index-ts ...))))))
 
 ;; TODO: mk constraint integration
 ;; When a variable is unified, its constraints are queued for re-evaluation

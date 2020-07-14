@@ -1,5 +1,6 @@
 #lang racket/base
-(provide type->compare compare-any compare-null compare-boolean
+(provide term.min term.max interval.full (struct-out interval)
+         type->compare compare-any compare-null compare-boolean
          compare-nat compare-number
          compare-bytes compare-string compare-symbol
          compare-pair compare-list compare-array compare-tuple
@@ -17,6 +18,12 @@
          suffix<?       suffix<=?
          suffix<string? suffix<=string?)
 (require racket/match racket/math)
+
+(define term.min '())
+(define term.max  #t)
+
+(struct interval (lb ub) #:prefab)
+(define interval.full (interval term.min term.max))
 
 (define ((compare-><?  compare) a b)      (eqv? (compare a b) -1))
 (define ((compare-><=? compare) a b) (not (eqv? (compare a b)  1)))
@@ -42,16 +49,12 @@
 (define (boolean<?  a b) (and b (not a)))
 (define (boolean<=? a b) (or  b (not a)))
 
-(define (compare-nat a b)
+(define (compare-number a b)
   (cond ((< a b) -1)
         ((< b a)  1)
         (else     0)))
-(define (compare-number a b)
-  (cond ((< a b)     -1)
-        ((equal? a b) 0)
-        ((= a b) (if (exact? b) 1 -1))
-        ((nan? b)    -1)
-        (else         1)))
+(define compare-nat compare-number)
+
 (define (number<?  a b)      (eqv? (compare-number a b) -1))
 (define (number<=? a b) (not (eqv? (compare-number a b)  1)))
 
@@ -153,14 +156,16 @@
 (define (((suffix<=string? source) sb) a)
   (not (eqv? (((compare-suffix-string source) sb) a) 1)))
 
-(define compares (vector null?    compare-null
-                         boolean? compare-boolean
-                         number?  compare-number
-                         symbol?  compare-symbol
-                         string?  compare-string
-                         bytes?   compare-bytes
-                         pair?    (compare-pair compare-any compare-any)
-                         vector?  (compare-array compare-any)))
+(define (exact-number? x) (and (number? x) (exact? x)))
+
+(define compares (vector null?         compare-null
+                         exact-number? compare-number
+                         symbol?       compare-symbol
+                         string?       compare-string
+                         bytes?        compare-bytes
+                         pair?         (compare-pair compare-any compare-any)
+                         vector?       (compare-array compare-any)
+                         boolean?      compare-boolean))
 
 (define (type->compare type)
   (match type
