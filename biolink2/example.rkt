@@ -44,7 +44,8 @@
 (materialize-db-relation "edge" fnin.edge header.edge #f
                          '(:id :start :end)
                          '(string string string)
-                         '((:start :end) (:end :start)))
+                         '((:start)  ;; (:start :end) doesn't work well now
+                           (:end)))
 
 (materialize-db-relation "edge-prop" fnin.edgeprop header.edgeprop #f
                          '(:id property value)

@@ -46,7 +46,7 @@
     (append (map string->number left) right))
   '(dataset subject object concept_count prevalence chi_sq_t chi_sq_p expected_count ln_ratio rel_freq1 rel_freq2)
   '(nat nat nat nat string string string string string string string)
-  '((subject object)
+  '((subject)  ;; (subject object) doesn't work well currently
     (object)))
 
 ;; all indexes have implicit index made on first arg/no need to index separately
