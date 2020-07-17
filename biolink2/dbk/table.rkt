@@ -109,6 +109,20 @@
   (vector-sort! v (compare-><? (type->compare types))))
 (define (vector-dedup v) (list->vector (s-dedup (vector->list v))))
 
+;; TODO: switch back to file->bytes once Racket IO bug is fixed
+(define (file->bytes2 file-name)
+  (define size (file-size file-name))
+  (define bs (make-bytes size))
+  (call-with-input-file
+    file-name
+    (lambda (in)
+      (let loop ((i 0))
+        (cond ((= i size) bs)
+              (else (define end (+ i (min 1073741824
+                                          (- size i))))
+                    (read-bytes! bs in i end)
+                    (loop end)))))))
+
 (define (table/metadata retrieval-type directory-path info-alist)
   ;(define (warning . args) (printf "warning: ~s\n" args))
   (define (warning . args) (error "warning:" args))
@@ -146,10 +160,10 @@
                                                 (open-input-file fname.offset))
                                     column-names column-types in.value)
                 (table/port len column-names column-types in.value)))
-      ((bytes) (define bs.value (file->bytes fname.value))
+      ((bytes) (define bs.value (file->bytes2 fname.value))
                (if offset-type
                  (table/bytes/offsets (table/bytes '(offset) `(,offset-type)
-                                                   (file->bytes fname.offset))
+                                                   (file->bytes2 fname.offset))
                                       column-names column-types bs.value)
                  (table/bytes column-types bs.value)))
       ((scm) (let/files ((in.value fname.value)) ()
