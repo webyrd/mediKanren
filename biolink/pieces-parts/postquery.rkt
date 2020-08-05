@@ -153,10 +153,14 @@
  (define-syntax-class concept-decl
    #:description "concept declaration"
    (pattern (name:id predicate:expr)))
+ (define-syntax-class selector-id
+   #:description "selector name"
+   #:opaque
+   (pattern _:id))
  (define-syntax-class selector-exp
    #:description "selector expression"
    (pattern e:id)
-   (pattern (s:id arg:id ...+)
+   (pattern (s:selector-id arg:id ...+)
             #:do [(define env-v (syntax-local-value #'s))]
             #:fail-unless (selector-rep? env-v)
             "expected a selector"
