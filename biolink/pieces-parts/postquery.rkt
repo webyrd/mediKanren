@@ -244,7 +244,7 @@
   (check-true (< 0 (length q3)))
   (define q4
    (query
-    (select (rkt (curie X)))
+    (select (rkt (((lambda (x) x) curie) X)))
     (concepts
      (X       drug-concept?)
      (Y       gene-or-protein)
