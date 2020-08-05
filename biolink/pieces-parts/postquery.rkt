@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 (require "query.rkt")
 (require  racket/list)
+(require (for-syntax racket/base syntax/parse))
 
 ;; different notions of consistency
 ;; arc: across 1-hop
@@ -137,9 +138,47 @@
              path ...)))
     (all-consistent q)))
 
-#|
+(begin-for-syntax
+ (define-syntax-class edge-decl
+   #:description "edge declaration"
+   #:datum-literals (--)
+   (pattern (subject:id -- name:id -- object:id predicate:expr)))
+ (define-syntax-class concept-decl
+   #:description "concept declaration"
+   (pattern (name:id predicate:expr)))
+ (define-syntax-class selector-exp
+   #:description "selector expression"
+   (pattern _:expr))
+ )
 
-(define q (time (query/graph/consistent
+(define (query-runtime keys results f)
+  (for/list ([result results])
+            (apply f (for/list ([key keys]) (hash-ref result key)))))
+
+(define-syntax query
+  (syntax-parser
+   #:datum-literals (select concepts edges)
+   [(_ (select s:selector-exp ...+)
+       (concepts c:concept-decl ...+)
+       (edges e:edge-decl ...))
+    #'(let ([res
+             (query/graph/consistent
+              ([c.name c.predicate] ...)
+              ([e.name e.predicate] ...)
+              [e.subject e.name e.object]
+              ...)])
+        (query-runtime
+         '(c.name ... e.name ...)
+         res
+         (lambda (c.name ... e.name ...)
+           (list
+            s
+            ...))))]))
+
+(module+
+ test
+ (require rackunit)
+ (define q (time (query/graph/consistent
                   ((X       drug-concept?)
                    (Y       gene-or-protein)
                    (rhobtb2 "UMLS:C1425762"))
@@ -147,5 +186,18 @@
                    (Y->rhobtb2 positively-regulates))
                   (X X->Y Y Y->rhobtb2 rhobtb2))))
 
+ (check-true (< 0 (length q)))
+ (define q2
+   (query
+    (select X Y)
+    (concepts
+     (X       drug-concept?)
+     (Y       gene-or-protein)
+     (rhobtb2 "UMLS:C1425762"))
+    (edges
+     (X -- X->Y -- Y negatively-regulates)
+     (Y -- Y->rhobtb2 -- rhobtb2 positively-regulates))))
+ (check-true (< 0 (length q2)))
+ )
 
-|#
+
