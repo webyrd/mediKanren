@@ -521,7 +521,6 @@
 
 (define go-regulators '("positively_regulates"
                         "negatively_regulates"
-                        ;;"regulates"
                         "subclass_of"
                         ))
 
@@ -534,6 +533,9 @@
 
 (define (summary-obj edge-sum)
   (car (list-ref edge-sum 4)))
+
+(define (summary-subj edge-sum)
+  (car (list-ref edge-sum 3)))
 
 (define ((edge/db? db) e) (eq? db (car e)))
 
@@ -553,47 +555,92 @@
 (define gene0 "ENSEMBL:ENSG00000167972")
 (define gene1 "ENSEMBL:ENSG00000198691")
 
-;;Get a rough idea by counting GO processes in common
-;;TODO: filter rtx2, add intermediary, change lists to sets
+#|getting uniprots using run/graph
+(define encodes (find-predicates '("encodes")))
+(define gene-curie?
+  (lambda (x)
+    (or
+     (string-prefix? x "HGNC:")
+     (string-prefix? x "ENSEMBL:")
+     (string-prefix? x "NCBIGene:"))))
+
+(define encodes-us (remove-duplicates (unwrap (filter (lambda (x) (not (null? x))) (set-map gene-list
+                                                                         (lambda (g) (time
+                                                                                      (define S (filter (lambda (x) (eq? (car x) 'rtx2)) (find-concepts #t (filter gene-curie? (map car (curie-synonyms/names g))))))
+                                                                                      (match-define
+                                                                                        (list name=>concepts name=>edges)
+                                                                                        (run/graph
+                                                                                         ((G S)
+                                                                                          (U #f))
+                                                                                         ((G->U encodes))
+                                                                                         (G G->U U)))
+                                                                                      (map concept->curie (hash-ref name=>concepts 'U))
+                                                                                      ))
+                                                                         )))))
+|#
+
+;;getting uniprots using synonymization
+(define uniprot-curie?
+  (lambda (x)
+    (string-prefix? x "UniProtKB:")))
+
+(define uniprots (remove-duplicates (filter uniprot-curie? (map car (unwrap (set-map gene-list curie-synonyms/names))))))
+
 (define go-processes (make-hash))
 (define go-process-members (make-hash))
 (define counter (make-hash))
-
-(define encodes-es (unwrap (filter (lambda (x) (not (null? x))) (map
-                                                         (lambda (g) (time
-                                                                      (define q (query/graph
-                                                                                 ((E gene0)
-                                                                                  (U #f))
-                                                                                 ((E->U '("encodes")))
-                                                                                 (E E->U U)))
-                                                                      (summarize-edge (edges/query q 'E->U))
-                                                                      ))
-                                                         gene-list
-                                                         )))
+#|
+a 2-hop + 1-hop query using run/graph
+returns assoc list of a count of the number of other proteins in prot-list that each prot in prot-list regulates
+|#
+(define (count-downstream prot-list preds)
+  (hash-clear! go-processes)
+  (hash-clear! go-process-members)
+  (hash-clear! counter)
+  (define involved_in (keep 1 (filter (lambda (x) (eq? (car x) 'rtx2)) (find-predicates '("involved_in")))))
+  (define regulators (filter (lambda (x) (eq? (car x) 'rtx2)) (find-predicates preds)))
+  ;;populate hash tables
+  (for-each
+   (lambda (u)
+     (define S (filter (lambda (x) (eq? (car x) 'rtx2)) (find-concepts #t (list u))))
+     (match-define
+       (list name=>concepts name=>edges)
+       (time (run/graph
+              ((G S)
+               (M #f)
+               (X #f)
+               (P #f))
+              ((G->M involved_in)
+               (M->X regulators)
+               (P->X involved_in))
+              (G G->M M)
+              (M M->X X)
+              (P P->X X))))
+     (hash-set! go-processes u (list->set (map concept->curie (hash-ref name=>concepts 'X))))
+     (for-each
+      (lambda (e)
+        (hash-update! go-process-members (concept->curie (edge->object e)) (lambda (v) (set-add v (concept->curie (edge->subject e)))) (set))
+        )
+      (hash-ref name=>edges 'P->X)
+      )
+     )
+   prot-list
+   )
+  ;;counting
+  (hash-for-each go-processes
+                 (lambda (k v)
+                   (define members (mutable-set))
+                   (set-for-each v
+                                 (lambda (g)
+                                   (set-union! members (set-intersect (list->set prot-list) (hash-ref go-process-members g (set))))
+                                   ))
+                   (hash-set! counter k (set-count members))
+                   )
+                 )
+  (sort-count counter)
   )
 
-(define uniprots (remove-duplicates (map summary-obj encodes-es)))
-
-#|run/graph attempt
-(define genes-of-interest (find-concepts #t (list "ENSEMBL:ENSG00000167972")))
-(define encodes (find-predicates '("encodes")))
-
-(match-define
-  (list name=>concepts name=>edges)
-  (run/graph
-           ((E genes-of-interest)
-            (U #f))
-           ((E->U encodes))
-           (E E->U U)))
-
-(displayln "concepts by name:")
-(pretty-print name=>concepts)
-(newline)
-(displayln "edges by name:")
-(pretty-print name=>edges)
-(newline)
-|#
-
+#|2-hop query using query/graph
 (for-each
  (lambda (x) (time
               (define q2hop (query/graph
@@ -608,20 +655,7 @@
               ))
  uniprots
  )
-
-(define 2-hop-results (remove-duplicates (flatten (hash-values go-processes))))
-
-(for-each
- (lambda (g) (time
-              (define q (query/graph
-                         ((M #f)
-                          (G g))
-                         ((M->G '("involved_in")))
-                         (M M->G G)))
-              (hash-set! go-process-members g (set-intersect uniprots (map car (unwrap (map curie-synonyms/names (curies/query q 'M))))))
-              ))
- 2-hop-results
- )
+|#
 
 (define qtest (query/graph
                ((S "ENSEMBL:ENSG00000131477")
@@ -629,75 +663,37 @@
                ((S->O #f))
                (S S->O O)))
                  
-(hash-for-each go-processes
-               (lambda (k1 v1)
-                 (time
-                  (hash-set! counter k1 (length (remove-duplicates (flatten (map
-                                                                             (lambda (g)
-                                                                               (hash-ref go-process-members g)
-                                                                               )
-                                                                             v1)))))
-                  )
-                 )
-               )
-
-(sort-count counter)
-(define top10 (remove-duplicates (flatten (map uniprot->ensembl (map car (take (sort-count counter) 10))))))
-
 (define (uniprot->ensembl uni)
-  (set-intersect (map car (curie-synonyms/names uni)) gene-list)
+  (set-intersect (set->list gene-list) (map car (curie-synonyms/names uni)))
   )
 
-(define member-of (make-hash))
+(define top10 (remove-duplicates (flatten (map uniprot->ensembl (map car (take (sort-count counter) 10))))))
 
+(define member-of (make-hash))
 (hash-for-each go-process-members
                (lambda (k v)
-                 (for-each
-                  (lambda (uni)
-                    (hash-update! member-of uni (lambda (x) (cons k x)) '())
-                    )
-                  v
-                  )
+                 (set-for-each v
+                               (lambda (u)
+                                 (hash-update! member-of u (lambda (x) (cons k x)) '())
+                                 )
+                               )
                  )
                )
-
 (sort-by-length member-of)
 
 (define regulates-go (make-hash))
 (hash-for-each go-processes
                (lambda (k v)
-                 (for-each
-                  (lambda (p)
-                    (hash-update! regulates-go p (lambda (x) (cons k x)) '())
-                    )
-                  v
-                  )
+                 (set-for-each v
+                               (lambda (p)
+                                 (hash-update! regulates-go p (lambda (x) (cons k x)) '())
+                                 )
+                               )
                  )
                )
 (sort-by-length regulates-go)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-#|
-(define g->process (map
-                    (lambda (x)
-                      (define q2 (query/graph
-                                  ((G #f)
-                                   (O x))
-                                  ((G->O '("involved_in")))
-                                  (G G->O O)))
-                      (curies/query q2 'G)
-                      )
-                    xs
-                    )
-  )
-
-(define qtest (query/graph
-               ((S "ENSEMBL:ENSG00000153391")
-                (P "ENSEMBL:ENSG00000153391"))
-               ((S->P #f))
-               (S S->P P))
-  )
-|#
 
 (define preds-of-interest '("negatively_regulates"
                             "physically_interacts_with"
@@ -706,19 +702,8 @@
                             "regulates_activity_of"
                             "regulates_expression_of"
                             "stimulates"
-                            "inhibits"
-                            ;;"causally_related_to"
-                            ;;"causes_condition"
-                            ;;"contributes_to"
-                            ;;"encodes"
-                            ;;"gene_mutations_contribute_to"
-                            ;;"has_phenotype"
-                            ;;"interacts_with"
-                            ;;"produces"
-                            )
-  )
+                            "inhibits"))
 
-;;(define all-upstreams (make-hash))
 (define seen (mutable-set))
 (define g-interest (mutable-set "ENSEMBL:ENSG00000136689"))
 
@@ -747,6 +732,7 @@
   )
   
 (backtrace g-interest gene-list)
+
 (define endpoints (mutable-set))
 (define prots-seen (mutable-set))
 
@@ -772,7 +758,7 @@
   )
 
 (set-clear! endpoints)
-(backtrace-by-go "UniProtKB:B1AH88")
+(backtrace-by-go "UniProtKB:P01137")
 
 ;;"UniProtKB:P21731"
 ;;"UniProtKB:O60503"
@@ -793,14 +779,16 @@
 Top10 from GO process count: ARDS
 
 "ENSEMBL:ENSG00000105329"
-  "ENSEMBL:ENSG00000168610"
   "ENSEMBL:ENSG00000112715"
+  "ENSEMBL:ENSG00000078401"
+  "ENSEMBL:ENSG00000100644"
+  "ENSEMBL:ENSG00000168610"
   "ENSEMBL:ENSG00000125538"
   "ENSEMBL:ENSG00000136689"
-  "ENSEMBL:ENSG00000100644"
-  "ENSEMBL:ENSG00000078401"
   "ENSEMBL:ENSG00000100292"
-  "ENSEMBL:ENSG00000101017"
+  "ENSEMBL:ENSG00000087250"
+  "ENSEMBL:ENSG00000105974"
+  "ENSEMBL:ENSG00000166949"
 |#
 
 #|
