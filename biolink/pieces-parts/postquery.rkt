@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 (require "query.rkt")
 (require  racket/list)
-(require (for-syntax racket/base syntax/parse))
+(require (for-syntax racket/base syntax/parse syntax/transformer))
 
 ;; different notions of consistency
 ;; arc: across 1-hop
@@ -142,9 +142,8 @@
  (struct selector-rep (runtime arg-count)
          #:property prop:procedure
          (lambda (self stx)
-           (raise-syntax-error
-            #f
-            "selectors can only be used inside query"
+           ((make-variable-like-transformer
+             (selector-rep-runtime self))
             stx)))
  (define-syntax-class edge-decl
    #:description "edge declaration"
@@ -159,6 +158,7 @@
    (pattern _:id))
  (define-syntax-class selector-exp
    #:description "selector expression"
+   #:datum-literals (rkt)
    (pattern e:id)
    (pattern (s:selector-id arg:id ...+)
             #:do [(define env-v (syntax-local-value #'s))]
@@ -168,7 +168,8 @@
                              (length (syntax->list #'(arg ...))))
             "wrong number of arguments"
             #:attr e #`(#,(selector-rep-runtime env-v)
-                        arg ...)))
+                        arg ...))
+   (pattern (rkt e:expr)))
 )
 
 (define (query-runtime keys results f)
@@ -230,6 +231,26 @@
      (X -- X->Y -- Y negatively-regulates)
      (Y -- Y->rhobtb2 -- rhobtb2 positively-regulates))))
  (check-true (< 0 (length q2)))
+  (define q3
+   (query
+    (select (rkt ((lambda (x) x) X)))
+    (concepts
+     (X       drug-concept?)
+     (Y       gene-or-protein)
+     (rhobtb2 "UMLS:C1425762"))
+    (edges
+     (X -- X->Y -- Y negatively-regulates)
+     (Y -- Y->rhobtb2 -- rhobtb2 positively-regulates))))
+  (check-true (< 0 (length q3)))
+  (define q4
+   (query
+    (select (rkt (curie X)))
+    (concepts
+     (X       drug-concept?)
+     (Y       gene-or-protein)
+     (rhobtb2 "UMLS:C1425762"))
+    (edges
+     (X -- X->Y -- Y negatively-regulates)
+     (Y -- Y->rhobtb2 -- rhobtb2 positively-regulates))))
+ (check-true (< 0 (length q4)))
  )
-
-
