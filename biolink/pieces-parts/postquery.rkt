@@ -139,6 +139,13 @@
     (all-consistent q)))
 
 (begin-for-syntax
+ (struct selector-rep (runtime arg-count)
+         #:property prop:procedure
+         (lambda (self stx)
+           (raise-syntax-error
+            #f
+            "selectors can only be used inside query"
+            stx)))
  (define-syntax-class edge-decl
    #:description "edge declaration"
    #:datum-literals (--)
@@ -148,12 +155,31 @@
    (pattern (name:id predicate:expr)))
  (define-syntax-class selector-exp
    #:description "selector expression"
-   (pattern _:expr))
- )
+   (pattern e:id)
+   (pattern (s:id arg:id ...+)
+            #:do [(define env-v (syntax-local-value #'s))]
+            #:fail-unless (selector-rep? env-v)
+            "expected a selector"
+            #:fail-unless (= (selector-rep-arg-count env-v)
+                             (length (syntax->list #'(arg ...))))
+            "wrong number of arguments"
+            #:attr e #`(#,(selector-rep-runtime env-v)
+                        arg ...)))
+)
 
 (define (query-runtime keys results f)
   (for/list ([result results])
             (apply f (for/list ([key keys]) (hash-ref result key)))))
+
+(define-syntax define-selector
+  (syntax-parser
+   [(_ (name:id arg:id ...+) body ...+)
+    (define arg-count
+      (length (syntax->list #'(arg ...))))
+    #`(begin
+        (define (runtime arg ...) body ...)
+        (define-syntax name
+          (selector-rep #'runtime #,arg-count)))]))
 
 (define-syntax query
   (syntax-parser
@@ -172,8 +198,10 @@
          res
          (lambda (c.name ... e.name ...)
            (list
-            s
+            s.e
             ...))))]))
+
+(define-selector (curie x) x)
 
 (module+
  test
@@ -189,7 +217,7 @@
  (check-true (< 0 (length q)))
  (define q2
    (query
-    (select X Y)
+    (select (curie X) (curie Y))
     (concepts
      (X       drug-concept?)
      (Y       gene-or-protein)
