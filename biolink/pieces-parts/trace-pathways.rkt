@@ -519,11 +519,6 @@
                                "ENSEMBL:ENSG00000201796"
                                "ENSEMBL:ENSG00000240160")))
 
-(define go-regulators '("positively_regulates"
-                        "negatively_regulates"
-                        "subclass_of"
-                        ))
-
 (define (unwrap lst)
   (if (null? lst) lst
       (append (car lst) (unwrap (cdr lst)))))
@@ -551,10 +546,6 @@
    >
    #:key (lambda (x) (length (cdr x)))))
 
-
-(define gene0 "ENSEMBL:ENSG00000167972")
-(define gene1 "ENSEMBL:ENSG00000198691")
-
 #|getting uniprots using run/graph
 (define encodes (find-predicates '("encodes")))
 (define gene-curie?
@@ -579,30 +570,33 @@
                                                                          )))))
 |#
 
-;;getting uniprots using synonymization
 (define uniprot-curie?
   (lambda (x)
     (string-prefix? x "UniProtKB:")))
 
+;;Converting ENSEMBL curies to UniProtKB curies using synonymization in order to pass into count-downstream
 (define uniprots (remove-duplicates (filter uniprot-curie? (map car (unwrap (set-map gene-list curie-synonyms/names))))))
 
-(define go-processes (make-hash))
-(define go-process-members (make-hash))
-(define counter (make-hash))
 #|
-a 2-hop + 1-hop query using run/graph
-returns assoc list of a count of the number of other proteins in prot-list that each prot in prot-list regulates
+takes: list of UniProt curies (prot-list), list of GO predicates** (preds)
+** note: preds should only contain "positively_regulates", "negatively_regulates", "subclass_of", or any combination
+**       of those three predicates depending on what type of relationshion you want to count
+returns: sorted (high->low) assoc list of a count of the number of other proteins in prot-list that each prot in prot-list regulates
 |#
 (define (count-downstream prot-list preds)
-  (hash-clear! go-processes)
-  (hash-clear! go-process-members)
-  (hash-clear! counter)
+  ;;hash that maps each Uniprot curie (key) in prot-list -> set of all GO pathways (value) that the UniProt (key) regulates
+  (define go-processes (make-hash))
+  ;;hash that maps GO pathway curie (key) -> set of all UniProts (value) that are members of the GO pathway (key) AND in the prot-list
+  (define go-process-members (make-hash))
+  (define counter (make-hash))
   (define involved_in (keep 1 (filter (lambda (x) (eq? (car x) 'rtx2)) (find-predicates '("involved_in")))))
   (define regulators (filter (lambda (x) (eq? (car x) 'rtx2)) (find-predicates preds)))
-  ;;populate hash tables
   (for-each
    (lambda (u)
      (define S (filter (lambda (x) (eq? (car x) 'rtx2)) (find-concepts #t (list u))))
+     ;;this run/graph contains 2-hop query (G->M->X) and 1-hop query (P->X)
+     ;;2-hop (G->M->X): Finds the GO pathways (X) that UniProt (G) regulates
+     ;;1-hop (P->X): Finds the UniProts (P) that are members of the GO pathway (X)
      (match-define
        (list name=>concepts name=>edges)
        (time (run/graph
@@ -616,9 +610,11 @@ returns assoc list of a count of the number of other proteins in prot-list that 
               (G G->M M)
               (M M->X X)
               (P P->X X))))
+     ;;populates go-processes values with the GO pathways, X, gotten from the 2-hop query G->M->X
      (hash-set! go-processes u (list->set (map concept->curie (hash-ref name=>concepts 'X))))
      (for-each
       (lambda (e)
+        ;;populates go-process-members values with the member UniProts, P, gotten from the 1-hop query P->X
         (hash-update! go-process-members (concept->curie (edge->object e)) (lambda (v) (set-add v (concept->curie (edge->subject e)))) (set))
         )
       (hash-ref name=>edges 'P->X)
@@ -657,12 +653,7 @@ returns assoc list of a count of the number of other proteins in prot-list that 
  )
 |#
 
-(define qtest (query/graph
-               ((S "ENSEMBL:ENSG00000131477")
-                (O "ENSEMBL:ENSG00000153391"))
-               ((S->O #f))
-               (S S->O O)))
-                 
+#|
 (define (uniprot->ensembl uni)
   (set-intersect (set->list gene-list) (map car (curie-synonyms/names uni)))
   )
@@ -692,8 +683,7 @@ returns assoc list of a count of the number of other proteins in prot-list that 
                  )
                )
 (sort-by-length regulates-go)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+|#
 
 (define preds-of-interest '("negatively_regulates"
                             "physically_interacts_with"
@@ -705,7 +695,7 @@ returns assoc list of a count of the number of other proteins in prot-list that 
                             "inhibits"))
 
 (define seen (mutable-set))
-(define g-interest (mutable-set "ENSEMBL:ENSG00000136689"))
+(define g-of-interest (mutable-set "ENSEMBL:ENSG00000136689"))
 
 (define (backtrace cur-genes g-list)
   (define all-upstreams (mutable-set))
@@ -731,8 +721,9 @@ returns assoc list of a count of the number of other proteins in prot-list that 
       (backtrace all-upstreams g-list))
   )
   
-(backtrace g-interest gene-list)
+(backtrace g-of-interest gene-list)
 
+#|
 (define endpoints (mutable-set))
 (define prots-seen (mutable-set))
 
@@ -759,24 +750,9 @@ returns assoc list of a count of the number of other proteins in prot-list that 
 
 (set-clear! endpoints)
 (backtrace-by-go "UniProtKB:P01137")
-
-;;"UniProtKB:P21731"
-;;"UniProtKB:O60503"
-
-;;(sort (map car (unwrap (map curie-synonyms/names (flatten g->process)))) string<=?)
-;;get all synonyms: (sort (map car (unwrap (map curie-synonyms/names (curies/query q 'S)))) string<=?)
-
-#|
-'(("ENSEMBL:ENSG00000153391"
-   .
-   "INO80 complex subunit C [Source:HGNC Symbol;Acc:HGNC:26994]")
-  ("NCBIGene:125476" . "INO80 complex subunit C")
-  ("HGNC:26994" . "INO80 complex subunit C")
-  ("UniProtKB:Q6PI98" . "INO80C"))
 |#
-
 #|
-Top10 from GO process count: ARDS
+Top10 from count-downstream of ARDS gene-list
 
 "ENSEMBL:ENSG00000105329"
   "ENSEMBL:ENSG00000112715"
