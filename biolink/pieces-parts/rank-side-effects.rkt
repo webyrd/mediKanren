@@ -77,5 +77,9 @@ returns: A list of 3 lists. These lists contain all of the drug curies resulting
     )
   (list (rank-num-side-effects top-rank) (rank-num-side-effects exacerbates-disease) (rank-num-side-effects exacerbates-patient))
   )
-;;"MONDO:0010602" - hemophilia A
-;;"MONDO:0010604" - hemophilia B
+#|Examples
+Hemophilia A, no pre-existing patient symptoms
+(rank-drugs-related-to "MONDO:0010602" (set))
+Hemophilia A, patient also has liver disease and anemia
+(rank-drugs-related-to "MONDO:0010602" (set "MONDO:0005154" "HP:0001903"))
+|#
