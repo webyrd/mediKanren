@@ -39,13 +39,13 @@ returns: A list of 3 lists. These lists contain all of the drug curies resulting
                    ((D->O #f))
                    (D D->O O)))
   (define drugs (curies/query qtreats 'D))
-  ;;a query to get all of the symptoms/phenotypes of the given disease-curie
+  ;;a query to get all of the symptoms/phenotypes of the given disease-curie, + the disease-curie itself
   (define qphenos (query/graph
                    ((S disease-curie)
-                    (O phenotype))
-                   ((S->O #f))
-                   (S S->O O)))
-  (define disease-phenos (list->set (map curie-synonyms/names (curies/query qphenos 'O))))
+                    (P phenotype))
+                   ((S->P #f))
+                   (S S->P P)))
+  (define disease-phenos (set-add (list->set (map curie-synonyms/names (curies/query qphenos 'P))) disease-curie))
   
   ;;a hash of all the drugs to a set of their side effects
   (define drug->side-effects (make-hash))
@@ -57,6 +57,7 @@ returns: A list of 3 lists. These lists contain all of the drug curies resulting
   ;;determines whether a given drug (drg) exacerbates any phenotype in a set of phenotypes (ph), returns a bool
   (define (exacerbates? drg ph)
     (not (set-empty? (set-intersect (hash-ref drug->side-effects drg) ph))))
+  
   (define exacerbates-patient (mutable-set))
   (define exacerbates-disease (mutable-set))
   (define top-rank (mutable-set))
