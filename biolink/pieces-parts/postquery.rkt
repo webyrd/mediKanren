@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 (require "query.rkt")
 (require  racket/list)
-(require (for-syntax racket/base syntax/parse syntax/transformer))
+(require (for-syntax racket/base syntax/parse racket/syntax syntax/transformer))
 
 ;; different notions of consistency
 ;; arc: across 1-hop
@@ -147,8 +147,13 @@
             stx)))
  (define-syntax-class edge-decl
    #:description "edge declaration"
-   #:datum-literals (--)
-   (pattern (subject:id -- name:id -- object:id predicate:expr)))
+   (pattern (subject:id
+             predicate:expr
+             object:id
+             (~optional (~seq #:as name:id)
+                        #:defaults ([name (generate-temporary
+                                            (format-id #f "~a->~a" #'subject #'object))])))))
+
  (define-syntax-class concept-decl
    #:description "concept declaration"
    (pattern (name:id predicate:expr)))
@@ -222,35 +227,13 @@
  (check-true (< 0 (length q)))
  (define q2
    (query
-    (select (curie X) (curie Y))
+    (select (curie X) (curie Y) (rkt ((lambda (x) x) X)) (rkt (((lambda (x) x) curie) X)))
     (concepts
      (X       drug-concept?)
      (Y       gene-or-protein)
      (rhobtb2 "UMLS:C1425762"))
     (edges
-     (X -- X->Y -- Y negatively-regulates)
-     (Y -- Y->rhobtb2 -- rhobtb2 positively-regulates))))
+     (X negatively-regulates Y #:as X->Y)
+     (Y positively-regulates rhobtb2))))
  (check-true (< 0 (length q2)))
-  (define q3
-   (query
-    (select (rkt ((lambda (x) x) X)))
-    (concepts
-     (X       drug-concept?)
-     (Y       gene-or-protein)
-     (rhobtb2 "UMLS:C1425762"))
-    (edges
-     (X -- X->Y -- Y negatively-regulates)
-     (Y -- Y->rhobtb2 -- rhobtb2 positively-regulates))))
-  (check-true (< 0 (length q3)))
-  (define q4
-   (query
-    (select (rkt (((lambda (x) x) curie) X)))
-    (concepts
-     (X       drug-concept?)
-     (Y       gene-or-protein)
-     (rhobtb2 "UMLS:C1425762"))
-    (edges
-     (X -- X->Y -- Y negatively-regulates)
-     (Y -- Y->rhobtb2 -- rhobtb2 positively-regulates))))
- (check-true (< 0 (length q4)))
  )
