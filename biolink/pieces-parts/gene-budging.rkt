@@ -197,7 +197,7 @@
   
   (define my-query-result (append up-query-results down-query-results))
   
-  (define output-file-name (format "~a-budging.tsv" the-gene-symbol))
+  (define output-file-name (format "~a-budging.tsv" (string-replace the-gene-symbol "/" "-")))
   
   ; (printf "*** writing results for gene CURIE ~s to file ~s\n" the-gene-curie output-file-name)
   
@@ -263,6 +263,13 @@
 ; CTSL
 ;(define the-gene-curies (list "HGNC:2537"))
 
+;; TMPRSS2
+#|
+(define the-gene-curies  (list "HGNC:11876"))
+(define the-gene-curies  (list "UMLS:C1336641"))
+(define the-gene-symbol (concept->name (car (find-concepts #t the-gene-curies))))
+(dr-query the-gene-curies)
+|#
 
 #|
 ;; aurkb
