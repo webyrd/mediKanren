@@ -534,17 +534,23 @@
 
 (define ((edge/db? db) e) (eq? db (car e)))
 
-(define (sort-count c)
+(define (sort-inner-hash h)
   (sort
-   (hash-map c (lambda (k v) (cons k v)))
+   (hash-map h (lambda (k v) (cons k v)))
    >
-   #:key (lambda (x) (cdr x))))
+   #:key (lambda (x) (set-count (cdr x)))))
 
-(define (sort-by-length h)
+(define (sort-outer-hash h)
   (sort
    (hash-map h (lambda (k v) (cons k v)))
    >
    #:key (lambda (x) (length (cdr x)))))
+
+(define (sort-counter h)
+  (sort
+   (hash-map h (lambda (k v) (cons k v)))
+   >
+   #:key (lambda (x) (cdr x))))
 
 #|getting uniprots using run/graph
 (define encodes (find-predicates '("encodes")))
@@ -581,308 +587,179 @@
 takes: list of UniProt curies (prot-list), list of GO predicates** (preds)
 ** note: preds should only contain "positively_regulates", "negatively_regulates", "subclass_of", or any combination
 **       of those three predicates depending on what type of relationshion you want to count
-returns: sorted (high->low) assoc list of a count of the number of other proteins in prot-list that each prot in prot-list regulates
+
+returns: a list of the hash tables in this order: go-processes, go-process-members, cell-expression-hash, regulated-cell-expression-hash
+         The contents of these hashes are documented inside the function
 |#
 (define (count-downstream prot-list preds)
-  ;;hash that maps each Uniprot curie (key) in prot-list -> set of all GO pathways (value) that the UniProt (key) regulates
+  ;;maps each Uniprot curie (key) in prot-list -> a set of all GO pathways (value) that the UniProt (key) regulates
   (define go-processes (make-hash))
-  ;;hash that maps GO pathway curie (key) -> set of all UniProts (value) that are members of the GO pathway (key) AND in the prot-list
+  ;;maps GO pathway curies (key) -> a set of all UniProts (value) that are members of the GO pathway (key) (not intersected with prot-list)
   (define go-process-members (make-hash))
-  (define counter (make-hash))
-  (define involved_in (keep 1 (filter (lambda (x) (eq? (car x) 'rtx2)) (find-predicates '("involved_in")))))
-  (define regulators (filter (lambda (x) (eq? (car x) 'rtx2)) (find-predicates preds)))
+  ;;maps each Uniprot in prot-list (key) -> a set of cell/tissue types (value) they're expressed in
+  (define cell-expression-hash (make-hash))
+  ;;maps each regulated gene (key) found from the 2-hop query -> a set of cell/tissue types (value) they're expressed in
+  (define regulated-genes-cell-expression-hash (make-hash))
+  (define involved_in (keep 1 (filter (lambda (x) (equal? (car x) 'rtx2)) (find-exact-predicates '("involved_in")))))
+  (define regulators (filter (lambda (x) (equal? (car x) 'rtx2)) (find-exact-predicates preds)))
+  (define expressed_in (filter (lambda (x) (equal? (car x) 'rtx2)) (find-exact-predicates '("expressed_in"))))
   (for-each
    (lambda (u)
-     (define S (filter (lambda (x) (eq? (car x) 'rtx2)) (find-concepts #t (list u))))
-     ;;this run/graph contains 2-hop query (G->M->X) and 1-hop query (P->X)
-     ;;2-hop (G->M->X): Finds the GO pathways (X) that UniProt (G) regulates
-     ;;1-hop (P->X): Finds the UniProts (P) that are members of the GO pathway (X)
-     (match-define
-       (list name=>concepts name=>edges)
-       (time (run/graph
-              ((G S)
-               (M #f)
-               (X #f)
-               (P #f))
-              ((G->M involved_in)
-               (M->X regulators)
-               (P->X involved_in))
-              (G G->M M)
-              (M M->X X)
-              (P P->X X))))
-     ;;populates go-processes values with the GO pathways, X, gotten from the 2-hop query G->M->X
-     (hash-set! go-processes u (list->set (map concept->curie (hash-ref name=>concepts 'X))))
-     (for-each
-      (lambda (e)
-        ;;populates go-process-members values with the member UniProts, P, gotten from the 1-hop query P->X
-        (hash-update! go-process-members (concept->curie (edge->object e)) (lambda (v) (set-add v (concept->curie (edge->subject e)))) (set))
+     (define S (filter (lambda (x) (equal? (car x) 'rtx2)) (find-concepts #t (list u))))
+     ;;G->M->X 1.1 + 1.3
+     ;;G->C - 1.2
+     ;;rG->X - 1.4
+     ;;rG->rC - 1.5
+     (unless (empty? S)
+       (match-define
+         (list name=>concepts name=>edges)
+         (time (run/graph
+                ((G S)
+                 (M #f)
+                 (X #f)
+                 (C #f)
+                 (rG #f)
+                 (rC #f))
+                ((G->M involved_in)
+                 (G->C expressed_in)
+                 (M->X regulators)
+                 (rG->X involved_in)
+                 (rG->rC expressed_in))
+                (G G->M M)
+                (G G->C C)
+                (M M->X X)
+                (rG rG->X X)
+                (rG rG->rC rC))))
+       ;;go-processes (k=>v): G=>X
+       (hash-set! go-processes u (list->set (map concept->curie (hash-ref name=>concepts 'X))))
+       ;;cell-expression-hash (k=>v): G=>C
+       (hash-set! cell-expression-hash u (list->set (filter (lambda (x) (string-prefix? x "UBERON:")) (map concept->curie (hash-ref name=>concepts 'C)))))
+       ;;regulated-genes-cell-expression-hash (k=>v): rG=>rC
+       (for-each
+        (lambda (e)
+          (unless (not (string-prefix? (concept->curie (edge->object e)) "UBERON:"))
+            (hash-update! regulated-genes-cell-expression-hash (concept->curie (edge->subject e)) (lambda (v) (set-add v (concept->curie (edge->object e)))) (set))
+            )
+          )
+        (hash-ref name=>edges 'rG->rC)
         )
-      (hash-ref name=>edges 'P->X)
-      )
+       ;;go-process-members (k=>v): X=>rG
+       (for-each
+        (lambda (e)
+          (unless (set-member? S (concept->curie (edge->subject e)))
+            (hash-update! go-process-members (concept->curie (edge->object e)) (lambda (v) (set-add v (concept->curie (edge->subject e)))) (set))
+            )
+          )
+        (hash-ref name=>edges 'rG->X)
+        )
+       )
      )
    prot-list
    )
-  ;;counting
-  (hash-for-each go-processes
+  (list go-processes go-process-members cell-expression-hash regulated-genes-cell-expression-hash)
+  )
+#|Examples
+(define ards-pos-reg (count-downstream uniprots '("positively_regulates")))
+(define ards-neg-reg (count-downstream uniprots '("negatively_regulates")))
+(define ards-subclass_of (count-downstream uniprots '("subclass_of")))
+(define ards-all-regulation (count-downstream uniprots '("positively_regulates" "negatively_regulates" "subclass_of")))
+|#
+
+
+#|
+takes: a list of 4 hash tables returned by the count-downstream function above
+
+Manipulates the given hash tables to provide a ranked list of the genes of interest (given as argument prot-list in count-downstream function) by the number of
+other genes they regulate within each cell/tissue type thet they're expressed in. Also gives a ranked list of the cell/tissue types by the number of the genes
+of interest that are expressed in them. This is to make finding possible cells/tissues of interest easier.
+
+returns: A list of 2 assoc lists - overview of the structure: (list
+                                                                (list (C' . int)
+                                                                      (C" . int)
+                                                                        ...
+                                                                  )
+                                                                (list (C' (G . (set rG's))
+                                                                          (G . (set rG's))
+                                                                           ...
+                                                                        )
+                                                                      (C" (G . (set rG's))
+                                                                          (G . (set rG's))
+                                                                           ...
+                                                                        )
+                                                                       ...
+                                                                  )
+                                                                )
+The first assoc list (key . value): the key is the cell/tissue type (C), the value is (int) the number of genes of interest that are expressed in that
+                                    cell/tissue type. The first assoc is sorted from highest to lowest int
+The second assoc list (key . (key . value)): the first key is the cell/tissue type (C), the value is another assoc list where the keys are the genes of interest (G)
+  (a nested assoc list)                      expressed in the cell/tissue type (C) and the values are sets of other genes (rG) that are expressed in the cell/tissue type (C)
+                                             AND regulated by the gene of interest (G)
+                                             The inner assoc list is sorted (high->low) by the number of regulated genes (rG). The outer assoc list is given in the same order as
+                                             the first assoc list above.
+|#
+(define (count-by-cell-expressed-in count-downstream-results)
+  (define G=>X (list-ref count-downstream-results 0))
+  (define X=>rG (list-ref count-downstream-results 1))
+  (define G=>C (list-ref count-downstream-results 2))
+  (define rG=>rC (list-ref count-downstream-results 3))
+  (define cell-expression-ranks (make-hash))
+  (define counter (make-hash))
+  ;;populate cell-expression-ranks
+  (hash-for-each
+   G=>X
+   (lambda (G X)
+     (set-for-each
+      X
+      (lambda (x)
+        (set-for-each
+         (set-intersect (hash-ref X=>rG x (set)) (list->set uniprots));;filters for just ARDS genes, remove set-intersect for no filter
+         (lambda (rg)
+           (set-for-each
+            (set-intersect (hash-ref G=>C G (set)) (hash-ref rG=>rC rg (set)))
+            (lambda (c)
+              (hash-update! cell-expression-ranks c
+                            (lambda (h)
+                              (hash-update! h G (lambda (v) (set-add v rg)) (set))
+                              h
+                              )
+                            (make-hash)
+                            )
+              )
+            )
+           )
+         )
+        )
+      )
+     )
+   )
+  (hash-for-each cell-expression-ranks
                  (lambda (k v)
-                   (define members (mutable-set))
-                   (set-for-each v
-                                 (lambda (g)
-                                   (set-union! members (set-intersect (list->set prot-list) (hash-ref go-process-members g (set))))
-                                   ))
-                   (hash-set! counter k (set-count members))
+                   (hash-set! cell-expression-ranks k (sort-inner-hash v))
+                   (hash-set! counter k (hash-count v))
                    )
                  )
-  (sort-count counter)
+  (list (sort-counter counter) (sort-outer-hash cell-expression-ranks))
   )
+#|Examples
+(define ards-cell-type-count (count-by-cell-expressed-in ards-pos-reg))
 
-#|2-hop query using query/graph
-(for-each
- (lambda (x) (time
-              (define q2hop (query/graph
-                             ((G x)
-                              (M #f)
-                              (X (lambda (c) (string-prefix? c "GO:"))))
-                             ((G->M '("involved_in"))
-                              (M->X go-regulators))
-                             (G G->M M)
-                             (M M->X X)))
-              (hash-set! go-processes x (curies/query q2hop 'X))
-              ))
- uniprots
- )
+(car ards-cell-type-count) ;;gives the ranked count of the number of genes expressed in each cell type
+(cadr ards-cell-type-count) ;;gives the second (more meaningful) assoc list
+
+;;To get the ranked assoc list of regulating genes for the liver ("UBERON:0002107")
+(define liver-genes (cdr (assoc "UBERON:0002107" (cadr ards-cell-type-count))))
+;;for the lung ("UBERON:0002048")
+(define lung-genes (cdr (assoc "UBERON:0002048" (cadr ards-cell-type-count))))
 |#
 
 #|
-(define (uniprot->ensembl uni)
-  (set-intersect (set->list gene-list) (map car (curie-synonyms/names uni)))
-  )
-
-(define top10 (remove-duplicates (flatten (map uniprot->ensembl (map car (take (sort-count counter) 10))))))
-
-(define member-of (make-hash))
-(hash-for-each go-process-members
-               (lambda (k v)
-                 (set-for-each v
-                               (lambda (u)
-                                 (hash-update! member-of u (lambda (x) (cons k x)) '())
-                                 )
-                               )
-                 )
-               )
-(sort-by-length member-of)
-
-(define regulates-go (make-hash))
-(hash-for-each go-processes
-               (lambda (k v)
-                 (set-for-each v
-                               (lambda (p)
-                                 (hash-update! regulates-go p (lambda (x) (cons k x)) '())
-                                 )
-                               )
-                 )
-               )
-(sort-by-length regulates-go)
-|#
-
-(define preds-of-interest '("negatively_regulates"
-                            "physically_interacts_with"
-                            "positively_regulates"
-                            "regulates"
-                            "regulates_activity_of"
-                            "regulates_expression_of"
-                            "stimulates"
-                            "inhibits"))
-
-(define seen (mutable-set))
-(define g-of-interest (mutable-set "ENSEMBL:ENSG00000136689"))
-
-(define (backtrace cur-genes g-list)
-  (define all-upstreams (mutable-set))
-  (set-for-each cur-genes
-                (lambda (g)
-                  (define q (query/graph
-                             ((S #f)
-                              (G g))
-                             ((S->G preds-of-interest))
-                             (S S->G G)))
-                  (define all-synons (list->set (map car (unwrap (map curie-synonyms/names (curies/query q 'S))))))
-                  (define upstream (set-remove (set-intersect g-list all-synons) g))
-                  ;;(printf "~v\n" upstream)
-                  (printf "~v . ~v\n" g (set-count upstream)) 
-                  (set-union! all-upstreams upstream)
-                  )
-                )
-  ;;update seen list
-  (set-union! seen cur-genes)
-  (set-subtract! all-upstreams seen)
-  (printf "~v\n\n" (set-count all-upstreams))
-  (if (eq? (set-count all-upstreams) 0) cur-genes
-      (backtrace all-upstreams g-list))
-  )
-  
-;;(backtrace g-of-interest gene-list)
-
-#|
-(define endpoints (mutable-set))
-(define prots-seen (mutable-set))
-
-(define (backtrace-by-go cur-prot)
-  (set-add! prots-seen cur-prot)
-  (define all-gos (hash-ref member-of cur-prot '()))
-  (define all-upstreams (mutable-set))
-  (for-each
-   (lambda (gp)
-     (set-union! all-upstreams (list->mutable-set (hash-ref regulates-go gp '())))
-     )
-   all-gos
-   )
-  (if (set-empty? all-upstreams) (set-add! endpoints cur-prot)
-      ((printf "~v : ~v\n" cur-prot (set-count all-upstreams))
-       (set-subtract! all-upstreams prots-seen)
-       (set-for-each all-upstreams
-                     (lambda (u)
-                       (backtrace-by-go u)
-                       )
-                     )    )    
-      )
-  )
-
-(set-clear! endpoints)
-(backtrace-by-go "UniProtKB:P01137")
-|#
-#|
-Top10 from count-downstream of ARDS gene-list
-
-"ENSEMBL:ENSG00000105329"
-  "ENSEMBL:ENSG00000112715"
-  "ENSEMBL:ENSG00000078401"
-  "ENSEMBL:ENSG00000100644"
-  "ENSEMBL:ENSG00000168610"
-  "ENSEMBL:ENSG00000125538"
-  "ENSEMBL:ENSG00000136689"
-  "ENSEMBL:ENSG00000100292"
-  "ENSEMBL:ENSG00000087250"
-  "ENSEMBL:ENSG00000105974"
-  "ENSEMBL:ENSG00000166949"
-|#
-
-#|
-Backtrace results
-Input:"ENSEMBL:ENSG00000105329"
-Output: 
-"ENSEMBL:ENSG00000208001" . 0
-"ENSEMBL:ENSG00000171109" . 3
-"ENSEMBL:ENSG00000063180" . 2
-"ENSEMBL:ENSG00000199038" . 0
-"ENSEMBL:ENSG00000199133" . 0
-"ENSEMBL:ENSG00000277443" . 9
-"ENSEMBL:ENSG00000211590" . 0
-"ENSEMBL:ENSG00000100410" . 2
-"ENSEMBL:ENSG00000109063" . 7
-"ENSEMBL:ENSG00000166347" . 4
-"ENSEMBL:ENSG00000162104" . 2
-"ENSEMBL:ENSG00000198982" . 0
-"ENSEMBL:ENSG00000125779" . 1
-"ENSEMBL:ENSG00000153391" . 1
-"ENSEMBL:ENSG00000103510" . 2
-"ENSEMBL:ENSG00000207590" . 0
-"ENSEMBL:ENSG00000207731" . 0
-"ENSEMBL:ENSG00000198026" . 3
-"ENSEMBL:ENSG00000083807" . 4
-"ENSEMBL:ENSG00000115718" . 3
-"ENSEMBL:ENSG00000199020" . 0
-"ENSEMBL:ENSG00000284520" . 0
-"ENSEMBL:ENSG00000163702" . 5
-"ENSEMBL:ENSG00000145649" . 1
-"ENSEMBL:ENSG00000153395" . 1
-"ENSEMBL:ENSG00000167315" . 4
-"ENSEMBL:ENSG00000160932" . 0
-"ENSEMBL:ENSG00000266964" . 2
-"ENSEMBL:ENSG00000165682" . 3
-"ENSEMBL:ENSG00000173805" . 9
-"ENSEMBL:ENSG00000125482" . 4
-"ENSEMBL:ENSG00000145794" . 8
-"ENSEMBL:ENSG00000163803" . 1
-"ENSEMBL:ENSG00000105370" . 6
-
-Input:"ENSEMBL:ENSG00000168610"
-Output: 29
-"ENSEMBL:ENSG00000208001" . 0
-"ENSEMBL:ENSG00000063180" . 2
-"ENSEMBL:ENSG00000199038" . 0
-"ENSEMBL:ENSG00000199133" . 0
-"ENSEMBL:ENSG00000211590" . 0
-"ENSEMBL:ENSG00000100410" . 2
-"ENSEMBL:ENSG00000162104" . 2
-"ENSEMBL:ENSG00000198982" . 0
-"ENSEMBL:ENSG00000138744" . 4
-"ENSEMBL:ENSG00000125779" . 1
-"ENSEMBL:ENSG00000187258" . 4
-"ENSEMBL:ENSG00000153391" . 1
-"ENSEMBL:ENSG00000103510" . 2
-"ENSEMBL:ENSG00000207590" . 0
-"ENSEMBL:ENSG00000048740" . 4
-"ENSEMBL:ENSG00000198026" . 3
-"ENSEMBL:ENSG00000083807" . 4
-"ENSEMBL:ENSG00000137959" . 3
-"ENSEMBL:ENSG00000115850" . 4
-"ENSEMBL:ENSG00000115718" . 3
-"ENSEMBL:ENSG00000199020" . 0
-"ENSEMBL:ENSG00000174607" . 1
-"ENSEMBL:ENSG00000145649" . 1
-"ENSEMBL:ENSG00000167315" . 4
-"ENSEMBL:ENSG00000173805" . 9
-"ENSEMBL:ENSG00000196843" . 1
-"ENSEMBL:ENSG00000125482" . 4
-"ENSEMBL:ENSG00000145794" . 8
-"ENSEMBL:ENSG00000105370" . 6
-
-Input:"ENSEMBL:ENSG00000112715"
-Output: 1
-"ENSEMBL:ENSG00000153391" . 1
-
-Input: "ENSEMBL:ENSG00000136689"
-Output: 41
-"ENSEMBL:ENSG00000208001" . 0
-"ENSEMBL:ENSG00000171109" . 3
-"ENSEMBL:ENSG00000063180" . 2
-"ENSEMBL:ENSG00000133019" . 5
-"ENSEMBL:ENSG00000199038" . 0
-"ENSEMBL:ENSG00000199133" . 0
-"ENSEMBL:ENSG00000179776" . 15
-"ENSEMBL:ENSG00000021355" . 5
-"ENSEMBL:ENSG00000133661" . 1
-"ENSEMBL:ENSG00000207827" . 1
-"ENSEMBL:ENSG00000211590" . 0
-"ENSEMBL:ENSG00000100410" . 2
-"ENSEMBL:ENSG00000118194" . 2
-"ENSEMBL:ENSG00000109063" . 7
-"ENSEMBL:ENSG00000117569" . 2
-"ENSEMBL:ENSG00000162104" . 2
-"ENSEMBL:ENSG00000198982" . 0
-"ENSEMBL:ENSG00000138744" . 4
-"ENSEMBL:ENSG00000125779" . 1
-"ENSEMBL:ENSG00000085063" . 14
-"ENSEMBL:ENSG00000103510" . 2
-"ENSEMBL:ENSG00000207590" . 0
-"ENSEMBL:ENSG00000207731" . 0
-"ENSEMBL:ENSG00000284204" . 0
-"ENSEMBL:ENSG00000164330" . 9
-"ENSEMBL:ENSG00000101000" . 6
-"ENSEMBL:ENSG00000137959" . 3
-"ENSEMBL:ENSG00000115718" . 3
-"ENSEMBL:ENSG00000199020" . 0
-"ENSEMBL:ENSG00000284520" . 0
-"ENSEMBL:ENSG00000163702" . 5
-"ENSEMBL:ENSG00000167315" . 4
-"ENSEMBL:ENSG00000160932" . 0
-"ENSEMBL:ENSG00000070614" . 3
-"ENSEMBL:ENSG00000266964" . 2
-"ENSEMBL:ENSG00000165682" . 3
-"ENSEMBL:ENSG00000196843" . 1
-"ENSEMBL:ENSG00000125482" . 4
-"ENSEMBL:ENSG00000145794" . 8
-"ENSEMBL:ENSG00000163803" . 1
-"ENSEMBL:ENSG00000105370" . 6 
+(make-hash 'ARDS-Genelist
+           (make-hash 'Gene1-ARDS
+                      (make-hash 'Gene1-UBERON-cell-location
+                                 (make-hash 'pos-reg-GO1
+                                            (make-hash 'GO1
+                                                       (make-hash 'GO1-members
+                                                                  (make-hash 'GO1-member-UBERON-Cell-locations
+                                                                             (make-hash 'GO1-ARDS-members)
+                                                                             )))))))
 |#
