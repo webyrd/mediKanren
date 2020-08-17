@@ -266,8 +266,9 @@
 ;; TMPRSS2
 #|
 (define the-gene-curies  (list "HGNC:11876"))
-(define the-gene-curies  (list "UMLS:C1336641"))
-(define the-gene-symbol (concept->name (car (find-concepts #t the-gene-curies))))
+(map curie-synonyms-raw the-gene-curies)
+(map curie-synonyms/names the-gene-curies)
+(define alt-gene-curies  (list "UMLS:C1336641"))
 (dr-query the-gene-curies)
 |#
 
