@@ -721,7 +721,7 @@ returns: sorted (high->low) assoc list of a count of the number of other protein
       (backtrace all-upstreams g-list))
   )
   
-(backtrace g-of-interest gene-list)
+;;(backtrace g-of-interest gene-list)
 
 #|
 (define endpoints (mutable-set))
