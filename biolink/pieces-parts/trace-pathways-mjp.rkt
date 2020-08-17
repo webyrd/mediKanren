@@ -634,7 +634,7 @@ returns: a list of the hash tables in this order: go-processes, go-process-membe
        (hash-set! go-processes u (list->set (map concept->curie (hash-ref name=>concepts 'X))))
        ;;cell-expression-hash (k=>v): G=>C
        (hash-set! cell-expression-hash u (list->set (filter (lambda (x) (string-prefix? x "UBERON:")) (map concept->curie (hash-ref name=>concepts 'C)))))
-       ;;regulates-genes-cell-expression-hash (k=>v): rG=>rC
+       ;;regulated-genes-cell-expression-hash (k=>v): rG=>rC
        (for-each
         (lambda (e)
           (unless (not (string-prefix? (concept->curie (edge->object e)) "UBERON:"))
@@ -659,10 +659,10 @@ returns: a list of the hash tables in this order: go-processes, go-process-membe
   (list go-processes go-process-members cell-expression-hash regulated-genes-cell-expression-hash)
   )
 #|Examples
-(define ards-pos-reg (count-downstream uniprots '("positively_regulates"))))
-(define ards-neg-reg (count-downstream uniprots '("negatively_regulates"))))
-(define ards-subclass_of (count-downstream uniprots '("subclass_of"))))
-(define ards-all-regulation (count-downstream uniprots '("positively_regulates" "negatively_regulates" "subclass_of"))))
+(define ards-pos-reg (count-downstream uniprots '("positively_regulates")))
+(define ards-neg-reg (count-downstream uniprots '("negatively_regulates")))
+(define ards-subclass_of (count-downstream uniprots '("subclass_of")))
+(define ards-all-regulation (count-downstream uniprots '("positively_regulates" "negatively_regulates" "subclass_of")))
 |#
 
 
@@ -705,29 +705,33 @@ The second assoc list (key . (key . value)): the first key is the cell/tissue ty
   (define cell-expression-ranks (make-hash))
   (define counter (make-hash))
   ;;populate cell-expression-ranks
-  (hash-for-each G=>X
-                 (lambda (G X)
-                   (set-for-each X
-                                 (lambda (x)
-                                   (set-for-each (set-intersect (hash-ref X=>rG x (set)) (list->set uniprots));;filters for just ARDS genes, remove set-intersect for no filter
-                                                 (lambda (rg)
-                                                   (set-for-each (set-intersect (hash-ref G=>C G (set)) (hash-ref rG=>rC rg (set)))
-                                                                 (lambda (c)
-                                                                   (hash-update! cell-expression-ranks c
-                                                                                 (lambda (h)
-                                                                                   (hash-update! h G (lambda (v) (set-add v rg)) (set))
-                                                                                   h
-                                                                                   )
-                                                                                 (make-hash)
-                                                                                 )
-                                                                   )
-                                                                 )
-                                                   )
-                                                 )
-                                   )
-                                 )
-                   )
-                 )
+  (hash-for-each
+   G=>X
+   (lambda (G X)
+     (set-for-each
+      X
+      (lambda (x)
+        (set-for-each
+         (set-intersect (hash-ref X=>rG x (set)) (list->set uniprots));;filters for just ARDS genes, remove set-intersect for no filter
+         (lambda (rg)
+           (set-for-each
+            (set-intersect (hash-ref G=>C G (set)) (hash-ref rG=>rC rg (set)))
+            (lambda (c)
+              (hash-update! cell-expression-ranks c
+                            (lambda (h)
+                              (hash-update! h G (lambda (v) (set-add v rg)) (set))
+                              h
+                              )
+                            (make-hash)
+                            )
+              )
+            )
+           )
+         )
+        )
+      )
+     )
+   )
   (hash-for-each cell-expression-ranks
                  (lambda (k v)
                    (hash-set! cell-expression-ranks k (sort-inner-hash v))
@@ -742,7 +746,9 @@ The second assoc list (key . (key . value)): the first key is the cell/tissue ty
 (car ards-cell-type-count) ;;gives the ranked count of the number of genes expressed in each cell type
 (cadr ards-cell-type-count) ;;gives the second (more meaningful) assoc list
 
-;;To get the ranked assoc list of regulating genes for the lung ("UBERON:0002048")
+;;To get the ranked assoc list of regulating genes for the liver ("UBERON:0002107")
+(define liver-genes (cdr (assoc "UBERON:0002107" (cadr ards-cell-type-count))))
+;;for the lung ("UBERON:0002048")
 (define lung-genes (cdr (assoc "UBERON:0002048" (cadr ards-cell-type-count))))
 |#
 
