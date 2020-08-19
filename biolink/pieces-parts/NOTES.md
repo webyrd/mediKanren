@@ -132,3 +132,34 @@
     https://www.cshlpress.com/default.tpl?cart=1592597073832848389&fromlink=T&linkaction=full&linksortby=oop_title&--eqSKUdatarq=1019
   - A Genetic Switch, Phage Lambda Revisited
     https://www.cshlpress.com/default.tpl?cart=1592597118832862691&fromlink=T&linkaction=full&linksortby=oop_title&--eqSKUdatarq=468
+
+# Propagators
+
+If query structure is not a tree, then you can run into inconsistency.
+
+Situation were arc-consistency is not enough.
+
+A --- B
+ \ C /
+
+```
+(query
+  (concepts
+   (a A)
+   (b B)
+   (c C))
+  (edges
+    (a R1 b)
+    (b R2 c)
+    (c R3 a)))
+
+A: {a1, a2}
+B: {b1, b2}
+C: {c1, c2}
+
+R1: {(a1, b1) (a2,b2)}
+R2: {(b2,c2) (b2, c1)}
+R3: {(c1, a1) (c2,a2)}
+```
+
+We're constrainting the sets A, B, C based on the edges.
