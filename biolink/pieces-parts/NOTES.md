@@ -157,9 +157,9 @@ A: {a1, a2}
 B: {b1, b2}
 C: {c1, c2}
 
-R1: {(a1, b1) (a2,b2)}
-R2: {(b2,c2) (b2, c1)}
-R3: {(c1, a1) (c2,a2)}
+R1: {(a1,b1) (a2,b2)}
+R2: {(b1,c2) (b2,c1)}
+R3: {(c1,a1) (c2,a2)}
 ```
 
 We're constrainting the sets A, B, C based on the edges.
