@@ -182,7 +182,7 @@ query/graph: runs the query graph given subject and object concepts, documented 
 		 ((S->O #f))
 		 (S S->O O))))
 (pretty-print (time (report/query qo)))
-(pretty-print (time (ranked-paths qo)))
+;;(pretty-print (time (ranked-paths qo)))
 
 
 ;; defines a list of the providers that indicate the GO ontology
@@ -227,7 +227,7 @@ query/graph: runs the query graph given subject and object concepts, documented 
 ;; prints a report of the queries from the run of the query graph stored in qa
 (pretty-print (time (report/query qa)))
 ;; prints the ranked paths in qa
-(pretty-print (time (ranked-paths qa)))
+;;(pretty-print (time (ranked-paths qa)))
 
 #|
 This defines q as the run of the query/graph subsequently defined, which found two different paths from subject to object,
@@ -313,12 +313,12 @@ This line defines r as the list returned by (ranked-paths qc)
 ranked-paths: ranked-paths takes a query/graph and uses a ranking system to return a list of composite edges from query/graph ranked by confidence, documented in query.rkt
 |#
 (define r (ranked-paths qc))
-(cadr r)
+;;(cadr r)
 ;; prints the ranked-paths
-(pretty-print (time (ranked-paths qc)))
+;;(pretty-print (time (ranked-paths qc)))
 
 ;; finds the edges from qc that are S2->O
-(edges/query qc 'S2->O)
+;;(edges/query qc 'S2->O)
 ;; finds the the number of genes that are in the same pathway
 (length (curies/query qc 'S2))
 (length (edges/query qc 'S2->O))
@@ -344,4 +344,81 @@ query/graph: runs the query graph given subject and object concepts, documented 
 ;; prints the queries and the ranked paths
 (pretty-print (time (report/query qcomp)))
 (define rcomp (ranked-paths qcomp))
-rcomp
+;;rcomp
+
+;; let's find that TMPRSS is negatively regulated by estrogens
+;; in 2 hops: estrogens -decreases-> androgens -increases-> TMPRSS2
+
+(define tmprss2-curie "UMLS:C1336641")
+(define androgens-curie "UMLS:C0002844")
+
+;; the second hop in a low level query
+(run* (q)
+      (fresh (db edge eid subject object pred eprops
+                 scid scui sname sdetails
+                 pred-id pred-name
+                 ocid ocui oname odetails)
+            (== `(,eid ,subject ,object ,pred . ,eprops) edge)
+            (== pred `(,pred-id . ,pred-name))
+            (conde
+             ((== pred-name "positively_regulates"))
+             ((== pred-name "negatively_regulates")))
+            (~cui-concepto tmprss2-curie `(,db . ,object))
+            (edgeo `(,db . ,edge))
+            (== `(,scid ,scui ,sname . ,sdetails) subject)
+            (== `(,ocid ,ocui ,oname . ,odetails) object)
+            (== q `(,db ,sname ,pred-name ,oname))))
+
+(define (pretty-edges q edge-label)
+  (map (lambda (e)
+       (list
+        ;;(edge->eid e)
+        (edge->dbname e)
+        ;;(concept->curie (edge->subject e))
+        (concept->name (edge->subject e))
+        (cdr (edge->pred e))
+        ;;(concept->curie (edge->object e))
+        (concept->name (edge->object e))))
+     (edges/query q edge-label)))
+;; second hop in a high-level query
+
+(define q_hop2
+  (query/graph
+   (;; concepts
+    (O tmprss2-curie)
+    (S #f))
+   (;; edges
+    (S->O (list "positively_regulates" "negatively_regulates")))
+   ;; paths
+   (S S->O O)))
+(report/query q_hop2)
+;; we can find androgens
+(pretty-edges q_hop2 'S->O)
+
+(define q_hop1
+  (query/graph
+   (;; concepts
+    (O androgens-curie)
+    (S #f))
+   (;; edges
+    (S->O (list "negatively_regulates")))
+   ;; paths
+   (S S->O O)))
+(report/query q_hop1)
+;; we can find estrogen
+(pretty-edges q_hop1 'S->O)
+
+(define q_2hops
+  (query/graph
+   (;; concepts
+    (O tmprss2-curie)
+    (S #f)
+    (R #f))
+   (;; edges
+    (R->S (list "negatively_regulates"))
+    (S->O (list "positively_regulates")))
+   ;; paths
+   (R R->S S)
+   (S S->O O)))
+;; explosion of results
+(report/query q_2hops)
