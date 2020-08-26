@@ -346,13 +346,32 @@ query/graph: runs the query graph given subject and object concepts, documented 
 (define rcomp (ranked-paths qcomp))
 ;;rcomp
 
+positively-regulates
+;; low-level 1-hop query
+(define rhobtb2-curie "UMLS:C1425762")
+(run* (q)
+  (fresh (db edge eid subject object pred eprops
+             scid scui sname sdetails
+             pred-id pred-name
+             ocid ocui oname odetails)
+     (== `(,eid ,subject ,object ,pred . ,eprops) edge)
+     (== pred `(,pred-id . ,pred-name))
+     (conde
+      ((== pred-name "positively_regulates"))
+      ((== pred-name "negatively_regulates")))
+     (~cui-concepto rhobtb2-curie `(,db . ,object))
+     (edgeo `(,db . ,edge))
+     (== `(,scid ,scui ,sname . ,sdetails) subject)
+     (== `(,ocid ,ocui ,oname . ,odetails) object)
+     (== q `(,db ,sname ,pred-name ,oname))))
+
 ;; let's find that TMPRSS is negatively regulated by estrogens
 ;; in 2 hops: estrogens -decreases-> androgens -increases-> TMPRSS2
 
 (define tmprss2-curie "UMLS:C1336641")
 (define androgens-curie "UMLS:C0002844")
 
-;; the second hop in a low level query
+;; the second hop in a low level queryb
 (run* (q)
       (fresh (db edge eid subject object pred eprops
                  scid scui sname sdetails
@@ -381,6 +400,18 @@ query/graph: runs the query graph given subject and object concepts, documented 
         (concept->name (edge->object e))))
      (edges/query q edge-label)))
 ;; second hop in a high-level query
+
+(define q_hop2r
+  (query/graph
+   (;; concepts
+    (O rhobtb2-curie)
+    (S #f))
+   (;; edges
+    (S->O (list "positively_regulates" "negatively_regulates")))
+   ;; paths
+   (S S->O O)))
+(report/query q_hop2r)
+(pretty-edges q_hop2r 'S->O)
 
 (define q_hop2
   (query/graph
