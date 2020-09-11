@@ -1,0 +1,361 @@
+<clinical_study>
+  <!-- This xml conforms to an XML Schema at:
+    https://clinicaltrials.gov/ct2/html/images/info/public.xsd -->
+  <required_header>
+    <download_date>ClinicalTrials.gov processed this data on September 01, 2020</download_date>
+    <link_text>Link to the current ClinicalTrials.gov record.</link_text>
+    <url>https://clinicaltrials.gov/show/NCT00280033</url>
+  </required_header>
+  <id_info>
+    <org_study_id>04-062</org_study_id>
+    <nct_id>NCT00280033</nct_id>
+  </id_info>
+  <brief_title>H5 Adult - Chiron Study of Bird Flu Vaccine</brief_title>
+  <official_title>A Randomized, Placebo-Controlled, Phase I/II, Dose-Ranging Study of the Safety, Reactogenicity, and Immunogenicity of Intramuscular Inactivated Influenza A/H5N1 Vaccine Given Alone or Combined With Adjuvants in Healthy Adults</official_title>
+  <sponsors>
+    <lead_sponsor>
+      <agency>National Institute of Allergy and Infectious Diseases (NIAID)</agency>
+      <agency_class>NIH</agency_class>
+    </lead_sponsor>
+  </sponsors>
+  <source>National Institute of Allergy and Infectious Diseases (NIAID)</source>
+  <brief_summary>
+    <textblock>
+      This study is will gather critical information on the safety, tolerability, and the
+      immunogenicity (capability of causing an immune response) of A/H5N1 (Bird flu) virus vaccine
+      in healthy adults. Up to 400 healthy adults, aged 18 to 64, will participate. Each subject
+      will participate for about 7 months and will be randomly placed in one of several different
+      study groups receiving a different dose of vaccine or placebo. All subjects will receive two
+      injections of their assigned study product, about 28 days apart, in the muscle. Subjects will
+      keep a journal of their temperature and any adverse effects between study visits. A small
+      amount of blood will also be drawn before the first injection, 7 days after each injection, 1
+      month after the first injection, and 1 and 6 months after the second injection.
+    </textblock>
+  </brief_summary>
+  <detailed_description>
+    <textblock>
+      The emergence of novel influenza A virus strains in humans (including subtype A/H5N1, H7N7
+      H9N2 viruses) has added urgency to ongoing efforts to develop plans for responding to
+      potential pandemic situations. This study compares the safety, reactogenicity, and
+      immunogenicity of increasing doses of monovalent subvirion influenza A/H5N1 virus vaccine
+      administered by intramuscular (IM) injection to healthy adults alone or combined with the
+      adjuvants aluminum hydroxide or MF59. The primary objectives are to determine: the
+      dose-related safety of subvirion inactivated H5N1vaccine with and without adjuvants in
+      healthy adults; the dose-related immunogenicity of subvirion inactivated H5N1vaccine with and
+      without adjuvants in healthy adults approximately 1 month following receipt of 2 vaccine
+      doses; to provide information for the selection of the best dosage level for further studies.
+      The secondary objectives are to evaluate dose-related immunogenicity and the percent of
+      subjects responding about 1 and 7 months after the first vaccination. The primary endpoints
+      are: adverse event (AE) or serious adverse event (SAE) information; proportion of subjects in
+      each dose group achieving a serum neutralizing antibody titer of 1:40 against the influenza
+      A/H5N1 virus 28 days after receipt of the second dose of vaccine; proportion of subjects in
+      each dose group achieving a serum hemagglutination (HAI) antibody titer of 1:40 against the
+      influenza A/H5N1 virus 28 days after receipt of the second dose of vaccine; geometric mean
+      titer (GMT) and frequency of 4-fold or greater increases in neutralizing antibody titers in
+      each group 28 days after receipt of the second dose of vaccine; geometric mean titer and
+      frequency of 4-fold or greater increases in serum HAI antibody titers in each group 28 days
+      after receipt of the second dose of vaccine. The secondary endpoints are: GMT and frequency
+      of 4-fold or greater increases in neutralizing antibody titers in each group 1 month and 7
+      months after receipt of the first dose of vaccine; geometric mean titer and frequency of
+      4-fold or greater increases in serum HAI antibody titers in each group 1 month and 7 months
+      after receipt of the first dose of vaccine; development of serum antibody responses against
+      antigenically drifted variants of H5N1 influenza virus. The primary outcome measures will be
+      the frequencies and severities of AEs in each group and the proportions of subjects who
+      achieve a serum neutralizing antibody titer of 1:40 against the influenza A/H5N1 virus on Day
+      56. About 390 healthy adults, 18 to 64 years old, inclusive, will be enrolled into this
+      multicenter, randomized, placebo-controlled, dose-ranging clinical trial. Nine groups of
+      randomized subjects will receive two doses of saline placebo or influenza A/H5N1 vaccine at
+      45, 30, or 15 micrograms; or influenza A/H5N1 vaccine at 15 or 7.5 micrograms with MF59; or
+      influenza A/H5N1 vaccine with aluminum hydroxide at 30, 15, or 7.5 micrograms (N=30, 60 or
+      90/vaccine dose group total 390). Laboratory safety profile blood will be drawn prior to the
+      first immunization. Subjects will receive 2 doses approximately 28 days apart. Subjects will
+      be observed after inoculation and maintain a memory aid for 7 days afterwards. Subjects will
+      be telephoned 1 to 3 days after vaccination for AE assessment, and they will return to the
+      clinic on Day 7 for AE and concomitant medication assessment, targeted physical examination,
+      safety laboratory tests and a review of the memory aid. Telephone calls assessing AEs will be
+      performed after each vaccination. Serum for safety laboratory tests will be obtained prior to
+      and approximately 7 days after first and second immunizations. I
+    </textblock>
+  </detailed_description>
+  <overall_status>Completed</overall_status>
+  <start_date>February 2006</start_date>
+  <completion_date type="Actual">November 2006</completion_date>
+  <primary_completion_date type="Actual">November 2006</primary_completion_date>
+  <phase>Phase 1/Phase 2</phase>
+  <study_type>Interventional</study_type>
+  <has_expanded_access>No</has_expanded_access>
+  <study_design_info>
+    <allocation>Randomized</allocation>
+    <intervention_model>Parallel Assignment</intervention_model>
+    <primary_purpose>Prevention</primary_purpose>
+    <masking>Double (Participant, Investigator)</masking>
+  </study_design_info>
+  <primary_outcome>
+    <measure>Geometric mean titer and frequency of 4-fold or greater increases in serum hemagglutination inhibition (HAI) antibody titers in each group 28 days after receipt of the second dose of vaccine.</measure>
+    <time_frame>Approximately Day 56.</time_frame>
+  </primary_outcome>
+  <primary_outcome>
+    <measure>Adverse event or SAE information (solicited in-clinic and via memory aids, concomitant medications, and periodic targeted physical assessments).</measure>
+    <time_frame>Adverse events will be collected through 28 days following the second dose of vaccine (approximately Day 56). Serious adverse events will be collected throughout the study through Day 208.</time_frame>
+  </primary_outcome>
+  <primary_outcome>
+    <measure>Proportion of subjects in each group achieving a serum neutralizing antibody titer ratio of 1:40 against the influenza A/H5N1 virus 28 days following second dose of vaccine.</measure>
+    <time_frame>Approximately Day 56.</time_frame>
+  </primary_outcome>
+  <primary_outcome>
+    <measure>Proportion of subjects in each dose group achieving a serum hemagglutination (HAI) antibody titer of 1:40 against the influenza A/H5N1 virus 28 days after receipt of the second dose of vaccine.</measure>
+    <time_frame>Approximately Day 56.</time_frame>
+  </primary_outcome>
+  <primary_outcome>
+    <measure>Geometric mean titer (GMT) and frequency of 4-fold or greater increases in neutralizing antibody titers in each group 28 days after receipt of the second dose of vaccine.</measure>
+    <time_frame>Approximately Day 56.</time_frame>
+  </primary_outcome>
+  <secondary_outcome>
+    <measure>Geometric mean titer and the frequency of 4-fold or greater increases in neutralizing antibody titers in each group 1 month after receipt of each dose, and 7 months after receipt of the first dose of vaccine.</measure>
+    <time_frame>Blood samples for serum assays will be collected at Day 0 and at Days 28, 56, and 208 after the first immunization.</time_frame>
+  </secondary_outcome>
+  <secondary_outcome>
+    <measure>Geometric mean titer and the frequency of 4-fold or greater increases in serum HAI antibody titers 1 month after receipt of each dose, and 7 months after receipt of the first dose of vaccine.</measure>
+    <time_frame>Blood samples for serum assays will be collected at Day 0 and at Days 28, 56, and 208 after the first immunization.</time_frame>
+  </secondary_outcome>
+  <secondary_outcome>
+    <measure>Development of serum antibody responses against antigenically drifted variants of H5N1influenza virus.</measure>
+    <time_frame>Blood samples for serum assays will be collected at Day 0 and at Days 28, 56, and 208 after the first immunization.</time_frame>
+  </secondary_outcome>
+  <number_of_arms>9</number_of_arms>
+  <enrollment type="Actual">394</enrollment>
+  <condition>Influenza</condition>
+  <arm_group>
+    <arm_group_label>9</arm_group_label>
+    <arm_group_type>Placebo Comparator</arm_group_type>
+    <description>Saline administered on days 0 and 28.</description>
+  </arm_group>
+  <arm_group>
+    <arm_group_label>8</arm_group_label>
+    <arm_group_type>Experimental</arm_group_type>
+    <description>45 mcg alone administered on days 0 and 28.</description>
+  </arm_group>
+  <arm_group>
+    <arm_group_label>7</arm_group_label>
+    <arm_group_type>Experimental</arm_group_type>
+    <description>30 mcg plus aluminum hydroxide administered on days 0 and 28.</description>
+  </arm_group>
+  <arm_group>
+    <arm_group_label>6</arm_group_label>
+    <arm_group_type>Experimental</arm_group_type>
+    <description>30 mcg alone administered on days 0 and 28.</description>
+  </arm_group>
+  <arm_group>
+    <arm_group_label>5</arm_group_label>
+    <arm_group_type>Experimental</arm_group_type>
+    <description>15 mcg plus aluminum hydroxide administered on days 0 and 28.</description>
+  </arm_group>
+  <arm_group>
+    <arm_group_label>4</arm_group_label>
+    <arm_group_type>Experimental</arm_group_type>
+    <description>15 mcg plus MF59 administered on days 0 and 28.</description>
+  </arm_group>
+  <arm_group>
+    <arm_group_label>3</arm_group_label>
+    <arm_group_type>Experimental</arm_group_type>
+    <description>15 mcg alone administered on days 0 and 28.</description>
+  </arm_group>
+  <arm_group>
+    <arm_group_label>2</arm_group_label>
+    <arm_group_type>Experimental</arm_group_type>
+    <description>7.5 mcg plus aluminum hydroxide administered on days 0 and 28.</description>
+  </arm_group>
+  <arm_group>
+    <arm_group_label>1</arm_group_label>
+    <arm_group_type>Experimental</arm_group_type>
+    <description>7.5 mcg plus MF59 administered on days 0 and 28.</description>
+  </arm_group>
+  <intervention>
+    <intervention_type>Biological</intervention_type>
+    <intervention_name>Aluminum hydroxide</intervention_name>
+    <description>Provided in vials that contain 0.8 mL volume per vial.</description>
+    <arm_group_label>2</arm_group_label>
+    <arm_group_label>5</arm_group_label>
+    <arm_group_label>7</arm_group_label>
+  </intervention>
+  <intervention>
+    <intervention_type>Biological</intervention_type>
+    <intervention_name>Inactivated Influenza A/H5N1 Vaccine (Chiron)</intervention_name>
+    <description>Monovalent subvirion H5N1 vaccine (HA of A/Vietnam/1203/04) provided in unit-dose vials containing 60 mcg/mL A/H5N1 HA as determined by single radial immunodiffusion. It may be formulated with MF59 or aluminum hydroxide. Dosages: 7.5 mcg, 15 mcg, 30 mcg, or 45 mcg.</description>
+    <arm_group_label>1</arm_group_label>
+    <arm_group_label>2</arm_group_label>
+    <arm_group_label>3</arm_group_label>
+    <arm_group_label>4</arm_group_label>
+    <arm_group_label>5</arm_group_label>
+    <arm_group_label>6</arm_group_label>
+    <arm_group_label>7</arm_group_label>
+    <arm_group_label>8</arm_group_label>
+  </intervention>
+  <intervention>
+    <intervention_type>Biological</intervention_type>
+    <intervention_name>MF-59</intervention_name>
+    <description>Proprietary experimental adjuvant. Provided in vials that contain 0.7 mL volume per vial.</description>
+    <arm_group_label>1</arm_group_label>
+    <arm_group_label>4</arm_group_label>
+  </intervention>
+  <intervention>
+    <intervention_type>Drug</intervention_type>
+    <intervention_name>Placebo</intervention_name>
+    <description>Saline placebo.</description>
+    <arm_group_label>9</arm_group_label>
+  </intervention>
+  <eligibility>
+    <criteria>
+      <textblock>
+        Inclusion Criteria:
+
+          -  Healthy male or nonpregnant female (as indicated by a negative urine pregnancy test
+             immediately prior to vaccine administration) between the ages of 18 and 64 years,
+             inclusive.
+
+          -  Women of childbearing potential (not surgically sterile or post menopausal for greater
+             than or equal to one year) must agree to practice adequate contraception (i.e.,
+             barrier method, abstinence, and licensed hormonal methods) for the entire study
+             period.
+
+          -  Is in good health, as determined by vital signs (heart rate, blood pressure, oral
+             temperature), medical history and a targeted physical examination based on medical
+             history.
+
+          -  Subjects should have normal safety laboratory values (Hgb, WBC, Plt, ALT, and
+             creatinine) prior to the first immunization.
+
+          -  Able to understand and comply with planned study procedures.
+
+          -  Provides written informed consent prior to initiation of any study procedures.
+
+        Exclusion Criteria:
+
+          -  Has a known allergy to eggs or other components of the vaccine or latex.
+
+          -  Has a positive urine pregnancy test prior to vaccination (if female of childbearing
+             potential) or women who are breastfeeding.
+
+          -  Is undergoing immunosuppression as a result of an underlying illness or treatment.
+
+          -  Has an active neoplastic disease or a history of any hematologic malignancy.
+
+          -  Is using oral or parenteral steroids, high-dose inhaled steroids (greater than 800
+             micrograms/day of beclomethasone dipropionate or equivalent) or other
+             immunosuppressive or cytotoxic drugs (nasal and topical steroids are allowed).
+
+          -  Has a history of receiving immunoglobulin or other blood products within the 3 months
+             prior to vaccination in this study.
+
+          -  Has received any other licensed vaccines within 2 weeks (for inactivated vaccines) or
+             4 weeks (for live vaccines) prior to vaccination in this study.
+
+          -  Has an acute or chronic medical condition that, in the opinion of the investigator,
+             would render vaccination unsafe or would interfere with the evaluation of responses
+             (this includes, but is not limited to: known chronic liver disease, significant renal
+             disease, unstable or progressive neurological disorders, diabetes mellitus, and
+             transplant recipients).
+
+          -  Has a history of severe reactions following immunization with contemporary influenza
+             virus vaccines.
+
+          -  Has an acute illness, including an oral temperature greater than 100.4 degrees F,
+             within 1 week of vaccination.
+
+          -  Received an experimental agent (vaccine, drug, biologic, device, blood product, or
+             medication) within 1 month prior to vaccination in this study, or expects to receive
+             an experimental agent during the 7-month study period.
+
+          -  Has any condition that would, in the opinion of the site investigator, place the
+             subject at an unacceptable risk of injury or render the subject unable to meet the
+             requirements of the protocol.
+
+          -  Participated in H5 vaccine study in the past.
+
+          -  Known current HIV, hepatitis B (HBsAg) or hepatitis C infection.
+
+          -  History of alcohol or drug abuse in the last 5 years.
+
+          -  Planned travel outside the US between vaccination and the second study visit.
+
+          -  History of Guillain-Barre.
+      </textblock>
+    </criteria>
+    <gender>All</gender>
+    <minimum_age>18 Years</minimum_age>
+    <maximum_age>64 Years</maximum_age>
+    <healthy_volunteers>Accepts Healthy Volunteers</healthy_volunteers>
+  </eligibility>
+  <location>
+    <facility>
+      <name>Stanford University</name>
+      <address>
+        <city>Stanford</city>
+        <state>California</state>
+        <zip>94305-5208</zip>
+        <country>United States</country>
+      </address>
+    </facility>
+  </location>
+  <location>
+    <facility>
+      <name>Saint Louis University</name>
+      <address>
+        <city>St. Louis</city>
+        <state>Missouri</state>
+        <zip>63110</zip>
+        <country>United States</country>
+      </address>
+    </facility>
+  </location>
+  <location>
+    <facility>
+      <name>Cincinnati Children's Hospital Medical Center</name>
+      <address>
+        <city>Cincinnati</city>
+        <state>Ohio</state>
+        <zip>45229-3039</zip>
+        <country>United States</country>
+      </address>
+    </facility>
+  </location>
+  <location>
+    <facility>
+      <name>Vanderbilt University</name>
+      <address>
+        <city>Nashville</city>
+        <state>Tennessee</state>
+        <zip>37232</zip>
+        <country>United States</country>
+      </address>
+    </facility>
+  </location>
+  <location_countries>
+    <country>United States</country>
+  </location_countries>
+  <results_reference>
+    <citation>Bernstein DI, Edwards KM, Dekker CL, Belshe R, Talbot HK, Graham IL, Noah DL, He F, Hill H. Effects of adjuvants on the safety and immunogenicity of an avian influenza H5N1 vaccine in adults. J Infect Dis. 2008 Mar 1;197(5):667-75. doi: 10.1086/527489.</citation>
+    <PMID>18260764</PMID>
+  </results_reference>
+  <verification_date>January 2009</verification_date>
+  <study_first_submitted>January 19, 2006</study_first_submitted>
+  <study_first_submitted_qc>January 19, 2006</study_first_submitted_qc>
+  <study_first_posted type="Estimate">January 20, 2006</study_first_posted>
+  <last_update_submitted>September 12, 2013</last_update_submitted>
+  <last_update_submitted_qc>September 12, 2013</last_update_submitted_qc>
+  <last_update_posted type="Estimate">September 13, 2013</last_update_posted>
+  <responsible_party>
+    <responsible_party_type>Sponsor</responsible_party_type>
+  </responsible_party>
+  <keyword>H5N1, Influenza, vaccine, parent protocol</keyword>
+  <condition_browse>
+    <!-- CAUTION:  The following MeSH terms are assigned with an imperfect algorithm            -->
+    <mesh_term>Influenza, Human</mesh_term>
+  </condition_browse>
+  <intervention_browse>
+    <!-- CAUTION:  The following MeSH terms are assigned with an imperfect algorithm            -->
+    <mesh_term>Aluminum Hydroxide</mesh_term>
+  </intervention_browse>
+  <!-- Results have not yet been posted for this study                                          -->
+</clinical_study>
+

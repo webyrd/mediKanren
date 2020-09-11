@@ -1,0 +1,255 @@
+<clinical_study>
+  <!-- This xml conforms to an XML Schema at:
+    https://clinicaltrials.gov/ct2/html/images/info/public.xsd -->
+  <required_header>
+    <download_date>ClinicalTrials.gov processed this data on September 01, 2020</download_date>
+    <link_text>Link to the current ClinicalTrials.gov record.</link_text>
+    <url>https://clinicaltrials.gov/show/NCT00280020</url>
+  </required_header>
+  <id_info>
+    <org_study_id>AG0061</org_study_id>
+    <secondary_id>R01AG026364</secondary_id>
+    <nct_id>NCT00280020</nct_id>
+  </id_info>
+  <brief_title>Behavioral Treatment of Insomnia in Aging</brief_title>
+  <official_title>Aging: Cytokine Mechanisms and Treatment of Insomnia</official_title>
+  <sponsors>
+    <lead_sponsor>
+      <agency>University of California, Los Angeles</agency>
+      <agency_class>Other</agency_class>
+    </lead_sponsor>
+    <collaborator>
+      <agency>National Institute on Aging (NIA)</agency>
+      <agency_class>NIH</agency_class>
+    </collaborator>
+  </sponsors>
+  <source>University of California, Los Angeles</source>
+  <oversight_info>
+    <has_dmc>Yes</has_dmc>
+  </oversight_info>
+  <brief_summary>
+    <textblock>
+      The purpose of this study is to evaluate whether Tai Chi Chih vs. cognitive behavioral
+      therapy vs. sleep education reduces insomnia in older adults. The secondary goal of the study
+      is to determine whether the behavioral treatment of insomnia alters proinflammatory cytokine
+      activity.
+    </textblock>
+  </brief_summary>
+  <detailed_description>
+    <textblock>
+      Insomnia is a prominent complaint in late-life. However, little scientific effort has been
+      directed toward identifying the biological mechanisms that are related to abnormal sleep or
+      to evaluating the efficacy of behavioral treatments for insomnia in older adults. Basic
+      observations demonstrate that proinflammatory cytokines play a key role in the regulation of
+      sleep. Previous research shows that cytokines are reciprocally linked with abnormal sleep.
+      This trial builds upon these findings and extends a program of study that has examined the
+      efficacy of behavioral interventions on health outcomes in the elderly.
+
+      Preliminary studies found that Tai Chi Chih (TCC), a slow moving meditation, contributes to
+      improvements in subjective sleep quality, sleep amounts and sleep efficiency, alterations in
+      sympathetic activity, decreases in proinflammatory cytokines, and improvements in health
+      functioning in community-dwelling older adults. Additionally, cognitive behavior therapy
+      (CBT) confers benefits on sleep outcomes.
+
+      In this randomized, controlled trial, 150 older adults will be randomly assigned to CBT, TCC,
+      or sleep hygiene/education control (EC) over 16 weeks and followed for one year. The aims of
+      this project are to: 1) evaluate the effects of CBT vs TCC vs. EC on objective and subjective
+      measures of sleep and on fatigue, mood, and health functioning in older adults with insomnia;
+      2) determine the effects of CBT vs.TCC vs. EC on measures of proinflammatory cytokine
+      activity and sympathovagal balance, and whether these two biological mechanisms are related
+      to changes of disordered sleep over the course of the treatment trial; and 3) evaluate
+      whether circulating levels of proinflammatory cytokines are associated with measures of sleep
+      continuity in older adults with insomnia over the treatment trial. This study will advance
+      psychobiological models of disordered sleep and the potential benefits of two readily
+      exportable behavioral interventions for promoting improvements in sleep outcomes in the
+      elderly.
+    </textblock>
+  </detailed_description>
+  <overall_status>Completed</overall_status>
+  <start_date>April 2006</start_date>
+  <completion_date type="Actual">August 2011</completion_date>
+  <primary_completion_date type="Actual">August 2011</primary_completion_date>
+  <phase>N/A</phase>
+  <study_type>Interventional</study_type>
+  <has_expanded_access>No</has_expanded_access>
+  <study_design_info>
+    <allocation>Randomized</allocation>
+    <intervention_model>Parallel Assignment</intervention_model>
+    <primary_purpose>Treatment</primary_purpose>
+    <masking>None (Open Label)</masking>
+  </study_design_info>
+  <primary_outcome>
+    <measure>Changes in insomnia symptoms as measured by subjective report and objective polysomnography</measure>
+    <time_frame>Subjective report: Baseline, 8, 12, 16 weeks, 3 months 1 year; PSG: Baseline, 16 weeks</time_frame>
+  </primary_outcome>
+  <secondary_outcome>
+    <measure>Changes in measures of proinflammatory cytokine activity.</measure>
+    <time_frame>Baseline, 8, 12, 16 weeks, 3 months 1 year (single samples); repeated blood sampling during PSG nights for circadian cytokine activity: Baseline, 16 weeks</time_frame>
+  </secondary_outcome>
+  <secondary_outcome>
+    <measure>Change in daytime impairment secondary to insomnia</measure>
+    <time_frame>Baseline, 8, 12, 16 weeks, 3 months 1 year</time_frame>
+  </secondary_outcome>
+  <secondary_outcome>
+    <measure>Changes in fatigue, depression and mood, and health function</measure>
+    <time_frame>Baseline, 8, 12, 16 weeks, 3 months 1 year</time_frame>
+  </secondary_outcome>
+  <secondary_outcome>
+    <measure>Changes in sympathovagal function and energy balance</measure>
+    <time_frame>Baseline, 8, 12, 16 weeks, 3 months 1 year</time_frame>
+  </secondary_outcome>
+  <secondary_outcome>
+    <measure>Changes in measures of interpersonal resilience and social</measure>
+    <time_frame>Baseline, 8, 12, 16 weeks, 3 months 1 year</time_frame>
+  </secondary_outcome>
+  <secondary_outcome>
+    <measure>Allostatic load</measure>
+    <time_frame>baseline, post-treatment, and one year follow-up</time_frame>
+    <description>CBC, glucose, HbA1c, lipids, fibrinogen, measures of inflammation</description>
+  </secondary_outcome>
+  <number_of_arms>3</number_of_arms>
+  <enrollment type="Actual">123</enrollment>
+  <condition>Aging</condition>
+  <condition>Insomnia</condition>
+  <arm_group>
+    <arm_group_label>CBT</arm_group_label>
+    <arm_group_type>Experimental</arm_group_type>
+  </arm_group>
+  <arm_group>
+    <arm_group_label>TCC</arm_group_label>
+    <arm_group_type>Experimental</arm_group_type>
+  </arm_group>
+  <arm_group>
+    <arm_group_label>SS</arm_group_label>
+    <arm_group_type>Active Comparator</arm_group_type>
+  </arm_group>
+  <intervention>
+    <intervention_type>Behavioral</intervention_type>
+    <intervention_name>Tai Chi Chih (TCC)</intervention_name>
+    <description>Participants will learn and practice 20 movements in 1 hour sessions twice per week for 16 weeks</description>
+    <arm_group_label>TCC</arm_group_label>
+  </intervention>
+  <intervention>
+    <intervention_type>Behavioral</intervention_type>
+    <intervention_name>Cognitive Behavior Therapy (CBT)</intervention_name>
+    <description>For each 2-hour session held once a week for 16 weeks, the CBT treatment manual will outline objectives, patient skills, and treatment activities. Therapists will direct role-playing and other skill-development exercises that will be designed to increase patients' self-efficacy in managing their insomnia. Homework assignments will be planned weekly to ensure practice and skill application.</description>
+    <arm_group_label>CBT</arm_group_label>
+  </intervention>
+  <intervention>
+    <intervention_type>Behavioral</intervention_type>
+    <intervention_name>Sleep Seminar (SS)</intervention_name>
+    <description>Each 2-hour session, held once a week for 16 weeks, consists of a 60-minute video presentation followed by a 60-minute question-and-answer discussion.</description>
+    <arm_group_label>SS</arm_group_label>
+  </intervention>
+  <eligibility>
+    <criteria>
+      <textblock>
+        Inclusion Criteria:
+
+          -  Older than 55 years of age at time of entry
+
+          -  Sleep-onset delay, maintenance insomnia, or terminal insomnia
+
+          -  Difficulties with sleep for a minimum of 3 nights per week
+
+          -  Insomnia duration of at least 6 months
+
+          -  Complaint of at least 1 negative effect during waking hours (e.g., fatigue, impaired
+             functioning, mood disturbances) attributed to insomnia
+
+          -  Habitual sleep-wake schedule reporting &quot;lights-out&quot; between 9:00 PM and midnight
+
+          -  Accessible geographically
+
+        Exclusion Criteria:
+
+          -  Evidence that insomnia is directly related to a medical disorder (e.g.,
+             hyperthyroidism) or effects of a medication that affects sleep structure and/or immune
+             functioning
+
+          -  Presence of sleep apnea or periodic limb movements during sleep
+
+          -  Presence of another sleep disorder (e.g., Advanced or Delay Sleep Phase Syndrome)
+
+          -  Regular use of a hypnotic or psychotropic medication (sleeping pills) and/or current
+             psychotherapy or other behavioral therapy that would confound CBT or TCC
+
+          -  Current history of a major psychiatric disorder (e.g. current major depression,
+             alcohol or substance dependence, anxiety disorder)
+
+          -  Cognitive impairment as suggested by a score lower than 23 on the Mini-Mental State
+             examination
+
+          -  Abnormal screening laboratory tests (e.g., abnormal thyroid hormone, elevated TSH,
+             positive screening for HIV or hepatitis C)
+
+          -  Smokers will also be excluded because of potential confounding effects on markers of
+             inflammation
+
+          -  Body mass index that is greater than 30 kg/m2 as obesity is associated with excessive
+             levels of inflammatory markers
+
+          -  Women must be post-menopausal
+
+          -  Unable to commit to intervention schedule
+      </textblock>
+    </criteria>
+    <gender>All</gender>
+    <minimum_age>55 Years</minimum_age>
+    <maximum_age>90 Years</maximum_age>
+    <healthy_volunteers>No</healthy_volunteers>
+  </eligibility>
+  <overall_official>
+    <last_name>Michael R. Irwin, MD</last_name>
+    <role>Principal Investigator</role>
+    <affiliation>Cousins Center for Psychoneuroimmunology, UCLA Neuropsychiatric Institute</affiliation>
+  </overall_official>
+  <location>
+    <facility>
+      <name>Cousins Center for Psychoneuroimmunology, UCLA Neuropsychiatric Institute</name>
+      <address>
+        <city>Los Angeles</city>
+        <state>California</state>
+        <zip>90095</zip>
+        <country>United States</country>
+      </address>
+    </facility>
+  </location>
+  <location_countries>
+    <country>United States</country>
+  </location_countries>
+  <reference>
+    <citation>Irwin M, Pike J, Oxman M. Shingles Immunity and Health Functioning in the Elderly: Tai Chi Chih as a Behavioral Treatment. Evid Based Complement Alternat Med. 2004 Dec;1(3):223-232. Epub 2004 Dec 1.</citation>
+    <PMID>15841255</PMID>
+  </reference>
+  <reference>
+    <citation>Irwin MR, Pike JL, Cole JC, Oxman MN. Effects of a behavioral intervention, Tai Chi Chih, on varicella-zoster virus specific immunity and health functioning in older adults. Psychosom Med. 2003 Sep-Oct;65(5):824-30.</citation>
+    <PMID>14508027</PMID>
+  </reference>
+  <reference>
+    <citation>Motivala SJ, Sarfatti A, Olmos L, Irwin MR. Inflammatory markers and sleep disturbance in major depression. Psychosom Med. 2005 Mar-Apr;67(2):187-94.</citation>
+    <PMID>15784782</PMID>
+  </reference>
+  <verification_date>July 2012</verification_date>
+  <study_first_submitted>January 18, 2006</study_first_submitted>
+  <study_first_submitted_qc>January 18, 2006</study_first_submitted_qc>
+  <study_first_posted type="Estimate">January 20, 2006</study_first_posted>
+  <last_update_submitted>July 9, 2012</last_update_submitted>
+  <last_update_submitted_qc>July 9, 2012</last_update_submitted_qc>
+  <last_update_posted type="Estimate">July 11, 2012</last_update_posted>
+  <responsible_party>
+    <responsible_party_type>Principal Investigator</responsible_party_type>
+    <investigator_affiliation>University of California, Los Angeles</investigator_affiliation>
+    <investigator_full_name>Michael Irwin, M.D.</investigator_full_name>
+    <investigator_title>Professor in Residence</investigator_title>
+  </responsible_party>
+  <keyword>sleep disorders</keyword>
+  <keyword>meditation</keyword>
+  <keyword>cognitive behavior therapy</keyword>
+  <condition_browse>
+    <!-- CAUTION:  The following MeSH terms are assigned with an imperfect algorithm            -->
+    <mesh_term>Sleep Initiation and Maintenance Disorders</mesh_term>
+  </condition_browse>
+  <!-- Results have not yet been posted for this study                                          -->
+</clinical_study>
+
