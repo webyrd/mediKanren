@@ -8,11 +8,11 @@
 ;; create sql connection object
 (define chembl_sql_local
   (mysql-connect
-   #:user "mjpatton"
-   #:database "chembl_27"
-   #:server "localhost"
-   #:port 3306
-   #:password "open_dbs"))
+   #:user ""
+   #:database ""
+   #:server ""
+   #:port 
+   #:password ""))
 
 (define query-->stream
   (lambda (db-conn query)
