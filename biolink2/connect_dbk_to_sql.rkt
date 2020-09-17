@@ -22,20 +22,24 @@
       query
       #:fetch 1))))
 
+(define sql-null-item?
+  (lambda (row-item)
+    (if (sql-null? row-item)
+        "NULL"
+        row-item
+        )))
+
 (define print-table-row-to-tsv
   (lambda (ls port)
     (cond
       ((null? ls)
        (fprintf port "~c" #\newline)
-       (void))
-      ((sql-null? (car ls))
-       (fprintf port "~a~c" "NULL" #\tab)
-       (print-table-row-to-tsv (cdr ls) port))
+       (void))      
       ((null? (cdr ls))
-       (fprintf port "~a" (car ls))
+       (fprintf port "~a" (sql-null-item? (car ls)))
        (print-table-row-to-tsv (cdr ls) port))
       (else
-       (fprintf port "~a~c" (car ls) #\tab)
+       (fprintf port "~a~c" (sql-null-item? (car ls)) #\tab)
        (print-table-row-to-tsv (cdr ls) port)))))
 
 (define get-table-col-names
