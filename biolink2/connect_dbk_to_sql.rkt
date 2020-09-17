@@ -20,7 +20,7 @@
      (in-query
       db-conn
       query
-      #:fetch +inf.0))))
+      #:fetch 1))))
 
 (define print-table-row-to-tsv
   (lambda (ls port)
@@ -65,7 +65,7 @@
 
 
 ;; test export 1.1MB file
-;(export-query-result-to-tsv chembl_sql_local "target_dictionary" "SELECT * FROM target_dictionary;")
+(export-query-result-to-tsv chembl_sql_local "target_dictionary" "SELECT * FROM target_dictionary;")
 
 
 #|samples queries|#
