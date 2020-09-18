@@ -3,10 +3,13 @@
          racket/sequence
          racket/stream
          racket/list
-         racket/string)
+         racket/string
+         db/util/datetime
+         srfi/19
+         )
 
 ;; create sql connection object
-(define chembl_sql_local
+(define sql_server
   (mysql-connect
    #:user ""
    #:database ""
@@ -14,105 +17,96 @@
    #:port 
    #:password ""))
 
+;; #:fetch 1 = lazy
+;; #:fetch +inf.0 = entire table 
 (define query-->stream
   (lambda (db-conn query)
     (sequence->stream
      (in-query
       db-conn
       query
-      #:fetch 1))))
+      #:fetch +inf.0
+      ;;#:fetch 1 
+      ))))
 
-(define sql-null-item?
+(define normalize-string-for-TSV-export
   (lambda (row-item)
-    (if (sql-null? row-item)
-        "NULL"
-        row-item
-        )))
+    (string-normalize-spaces
+     (string-trim
+      (list->string
+       (remove #\tab
+               (remove #\newline
+                       (string->list row-item))))))))
 
-(define print-table-row-to-tsv
+(define row-item-cleaner
+  (lambda (row-item)
+    (cond
+      ((boolean? row-item)
+       row-item)
+      ((sql-null? row-item) 
+       "NULL")
+      ((sql-timestamp? row-item)
+       (date->string (sql-datetime->srfi-date row-item) "~1"))
+      ((string? row-item)
+       (cond
+         ((or (string-contains? row-item "\t")
+              (string-contains? row-item "\n"))
+          (normalize-string-for-TSV-export row-item))
+         (else
+          (string-normalize-spaces row-item))))      
+      (else
+       row-item))))
+
+(define print-table-row-to-TSV
   (lambda (ls port)
     (cond
-      ((null? ls)
+      ((null? ls)       
        (fprintf port "~c" #\newline)
        (void))      
       ((null? (cdr ls))
-       (fprintf port "~a" (sql-null-item? (car ls)))
-       (print-table-row-to-tsv (cdr ls) port))
+       (fprintf port "~a" (row-item-cleaner (car ls)))
+       (print-table-row-to-TSV (cdr ls) port))
       (else
-       (fprintf port "~a~c" (sql-null-item? (car ls)) #\tab)
-       (print-table-row-to-tsv (cdr ls) port)))))
+       (fprintf port "~a~c" (row-item-cleaner (car ls)) #\tab)
+       (print-table-row-to-TSV (cdr ls) port)))))
 
 (define get-table-col-names
   (lambda (db-conn tbl-name)
     (map (lambda (x) (vector-ref x 0))
        (query-rows db-conn (string-append "DESCRIBE " tbl-name)))))
 
-(define export-query-result-to-tsv
-  (lambda (db-conn tbl-name query)
-    (let* ((tbl-col-names (get-table-col-names db-conn tbl-name))
-           (output-file (open-output-file (format "~achembl_~a_table.tsv" (find-system-path 'home-dir) tbl-name) #:exists 'replace))        
-           (stream (query-->stream db-conn query)))
-      (begin
-        (print-table-row-to-tsv tbl-col-names output-file)
-        (process-stream-to-tsv stream output-file)
-        (close-output-port output-file)))))
-
-(define process-stream-to-tsv
+(define process-stream-to-TSV
   (lambda (stream port)
     (cond
       ((stream-empty? stream)
        (void))
       (else
        (begin
-         (print-table-row-to-tsv (call-with-values (lambda () (stream-first stream)) list) port)
-         (process-stream-to-tsv (stream-rest stream) port))))))
+         (print-table-row-to-TSV (call-with-values (lambda () (stream-first stream)) list) port)
+         (process-stream-to-TSV (stream-rest stream) port))))))
 
+(define export-query-result-to-TSV
+  (lambda (db-conn tbl-name query)
+    (let* ((tbl-col-names (get-table-col-names db-conn tbl-name))
+           (output-file (open-output-file
+                         (format
+                          (find-system-path 'home-dir)
+                          tbl-name) #:exists 'replace))  
+           (stream (query-->stream db-conn query)))
+      (begin
+        (print-table-row-to-TSV tbl-col-names output-file)
+        (process-stream-to-TSV stream output-file)
+        (close-output-port output-file)))))
 
+#|
 ;; test export 1.1MB file
-(export-query-result-to-tsv chembl_sql_local "target_dictionary" "SELECT * FROM target_dictionary;")
+(export-query-result-to-TSV
+ sql_server
+ "<user enter table name here>"
+ "<user enter sql query here;>")
 
-
-#|samples queries|#
-#|
-(define test1
-  (query-rows chembl_sql_local "SELECT * FROM activities limit 5;"))
-
-(define sql-test
-  (query-rows chembl_sql_local "SELECT COUNT(*), activities.*, actdocs.abstract, target_dictionary.*,
-target_dictionary.chembl_id as target_chembl_id, assays.*, molecule_dictionary.chembl_id, chembl_id_lookup.*,
-assaydocs.abstract FROM activities JOIN molecule_dictionary ON (activities.molregno=molecule_dictionary.molregno) JOIN chembl_id_lookup ON (molecule_dictionary.chembl_id=chembl_id_lookup.chembl_id) JOIN assays ON (activities.assay_id=assays.assay_id) JOIN docs AS actdocs ON (activities.doc_id=actdocs.doc_id) JOIN docs AS assaydocs ON (assays.doc_id=assaydocs.doc_id) JOIN target_dictionary ON (target_dictionary.tid=assays.tid) WHERE activities.activity_id;"))
+;; query rows 
+(query-rows
+ sql_server
+ "<user enter sql query here;>")
 |#
-
-#|sample query->tsv export|#
-#|
-(export-query-result-to-tsv chembl_sql_local "activities" "SELECT * FROM activities;")
-(export-query-result-to-tsv chembl_sql_local "assays" "SELECT * FROM assays;")
-(export-query-result-to-tsv chembl_sql_local "chembl_id_lookup" "SELECT * FROM chembl_id_lookup;")
-(export-query-result-to-tsv chembl_sql_local "target_dictionary" "SELECT * FROM target_dictionary;")
-(export-query-result-to-tsv chembl_sql_local "docs" "SELECT * FROM docs;")
-
-(export-query-result-to-tsv
- chembl_sql_local
- "KG_chembl_activities"
- "CREATE TABLE KG_chembl_activities SELECT activities.*, actdocs.abstract, target_dictionary.*,)
-target_dictionary.chembl_id as target_chembl_id, assays.*, molecule_dictionary.chembl_id, chembl_id_lookup.*,
-assaydocs.abstract FROM activities JOIN molecule_dictionary ON (activities.molregno=molecule_dictionary.molregno) JOIN chembl_id_lookup ON (molecule_dictionary.chembl_id=chembl_id_lookup.chembl_id) JOIN assays ON (activities.assay_id=assays.assay_id) JOIN docs AS actdocs ON (activities.doc_id=actdocs.doc_id) JOIN docs AS assaydocs ON (assays.doc_id=assaydocs.doc_id) JOIN target_dictionary ON (target_dictionary.tid=assays.tid);")
-|#
-
-
-#|useful mysql user code|#
-#|  
-CREATE USER 'newuser'@'localhost' IDENTIFIED BY 'password';
-
-ALTER USER 'newuser'@'localhost' IDENTIFIED BY 'password';
-
-GRANT ALL PRIVILEGES ON * . * TO 'newuser'@'localhost'; 
-
-FLUSH PRIVILEGES;
-
-USE <dbname>
-|#
-
-
-
-
