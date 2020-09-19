@@ -49,6 +49,35 @@
               (hash 'edges edges
                     'nodes nodes))))
 
+;; new query structure for chembl specific provenance/evidence queries 
+(define (js-query/transform curie)
+  (hash 'collection
+        (list
+         (hash
+          'id ""
+          'identifiers
+          (hash
+           'chembl curie)))     
+        'controls '()))
+
+#|
+;; {} = hash                            ;
+;; [] = list                            ;
+;; key:value                            ;
+                                        ;
+QUERY/TRANSFORM QUERY STRUCTURE         ;
+------------------------------
+
+query = {
+    'collection': [{
+            'id':'',
+            'identifiers': {'chembl':'ChEMBL:CHEMBL25'}
+        }],
+    'controls':[]
+}
+|#
+
+
 (module+ main
   ;; test predicates available on Broad Institute KG
  #;(pretty-print
@@ -120,33 +149,6 @@
                                   (hash 'id    "n01"
                                         'type  "disease"))))))
 
-;; new query structure for chembl specific provenance/evidence queries 
-(define (js-query/transform curie)
-  (hash 'collection
-        (list
-         (hash
-          'id ""
-          'identifiers
-          (hash
-           'chembl curie)))     
-        'controls '()))
-
-#|
-;; {} = hash                            ;
-;; [] = list                            ;
-;; key:value                            ;
-                                        ;
-QUERY/TRANSFORM QUERY STRUCTURE         ;
-------------------------------
-
-query = {
-    'collection': [{
-            'id':'',
-            'identifiers': {'chembl':'ChEMBL:CHEMBL25'}
-        }],
-    'controls':[]
-}
-|#
 
 ;; addition provenance/evidence for drug indication query
 (pretty-print
