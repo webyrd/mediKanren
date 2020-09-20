@@ -125,7 +125,8 @@ The entire dot graph can then be copied and pasted into a vis.js file and parsed
  (lambda (key)
    (match key
      [`(,subject-curie-prefix ,predicate-string ,object-curie-prefix)
-      (fprintf out "\t~s -> ~s [label=~s]; " subject-curie-prefix object-curie-prefix predicate-string)]))
+      (let ((count (hash-ref edge-type-hash key)))
+        (fprintf out "\t~s -> ~s [label=\"~a (~s)\"]; " subject-curie-prefix object-curie-prefix predicate-string count))]))
  (hash-keys edge-type-hash))
 (fprintf out "}")
 (close-output-port out)
