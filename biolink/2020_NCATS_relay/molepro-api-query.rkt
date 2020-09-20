@@ -49,15 +49,16 @@
               (hash 'edges edges
                     'nodes nodes))))
 
+
 ;; new query structure for chembl specific provenance/evidence queries 
-(define (js-query/transform curie)
+(define (js-query/transform curie-prefix/lower-case curie)
   (hash 'collection
         (list
          (hash
           'id ""
           'identifiers
           (hash
-           'chembl curie)))     
+           curie-prefix/lower-case curie)))     
         'controls '()))
 
 #|
@@ -214,6 +215,24 @@ query = {
 )
 
 
+#| QUERY for presentation |#
+(define (js-query/transform curie-prefix/lower-case curie)
+  (hash 'collection
+        (list
+         (hash
+          'id ""
+          'identifiers
+          (hash
+           curie-prefix/lower-case curie)))     
+        'controls '()))
+
+(pretty-print
+ (time
+  (api-query
+   (string-append (string-append url.broad_chembl chembl-drug-indications/transform))
+   (js-query/transform
+    'chembl
+    "ChEMBL:CHEMBL25"))))
 
 #|NOTES FOR SEPTEMBER 2020 RELAY API CALLS|#
 
