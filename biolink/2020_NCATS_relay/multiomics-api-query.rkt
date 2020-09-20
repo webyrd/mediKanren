@@ -56,7 +56,7 @@
      "/query?q=association.freq_by_case:%3E0.05%20AND%20subject.SYMBOL:"
      (symbol->string HGNC-gene-symbol))))
 
-(pretty-print
+#;(pretty-print
  (time
   (api-query
    (string-append
@@ -66,18 +66,18 @@
 
 
 (define tcga_query:GeneX--has-mutation-prevalence-in-cancer-type->Disease/pvalue=.05
-  (lambda (mondo-suffix)
+  (lambda (mondo-curie)
     (string-append
-     "/query?q=association.freq_by_case:%3E0.05%20AND%20object.MONDO:"
-     mondo-suffix)))
+     "/query?q=object.id:%22"
+     (string-append mondo-curie "%22%20AND%20association.freq_by_case:%3E0.03"))))
 
-(pretty-print
+#;(pretty-print
  (time
   (api-query
    (string-append
     url.multiomics/tcga-mut-freq
-    (tcga_query:GeneX--has-mutation-prevalence-in-cancer-type->Disease/pvalue=.05 "0004988")))))
+    (tcga_query:GeneX--has-mutation-prevalence-in-cancer-type->Disease/pvalue=.05 "MONDO:0007254")))))
 
 
-;; MONDO: = breast adenocarcinoma
+
  
