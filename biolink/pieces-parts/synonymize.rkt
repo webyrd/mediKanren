@@ -57,10 +57,10 @@
   (define max-synonyms 100)
   (define same-as
     (find-exact-predicates
-      (list "same_as"
+      (list ;; "same_as" ;; same_as in RTX2 seems too dangerous
             "biolink:same_as"
             "equivalent_to"
-            "encodes"
+            ;; "encodes" ;; obsolete? seems to have been remapped in RTX2
             "has_gene_product"
             "gene_encodes_gene_product"
             "biolink:has_gene_template*")))
