@@ -55,13 +55,22 @@
 
 (define (curie-synonyms-raw curie)
   (define max-synonyms 100)
-  (define same-as     (find-exact-predicates (list "equivalent_to" "encodes")))
-  (define subclass-of (find-exact-predicates (list "subclass_of")))
+  (define same-as
+    (find-exact-predicates
+      (list "same_as"
+            "biolink:same_as"
+            "equivalent_to"
+            "encodes"
+            "has_gene_product"
+            "gene_encodes_gene_product"
+            "biolink:has_gene_template*")))
+  (define subclass-of (find-exact-predicates (list "subclass_of" "biolink:subClassOf" "isa")))
   (define xref        (find-exact-predicates (list "xref")))
   (define preds/filters
     (list (list same-as     any?        any?)
-          ;(list subclass-of curie-NCIT? curie-NCIT?)
-          (list xref        curie-NCIT-gene? curie-CUI?)))
+          ; (list subclass-of curie-NCIT? curie-NCIT?)
+          ; (list xref        curie-NCIT-gene? curie-CUI?)
+          ))
   (define suffixes/filters
     (list (list " wt Allele" curie-HGNC? curie-NCIT?)))
   (define (hack-names cs)
