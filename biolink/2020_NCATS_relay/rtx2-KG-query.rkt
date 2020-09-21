@@ -37,6 +37,24 @@
   (map (lambda (edge) (edges/query edge 'S->O))
        test-query/gene->disease))
 
+(define gene->PR
+  (map
+   (lambda (edge-ls)
+     (map (lambda (edge)
+            (let ((gene-curie (concept->curie (edge->subject edge))))
+              (printf "~a" gene-curie)
+              (query/graph
+               ((S gene-curie)
+                (O #f))
+               ((S->O (list "INVERTED:has_gene_template")) (edge/db? #f))
+               (S S->O O))))
+          edge-ls))
+   test-query/edges:gene->disease))
+
+
+(map (lambda (edge) (edges/query edge 'S->O))
+     gene->PR)
+
 ;; working query 
 (define test-query/drug->disease
   (time
