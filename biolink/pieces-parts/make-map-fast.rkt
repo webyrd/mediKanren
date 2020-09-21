@@ -7,7 +7,8 @@
 ;; directly from the raw data files.
 
 ;; *** Change this string to match the name of the KG you want to map! ***
-(define kg-name "pr-owl")
+;(define kg-name "pr-owl")
+(define kg-name "co-occur")
 
 (define-runtime-path path:root "..")
 (define (path/root relative-path) (build-path path:root relative-path))
@@ -119,14 +120,34 @@
 #|
 The entire dot graph can then be copied and pasted into a vis.js file and parsed as a DOT network. 
 |#
-(define out (open-output-file (string-append kg-name ".dot") #:exists 'replace))
-(fprintf out "digraph{graph [ bgcolor=lightgray, fontname=Arial, fontcolor=blue, fontsize=12 ]; node [ fontname=Arial, fontcolor=blue, fontsize=11]; edge [ fontname=Helvetica, fontcolor=red, fontsize=10, labeldistance=2, labelangle=-50 ]; splines=\"FALSE\"; rankdir=\"LR\";")
-(map
- (lambda (key)
-   (match key
-     [`(,subject-curie-prefix ,predicate-string ,object-curie-prefix)
-      (let ((count (hash-ref edge-type-hash key)))
-        (fprintf out "\t~s -> ~s [label=\"~a (~s)\"]; " subject-curie-prefix object-curie-prefix predicate-string count))]))
- (hash-keys edge-type-hash))
-(fprintf out "}")
-(close-output-port out)
+(with-output-to-file (string-append kg-name ".dot")
+  (lambda ()
+    (printf "digraph{graph [ bgcolor=lightgray, fontname=Arial, fontcolor=blue, fontsize=12 ]; node [ fontname=Arial, fontcolor=blue, fontsize=11]; edge [ fontname=Helvetica, fontcolor=red, fontsize=10, labeldistance=2, labelangle=-50 ]; splines=\"FALSE\"; rankdir=\"LR\";")
+    (map
+     (lambda (key)
+       (match key
+         [`(,subject-curie-prefix ,predicate-string ,object-curie-prefix)
+          (let ((count (hash-ref edge-type-hash key)))
+            (printf "\t~s -> ~s [label=\"~a (~s)\"]; " subject-curie-prefix object-curie-prefix predicate-string count))]))
+     (hash-keys edge-type-hash))
+    (printf "}")
+    )
+  #:mode 'text
+  #:exists 'replace)
+
+
+#|
+Generate TSV file with the subject, object, predicate, and counts
+|#
+(with-output-to-file (string-append kg-name "-subject_predicate_object_count" ".tsv")
+  (lambda ()
+    (printf "subject CURIE prefix\tobject CURIE prefix\tpredicate\tedge count\n")
+    (map
+     (lambda (key)
+       (match key
+         [`(,subject-curie-prefix ,predicate-string ,object-curie-prefix)
+          (let ((count (hash-ref edge-type-hash key)))
+            (printf "~a\t~a\t~a\t~a\n" subject-curie-prefix object-curie-prefix predicate-string count))]))
+     (hash-keys edge-type-hash)))
+  #:mode 'text
+  #:exists 'replace)
