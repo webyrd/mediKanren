@@ -70,11 +70,6 @@
        (fprintf port "~a~c" (row-item-cleaner (car ls)) #\tab)
        (print-table-row-to-TSV (cdr ls) port)))))
 
-(define get-table-col-names
-  (lambda (db-conn tbl-name)
-    (map (lambda (x) (vector-ref x 0))
-       (query-rows db-conn (string-append "DESCRIBE " tbl-name)))))
-
 (define process-stream-to-TSV
   (lambda (stream port)
     (cond
@@ -85,28 +80,33 @@
          (print-table-row-to-TSV (call-with-values (lambda () (stream-first stream)) list) port)
          (process-stream-to-TSV (stream-rest stream) port))))))
 
-(define export-query-result-to-TSV
-  (lambda (db-conn tbl-name query)
-    (let* ((tbl-col-names (get-table-col-names db-conn tbl-name))
+
+(define get-table-col-names-from-table-list
+  (lambda (db-conn tbl-names/ls els)
+    (cond
+      ((null? tbl-names/ls)
+       (flatten els))
+      (else
+       (get-table-col-names-from-table-list
+        db-conn
+        (cdr tbl-names/ls)
+        (reverse (cons (map (lambda (x) (vector-ref x 0))
+                            (query-rows db-conn (string-append "DESCRIBE " (car tbl-names/ls)))) els)))))))
+
+
+(define export-query-result-to-TSV/with-table-names
+  (lambda (db-conn tbl-names/ls query)
+    (let* ((tbl-col-names (get-table-col-names-from-table-list db-conn tbl-names/ls '()))
            (output-file (open-output-file
                          (format
-                          (find-system-path 'home-dir)
-                          tbl-name) #:exists 'replace))  
+                          (find-system-path 'home-dir)                          
+                          (string-join tbl-names/ls "_join_")
+                          ) #:exists 'replace))  
            (stream (query-->stream db-conn query)))
       (begin
         (print-table-row-to-TSV tbl-col-names output-file)
         (process-stream-to-TSV stream output-file)
         (close-output-port output-file)))))
 
-#|
-;; test export 1.1MB file
-(export-query-result-to-TSV
- sql_server
- "<user enter table name here>"
- "<user enter sql query here;>")
+;;(export-query-result-to-TSV/with-table-names sql_server '("<table1>" "<table2>") "<query>;")
 
-;; query rows 
-(query-rows
- sql_server
- "<user enter sql query here;>")
-|#
