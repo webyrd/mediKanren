@@ -1,6 +1,6 @@
 #lang racket
 (provide (all-defined-out))
-(require json net/url)
+(require "../mk.rkt" json net/url)
 
 (define (js-count js)
   (cond ((pair? js) (foldl + 0 (map js-count js)))
@@ -37,8 +37,7 @@
               #:data (jsexpr->string optional-post-jsexpr)
               #:headers '("Content-Type: application/json; charset=utf-8")))))
   (define response-string (time (port->string in)))
-  (displayln (string-length response-string))
-  (pretty-print headers)
+  ;(pretty-print `(,status ,headers))
   (hash 'status status
         'headers headers
         'response (string->jsexpr response-string)))
@@ -49,7 +48,70 @@
               (hash 'edges edges
                     'nodes nodes))))
 
+(define (molepro-edgeo subject subject-type verb object object-type)
+  (project (subject subject-type verb object object-type)
+    (let ()
+      (when (or (var? verb) (var? subject-type) (var? object-type)
+                (and (var? subject) (var? object)))
+        (error "verb, types, and subject or object curie must be ground"))
+      (define edges (list (hash 'id        "e00"
+                                'source_id "n00"
+                                'target_id "n01"
+                                'type      verb)))
+      (define subject-node
+        (make-immutable-hash
+          (append (if (var? subject) '() `((curie . ,subject)))
+                  `((id . "n00") (type . ,subject-type)))))
+      (define object-node
+        (make-immutable-hash
+          (append (if (var? object) '() `((curie . ,object)))
+                  `((id . "n01") (type . ,object-type)))))
+      (define nodes (list subject-node object-node))
+      (define results
+        (hash-ref
+          (hash-ref
+            (hash-ref (api-query (string-append url.broad path.query)
+                                 (js-query edges nodes))
+                      'response)
+            'knowledge_graph)
+          'edges))
+      ;(pretty-print results)
+      ;(pretty-print edges)
+      ;(pretty-print nodes)
+      (let loop ((results results))
+        (if (null? results) (== #t #f)
+          (let ((e (car results)))
+            ;; NOTE: this conditional equality constraint is due to the fact
+            ;; that molepro doesn't return the same curies you put in.
+            (conde ((if (var? subject) (== subject (hash-ref e 'source_id))
+                      (== #t #t))
+                    (if (var? object) (== object  (hash-ref e 'target_id))
+                      (== #t #t)))
+                   ((loop (cdr results))))))))))
+
 (module+ main
+  (pretty-print (api-query (string-append url.broad path.predicates)))
+
+  (run* (g) (molepro-edgeo "CID:2244" "chemical_substance" "affects" g "gene"))
+  ;(run 1 (g) (molepro-edgeo "CHEBI:15365" "chemical_substance" "affects" g "gene"))
+  ;(run 1 (c) (molepro-edgeo c "chemical_substance" "affects" "HGNC:7645" "gene"))
+  (run* (c) (molepro-edgeo "HGNC:7645" "gene" "affected_by" c "chemical_substance"))
+
+  ;(pretty-print
+     ;(api-query (string-append url.broad path.query)
+              ;(js-query (list (hash 'id        "e00"
+                                    ;'source_id "n00"
+                                    ;'target_id "n01"
+                                    ;'type      "affects"))
+                        ;(list (hash 'curie "CID:2244"
+                                    ;'id    "n00"
+                                    ;'type  "chemical_substance"
+                                    ;)
+                              ;(hash 'id    "n01"
+                                    ;'type  "gene")))))
+  )
+
+(module+ old-main
   ;; test predicates available on Broad Institute KG
  #;(pretty-print
    (api-query (string-append url.broad path.predicates)))
@@ -94,7 +156,7 @@
                                         'type  "disease")
                                   (hash 'id    "n00"
                                         'type  "gene"))))))
-  
+
   #;(pretty-print
     (time (api-query (string-append url.unsecret path.query)
                      (js-query (list (hash 'id        "e00"
@@ -106,7 +168,6 @@
                                            'type  "chemical_substance")
                                      (hash 'id    "n01"
                                            'type  "gene"))))))
-)
 
 
 
@@ -135,7 +196,7 @@
                                   (hash 'id    "n01"
                                         'type  "disease"))))))
 
-;; new query structure for chembl specific provenance/evidence queries 
+;; new query structure for chembl specific provenance/evidence queries
 (define (js-query/transform curie)
   (hash 'collection
         (list
@@ -143,7 +204,7 @@
           'id ""
           'identifiers
           (hash
-           'chembl curie)))     
+           'chembl curie)))
         'controls '()))
 
 #|
@@ -198,7 +259,7 @@ query = {
                                   (hash 'id    "n01"
                                         'type  "chemical_substance"))))))
 
-;; CMAP gene-to-gene query 
+;; CMAP gene-to-gene query
 (pretty-print
  (time (api-query (string-append url.broad path.query)
                   (js-query (list (hash 'id        "e00"
@@ -211,7 +272,7 @@ query = {
                                   (hash 'id    "n01"
                                         'type  "gene"))))))
 
-;; CMAP gene-to-gene query 
+;; CMAP gene-to-gene query
 (pretty-print
  (time (api-query (string-append url.broad path.query)
                   (js-query (list (hash 'id        "e00"
@@ -223,3 +284,5 @@ query = {
                                         'type  "gene")
                                   (hash 'id    "n01"
                                         'type  "gene"))))))
+
+)
