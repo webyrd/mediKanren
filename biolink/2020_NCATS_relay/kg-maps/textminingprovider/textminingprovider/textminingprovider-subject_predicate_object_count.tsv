@@ -1,0 +1,3 @@
+subject CURIE prefix	object CURIE prefix	predicate	edge count
+CHEBI	PR	biolink:positively_regulates_entity_to_entity	41563
+CHEBI	PR	biolink:negatively_regulates_entity_to_entity	46235

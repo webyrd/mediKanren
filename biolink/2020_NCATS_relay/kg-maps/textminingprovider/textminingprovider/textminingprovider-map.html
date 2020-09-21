@@ -1,0 +1,29 @@
+<html>
+<head>
+  <title>TextMiningProvider PR-OWL KG Map</title>
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+</head>
+
+<div id="mynetwork"></div>
+<script type="text/javascript">
+    var container = document.getElementById('mynetwork');
+    var dot = 'digraph{graph [ bgcolor=lightgray, fontname=Arial, fontcolor=blue, fontsize=12 ]; node [ fontname=Arial, fontcolor=blue, fontsize=11]; edge [ fontname=Helvetica, fontcolor=red, fontsize=10, labeldistance=2, labelangle=-50 ]; splines="FALSE"; rankdir="LR";	"CHEBI" -> "PR" [label="biolink:positively_regulates_entity_to_entity (41563)"]; 	"CHEBI" -> "PR" [label="biolink:negatively_regulates_entity_to_entity (46235)"]; }';
+  var data = vis.parseDOTNetwork(dot);
+  var options = {
+    layout: {
+        hierarchical: {
+            direction: "LR"
+        }
+    },
+    physics: {
+      hierarchicalRepulsion: {
+        avoidOverlap: 10
+      }
+    },
+    dragNodes: 'true',
+    hideEdgesOnDrag: 'true',
+    hideNodesOnDrag: 'true'
+  };
+  var network = new vis.Network(container, data, options);
+</script>
+</html>
