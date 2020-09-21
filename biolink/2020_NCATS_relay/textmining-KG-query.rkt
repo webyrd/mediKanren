@@ -26,6 +26,11 @@ Safe Predicates to synonymize with
 (define predicate:co-occur/text-mining
   (list "biolink:related_to"))
 
+(define predicate:PR->HGNC
+  '("biolink:has_gene_template*"))
+
+;; breast cancer HP terms
+;; co-occurence KG requires HP terms for Disease->Gene Associations
 (define test-ls
   '("HP:0006625"
     "HP:0100013"
@@ -35,8 +40,61 @@ Safe Predicates to synonymize with
 ;; - transform PR: to HGNC with PR: --biolink_has_gene_template*--> HGNC
 
 (define gene/gene-product '("biolink:GeneOrGeneProduct"))
+
 (define drug '("biolink:ChemicalSubstance"))
 
+;; HP --> PR query
+(define test-query/disease->gene
+  (map (lambda (curie)
+            (query/graph
+             ((S curie)
+              (O gene/gene-product))
+             ((S->O #f) (edge/db? #f))
+             (S S->O O)))       
+       test-ls
+       ))
+
+;; HP --> PR edges
+(define test-query/edges:disease->gene
+  (map (lambda (edge) (edges/query edge 'S->O)) test-query/disease->gene))
+
+;; scrape object out of HP->PR edges, and requery PR codes in the PR-OWL KG for HGNCs
+
+(define x
+  (map
+   (lambda (edge-ls)
+     (map (lambda (edge)
+            (let ((PR-curie (concept->curie (edge->object edge))))
+              (printf "~a\n" PR-curie)
+              #;(filter (lambda (object) (string-)))
+              (curies/query
+                (query/graph
+                 ((S PR-curie)
+                  (O #f))
+                 ((S->O '("biolink:in_taxon")) (edge/db? #f))
+                 (S S->O O))
+                'O)))
+          edge-ls))
+   test-query/edges:disease->gene)) 
+
+(edges/query
+ (query/graph
+  ((S "PR:P30042")
+   (O '("biolink:OrganismTaxon")))
+  ((S->O #f) (edge/db? #f))
+  (S S->O O)) 'S->O) 
+
+
+
+
+
+
+
+
+
+
+#|
+;; lots of noise/non-specific drug findings in these edges 
 (define test-query/drug->disease
   (map (lambda (curie)
             (query/graph
@@ -44,37 +102,18 @@ Safe Predicates to synonymize with
               (O curie))
              ((S->O #f) (edge/db? #f))
              (S S->O O)))
-       breast-cancer/MONDO+HPO))
-
-(define test-query/edges:drug->disease
-  (map (lambda (edge) (edges/query edge 'S->O)) test-query/drug->disease))
-
-(define test-query/disease->gene
-  (map (lambda (curie)
-            (query/graph
-             ((S curie)
-              (O gene/gene-product))
-             ((S->O #f) (edge/db? #f))
-             (S S->O O)))
-       ;breast-cancer/MONDO+HPO
        test-ls
        ))
 
-(define test-query/edges:disease->gene
-  (map (lambda (edge) (edges/query edge 'S->O)) test-query/disease->gene))
-
-(define get-PR-curies
-  (lambda (query-result)
-      (for-each
-        (map concept->curie
-           (map edge->object query-result)))))
+;; CHEBI -> PR edges 
+(define test-query/edges:drug->disease
+  (map (lambda (edge) (edges/query edge 'S->O)) test-query/drug->disease))
+|#
 
 
 
 
 
-;; scrape object out of HP->PR edges
-;; 
 
 
 
