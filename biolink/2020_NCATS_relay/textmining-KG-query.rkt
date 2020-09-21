@@ -31,7 +31,7 @@ Safe Predicates to synonymize with
     "HP:0100013"
     "HP:0100783"))
 
-;; - get co-occurs edges HP/MONDO --> PR
+;; - get co-occurs edges HP --> PR
 ;; - transform PR: to HGNC with PR: --biolink_has_gene_template*--> HGNC
 
 (define gene/gene-product '("biolink:GeneOrGeneProduct"))
@@ -62,6 +62,16 @@ Safe Predicates to synonymize with
 
 (define test-query/edges:disease->gene
   (map (lambda (edge) (edges/query edge 'S->O)) test-query/disease->gene))
+
+(define get-PR-curies
+  (lambda (query-result)
+      (for-each
+        (map concept->curie
+           (map edge->object query-result)))))
+
+
+
+
 
 ;; scrape object out of HP->PR edges
 ;; 
