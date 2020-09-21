@@ -1,0 +1,29 @@
+<html>
+<head>
+  <title>TextMiningProvider Co-occurrence KG Map</title>
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+</head>
+
+<div id="mynetwork"></div>
+<script type="text/javascript">
+    var container = document.getElementById('mynetwork');
+    var dot = 'digraph{graph [ bgcolor=lightgray, fontname=Arial, fontcolor=blue, fontsize=12 ]; node [ fontname=Arial, fontcolor=blue, fontsize=11]; edge [ fontname=Helvetica, fontcolor=red, fontsize=10, labeldistance=2, labelangle=-50 ]; splines="FALSE"; rankdir="LR";	"MONDO" -> "SO" [label="biolink:related_to (1138140)"]; 	"CHEBI" -> "MOP" [label="biolink:related_to (102304)"]; 	"MOP" -> "UBERON" [label="biolink:related_to (24664)"]; 	"MONDO" -> "NCBITaxon" [label="biolink:related_to (1313061)"]; 	"CHEBI" -> "HP" [label="biolink:related_to (1666319)"]; 	"HP" -> "UBERON" [label="biolink:related_to (1195221)"]; 	"MONDO" -> "MONDO" [label="biolink:related_to (4358876)"]; 	"CL" -> "UBERON" [label="biolink:related_to (465319)"]; 	"PR" -> "PR" [label="biolink:related_to (2616847)"]; 	"CHEBI" -> "CL" [label="biolink:related_to (1056654)"]; 	"CL" -> "NCBITaxon#" [label="biolink:related_to (14)"]; 	"GO" -> "UBERON" [label="biolink:related_to (2398348)"]; 	"NCBITaxon" -> "UBERON" [label="biolink:related_to (706563)"]; 	"GO" -> "NCBITaxon#" [label="biolink:related_to (1)"]; 	"NCBITaxon#" -> "NCBITaxon" [label="biolink:related_to (10)"]; 	"MOP" -> "MOP" [label="biolink:related_to (769)"]; 	"HP" -> "MOP" [label="biolink:related_to (17148)"]; 	"CL" -> "MOP" [label="biolink:related_to (10217)"]; 	"MONDO" -> "PR" [label="biolink:related_to (5623765)"]; 	"HP" -> "HP" [label="biolink:related_to (594487)"]; 	"CHEBI" -> "SO" [label="biolink:related_to (1105945)"]; 	"GO" -> "MOP" [label="biolink:related_to (81244)"]; 	"CL" -> "HP" [label="biolink:related_to (261760)"]; 	"SO" -> "UBERON" [label="biolink:related_to (427808)"]; 	"CHEBI" -> "NCBITaxon" [label="biolink:related_to (2024568)"]; 	"CL" -> "CL" [label="biolink:related_to (95616)"]; 	"CHEBI" -> "GO" [label="biolink:related_to (7062269)"]; 	"CHEBI" -> "MONDO" [label="biolink:related_to (6055640)"]; 	"GO" -> "HP" [label="biolink:related_to (1401647)"]; 	"UBERON" -> "UBERON" [label="biolink:related_to (1068014)"]; 	"PR" -> "UBERON" [label="biolink:related_to (2584357)"]; 	"NCBITaxon#" -> "PR" [label="biolink:related_to (3)"]; 	"MOP" -> "SO" [label="biolink:related_to (12108)"]; 	"CHEBI" -> "CHEBI" [label="biolink:related_to (5405491)"]; 	"HP" -> "SO" [label="biolink:related_to (358148)"]; 	"MOP" -> "NCBITaxon" [label="biolink:related_to (18847)"]; 	"CL" -> "SO" [label="biolink:related_to (159279)"]; 	"HP" -> "NCBITaxon" [label="biolink:related_to (387407)"]; 	"CHEBI" -> "PR" [label="biolink:related_to (7199237)"]; 	"CL" -> "NCBITaxon" [label="biolink:related_to (237330)"]; 	"HP" -> "MONDO" [label="biolink:related_to (2922545)"]; 	"GO" -> "SO" [label="biolink:related_to (1237576)"]; 	"CL" -> "MONDO" [label="biolink:related_to (942228)"]; 	"CL" -> "GO" [label="biolink:related_to (1051790)"]; 	"MONDO" -> "UBERON" [label="biolink:related_to (3459772)"]; 	"GO" -> "NCBITaxon" [label="biolink:related_to (1786461)"]; 	"NCBITaxon" -> "SO" [label="biolink:related_to (410701)"]; 	"GO" -> "MONDO" [label="biolink:related_to (5135667)"]; 	"GO" -> "GO" [label="biolink:related_to (3631022)"]; 	"MONDO" -> "NCBITaxon#" [label="biolink:related_to (5)"]; 	"NCBITaxon" -> "NCBITaxon" [label="biolink:related_to (406814)"]; 	"MOP" -> "PR" [label="biolink:related_to (117278)"]; 	"SO" -> "SO" [label="biolink:related_to (126269)"]; 	"MONDO" -> "MOP" [label="biolink:related_to (63154)"]; 	"HP" -> "PR" [label="biolink:related_to (1384046)"]; 	"CL" -> "PR" [label="biolink:related_to (1274878)"]; 	"GO" -> "PR" [label="biolink:related_to (6790146)"]; 	"PR" -> "SO" [label="biolink:related_to (1853926)"]; 	"NCBITaxon" -> "PR" [label="biolink:related_to (2034974)"]; 	"CHEBI" -> "UBERON" [label="biolink:related_to (2819717)"]; }';
+  var data = vis.parseDOTNetwork(dot);
+  var options = {
+    layout: {
+        hierarchical: {
+            direction: "LR"
+        }
+    },
+    physics: {
+      hierarchicalRepulsion: {
+        avoidOverlap: 10
+      }
+    },
+    dragNodes: 'true',
+    hideEdgesOnDrag: 'true',
+    hideNodesOnDrag: 'true'
+  };
+  var network = new vis.Network(container, data, options);
+</script>
+</html>
