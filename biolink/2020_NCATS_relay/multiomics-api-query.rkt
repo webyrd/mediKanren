@@ -15,7 +15,6 @@
 (define url.multiomics/tcga-mut-freq
   "https://biothings.ncats.io/tcga_mut_freq_kp")
 
-
 (define url.unsecret
   "https://unsecret.ncats.io")
 
@@ -56,12 +55,12 @@
      "/query?q=association.freq_by_case:%3E0.05%20AND%20subject.SYMBOL:"
      (symbol->string HGNC-gene-symbol))))
 
-#;(pretty-print
+(pretty-print
  (time
   (api-query
    (string-append
     url.multiomics/tcga-mut-freq
-    (tcga_query:Gene--has-mutation-prevalence-in-cancer-type->X/pvalue=.05 'EGFR)))))
+    (tcga_query:Gene--has-mutation-prevalence-in-cancer-type->DiseaseX/pvalue=.05 'EGFR)))))
 
 
 
@@ -71,13 +70,14 @@
      "/query?q=object.id:%22"
      (string-append mondo-curie "%22%20AND%20association.freq_by_case:%3E0.03"))))
 
-#;(pretty-print
+;; disease --> gene w/ frequency of mutation 
+;; "MONDO:0006256" = invasive breast carcinoma
+(pretty-print
  (time
   (api-query
-   (string-append
+   "https://biothings.ncats.io/tcga_mut_freq_kp/query?q=object.id:%22MONDO:0006256%22%20AND%20association.freq_by_case:%3E0.03&size=1000"
+   #;(string-append
     url.multiomics/tcga-mut-freq
-    (tcga_query:GeneX--has-mutation-prevalence-in-cancer-type->Disease/pvalue=.05 "MONDO:0007254")))))
+    (tcga_query:GeneX--has-mutation-prevalence-in-cancer-type->Disease/pvalue=.05 "MONDO:0007254"))
+   )))
 
-
-
- 
