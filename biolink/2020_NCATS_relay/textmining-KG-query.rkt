@@ -26,81 +26,10 @@ Safe Predicates to synonymize with
 (define predicate:co-occur/text-mining
   (list "biolink:related_to"))
 
-
-
-(define breast-cancer/MONDO+HPO
+(define test-ls
   '("HP:0006625"
     "HP:0100013"
-    "HP:0100783"
-    "MONDO:0006513"
-    "MONDO:0006512"
-    "MONDO:0004438"
-    "MONDO:0000618"
-    "MONDO:0000616"
-    "MONDO:0000615"
-    "MONDO:0000552"
-    "MONDO:0002483"
-    "MONDO:0002487"
-    "MONDO:0002489"
-    "MONDO:0002671"
-    "MONDO:0002705"
-    "MONDO:0002707"
-    "MONDO:0002859"
-    "MONDO:0002975"
-    "MONDO:0003024"
-    "MONDO:0003087"
-    "MONDO:0003185"
-    "MONDO:0003208"
-    "MONDO:0003371"
-    "MONDO:0003390"
-    "MONDO:0003532"
-    "MONDO:0003548"
-    "MONDO:0003582"
-    "MONDO:0003593"
-    "MONDO:0003635"
-    "MONDO:0003934"
-    "MONDO:0003936"
-    "MONDO:0003982"
-    "MONDO:0003983"
-    "MONDO:0004288"
-    "MONDO:0004274"
-    "MONDO:0004360"
-    "MONDO:0004379"
-    "MONDO:0004438"
-    "MONDO:0021116"
-    "MONDO:0021115"
-    "MONDO:0021047"
-    "MONDO:0021090"
-    "MONDO:0016419"
-    "MONDO:0006512"
-    "MONDO:0006513"
-    "MONDO:0006270"
-    "MONDO:0003728"
-    "MONDO:0006256"
-    "MONDO:0006244"
-    "MONDO:0006184"
-    "MONDO:0006166"
-    "MONDO:0006117"
-    "MONDO:0006098"
-    "MONDO:0004658"
-    "MONDO:0004953"
-    "MONDO:0004984"
-    "MONDO:0004988"
-    "MONDO:0005023"
-    "MONDO:0005051"
-    "MONDO:0005063"
-    "MONDO:0005494"
-    "MONDO:0005219"
-    "MONDO:0005590"
-    "MONDO:0005628"
-    "MONDO:0006027"
-    "MONDO:0006043"
-    "MONDO:0006050"
-    "MONDO:0006056"
-    "MONDO:0006116"))
-
-(define test-ls
-  '("HP:0006625"))
+    "HP:0100783"))
 
 ;; - get co-occurs edges HP/MONDO --> PR
 ;; - transform PR: to HGNC with PR: --biolink_has_gene_template*--> HGNC
@@ -108,66 +37,14 @@ Safe Predicates to synonymize with
 ;;
 ;;
 
+(define gene/gene-product '("biolink:GeneOrGeneProduct"))
+(define drug '("biolink:ChemicalSubstance"))
 
-(define gene-concept?
-  (lambda (x)
-    (or
-     (string-prefix? x "HGNC:")
-     (string-prefix? x "ENSEMBL:")
-     (string-prefix? x "UniProtKB:")
-     (string-prefix? x "PR:")
-     (string-prefix? x "NCBIGene:")
-     (string-prefix? x "NCBIGENE:"))))
-
-(define drug-concept?
-  (lambda (x)
-    (or (string-prefix? x "CHEBI:")
-        (string-prefix? x "CHEMBL:")
-        (string-prefix? x "CHEMBL.")
-        (string-prefix? x "KEGG:")
-        (string-prefix? x "KEGG.")
-        (string-prefix? x "DRUGBANK:")
-        (string-prefix? x "RXNORM:"))))
-
-(define disease-concept?
-  (lambda (x)
-    (or (string-prefix? x "OMIM:")
-        (string-prefix? x "DOID:")
-        (string-prefix? x "MONDO:")
-        (string-prefix? x "HP:"))))
-
-(define X-->Gene/edge?
-  (lambda (ls)
-    (match (car ls)
-      [`(,db ,edge-cui
-             (,subject-cui ,subject-id ,subject-name (,_ . ,subject-category) ,subject-props-assoc)
-             (,object-cui ,object-id ,object-name (,_ . ,object-category) ,object-props-assoc)
-             (,_ . ,pred)
-             ,pred-props-assoc)
-       (cond
-         ((gene-concept? object-id)
-          (list (car ls)))
-         (else
-          #f))])))
-
-(define drug-->X/edge?
-  (lambda (ls)
-    (match (car ls)
-      [`(,db ,edge-cui
-             (,subject-cui ,subject-id ,subject-name (,_ . ,subject-category) ,subject-props-assoc)
-             (,object-cui ,object-id ,object-name (,_ . ,object-category) ,object-props-assoc)
-             (,_ . ,pred)
-             ,pred-props-assoc)
-       (cond
-         ((drug-concept? subject-id)
-          (list (car ls)))
-         (else
-          #f))])))
 
 (define test-query/drug->disease
   (map (lambda (curie)
             (query/graph
-             ((S #f)
+             ((S drug)
               (O curie))
              ((S->O #f) (edge/db? #f))
              (S S->O O)))
@@ -180,7 +57,7 @@ Safe Predicates to synonymize with
   (map (lambda (curie)
             (query/graph
              ((S curie)
-              (O #f))
+              (O gene/gene-product))
              ((S->O #f) (edge/db? #f))
              (S S->O O)))
        ;breast-cancer/MONDO+HPO
@@ -190,11 +67,6 @@ Safe Predicates to synonymize with
 (define test-query/edges:disease->gene
   (map (lambda (edge) (edges/query edge 'S->O)) test-query/disease->gene))
 
-(define genes-from:disease--co-occurs-->gene/edges
-  (ormap X-->Gene/edge? test-query/edges:disease->gene))
-
-(define drugs-from:drugs--co-occurs-->disease/edges
-  (ormap drug-->X/edge? test-query/edges:drug->disease))
 
 
 
