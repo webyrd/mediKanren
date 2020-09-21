@@ -190,19 +190,6 @@ query = {
                                   (hash 'id    "n01"
                                         'type  "gene"))))))
 
-;; CMAP gene-to-gene query 
-(pretty-print
- (time (api-query (string-append url.broad path.query)
-                  (js-query (list (hash 'id        "e00"
-                                        'source_id "n00"
-                                        'target_id "n01"
-                                        'type      "correlated_with"))
-                            (list (hash 'curie "HGNC:4556"
-                                        'id    "n00"
-                                        'type  "gene")
-                                  (hash 'id    "n01"
-                                        'type  "gene"))))))
-
 
 )
 
@@ -210,7 +197,6 @@ query = {
 
 #|
 all breast cancer curies currently supported by molepro api for disease--treated_by--> Drug X
-
 Malignant tumor of breast	MONDO:0021100	C0006142	254837009	DOID:1612
 Hormone receptor positive malignant neoplasm of breast	UMLS:C1562029	C1562029	417181009	
 Secondary malignant neoplasm of female breast	UMLS:C0346993	C0346993	94297009	
@@ -265,13 +251,11 @@ Infiltrating duct carcinoma of breast	MONDO:0005590	C1134719	408643008	DOID:3008
 #|NOTES FOR SEPTEMBER 2020 RELAY API CALLS|#
 
 #|
-
 1. all "NO-evidence/provenance" queries are to the base broad.url
 "https://translator.broadinstitute.org/molepro_reasoner
 
 2. all "LIMITED evidence/provenance" queries are to the chembl url
 "https://translator.broadinstitute.org/chembl"
-
 |#
 
 
