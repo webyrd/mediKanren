@@ -33,13 +33,9 @@ Safe Predicates to synonymize with
 
 ;; - get co-occurs edges HP/MONDO --> PR
 ;; - transform PR: to HGNC with PR: --biolink_has_gene_template*--> HGNC
-;;
-;;
-;;
 
 (define gene/gene-product '("biolink:GeneOrGeneProduct"))
 (define drug '("biolink:ChemicalSubstance"))
-
 
 (define test-query/drug->disease
   (map (lambda (curie)
@@ -67,7 +63,8 @@ Safe Predicates to synonymize with
 (define test-query/edges:disease->gene
   (map (lambda (edge) (edges/query edge 'S->O)) test-query/disease->gene))
 
-
+;; scrape object out of HP->PR edges
+;; 
 
 
 
