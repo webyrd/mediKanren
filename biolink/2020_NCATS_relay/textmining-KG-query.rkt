@@ -99,23 +99,115 @@ Safe Predicates to synonymize with
     "MONDO:0006056"
     "MONDO:0006116"))
 
-(define X--related_to-->TC
-  (time
-   (map (lambda (curie)
-          (query/graph
-           ((X curie)
-            (TC #f))
-           ((X->TC #f))
-           (X X->TC TC)))
-         breast-cancer/MONDO+HPO)))
+(define test-ls
+  '("HP:0006625"))
 
-(map (lambda (edge) (edges/query edge 'X->TC)) X--related_to-->TC)
+;; - get co-occurs edges HP/MONDO --> PR
+;; - transform PR: to HGNC with PR: --biolink_has_gene_template*--> HGNC
+;;
+;;
+;;
 
+
+(define gene-concept?
+  (lambda (x)
+    (or
+     (string-prefix? x "HGNC:")
+     (string-prefix? x "ENSEMBL:")
+     (string-prefix? x "UniProtKB:")
+     (string-prefix? x "PR:")
+     (string-prefix? x "NCBIGene:")
+     (string-prefix? x "NCBIGENE:"))))
+
+(define drug-concept?
+  (lambda (x)
+    (or (string-prefix? x "CHEBI:")
+        (string-prefix? x "CHEMBL:")
+        (string-prefix? x "CHEMBL.")
+        (string-prefix? x "KEGG:")
+        (string-prefix? x "KEGG.")
+        (string-prefix? x "DRUGBANK:")
+        (string-prefix? x "RXNORM:"))))
+
+(define disease-concept?
+  (lambda (x)
+    (or (string-prefix? x "OMIM:")
+        (string-prefix? x "DOID:")
+        (string-prefix? x "MONDO:")
+        (string-prefix? x "HP:"))))
+
+(define X-->Gene/edge?
+  (lambda (ls)
+    (match (car ls)
+      [`(,db ,edge-cui
+             (,subject-cui ,subject-id ,subject-name (,_ . ,subject-category) ,subject-props-assoc)
+             (,object-cui ,object-id ,object-name (,_ . ,object-category) ,object-props-assoc)
+             (,_ . ,pred)
+             ,pred-props-assoc)
+       (cond
+         ((gene-concept? object-id)
+          (list (car ls)))
+         (else
+          #f))])))
+
+(define drug-->X/edge?
+  (lambda (ls)
+    (match (car ls)
+      [`(,db ,edge-cui
+             (,subject-cui ,subject-id ,subject-name (,_ . ,subject-category) ,subject-props-assoc)
+             (,object-cui ,object-id ,object-name (,_ . ,object-category) ,object-props-assoc)
+             (,_ . ,pred)
+             ,pred-props-assoc)
+       (cond
+         ((drug-concept? subject-id)
+          (list (car ls)))
+         (else
+          #f))])))
+
+(define test-query/drug->disease
+  (map (lambda (curie)
+            (query/graph
+             ((S #f)
+              (O curie))
+             ((S->O #f) (edge/db? #f))
+             (S S->O O)))
+       breast-cancer/MONDO+HPO))
+
+(define test-query/edges:drug->disease
+  (map (lambda (edge) (edges/query edge 'S->O)) test-query/drug->disease))
+
+(define test-query/disease->gene
+  (map (lambda (curie)
+            (query/graph
+             ((S curie)
+              (O #f))
+             ((S->O #f) (edge/db? #f))
+             (S S->O O)))
+       ;breast-cancer/MONDO+HPO
+       test-ls
+       ))
+
+(define test-query/edges:disease->gene
+  (map (lambda (edge) (edges/query edge 'S->O)) test-query/disease->gene))
+
+(define genes-from:disease--co-occurs-->gene/edges
+  (ormap X-->Gene/edge? test-query/edges:disease->gene))
+
+(define drugs-from:drugs--co-occurs-->disease/edges
+  (ormap drug-->X/edge? test-query/edges:drug->disease))
+
+
+
+
+
+#|
+
+|#
 
 ;; X co-occurs--> breast-cancer MONDO
-(edges/query
+#;(edges/query
  (query/graph
-  ((X #f)
+  ((X gene/protein-concept?)
    (TC "MONDO:0004989"))
   ((TC->X (list "biolink:related_to")))
   (TC TC->X X))
@@ -126,33 +218,6 @@ co-occurence breast cancer disease concepts
 
 |#
 
-(define X<--co-occurs-->TC/edges
-  (edges/query X<--co-occurs-->TC 'X->TC))
-
-
-
-#|
-(define QUERY:Target-Concept--Predicate-->X
-  (lambda
-      (concept-ls x-filter p-filter db-filter)
-    (define 1-hop/query
-      (lambda (concept x-filter p-filter db-filter)
-        (printf "\nQUERY/GRAPH RUNNING ON: ~a\n" concept)
-        (time         
-         (query/graph
-          ((X x-filter)
-           (TC concept))
-          ((TC->X p-filter) (edge/db? db-filter))
-          (TC TC->X X)))))
-    (cond
-      ((null? concept-ls) '())
-      (else
-       (let* ((1-hop/query-result
-               (1-hop/query (car concept-ls) x-filter p-filter db-filter))
-              (1hop-edge-ls (edges/query 1-hop/query-result 'TC->X)))         
-         (append*
-          1hop-edge-ls
-          (QUERY:Target-Concept--Predicate-->X (cdr concept-ls) x-filter p-filter db-filter)))))))
 
 
 #|
@@ -164,4 +229,4 @@ minikanren queries for edge types
      `(rtx2_2020_09_16 ,eid ,subject ,object (228 . "gene_encodes_gene_product") ,eprops)))))
 
 |#
-|#
+
