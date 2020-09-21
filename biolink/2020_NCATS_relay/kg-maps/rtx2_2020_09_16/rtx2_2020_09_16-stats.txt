@@ -1,0 +1,4 @@
+predicates: 848
+categories: 54
+concepts: 10,527,134
+edges: 53,589,306
