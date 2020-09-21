@@ -7,8 +7,10 @@
 ;; directly from the raw data files.
 
 ;; *** Change this string to match the name of the KG you want to map! ***
+;(define kg-name "rtx2_2020_09_16")
+;(define kg-name "textminingprovider")
 ;(define kg-name "pr-owl")
-(define kg-name "co-occur")
+;(define kg-name "co-occur")
 
 (define-runtime-path path:root "..")
 (define (path/root relative-path) (build-path path:root relative-path))
