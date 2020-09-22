@@ -1,6 +1,6 @@
 #lang racket
 (provide HGNC-CURIE->synonymized-concepts
-         curie-aliases curie-synonyms curie-synonyms-raw curie-synonyms/names
+         curie-aliases curie-synonyms curie-synonyms-build curie-synonyms-raw curie-synonyms/names
          curie->name curie->concepts
          (all-from-out "../common.rkt" "../mk-db.rkt"))
 (require "../common.rkt" "../mk-db.rkt" "../db.rkt" racket/runtime-path)
@@ -165,12 +165,16 @@
                           (membero curie ids0)
                           (synonym-concepto curie c)))
                       '()))
-               (ids (append ids (map caddr cs)
+               (ids (append ids
+                            (map caddr cs)
                             (map caddr (connect-edges cs0))
-                            (map caddr (hack-names    cs0))
+                            ;; (map caddr (hack-names    cs0))
+                            #|
                             (if xref-concepto?
                               (append (xref-forward cs0) (xref-backward ids0))
-                              '())))
+                              '())
+                            |#
+                            ))
                (ids (set-subtract (list->set (curie-aliases ids))
                                   synonym-ids)))
           (if (set-empty? ids) synonym-ids
