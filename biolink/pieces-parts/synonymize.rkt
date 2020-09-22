@@ -66,14 +66,34 @@
             "biolink:has_gene_template*")))
   (define subclass-of (find-exact-predicates (list "subclass_of" "biolink:subClassOf" "isa")))
   (define xref        (find-exact-predicates (list "xref")))
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Synonymization rules ;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;; Equivalence predicates: add or remove individual rules to adjust
   (define preds/filters
-    (list (list same-as     any?        any?)
-          ; (list subclass-of curie-NCIT? curie-NCIT?)
-          ; (list xref        curie-NCIT-gene? curie-CUI?)
-          ))
+    (list
+      (list same-as     any?        any?)
+      ; (list subclass-of curie-NCIT? curie-NCIT?)
+      ; (list xref        curie-NCIT-gene? curie-CUI?)
+      ))
+
+  ;; Concept name hacking: add or remove individual rules to adjust
   (define suffixes/filters
-    (list (list " wt Allele" curie-HGNC? curie-NCIT?)))
+    (list
+      ;(list " wt Allele" curie-HGNC? curie-NCIT?)
+      ))
+
+  ;; Concept property equivalence lists to be used
+  (define use-synonym-concepto? #t)
+  (define use-xref-concepto?    #f)
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; It should rarely be necessary to change code below this point ;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
   (define (hack-names cs)
+    ;; If you want to change this behavior, adjust the suffixes/filters rules
     (append*
       (map (lambda (s/fs)
              (match-define (list suffix before? after?) s/fs)
@@ -101,6 +121,7 @@
                                            (filter after? cs)))))))))
            suffixes/filters)))
   (define (connect-edges cs)
+    ;; If you want to change this behavior, adjust the preds/filters rules
     (append*
       (map (lambda (p/fs)
              (match-define (list preds s? o?) p/fs)
@@ -118,6 +139,7 @@
                                     (edgeo `(,db ,eid ,s ,o ,p . ,erest)))))))
            preds/filters)))
   (define (xref-forward cs0)
+    ;; If you want to change this behavior, change use-xref-concepto?
     (define cs-gene (filter (lambda (c) (curie-UMLS-gene? c)) cs0))
     (define xs-gene (filter curie-xref-gene?
                             (run* (x) (fresh (c)
@@ -130,6 +152,7 @@
                                         (xref-concepto x c)))))
     (append xs-gene xs-drug))
   (define (xref-backward ids0)
+    ;; If you want to change this behavior, change use-xref-concepto?
     (define xs-gene
       (filter (lambda (c) (curie-xref-gene? c)) ids0))
     (define cs-gene (filter curie-UMLS-gene?
@@ -145,7 +168,8 @@
     (map caddr (append cs-gene cs-drug)))
 
   (define ids (curie-aliases (list curie)))
-  (let retry ((synonym-concepto? #t) (xref-concepto? #t))
+  (let retry ((synonym-concepto? use-synonym-concepto?)
+              (xref-concepto?    use-xref-concepto?))
     (let loop ((ids0 ids) (synonym-ids (list->set ids)))
       (if (< max-synonyms (set-count synonym-ids))
         (cond (synonym-concepto? (retry #f #t))
@@ -153,12 +177,14 @@
               (else              (list->set ids)))
         ;; (printf "ids0 = ~s\n" ids0)
         (let* ((cs0 (find-concepts #t ids0))
+               ;; Set use-synonym-concepto? to #f to disable
                (ids (if synonym-concepto?
                       (run* (curie)
                         (fresh (c)
                           (membero c cs0)
                           (synonym-concepto curie c)))
                       '()))
+               ;; Set use-synonym-concepto? to #f to disable
                (cs  (if synonym-concepto?
                       (run* (c)
                         (fresh (curie)
@@ -168,13 +194,12 @@
                (ids (append ids
                             (map caddr cs)
                             (map caddr (connect-edges cs0))
-                            ;; (map caddr (hack-names    cs0))
-                            #|
+                            ;; Empty suffixes/filters to disable
+                            (map caddr (hack-names    cs0))
+                            ;; Set use-xref-concepto? to #f to disable
                             (if xref-concepto?
                               (append (xref-forward cs0) (xref-backward ids0))
-                              '())
-                            |#
-                            ))
+                              '())))
                (ids (set-subtract (list->set (curie-aliases ids))
                                   synonym-ids)))
           (if (set-empty? ids) synonym-ids
