@@ -339,7 +339,7 @@ edge format, with dbname at front (as used in edgeo):
     [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
      (list (format "~a" dbname)
            (format "~a" cid)
-           (format "~a" cui)
+           (~a cui #:max-width MAX-CHAR-WIDTH #:limit-marker "...")
            (format "~a" `(,catid . ,cat))
            (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "..."))]))
 
@@ -348,7 +348,7 @@ edge format, with dbname at front (as used in edgeo):
     [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props ,max-pubmed-count ,min-pubmed-count ,pred-names ,path-length ,confidence)
      (list (format "~a" dbname)
            (format "~a" cid)
-           (format "~a" cui)
+           (~a cui #:max-width MAX-CHAR-WIDTH #:limit-marker "...")
            (format "~a" `(,catid . ,cat))
            (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")
            (format "~a" max-pubmed-count)
@@ -362,7 +362,7 @@ edge format, with dbname at front (as used in edgeo):
     [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
      (list (format "~a" dbname)
            cid
-           (format "~a" cui)
+           (~a cui #:max-width MAX-CHAR-WIDTH #:limit-marker "...")
            catid
            (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "..."))]))
 
@@ -371,7 +371,7 @@ edge format, with dbname at front (as used in edgeo):
     [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props ,max-pubmed-count ,min-pubmed-count ,pred-names ,path-length ,confidence)
      (list (format "~a" dbname)
            cid
-           (format "~a" cui)
+           (~a cui #:max-width MAX-CHAR-WIDTH #:limit-marker "...")
            catid
            (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")
            max-pubmed-count
@@ -625,7 +625,7 @@ edge format, with dbname at front (as used in edgeo):
             (map (lambda (x)
                    (match x
                      [`(,dbname ,cid ,cui ,name (,catid . ,cat) ,props)
-                       (format "~a" cui)]))
+                       (~a cui #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
                  ans)
             (map (lambda (x)
                    (match x
