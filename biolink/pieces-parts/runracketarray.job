@@ -1,0 +1,37 @@
+#!/bin/bash
+#SBATCH --array=1-59
+#SBATCH --partition=express
+#SBATCH --job-name=AlzDrug
+#
+#SBATCH --output=AlzDrug_.%A_%a.out
+#SBATCH --error=AlzDrug_.%A_%a.error
+#SBATCH --ntasks=1
+#
+# Time format = HH:MM:SS, DD-HH:MM:SS
+#SBATCH --time=02:00:00
+#
+# Number of CPUs allocated to each task. 
+#SBATCH --cpus-per-task=1
+#
+# Mimimum memory required per allocated  CPU  in  MegaBytes. 
+#SBATCH --mem-per-cpu=16000
+#
+# Send mail to the email address when the job fails
+#SBATCH --mail-type=FAIL
+#SBATCH --mail-user=ozborn@uab.edu
+
+CASE_NUM=`printf %02d $SLURM_ARRAY_TASK_ID`
+
+#Set your environment here
+cd /home/ozborn/code/repo/mediKanren/biolink/pieces-parts
+module load Anaconda3/5.2.0
+source /share/apps/rc/software/Anaconda3/5.2.0/etc/profile.d/conda.sh
+conda activate racketpmi
+#conda activate /share/apps/rc/software/Anaconda3/5.2.0/envs/DeepNLP
+
+#Run your commands here
+srun hostname
+echo $PATH
+/data/user/ozborn/Conda_Env/racketpmi/bin/racket /home/ozborn/code/repo/mediKanren/biolink/pieces-parts/drug-rankerAlzheimer.rkt drugs_alz_$CASE_NUM
+
+echo "$CASE_NUM finished"

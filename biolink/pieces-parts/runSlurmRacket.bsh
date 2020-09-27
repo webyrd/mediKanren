@@ -1,0 +1,8 @@
+#!/bin/bash
+
+#https://docs.uabgrid.uab.edu/wiki/Slurm
+
+sbatch runracketarray.job
+
+# Look for job
+squeue -u ozborn
