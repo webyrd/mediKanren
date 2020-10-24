@@ -128,8 +128,8 @@ purpose: to find any regulatory relationships where genes on a given list regula
   )
 
 #|Examples
-(define ards-test-mini (time (count-downstream (take uniprots 50))))
-(length (remove-duplicates (map car (unwrap (map cdr ards-test-mini))))) ;;7122
+(define ards-test-mini (time (count-downstream (take uniprots 10))))
+(length (remove-duplicates (map car (unwrap (map cdr ards-test-mini)))))
 (define ards-test-full (count-downstream uniprots))
 |#
 
@@ -151,7 +151,8 @@ purpose: to find any regulatory relationships where genes on a given list regula
                                "inhibits"
                                "biolink:directly_negatively_regulates"))
 
-(define direct-interaction-preds '("directly_regulates"
+(define direct-interaction-preds '("regulates"
+                                   "directly_regulates"
                                    "physically_interacts_with"
                                    "directly_interacts_with"
                                    "directly_positively_regulates"
@@ -159,7 +160,8 @@ purpose: to find any regulatory relationships where genes on a given list regula
                                    "biolink:directly_negatively_regulates"
                                    "biolink:directly_positively_regulates"
                                    "biolink:positively_regulates"
-                                   "biolink:directly_regulates"))
+                                   "biolink:directly_regulates"
+                                   "actively_involved_in"))
 
 (define all-regulation-preds (set-union directionless-regulation-preds
                                         pos-regulation-preds
@@ -173,39 +175,84 @@ purpose: to find any regulatory relationships where genes on a given list regula
   (for-each
    (lambda (g)
      (define q (time (query/graph
-                      ((G gene-or-protein)
+                      ((G+ gene-or-protein)
+                       (G- gene-or-protein)
+                       (G gene-or-protein)
                        (rG-on-list g))
-                      ((G-pos->rG-on-list pos-regulation-preds)
-                       (G-neg->rG-on-list neg-regulation-preds)
-                       (G->rG-on-list directionless-regulation-preds))
-                      (G G-pos->rG-on-list rG-on-list)
-                      (G G-neg->rG-on-list rG-on-list)
-                      (G G->rG-on-list rG-on-list))))
+                      ((G+-pos->rG-on-list positively-regulates);;pos-regulation-preds)
+                       (G--neg->rG-on-list negatively-regulates)
+                       (G->rG-on-list direct-interaction-preds))
+                      (G+ G+-pos->rG-on-list rG-on-list)
+                      (G- G--neg->rG-on-list rG-on-list)
+                      (G G->rG-on-list rG-on-list)
+                      )))
+     
+     ;;(report/query q)
      (for-each
       (lambda (e)
         ;;defining the key as (G rG)
         (define rg (concept->curie (edge->object e)))
-        ;;record the G->rG interaction direction (up or down regulate)
-        (define direction 0)
-        (cond
-          [(set-member? pos-regulation-preds (cdr (edge->pred e))) (set! direction 1)]
-          [(set-member? neg-regulation-preds (cdr (edge->pred e))) (set! direction -1)])
         ;;record provenance
-        (define strength-of-direction-edge (pubmed-ids-from-edge e))
+        (define direction-provenance (pubmed-ids-from-edge e))
         ;;record whether the predicate indicates direct interaction between the two entities (#t if yes)
         (define direct-interaction? (set-member? direct-interaction-preds (edge->pred  e)))
         ;;record provenance
-        (define strength-of-direct-interaction-edge (pubmed-ids-from-edge e))
+        (define direct-interaction-provenance '())
+        (unless (not direct-interaction?)
+          (set! direct-interaction-provenance (pubmed-ids-from-edge e))
+          )
         ;;add information to the hash
         (hash-update! gene-regulation-scores
                       (assoc g (curie-synonyms/names g))
                       (lambda (v) (set-add v (list (assoc rg (curie-synonyms/names rg))
-                                                   (list direction strength-of-direction-edge)
-                                                   (list direct-interaction? strength-of-direct-interaction-edge)
+                                                   (list 1 direction-provenance)
+                                                   (list direct-interaction? direct-interaction-provenance)
+                                                   (concept->curie (edge->subject e))))) '())
+        )
+      (edges/query q 'G+-pos->rG-on-list)
+      )
+     
+     (for-each
+      (lambda (e)
+        ;;defining the key as (G rG)
+        (define rg (concept->curie (edge->object e)))
+        ;;record provenance
+        (define direction-provenance (pubmed-ids-from-edge e))
+        ;;record whether the predicate indicates direct interaction between the two entities (#t if yes)
+        (define direct-interaction? (set-member? direct-interaction-preds (edge->pred  e)))
+        ;;record provenance
+        (define direct-interaction-provenance (pubmed-ids-from-edge e))
+        ;;add information to the hash
+        (hash-update! gene-regulation-scores
+                      (assoc g (curie-synonyms/names g))
+                      (lambda (v) (set-add v (list (assoc rg (curie-synonyms/names rg))
+                                                   (list -1 direction-provenance)
+                                                   (list direct-interaction? direct-interaction-provenance)
+                                                   (concept->curie (edge->subject e))))) '())
+        )
+      (edges/query q 'G--neg->rG-on-list)
+      )
+     (for-each
+      (lambda (e)
+        ;;defining the key as (G rG)
+        (define rg (concept->curie (edge->object e)))
+        ;;record provenance
+        (define direction-provenance (pubmed-ids-from-edge e))
+        ;;record whether the predicate indicates direct interaction between the two entities (#t if yes)
+        (define direct-interaction? (set-member? direct-interaction-preds (edge->pred  e)))
+        ;;record provenance
+        (define direct-interaction-provenance (pubmed-ids-from-edge e))
+        ;;add information to the hash
+        (hash-update! gene-regulation-scores
+                      (assoc g (curie-synonyms/names g))
+                      (lambda (v) (set-add v (list (assoc rg (curie-synonyms/names rg))
+                                                   (list 0 direction-provenance)
+                                                   (list direct-interaction? direct-interaction-provenance)
                                                    (concept->curie (edge->subject e))))) '())
         )
       (edges/query q 'G->rG-on-list)
       )
+
      )
    genes
    )
@@ -213,14 +260,13 @@ purpose: to find any regulatory relationships where genes on a given list regula
   (define sorted-gene-regulation-scores (sort
                                          (hash-map gene-regulation-scores (lambda (k v) (cons k v)))
                                          >
-                                         #:key (lambda (x) (length (cdr x)))))
+                                         #:key (lambda (x) (length (set-intersect (map caar (cdr x)) genes)))))
   
   sorted-gene-regulation-scores
   )
 #|Examples
-(define 1-hop-mini-test (time (find-1-hop-relations-v2 (take ards-genes 10))))
-(define 1-hop-full-test (time (find-1-hop-relations ards-genes)))
-(define 1-hop-ngly1 (time (find-1-hop-relations (take (set-union NGLY1-overexpressed NGLY1-underexpressed) 10))))
+(define 1-hop-mini-test (time (find-1-hop-relations (take uniprots 10))))
+(define 1-hop-full-test (time (find-1-hop-relations uniprots)))
 |#
 
 #|
@@ -296,7 +342,7 @@ Finds all cell/tissue types (UBERON) that each gene is expressed in
 
 (define drug-preds (set-union pos-drug-preds neg-drug-preds directionless-drug-preds))
 
-(define (drug-to-gene-edges-into-hash hash gene-curie edges edge-directionality)
+(define (drug->gene-into-hash hash gene-curie edges edge-directionality)
   (for-each
    (lambda (e)
      (define drug-curie (concept->curie (edge->subject e)))
@@ -308,40 +354,46 @@ Finds all cell/tissue types (UBERON) that each gene is expressed in
   )
 
 
-(define (find-all-drug-candidates go-query-results 1-hop-query-results)
+(define (find-all-drug-candidates genes);;go-query-results 1-hop-query-results)
   (define drug-targets=>drug (make-hash))
   (define drug-scores (make-hash))
   (for-each
    (lambda (g)
-     (define q-drugs (query/graph
-                      ((D drug)
-                       (G g))
-                      ((D-pos->G pos-drug-preds)
-                       (D-neg->G neg-drug-preds)
-                       (D->G directionless-drug-preds))
-                      (D D-pos->G G)
-                      (D D-neg->G G)
-                      (D D->G G)))
-     (drug-to-gene-edges-into-hash drug-targets=>drug g (edges/query q-drugs 'D-pos->G) 1)
-     (drug-to-gene-edges-into-hash drug-targets=>drug g (edges/query q-drugs 'D-neg->G) -1)
-     (drug-to-gene-edges-into-hash drug-targets=>drug g (edges/query q-drugs 'D->G) 0)
+     (define q-drugs (time (query/graph
+                            ((D+ drug)
+                             (D- drug)
+                             (D drug)
+                             (G g)
+                             (OT gene-or-protein))
+                            ((D+-pos->G pos-drug-preds)
+                             (D--neg->G neg-drug-preds)
+                             (D->G directionless-drug-preds)
+                             (D->OT drug-preds))
+                            (D+ D+-pos->G G)
+                            (D- D--neg->G G)
+                            (D D->G G)
+                            (D D->OT OT))))
+     (drug->gene-into-hash drug-targets=>drug g (edges/query q-drugs 'D+-pos->G) 1)
+     (drug->gene-into-hash drug-targets=>drug g (edges/query q-drugs 'D--neg->G) -1)
+     (drug->gene-into-hash drug-targets=>drug g (edges/query q-drugs 'D->G) 0)
      )
-   (map caar (set-union go-query-results 1-hop-query-results))
+   genes ;;(map caar (set-union go-query-results 1-hop-query-results))
    )
-   
-   (for-each
-    (lambda (d)
-      (define q-drugs2 (query/graph
-                        ((D d)
-                         (all-Gs gene-or-protein))
-                        ((D->all-Gs drug-preds))
-                        (D D->all-Gs all-Gs)))
-      (hash-update! drug-scores (assoc d (curie-synonyms/names d))
-                    (lambda (v) (list (curies/query 'affected-G) (curies/query 'SE))) '())
-      )
-    (map caar (hash-values drug-targets=>drug))
-    )
-  
-  (list drug-targets=>drug drug-scores)
+  #|
+  (for-each
+   (lambda (d)
+     (define q-off-targets (query/graph
+                            ((D d)
+                             (all-Gs gene-or-protein))
+                            ((D->all-Gs drug-preds))
+                            (D D->all-Gs all-Gs)))
+     (hash-update! drug-scores (assoc d (curie-synonyms/names d))
+                   (lambda (v) (list (curies/query 'affected-G) (curies/query 'SE))) '())
+     )
+   (map caar (hash-values drug-targets=>drug))
+   )
+|#
+  (list drug-targets=>drug) ;;drug-scores)
   )
-;;(find-all-drug-candidates '() 1-hop)
+
+;;(define drugs (time (find-all-drug-candidates (take uniprots 10))))
