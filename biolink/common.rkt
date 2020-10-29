@@ -82,7 +82,9 @@
   path/root
   path:root
 
-  python->json)
+  python->json
+
+  write-list-to-tsv)
 
 (require
   "db.rkt"
@@ -813,3 +815,34 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
                      (find-graph concept=>set concept=>cx predicate=>cx edges))
        (list (report report-concept concept-sets)
              (report report-edge    edge=>set))))))
+
+
+#|
+example usage, where 'results' is bound to a list of lists:
+
+(write-list-to-tsv
+  (list "db" "subject" "predicate" "object")
+  results
+  "my-tsv.tsv")
+|#
+(define write-list-to-tsv
+  (lambda (header-ls lol path)
+    (with-output-to-file path
+      ;; thunk -- procedure that takes no arguments
+      (lambda ()
+        (for-each
+          (lambda (l)
+            (let loop ([l l])
+              (cond
+                ((null? l)
+                 (error 'output-to-tsv "where's the data!?"))
+                ((null? (cdr l)) ;; l contains exactly 1 element
+                 (display (car l))
+                 (display #\newline))
+                (else
+                 (display (car l))
+                 (display #\tab)
+                 (loop (cdr l))))))
+          (cons header-ls lol)))
+      #:mode 'text
+      #:exists 'replace)))
