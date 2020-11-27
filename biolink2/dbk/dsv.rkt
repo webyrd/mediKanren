@@ -1,6 +1,7 @@
 #lang racket/base
-(provide tsv->stream dsv->stream csv->stream)
-(require racket/function racket/string)
+(provide tsv->stream dsv->stream csv->stream
+         path->format format->header/port->stream)
+(require racket/function racket/list racket/string)
 
 ;; Informal grammar for tab-separated values (no escapes supported)
 ;FIELD-SEPARATOR  ::= \t
@@ -10,7 +11,8 @@
 ;field            ::= CONTENT*
 ;CONTENT includes anything other than \t, \n, \r
 
-(define (tsv->stream in)
+(define (tsv->stream header? in)
+  (valid-header?! in header? "\t")
   (let loop () (thunk (define l (read-line in 'any))
                       (if (eof-object? l) '()
                         (cons (string-split l "\t" #:trim? #f) (loop))))))
@@ -23,9 +25,9 @@
 ;inner-content    ::= CONTENT | \"\" | FIELD-SEPARATOR | WHITESPACE
 ;CONTENT includes anything other than double-quote, field separator, whitespace
 
-(define (csv->stream in) (dsv->stream #\, in))
+(define (csv->stream header? in) (dsv->stream #\, header? in))
 
-(define (dsv->stream field-separator in)
+(define (dsv->stream field-separator header? in)
   (define (field)
     (define ch (peek-char in))
     (cond ((eqv? ch field-separator) (read-char in) "")
@@ -57,5 +59,27 @@
                   ((eqv? ch #\newline) (read-char in) '())
                   ((eof-object? ch)                   '())
                   (else                               (record))))))
+  (valid-header?! in header? (make-string 1 field-separator))
   (let loop () (thunk (if (eof-object? (peek-char in)) '()
                         (cons (record) (loop))))))
+
+(define (valid-header?! in header delimiter)
+  (define found    (and header (read-line in 'any)))
+  (define expected (and header (cond ((eq? header #t)  found)
+                                     ((string? header) header)
+                                     (else (string-join header delimiter)))))
+  (unless (equal? found expected)
+    (error "invalid header:" 'found: found 'expected: expected)))
+
+(define (path->format path)
+  (define fname (if (path? path) (path->string path) path))
+  (case (last (string-split fname "." #:trim? #f))
+    (("tsv") 'tsv)
+    (("csv") 'csv)
+    (else    #f)))
+
+(define (format->header/port->stream format)
+  (case format
+    ((tsv) tsv->stream)
+    ((csv) csv->stream)
+    (else  (error "invalid format:" format))))

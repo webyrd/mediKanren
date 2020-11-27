@@ -3,59 +3,68 @@
 This implementation of Kanren supports defining, and efficiently querying,
 large-scale relations.
 
+Typical use:
+
+```
+(require "PATH-TO-DBKANREN/dbk.rkt")
+```
+
 
 ## TODO
 
-* consolidate table/stream-based relation implementations
-  * replace relation/tables with a memory-only option for materialized-relation
-    * take a vector or stream as a source instead of a directory path
-      * attribute-names attribute-types source-columns key-name tables indexes
-    * sort vector in-memory, vector-map and re-sort as necessary for indexing
-* support materializing additional indexes without rebuilding existing ones
+* `state-pending-run` before splitting search on any disj
+  * instead, maybe even go so far as to `state-enumerate` before?
 
-* move depth-first-search components to mk-dfs.rkt
-  * use some kind of `dfs:` naming convention?
-* revert to a purely functional mk interpretation with a complete search
-  * safer interaction between concurrent evaluation/analysis of shared queries
-  * redefine var as immutable syntax (should not include a mutable value)
-    * for optimizations like mutable var cells, compile to a new representation
-* domain constraints
-  * a var's possible values are the intersection of one or more as bounded sets
-    * disagreeing bounds are refined by incremental intersection
-  * continuous/discrete sets
-    * discrete values from a finite relation
-    * mix of discrete and continuous ranges of values for an infinite relation
-    * ordered, disjoint, singletons and open intervals
-      * usual total order
-    * define intersection involving intervals
-    * complement, join (least ub), meet (greatest lb)
-  * disequality constraints punch holes in continuous ranges
-  * description metadata
-    * for subsumption and/or simplification with other constraints
-
-* materialized-relation
-  * tables as independent helper relations providing constraints
+* properly 2-watch `=/=*` constraints to make sure inclusiveness trimming
+  opportunities are not missed
+  * possibly also switch to eager disunify processing
+* implement simple `any<=o` constraints (at most one term is non-ground)
+* support branchless disjunctions when all leaf constraints are simple?
+  * no user-defined relations for now
+* re-express bounds-apply using branchless disjunctions
+* recognize finite domains and express using branchless disjunctions?
 
 * define tables that use column-oriented layout
 
-* metadata.scm protocol versioning for automatic update/migration
+* eventually, make sure relation metadata contains information for analysis
+  * e.g., degree constraints, fast column ordering, subsumption tag/rules
+  * descriptions used for subsumption
+    * #(,relation ,attributes-satisfied ,attributes-pending)
+    * within a relation, table constraint A subsumes B if
+      B's attributes-pending is a prefix of A's
+      AND
+      B does not have any attributes-satisfied that A does not have
 
-* floating point numbers are not valid terms
-  * reordering operations endangers soundness
-  * detect float literals when doing so won't hurt performance
+* remaining loose ends necessary for full expressiveness
+  * fixed point computation
+  * strategy w/ flexible goal ordering
+  * these are defined in the "evaluation" section below
 
 * how do we express columns of suffix type?
   * it would have this representation type: `#(suffix count len)`
   * but it would use a different comparison operator
 
-* dynamically-scoped config system (use parameters) to provide defaults
-  * logging (levels, output locations, and verbosity (what also gets printed))
-    * e.g., warnings, materialization progress
-  * error-handling mechanism (halt, warn/log, or interact)
-    * e.g., materialized relation already exists
-  * buffer-size for sorter
-  * base-path for storage
-  * mk search strategy
+* relation compilation to remove interpretive overhead
+  * mode analysis
+  * represent low-level operation representation depending on mode
+    * e.g., == can act like an assignment, or a type/equality test
+      * likewise for other constraint evaluations
+  * partial evaluation
+    * e.g., unify on partially-known term structures can be unrolled
+    * constraint evaluations can be pre-simplified and reordered
+  * code generation
+
+* floating point numbers are not valid terms
+  * reordering operations endangers soundness
+  * detect float literals when doing so won't hurt performance
+
+* parameterized dryrun blocks
+  * dryrun uses of materialize-relation only describe hypothetical actions
+* tee/piping output logs to file
+* background worker threads/places for materialization
+* metadata.scm protocol versioning for automatic update/migration
+
+* small tsv data example for testing materialization
 
 
 ### Data processing
@@ -75,7 +84,7 @@ large-scale relations.
 
 * high-level relation specification for transforming stream
   * high-level string transformation types: string, number, json, s-expression
-    * perform this with Racket computation via `use`
+    * perform this with Racket computation via `:==`
   * flattening of tuple/array (pair, vector) fields, increasing record arity
     * supports compact columnarization of scalar-only fields
   * generate helper relations for large or variable-length data columns
@@ -143,6 +152,10 @@ large-scale relations.
       * sorted-columns: C is nondecreasing when sorting by (A B C D)
         * implies sorted rows for (C A B D) appear in same order as (A B C D)
           * one index can support either ordering
+        * generalized: (sorted-columns (A B . C) (B . D) B) means:
+          * B is already nondecreasing
+          * C becomes nondecreasing once both A and B are chosen
+          * D becomes nondecreasing once B is chosen (regardless of A)
     * statistics (derived from table statistics)
 
 * low-level tables with optional keys/indices (not user-level)
@@ -171,20 +184,20 @@ large-scale relations.
 
 * functional term sublanguage
   * atoms and constructors can be appear freely
-  * other computation appears under `use`
+  * other computation appears under `:==`
     * should be referentially transparent
     * e.g., subqueries used for aggregation, implicitly grouped by outer query
   * maybe indicate monotonicity for efficient incremental update
-    * by default, `use` will stratify based on dependencies
+    * by default, `:==` will stratify based on dependencies
 
 * relations
   * `(define-relation (name param ...) goal ...) => (define name (relation (param ...) goal ...))`
   * `(define-relation/data (name param ...) data-description)`
   * `(relation (param-name ...) goal ...)`
-  * `(use (relation-or-var-name ...) term-computation ...)`
-    * computed term that indicates its relation and logic variable dependencies
+  * `(:== term (var-name ...) term-computation ...)`
+    * computed term that indicates its logic variable dependencies
     * force vars to be grounded so that embedded Racket computation succeeds
-    * force dependency on given relations to ensure stratification
+    * result is equated with left-hand term (first argument to `:==`)
   * local relation definitions to share work (cached results) during aggregation
     * `(let-relations (((name param ...) goal ...) ...) goal ...)`
   * usual mk operators for forming goals:
@@ -192,7 +205,7 @@ large-scale relations.
     * `(r arg+ ...)` where `r` is a relation and `arg+ ...` are terms
   * if `r` is a relation:
     * `(r arg+ ...)` relates `arg+ ...` by `r`
-    * `(r)` accesses a metaprogramming control structure
+    * `(relations-ref r)` accesses a metaprogramming control structure
       * configure persistence, representation, uniqueness and type constraints
       * indicate evaluation preferences or hints, such as indexing
       * dynamically disable/enable
@@ -209,7 +222,6 @@ large-scale relations.
 * misc conveniences
   * `apply` to supply a single argument/variable to an n-ary relation
   * underscore "don't care" logic variables
-  * query results as lazy stream to enable non-materializing aggregation
   * tuple-column/record-field keywords
     * optional keyword argument calling convention for relations
     * optional keyword projection of query results
@@ -220,7 +232,7 @@ large-scale relations.
     * logic environments are introduced by query and relation
     * logic environments are extended by fresh
   * query and other term computation is performed in the context of Racket
-    * Racket environments are embedded in logic environments by `use`
+    * Racket environments are embedded in logic environments by `:==`
     * can only occur during forward/bottom-up computation (ground variables)
   * query evaluation
     * precompute relevant persistent/cached safe relations via forward-chaining
@@ -315,4 +327,4 @@ large-scale relations.
         * `(string-appendo needle t1 hay-s)`
       * multiple needles
         * `(conj (string-appendo n1 t1 hay-s) (string-appendo n2 t2 hay-s))`
-      * maybe best done explicitly as aggregation via `use`
+      * maybe best done explicitly as aggregation via `:==`
