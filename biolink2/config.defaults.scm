@@ -2,4 +2,5 @@
 ;; Instead, add overrides to: config.scm
 (
  ;; Add configuration options as new association pairs.
+ (relation-root-path . "data")
  )
