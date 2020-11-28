@@ -28,21 +28,8 @@
                         (list (string->number id) subject object))
   'attribute-names    '(id subject object)
   'attribute-types    '(nat string string)
-  'tables             '((subject object id))
-  'indexes            '((object subject)
-                        (id)))
-
-(materialize-relation
-  'path               "semmed/eprop"
-  'source-file-path   "semmed/semmed.edgeprop.csv"
-  'source-file-header '(":ID" "propname" "value")
-  'transform          (lambda (row)
-                        (match-define (list id key value) row)
-                        (list (string->number id) key value))
-  'attribute-names    '(id key value)
-  'attribute-types    '(nat string string)
-  'indexes            '((key value)
-                        (value)))
+  'indexes            '((subject object)
+                        (object subject)))
 
 (materialize-relation
   'path               "semmed/eprop"
