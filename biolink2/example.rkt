@@ -43,14 +43,6 @@
   'indexes            '((key value)
                         (value)))
 
-(define predicates
-  '("affects" "causes" "coexists_with" "derives_into"
-    "gene_associated_with_condition" "interacts_with"
-    "location_of" "manifestation_of"
-    "negatively_regulates" "part_of" "positively_regulates"
-    "precedes" "predisposes" "prevents" "produces"
-    "related_to" "subclass_of" "treats"))
-
 (time (let ()
         (define-materialized-relation
           cprop '((path           . "semmed/cprop")
@@ -83,5 +75,11 @@
                     (edge eid curie1 curie2)
                     (cprop curie1 "name" name1)
                     (cprop curie2 "name" name2)))))
+        (newline)
+
+        (time (pretty-print
+                (run* (predicate)
+                  (fresh (eid)
+                    (eprop eid "edge_label" predicate)))))
         (newline)
         ))
