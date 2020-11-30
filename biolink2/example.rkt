@@ -44,16 +44,18 @@
                         (value)))
 
 (time (let ()
-        (define-materialized-relation
-          cprop '((path           . "semmed/cprop")
-                  ;; specifying retrieval-type is optional (default is disk)
-                  (retrieval-type . disk)
-                  ;(retrieval-type . bytes)
-                  ;(retrieval-type . scm)
-                  ))
+        (define-materialized-relation cprop
+          'path           "semmed/cprop"
+          ;; specifying retrieval-type is optional (default is disk)
+          'retrieval-type 'disk
+          ;'retrieval-type 'bytes
+          ;'retrieval-type 'scm
+          )
 
-        (define-materialized-relation edge  '((path . "semmed/edge")))
-        (define-materialized-relation eprop '((path . "semmed/eprop")))
+        (define-materialized-relation edge
+          'path "semmed/edge")
+        (define-materialized-relation eprop
+          'path "semmed/eprop")
 
         (time (pretty-print
                 (run 10 (curie name)
