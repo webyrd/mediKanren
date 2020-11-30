@@ -768,6 +768,8 @@
            (relation/table name t))
          (range (length ts)) ts))
   (define (expand . args)
+    (unless (= (length attribute-names) (length args))
+      (error "invalid argument count:" relation-name attribute-names args))
     (define attr=>arg.0 (make-immutable-hash (map cons attribute-names args)))
     (define attr=>arg
       (if (member primary-key-name attribute-names) attr=>arg.0
@@ -940,12 +942,12 @@
 (define ((dfs:==/use u k)  st) (dfs:return k (use st u)))
 (define ((dfs:=/= t1 t2 k) st) (dfs:return k (disunify st t1 t2)))
 
-(define (materialized-relation kwargs)
+(define (materialized-relation . pargs)
   (match-define (list name attribute-names primary-key-name ts)
-    (materialization kwargs))
+    (apply materialization pargs))
   (relation/tables name attribute-names primary-key-name ts))
 
 (define-syntax define-materialized-relation
   (syntax-rules ()
-    ((_ name kwargs) (define name (materialized-relation
-                                    `((relation-name . name) . ,kwargs))))))
+    ((_ name pargs ...) (define name (materialized-relation
+                                       'relation-name 'name pargs ...)))))
