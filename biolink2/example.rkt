@@ -77,6 +77,28 @@
                     (cprop curie2 "name" name2)))))
         (newline)
 
+        (displayln "All concept property keys:")
+        (time (pretty-print
+                (run* (k)
+                  (fresh (curie v)
+                    (cprop curie k v)))))
+        (newline)
+
+        (displayln "All edge property keys:")
+        (time (pretty-print
+                (run* (k)
+                  (fresh (eid v)
+                    (eprop eid k v)))))
+        (newline)
+
+        (displayln "All concept categories:")
+        (time (pretty-print
+                (run* (category)
+                  (fresh (curie)
+                    (cprop curie "category" category)))))
+        (newline)
+
+        (displayln "All edge predicates:")
         (time (pretty-print
                 (run* (predicate)
                   (fresh (eid)
