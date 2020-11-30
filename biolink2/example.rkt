@@ -77,11 +77,24 @@
         (newline)
 
         ;; TODO: fix performance issue related to constraint ordering
+        ;(time (pretty-print
+                ;(run 10 (curie1 k1 v1 curie2 k2 v2)
+                  ;(fresh (eid)
+                    ;(eprop eid "edge_label" "negatively_regulates")
+                    ;(edge eid curie1 curie2)
+                    ;(cprop curie1 k1 v1)
+                    ;(cprop curie2 k2 v2)))))
+        ;; NOTE: this is an undesirable performance workaround, stratifying
+        ;; evaluation via :==
         (time (pretty-print
                 (run 10 (curie1 k1 v1 curie2 k2 v2)
-                  (fresh (eid)
-                    (eprop eid "edge_label" "negatively_regulates")
-                    (edge eid curie1 curie2)
+                  (fresh (curie-pairs)
+                    (:== curie-pairs ()
+                         (run 10 (curie1 curie2)
+                           (fresh (eid)
+                             (eprop eid "edge_label" "negatively_regulates")
+                             (edge eid curie1 curie2))))
+                    (membero (list curie1 curie2) curie-pairs)
                     (cprop curie1 k1 v1)
                     (cprop curie2 k2 v2)))))
         (newline)
