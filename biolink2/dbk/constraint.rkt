@@ -439,38 +439,39 @@
     (foldl
       (lambda (xstats x=>stats)
         (foldl (lambda (xstat x=>stats)
-                 (match-define (cons x cardinality.new) xstat)
-                 (hash-update x=>stats x
-                              (lambda (stats)
-                                (match-define (cons cardinality count) stats)
-                                (cons (if cardinality
-                                        (min cardinality.new cardinality)
-                                        cardinality.new)
-                                      (+ count 1)))
-                              '(#f . 0)))
+                 (match-define (vector x ratio.new cardinality.new) xstat)
+                 (hash-update
+                   x=>stats x
+                   (lambda (stats)
+                     (match-define (vector ratio cardinality count) stats)
+                     (vector (if ratio (min ratio.new ratio) ratio.new)
+                             (if cardinality (min cardinality.new cardinality)
+                               cardinality.new)
+                             (+ count 1)))
+                   '#(#f #f 0)))
                x=>stats xstats))
       hasheq.empty xstatss))
   ;; TODO: if we don't make subsequent use of sorted xccs, just use a linear
   ;; scan to find x.best instead of sorting.
-  (define xccs
-    (sort (hash->list x=>stats)
-          (lambda (a b)
-            (match-define `(,x.a . (,card.a . ,count.a)) a)
-            (match-define `(,x.b . (,card.b . ,count.b)) b)
-            ;; Sort by increasing cardinality and decreasing count.
-            ;; Prefer members of xs.enum.
-            (or (< card.a card.b)
-                (and (= card.a card.b)
-                     (or (< count.b count.a)
-                         (and (= count.b count.a)
-                              (set-member? xs.observable x.a)
-                              (not (set-member? xs.observable x.b)))))))))
+  (define (stats<? a b)
+    (match-define `(,x.a . #(,ratio.a ,card.a ,count.a)) a)
+    (match-define `(,x.b . #(,ratio.b ,card.b ,count.b)) b)
+    ;; Sort by increasing size-ratio, cardinality and decreasing count
+    ;; Prefer members of xs.observable
+    (or (< ratio.a ratio.b)
+        (and (= ratio.a ratio.b)
+             (or (< card.a card.b)
+                 (and (= card.a card.b)
+                      (or (> count.a count.b)
+                          (and (= count.a count.b)
+                               (set-member? xs.observable x.a)
+                               (not (set-member? xs.observable x.b)))))))))
+  (define xccs (sort (hash->list x=>stats) stats<?))
   ;; TODO: also consider paths provided by available table indexes, maybe via
   ;; prioritized topological sort of SCCs.
   (define x.best (caar xccs))
-  ;; TODO: it might be better to loop the entire state-choose.  It may be
-  ;; unlikely, but pruning the domain of x.best could affect cardinalities
-  ;; and/or counts of other variables.
+  ;; TODO: it might be better to loop the entire state-choose.  Pruning the
+  ;; domain of x.best could affect stats of other variables.
   (define v=>cx (state-var=>cx st))
   (define t (bounds-lb (vcx-bounds (state-var=>cx-ref st x.best))))
   (define st.new (assign st x.best t))
@@ -482,7 +483,7 @@
   (define st (state-pending-run st.0))
   (if st
     (let* ((tcxs (set->list (state-tables st)))
-           (xss  (map (lambda (tcx) (tcx-cardinalities st tcx)) tcxs))
+           (xss  (map (lambda (tcx) (tcx-stats st tcx)) tcxs))
            (st   (foldl (lambda (tcx xstats st)
                           (if (null? xstats) (state-tables-remove st tcx) st))
                         st tcxs xss)))
@@ -734,14 +735,15 @@
       (method-lambda
         ((info st) (match-define (cons _ t) (state-store-ref st id #f))
                    (list table-name (t 'columns.bound) (walk* st args)))
-        ((cardinalities st)
+        ((stats st)
          (match-define (cons _ t) (state-store-ref st id #f))
+         (define zrat (t 'size-ratio))
          (define cols (t 'columns.fast))
          (define a*   (walk* st (map (lambda (c) (hash-ref col=>arg c)) cols)))
          (append*
            (map (lambda (c a)
                   (define cardinality (t 'max-count c))
-                  (map (lambda (x) (cons x cardinality))
+                  (map (lambda (x) (vector x zrat cardinality))
                        (set->list (term-vars a))))
                 cols a*)))))
     (let* ((st (state-store-set st id (cons (hash) t)))
@@ -780,7 +782,7 @@
   (relations-set! r 'expand expand)
   r)
 
-(define (tcx-cardinalities st tcx) (tcx 'cardinalities st))
+(define (tcx-stats st tcx) (tcx 'stats st))
 
 
 ;; notes from old relation.rkt

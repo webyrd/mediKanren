@@ -72,6 +72,7 @@
           ((columns.fast)  (if key-bound? (s-take 1 cols)
                              (cons key-col (s-take 1 cols))))
           ((columns)       (cons key-col cols.all))
+          ((size-ratio)    (/ (- end start) row-count))
           ((max-count col) (cond ((key-col? col) (- end start))
                                  (else (let ((v.lb (lb)) (v.ub (ub)))
                                          (if (equal? v.lb v.ub) 1
