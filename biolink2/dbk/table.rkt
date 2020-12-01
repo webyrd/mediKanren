@@ -1,5 +1,5 @@
 #lang racket/base
-(provide materialize-relation materialization
+(provide materialize-relation materialization value/syntax
          vector-table? call/files let/files encoder s-encode s-decode)
 (require "codec.rkt" "config.rkt" "dsv.rkt" "method.rkt" "order.rkt"
          "stream.rkt"
@@ -645,6 +645,9 @@
         (source-vector?  (materialization/vector source-vector?  kwargs))
         (else (error "missing relation path or source:" kwargs))))
 
+(struct value+syntax (value syntax) #:prefab)
+(define-syntax-rule (value/syntax e) (value+syntax e #'e))
+
 (define (plist->alist kvs) (if (null? kvs) '()
                              (cons (cons (car kvs) (cadr kvs))
                                    (plist->alist (cddr kvs)))))
@@ -680,12 +683,12 @@
                            header.in)
                       header.in))
   (define (code->info code)
-    (cond ((procedure? code) #t)
-          ((syntax?    code) (syntax->datum code))
-          (else              code)))
+    (cond ((procedure? code)    #t)
+          ((value+syntax? code) (syntax->datum (value+syntax-syntax code)))
+          (else                 code)))
   (define (code->value code)
-    (cond ((syntax? code) (eval-syntax code))
-          (else           code)))
+    (cond ((value+syntax? code) (value+syntax-value code))
+          (else                 code)))
   (define source-info
     (cond (path.in   `((path      . ,fn.in)
                        (format    . ,format)
