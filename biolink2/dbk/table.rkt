@@ -29,9 +29,8 @@
   (call/files (list fin ...) (list fout ...)
               (lambda (in ... out ...) body ...)))
 
-;; TODO: multiple accessible columns, and order of revealing, expressed by dependency chains
-;; TODO: support multiple sorted columns
-;;       (wait until column-oriented tables are implemented for simplicity)
+;; TODO: support multiple sorted columns using tables that share key columns
+;;       (wait until column-oriented tables are implemented for simplicity?)
 
 (define (table vref key-col cols.all types row-count)
   (let table ((cols  cols.all)
@@ -104,13 +103,13 @@
   (define (ref i)
     (file-position in (table-ref table.offsets #t i 'offset))
     (decode in type))
-  (table ref key-col cols types (table-length table.offsets #t)))
+  (and table.offsets
+       (table ref key-col cols types (table-length table.offsets #t))))
 
 (define (table/bytes/offsets table.offsets key-col cols types bs)
   (define in (open-input-bytes bs))
   (table/port/offsets table.offsets key-col cols types in))
 
-;; TODO: table/file that does len calculation via file-size?
 (define (table/port len key-col cols types in)
   (define type `#(tuple ,@types))
   (define width (sizeof type (void)))
@@ -173,29 +172,27 @@
     (unless (set=? fstat.offset (hash-ref info 'offset-file))
       (error "offset file stats do not match metadata:" fname.offset
              'file: fstat.offset 'metadata: (hash-ref info 'offset-file))))
-  (define t.value
-    (case retrieval-type
-      ((disk) (define in.value (open-input-file fname.value))
-              (if offset-type
-                (table/port/offsets
-                  (table/port len #t '(offset) `(,offset-type)
-                              (open-input-file fname.offset))
-                  key-name column-names column-types in.value)
-                (table/port len key-name column-names column-types in.value)))
-      ((bytes) (define bs.value (file->bytes2 fname.value))
-               (if offset-type
-                 (table/bytes/offsets
-                   (table/bytes #t '(offset) `(,offset-type)
-                                (file->bytes2 fname.offset))
-                   key-name column-names column-types bs.value)
-                 (table/bytes key-name column-names column-types bs.value)))
-      ((scm) (let/files ((in.value fname.value)) ()
-               (table/vector
-                 key-name column-names column-types
-                 (list->vector
-                   (s-take #f (s-decode in.value `#(tuple ,@column-types)))))))
-      (else (error "unknown retrieval type:" retrieval-type))))
-  t.value)
+  (case retrieval-type
+    ((disk) (define in.value (open-input-file fname.value))
+            (if offset-type
+              (table/port/offsets
+                (table/port len #t '(offset) `(,offset-type)
+                            (open-input-file fname.offset))
+                key-name column-names column-types in.value)
+              (table/port len key-name column-names column-types in.value)))
+    ((bytes) (define bs.value (file->bytes2 fname.value))
+             (if offset-type
+               (table/bytes/offsets
+                 (table/bytes #t '(offset) `(,offset-type)
+                              (file->bytes2 fname.offset))
+                 key-name column-names column-types bs.value)
+               (table/bytes key-name column-names column-types bs.value)))
+    ((scm) (let/files ((in.value fname.value)) ()
+             (table/vector
+               key-name column-names column-types
+               (list->vector
+                 (s-take #f (s-decode in.value `#(tuple ,@column-types)))))))
+    (else (error "unknown retrieval type:" retrieval-type))))
 
 (define (bisect start end i<)
   (let loop ((start start) (end end))
@@ -238,7 +235,7 @@
   (unique?! column-names)
   (when (member key-name column-names)
     (error "key name must be distinct:" key-name column-names))
-  (define row-type column-types)  ;; TODO: possibly change this to tuple?
+  (define row-type column-types)
   (define row<     (compare-><? (type->compare row-type)))
   (define row-size (sizeof row-type (void)))
   (define path-prefix (path->string (build-path directory-path file-prefix)))
@@ -320,7 +317,6 @@
                       (vector (+ item-count i) (+ chunk-count 1) #f))
                      (else (vector i 0 v)))))))
 
-;; TODO: separate chunk streaming from merging
 (define (multi-merge
           dedup? out out-offset type otype v< chunk-count in in-offset)
   (define (s< sa sb) (v< (car sa) (car sb)))
@@ -625,14 +621,13 @@
   (define path.metadata  (path->string
                            (build-path path.dir metadata-file-name)))
   (define info           (make-immutable-hash (read-metadata path.metadata)))
-  (define attribute-names      (hash-ref info 'attribute-names))
-  (define attribute-types      (hash-ref info 'attribute-types))
-  (define primary-info-alist   (hash-ref info 'primary-table))
-  (define primary-info         (make-immutable-hash primary-info-alist))
-  (define primary-t            (table/metadata
-                                 retrieval-type path.dir primary-info-alist))
-  (define primary-key-name     (hash-ref primary-info 'key-name))
-  (define primary-column-names (primary-t 'columns))
+  (define attribute-names    (hash-ref info 'attribute-names))
+  (define attribute-types    (hash-ref info 'attribute-types))
+  (define primary-info-alist (hash-ref info 'primary-table))
+  (define primary-info       (make-immutable-hash primary-info-alist))
+  (define primary-t          (table/metadata
+                               retrieval-type path.dir primary-info-alist))
+  (define primary-key-name   (hash-ref primary-info 'key-name))
   (define index-ts
     (map (lambda (info) (table/metadata retrieval-type path.dir info))
          (hash-ref info 'index-tables '())))
@@ -668,8 +663,8 @@
   (define names.in        (alist-ref kwargs 'source-file-columns
                                      (remove key-name attribute-names)))
   (define stream.in       (alist-ref kwargs 'source-stream       #f))
-  (define transform       (alist-ref kwargs 'transform           #f))
-  (define filter?         (alist-ref kwargs 'filter              #f))
+  (define transform-code  (alist-ref kwargs 'transform           #f))
+  (define filter-code     (alist-ref kwargs 'filter              #f))
   (unless key-name (error "key-name cannot be #f:" kwargs))
   (define table-descriptions
     (append (alist-ref kwargs 'tables `(,(remove key-name attribute-names)))
@@ -684,18 +679,27 @@
                       (map (lambda (s) (if (symbol? s) (symbol->string s) s))
                            header.in)
                       header.in))
+  (define (code->info code)
+    (cond ((procedure? code) #t)
+          ((syntax?    code) (syntax->datum code))
+          (else              code)))
+  (define (code->value code)
+    (cond ((syntax? code) (eval-syntax code))
+          (else           code)))
   (define source-info
-    (cond (path.in   `((path       . ,fn.in)
-                       (format     . ,format)
-                       (header     . ,header)
-                       (stats      . ,(file-stats path.in))
-                       (transform? . ,(not (not transform)))
-                       (filter?    . ,(not (not filter?)))))
-          (stream.in `((stream?    . #t)
-                       (transform? . ,(not (not transform)))
-                       (filter?    . ,(not (not filter?)))))
+    (cond (path.in   `((path      . ,fn.in)
+                       (format    . ,format)
+                       (header    . ,header)
+                       (stats     . ,(file-stats path.in))
+                       (transform . ,(code->info transform-code))
+                       (filter    . ,(code->info filter-code))))
+          (stream.in `((stream    . ,(code->info stream.in))
+                       (transform . ,(code->info transform-code))
+                       (filter    . ,(code->info filter-code))))
           (else (error "materialize-relation missing file or stream source:"
                        kwargs))))
+  (define transform (code->value transform-code))
+  (define filter?   (code->value filter-code))
   (define (materialize-stream source-info stream)
     (let ((mat (materializer path.dir source-info
                              attribute-names attribute-types key-name
@@ -708,16 +712,19 @@
                       (mat 'put (arrange x))
                       (set! count (+ count 1)))
                     (let ((s (if transform (s-map transform stream) stream)))
-                      (if filter?  (s-filter filter? s) s))))
+                      (if filter? (s-filter filter? s) s))))
       (logf "Processing ~s rows\n" count)
       (time (mat 'close))
       (logf "Finished processing ~s rows\n" count)))
-  (define (materialize-file)
-    (let/files ((in path.in)) ()
-      (logf/date "Materializing relation ~s from ~s file ~s\n"
-                 path format fn.in)
-      (define stream ((format->header/port->stream format) header in))
-      (materialize-stream source-info stream)))
+  (define (materialize-source)
+    (if path.in
+      (let/files ((in path.in)) ()
+        (logf/date "Materializing relation ~s from ~s file ~s\n"
+                   path format fn.in)
+        (define stream ((format->header/port->stream format) header in))
+        (materialize-stream source-info stream))
+      (begin (logf/date "Materializing relation ~s from stream\n" path)
+             (materialize-stream source-info (code->value stream.in)))))
 
   (if (directory-exists? path.dir)
     (let* ((path.metadata       (path->string
@@ -764,7 +771,7 @@
              (when (directory-exists? path.backup)
                (error "backup path already exists:" path.backup))
              (rename-file-or-directory path.dir path.backup)
-             (materialize-file)
+             (materialize-source)
              (printf "Rematerialization of ~s finished\n" path)
              (when (directory-exists? path.backup)
                (if (or (equal? cleanup-policy 'always)
@@ -811,4 +818,4 @@
                 (update-materialization path.dir info
                                         (if add?    added   '())
                                         (if remove? removed '()))))))
-    (materialize-file)))
+    (materialize-source)))

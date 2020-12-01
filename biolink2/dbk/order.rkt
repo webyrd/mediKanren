@@ -27,9 +27,6 @@
          suffix<string? suffix<=string?)
 (require racket/match racket/math)
 
-;; TODO: is this representation compatible with table intersections?
-;; define polymorphic intersection, likely by lifting to simple OO
-
 ;; open intervals for describing infinite domains within the total order
 (struct interval (lb ub) #:prefab)
 

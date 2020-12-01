@@ -1,11 +1,16 @@
 #lang racket/base
 (provide (all-from-out "common.rkt") (all-from-out "syntax.rkt")
          (all-from-out "constraint.rkt")
-         run^ run run*)
-(require "common.rkt" "constraint.rkt" "stream.rkt" "syntax.rkt")
+         query->stream run^ run run*)
+(require "common.rkt" "config.rkt" "constraint.rkt" "stream.rkt" "syntax.rkt"
+         (except-in racket/match ==))
 
-;(define query->stream dfs:query->stream)
-(define query->stream bis:query->stream)
+(define (query->stream q)
+  ((match (or (current-config-ref 'search-strategy) 'biased-interleaving)
+     ('biased-interleaving bis:query->stream)
+     ('depth-first         dfs:query->stream)
+     (strategy (error "invalid search strategy:" strategy)))
+   q))
 
 (define-syntax run^
   (syntax-rules () ((_   body ...) (query->stream (query  body ...)))))

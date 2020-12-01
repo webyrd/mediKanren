@@ -12,6 +12,8 @@ Typical use:
 
 ## TODO
 
+* place-based concurrency/parallelism?
+
 * `state-pending-run` before splitting search on any disj
   * instead, maybe even go so far as to `state-enumerate` before?
 

@@ -1,5 +1,7 @@
 #lang racket/base
 (provide current-config config.default file->config current-config-ref
+         current-config-set current-config-set/alist
+         current-config-set! current-config-set!/alist
          current-config-relation-path config-ref config-set config-set/alist
          policy-allow? logf logf/date)
 (require racket/date)
@@ -13,8 +15,7 @@
       (update-policy              . interactive) ;; rebuild stale tables
       (cleanup-policy             . interactive) ;; remove unspecified indexes
       (migrate-policy             . interactive) ;; migrate to new data format
-      (search-strategy            . #f) ;; TODO: preferred search strategy
-      )))
+      (search-strategy            . #f))))
 
 (define (valid-config?! cfg)
   (define (valid-policy? policy) (member policy '(always never interactive)))
@@ -42,7 +43,13 @@
   (config-set/alist config.default (with-input-from-file path read)))
 
 (define current-config (make-parameter config.default))
-(define (current-config-ref key) (config-ref (current-config) key))
+(define (current-config-ref key)       (config-ref (current-config) key))
+(define (current-config-set key value) (config-set (current-config) key value))
+(define (current-config-set/alist kvs) (config-set/alist (current-config) kvs))
+(define (current-config-set! key value)
+  (current-config (current-config-set key value)))
+(define (current-config-set!/alist kvs)
+  (current-config (current-config-set/alist kvs)))
 (define (current-config-relation-path path)
   (define relation-root-path (current-config-ref 'relation-root-path))
   (if relation-root-path (path->string (build-path relation-root-path path))
@@ -75,3 +82,13 @@
   (define d (current-date))
   (define stamp (list (date-hour d) (date-minute d) (date-second d)))
   (apply printf msg (append (map pad2 stamp) args)))
+
+;; TODO: job system
+;; single worker thread
+;; jobs w/ independent loggers (port, file, in-memory, or null)
+
+;(define (thread/wait proc)
+;  (define t (thread proc))
+;  (plumber-add-flush! (current-plumber)
+;                      (lambda (h) (thread-wait t)))
+;  t)
