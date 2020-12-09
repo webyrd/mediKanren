@@ -476,11 +476,11 @@ also reported as (curie . name), expressed in that cell/tissue type.
   (define expression-location (make-hash))
   (for-each
    (lambda (g)
-     (define q (time (query/graph
-                      ((G-or-rG g)
-                       (C #f))
-                      ((G-or-rG->C '("expressed_in")))
-                      (G-or-rG G-or-rG->C C))))
+     (define q (query/graph
+                ((G-or-rG g)
+                 (C #f))
+                ((G-or-rG->C '("expressed_in")))
+                (G-or-rG G-or-rG->C C)))
      (for-each
       (lambda (e)
         (define g-or-rg (concept->curie (edge->subject e)))
