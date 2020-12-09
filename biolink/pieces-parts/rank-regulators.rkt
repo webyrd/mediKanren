@@ -1,8 +1,11 @@
 #lang racket
 (require "query.rkt"
+         "rank-regulators-gene-lists.rkt"
          racket/hash)
 (provide (all-defined-out)
-         (all-from-out "query.rkt" racket/hash))
+         (all-from-out "query.rkt"
+                       "rank-regulators-gene-lists.rkt"
+                       racket/hash))
 
 #|
 Meaning of symbols/variable names
@@ -315,11 +318,11 @@ function) because that edge is the one that has the directional predicates.
                                (concept->curie/name g)
                                (lambda (v)
                                  (cond
-                                   [(assoc (car new-val) v) => (lambda (a) 
-                                                                 (unless (empty? pubmeds)
-                                                                   (set-add (set-remove v a)
-                                                                            (list (car a)
-                                                                                  (set-union (cadr a) pubmeds)))))]
+                                   [(and (not (empty? pubmeds))
+                                         (assoc (car new-val) v)) => (lambda (a)
+                                                                       (set-add (set-remove v a)
+                                                                                (list (car a)
+                                                                                      (set-union (cadr a) pubmeds))))]
                                    [else (set-add v new-val)])) '())
                  )
                (hash-ref X=>rG x)
