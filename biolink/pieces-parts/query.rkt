@@ -93,7 +93,8 @@
                                "may_prevent"
                                "may_treat"
                                ))
-(define drug-safe            '("clinically_tested_approved_unknown_phase"
+(define drug-safe            '(;; rtx2
+                               "clinically_tested_approved_unknown_phase"
                                "clinically_tested_terminated_phase_2"
                                "clinically_tested_terminated_phase_3"
                                "clinically_tested_terminated_phase_2_or_phase_3"
@@ -177,6 +178,8 @@
 
 ;; TODO: catch naming errors
 (define (query concepts edge-constraints paths)
+  (unless (andmap list? (apply append (map cdr edge-constraints)))
+    (error 'query/graph "edge-contraints must all be lists"))  
   (define edges (append* (map path->edges paths)))
   (define csets (map cons (map car concepts)
                      (map (lambda (c)
