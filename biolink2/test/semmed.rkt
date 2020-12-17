@@ -1,5 +1,5 @@
 #lang racket/base
-(require "common.rkt" "db/semmed.rkt" racket/pretty)
+(require "../common.rkt" "../db/semmed.rkt" racket/pretty)
 
 (define-syntax-rule (test name e expected)
   (begin (printf "Testing ~s:\n" name)
