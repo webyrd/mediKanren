@@ -1,7 +1,7 @@
 #lang racket/base
-(provide s-next s-force s-split s-take s-drop s-append s-append* s-filter s-map
-         s-each s-foldr s-foldl s-scan s-group s-memo s-enumerate s-dedup
-         s-limit)
+(provide s-next s-force s-split s-take s-drop s-each s-foldr s-foldl s-scan
+         s-append s-append* s-map/append s-map s-filter s-group s-memo
+         s-enumerate s-dedup s-limit)
 (require racket/function racket/match)
 
 (define (s-next  s) (if (procedure? s)          (s)  s))
@@ -23,12 +23,14 @@
 
 (define (s-drop n s) (cdr (s-foldl n (lambda (_ acc) #t) #t s)))
 
+;; TODO: generalize to multiple streams
 (define (s-foldr f acc s)
   (cond ((null? s) acc)
         ((pair? s) (f (car s) (s-foldr f acc (cdr s))))
         (else      (thunk (s-foldr f acc (s))))))
 
 (define (s-append* ss) (s-foldr s-append '() ss))
+;; TODO: generalize to multiple streams
 (define (s-append a b) (s-foldr cons b a))
 (define (s-filter ? s) (s-foldr (lambda (x acc) (if (? x) (cons x acc) acc))
                                 '() s))
@@ -44,6 +46,11 @@
                          (if (procedure? ss0) (thunk (next (ss0)))
                            (loop (cdr ss-pending) (cons ss0 rss)))))))
         (else      (thunk (apply s-map f (s) ss)))))
+
+;; TODO: generalize to multiple streams
+(define (s-map/append f s)
+  (s-foldr (lambda (x rest) (s-append (f x) rest))
+           '() s))
 
 (define (s-each p s) (let ((s (s-force s)))
                        (unless (null? s) (p (car s)) (s-each p (cdr s)))))

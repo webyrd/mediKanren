@@ -625,6 +625,14 @@
   (foldl/and (lambda (=/=* st) (disunify* st =/=*)) st =/=**))
 (define (disunify st t1 t2) (disunify* st (list (cons t1 t2))))
 
+(define (<=ify st t1 t2)
+  (let ((t1 (walk* st t1)) (t2 (walk* st t2)))
+    (cond
+      ((ground? t1) (bounds-apply st (bounds t1       #t term.max #t) t2))
+      ((ground? t2) (bounds-apply st (bounds term.min #t t2       #t) t1))
+      (else (error "any<=o currently requires at least one ground argument:"
+                   st t1 t2)))))
+
 (define (reify st term)
   (define t.0 (walk* st term))
   (define xs (term-vars t.0))
@@ -811,21 +819,19 @@
 ;'#(1 1 #(x y z)   #(pos))  ;; even after truncating w, there are no duplicates
 
 ;; example: safe-drug -(predicate)-> gene
-#|
-(run* (D->G)
-  (fresh (D G D-is-safe P)
-    ;; D -(predicate)-> G
-    (concept D 'category 'drug)   ;; probably not low cardinality          (6? optional if has-tradename already guarantees this, but is it helpful?) known D Ologn if indexed; known Ologn
-    (edge D->G 'subject   D)      ;;                                       (5) 'subject range known Ologn; known D O(n) via scan
-    (edge D->G 'object    G)      ;; probably lowest cardinality for D->G  (3) 'object range known Ologn; known D->G Ologn
-    (edge D->G 'predicate P)      ;; probably next lowest, but unsorted    (4) known |D->G| O(|P|+logn) (would be known D->G O(nlogn)); known D->G O(nlognlog(|P|)) via scan
-    (membero P predicates)        ;; P might also have low cardinality     (2) known P O(|P|)
-    (== G 1234)                   ;; G should have lowest cardinality      (1) known G O1
-    ;(concept G 'category 'gene)
-    ;; D -(has-trade-name)-> _
-    (edge D-is-safe 'subject   D) ;;                                       (7) 'subject range known Ologn; known D-is-safe Ologn
-    (edge D-is-safe 'predicate 'has-tradename))) ;;                        (8) known Ologn
-|#
+;(run* (D->G)
+;  (fresh (D G D-is-safe P)
+;    ;; D -(predicate)-> G
+;    (concept D 'category 'drug)   ;; probably not low cardinality          (6? optional if has-tradename already guarantees this, but is it helpful?) known D Ologn if indexed; known Ologn
+;    (edge D->G 'subject   D)      ;;                                       (5) 'subject range known Ologn; known D O(n) via scan
+;    (edge D->G 'object    G)      ;; probably lowest cardinality for D->G  (3) 'object range known Ologn; known D->G Ologn
+;    (edge D->G 'predicate P)      ;; probably next lowest, but unsorted    (4) known |D->G| O(|P|+logn) (would be known D->G O(nlogn)); known D->G O(nlognlog(|P|)) via scan
+;    (membero P predicates)        ;; P might also have low cardinality     (2) known P O(|P|)
+;    (== G 1234)                   ;; G should have lowest cardinality      (1) known G O1
+;    ;(concept G 'category 'gene)
+;    ;; D -(has-trade-name)-> _
+;    (edge D-is-safe 'subject   D) ;;                                       (7) 'subject range known Ologn; known D-is-safe Ologn
+;    (edge D-is-safe 'predicate 'has-tradename))) ;;                        (8) known Ologn
 ;; about (4, should this build an intermediate result for all Ps, iterate per P, or just enumerate and filter P?):
 ;; * iterate        (global join on P): O(1)   space; O(|P|*(lg(edge G) + (edge P)))    time; join order is G(==), P(membero), D->G(edge, edge)
 ;; * intermediate    (local join on P): O(|P|) space; O(|(edge P)|lg(|P|) + lg(edge G)) time; compute D->G chunk offsets, virtual heap-sort, then join order is G(==), D->G(edge, intermediate)
@@ -893,12 +899,14 @@
             (expand       (bis:expand       expand       args))
             (else (error "no interpretation for:" proc args))))
     (`#s(constrain (retrieve ,s) ,args)     (bis:retrieve s args))
-    (`#s(constrain ==            (,t1 ,t2)) (bis:==  t1 t2))
-    (`#s(constrain =/=           (,t1 ,t2)) (bis:=/= t1 t2))))
-(define (bis:return st)      (if st (list st) '()))
-(define ((bis:== t1 t2)  st) (bis:return (unify st t1 t2)))
-(define ((bis:==/use u)  st) (bis:return (use st u)))
-(define ((bis:=/= t1 t2) st) (bis:return (disunify st t1 t2)))
+    (`#s(constrain ==            (,t1 ,t2)) (bis:==     t1 t2))
+    (`#s(constrain =/=           (,t1 ,t2)) (bis:=/=    t1 t2))
+    (`#s(constrain any<=o        (,t1 ,t2)) (bis:any<=o t1 t2))))
+(define (bis:return st)         (if st (list st) '()))
+(define ((bis:==     t1 t2) st) (bis:return (unify    st t1 t2)))
+(define ((bis:==/use u)     st) (bis:return (use      st u)))
+(define ((bis:=/=    t1 t2) st) (bis:return (disunify st t1 t2)))
+(define ((bis:any<=o t1 t2) st) (bis:return (<=ify    st t1 t2)))
 
 (define (dfs:query->stream q) ((dfs:query q) state.empty))
 (define (dfs:query q)
@@ -931,12 +939,14 @@
             (expand       (dfs:expand       expand       args k))
             (else (error "no interpretation for:" proc args))))
     (`#s(constrain (retrieve ,s) ,args)     (dfs:retrieve s args k))
-    (`#s(constrain ==            (,t1 ,t2)) (dfs:==  t1 t2 k))
-    (`#s(constrain =/=           (,t1 ,t2)) (dfs:=/= t1 t2 k))))
+    (`#s(constrain ==            (,t1 ,t2)) (dfs:==     t1 t2 k))
+    (`#s(constrain =/=           (,t1 ,t2)) (dfs:=/=    t1 t2 k))
+    (`#s(constrain any<=o        (,t1 ,t2)) (dfs:any<=o t1 t2 k))))
 (define (dfs:return k st)      (if st (k st) '()))
-(define ((dfs:== t1 t2 k)  st) (dfs:return k (unify st t1 t2)))
-(define ((dfs:==/use u k)  st) (dfs:return k (use st u)))
-(define ((dfs:=/= t1 t2 k) st) (dfs:return k (disunify st t1 t2)))
+(define ((dfs:==     t1 t2 k) st) (dfs:return k (unify    st t1 t2)))
+(define ((dfs:==/use u     k) st) (dfs:return k (use      st u)))
+(define ((dfs:=/=    t1 t2 k) st) (dfs:return k (disunify st t1 t2)))
+(define ((dfs:any<=o t1 t2 k) st) (dfs:return k (<=ify    st t1 t2)))
 
 (define (materialized-relation . pargs)
   (match-define (list name attribute-names primary-key-name ts)

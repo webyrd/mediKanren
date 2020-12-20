@@ -32,7 +32,7 @@
   'path               "semmed/edge"
   'source-file-path   "semmed/semmed.edge.csv"
   'source-file-header '(":ID" ":START" ":END")
-  'transform          (value/syntax
+  'map                (value/syntax
                         (lambda (row)
                           (match-define (list id subject object) row)
                           (list (string->number id) subject object)))
@@ -45,7 +45,7 @@
   'path               "semmed/eprop"
   'source-file-path   "semmed/semmed.edgeprop.csv"
   'source-file-header '(":ID" "propname" "value")
-  'transform          (value/syntax
+  'map                (value/syntax
                         (lambda (row)
                           (match-define (list id key value) row)
                           (list (string->number id) key value)))

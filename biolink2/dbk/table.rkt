@@ -666,7 +666,8 @@
   (define names.in        (alist-ref kwargs 'source-file-columns
                                      (remove key-name attribute-names)))
   (define stream.in       (alist-ref kwargs 'source-stream       #f))
-  (define transform-code  (alist-ref kwargs 'transform           #f))
+  (define map/append-code (alist-ref kwargs 'map/append          #f))
+  (define map-code        (alist-ref kwargs 'map                 #f))
   (define filter-code     (alist-ref kwargs 'filter              #f))
   (unless key-name (error "key-name cannot be #f:" kwargs))
   (define table-descriptions
@@ -689,20 +690,28 @@
   (define (code->value code)
     (cond ((value+syntax? code) (value+syntax-value code))
           (else                 code)))
+  (when (and map/append-code (or map-code filter-code))
+    (error "map/append should not be used with map or filter:"
+           `((map/append ,(code->info map/append-code))
+             (map        ,(code->info map-code))
+             (filter     ,(code->info filter-code)))))
   (define source-info
-    (cond (path.in   `((path      . ,fn.in)
-                       (format    . ,format)
-                       (header    . ,header)
-                       (stats     . ,(file-stats path.in))
-                       (transform . ,(code->info transform-code))
-                       (filter    . ,(code->info filter-code))))
-          (stream.in `((stream    . ,(code->info stream.in))
-                       (transform . ,(code->info transform-code))
-                       (filter    . ,(code->info filter-code))))
+    (cond (path.in   `((path       . ,fn.in)
+                       (format     . ,format)
+                       (header     . ,header)
+                       (stats      . ,(file-stats path.in))
+                       (map/append . ,(code->info map/append-code))
+                       (map        . ,(code->info map-code))
+                       (filter     . ,(code->info filter-code))))
+          (stream.in `((stream     . ,(code->info stream.in))
+                       (map/append . ,(code->info map/append-code))
+                       (map        . ,(code->info map-code))
+                       (filter     . ,(code->info filter-code))))
           (else (error "materialize-relation missing file or stream source:"
                        kwargs))))
-  (define transform (code->value transform-code))
-  (define filter?   (code->value filter-code))
+  (define map/append? (code->value map/append-code))
+  (define map?        (code->value map-code))
+  (define filter?     (code->value filter-code))
   (define (materialize-stream source-info stream)
     (let ((mat (materializer path.dir source-info
                              attribute-names attribute-types key-name
@@ -714,8 +723,10 @@
                         (logf "ingested ~s rows\n" count))
                       (mat 'put (arrange x))
                       (set! count (+ count 1)))
-                    (let ((s (if transform (s-map transform stream) stream)))
-                      (if filter? (s-filter filter? s) s))))
+                    (if map/append?
+                      (s-map/append map/append? stream)
+                      (let ((s (if map? (s-map map? stream) stream)))
+                        (if filter? (s-filter filter? s) s)))))
       (logf "Processing ~s rows\n" count)
       (time (mat 'close))
       (logf "Finished processing ~s rows\n" count)))
@@ -758,17 +769,15 @@
                                   ,primary-columns.old)))))
       (define update-policy  (current-config-ref 'update-policy))
       (define cleanup-policy (current-config-ref 'cleanup-policy))
-      (unless (or (null? stale-fields)
-                  (policy-allow?
-                    update-policy
-                    (lambda ()
-                      (printf "Existing data for relation ~s is stale:\n" path)
-                      (for-each pretty-write stale-fields))
-                    "Update ~s?"
-                    (list path)))
-        (error "Cannot rematerialize relation due to stale data:"
-               path stale-fields))
-      (cond ((pair? stale-fields)
+      (define allow-update?
+        (or (null? stale-fields)
+            (policy-allow?
+              update-policy
+              (lambda ()
+                (printf "Existing data for relation ~s is stale:\n" path)
+                (for-each pretty-write stale-fields))
+              "Update ~s?" (list path))))
+      (cond ((and (pair? stale-fields) allow-update?)
              (printf "Updating ~s\n" path)
              (define path.backup (string-append path.dir ".backup"))
              (when (directory-exists? path.backup)
@@ -787,6 +796,8 @@
                  (begin (printf "Deleting ~s\n" path.backup)
                         (delete-directory/files path.backup #:must-exist? #f))
                  (printf "Not deleting ~s\n" path.backup))))
+            ((not allow-update?)
+             (printf "Due to stale data, will not rematerialize ~s\n" path))
             (else
               (define colss.current
                 (map (lambda (info.it) (alist-ref info.it 'column-names))
