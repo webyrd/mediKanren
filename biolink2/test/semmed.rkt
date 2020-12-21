@@ -12,6 +12,56 @@
              (printf "  EXPECTED:\n")
              (pretty-write expected)))))
 
+(test 'various-edge-properties
+  (run 20 (id k v) (eprop id k v))
+  '((0 "SEMMED_PRED" "AFFECTS")
+    (1 "SEMMED_PRED" "AFFECTS")
+    (119 "SEMMED_PRED" "AFFECTS")
+    (502 "SEMMED_PRED" "AFFECTS")
+    (503 "SEMMED_PRED" "AFFECTS")
+    (504 "SEMMED_PRED" "AFFECTS")
+    (505 "SEMMED_PRED" "AFFECTS")
+    (2639 "SEMMED_PRED" "AFFECTS")
+    (2641 "SEMMED_PRED" "AFFECTS")
+    (2645 "SEMMED_PRED" "AFFECTS")
+    (2648 "SEMMED_PRED" "AFFECTS")
+    (2649 "SEMMED_PRED" "AFFECTS")
+    (2651 "SEMMED_PRED" "AFFECTS")
+    (2652 "SEMMED_PRED" "AFFECTS")
+    (2653 "SEMMED_PRED" "AFFECTS")
+    (2654 "SEMMED_PRED" "AFFECTS")
+    (2657 "SEMMED_PRED" "AFFECTS")
+    (2659 "SEMMED_PRED" "AFFECTS")
+    (2660 "SEMMED_PRED" "AFFECTS")
+    (2661 "SEMMED_PRED" "AFFECTS")))
+
+(test 'various-names
+  (run 17 (c n) (cprop c "name" n))
+  '(("UMLS:C1156332" "'de novo' GDP-L-fucose biosynthetic process")
+    ("UMLS:C1157653" "'de novo' IMP biosynthetic process")
+    ("UMLS:C1523107" "'de novo' cotranslational protein folding")
+    ("UMLS:C1158942" "'de novo' protein folding")
+    ("UMLS:C0761898" "(((4-chloromethyl)benzoyl)amino)-tetramethylrhodamine")
+    ("UMLS:C1260101"
+     "(((4-nitrophenyl)amino)(2,2,4,4-tetramethyl thiochroman-6-yl)amino) methane-1-thione")
+    ("UMLS:C0643014" "((2-azido-4-benzyl)phenoxy)-N-ethylmorpholine")
+    ("UMLS:C0635089"
+     "((3-(bis(2-chloroethyl)amino)-4-methylphenyl)hydroxymethane)bisphosphonic acid")
+    ("UMLS:C1312836"
+     "((3Z)-N-(3-chlorophenyl)-3-((3,5-dimethyl-4-((4-methylpiperazin-1-yl)carbonyl)-1H-pyrrol-2-yl)methylene)-N-methyl-2-oxo-2,3-dihydro-1H-indole-5-sulfonamide)")
+    ("UMLS:C0378071"
+     "((5,6-dichloro-2,3,9,9a-tetrahydro-3-oxo-9a-propyl-1H-fluoren-7-yl)oxy)acetic acid")
+    ("UMLS:C0961234"
+     "((6-acetyl-3,4-dihydro-2,5,7,8-tetramethyl-2H-1-benzopyran-2yl)carbonyl)-3(aminoethyl)indole")
+    ("UMLS:C0915106"
+     "((E)-(5)-(3,5-di-tert-butyl-4-hydroxybenzylidene)- 2-ethyl-1,2-isothiazolidine-1,1-dioxide)")
+    ("UMLS:C1565913"
+     "((S)-2-acetylamino-3-((R)-(1-(3-(piperidin-4-yl)propionyl)piperidin-3-ylcarbonyl))amino) propionic acid trihydrate")
+    ("UMLS:C0043560" "((dihydroindenyl)oxy)alkanoic acid")
+    ("UMLS:C0967118" "((n-nitroveratryl)oxy)chlorocarbamate-caged thymosin beta4")
+    ("UMLS:C0257864" "((nitroveratryl)oxy)chlorocarbamate")
+    ("UMLS:C1158357" "(+)-camphor metabolic process")))
+
 (test 'single-concept-properties
   (run 10 (k v)
     (cprop "UMLS:C0000137" k v))
@@ -22,6 +72,71 @@
     ("umls_type_label"
      "(\"Nucleic Acid, Nucleoside, or Nucleotide\" \"Biologically Active Substance\")")
     ("xrefs" "(\"MESH:D012335\")")))
+
+(test 'single-subject-edges
+  (run 20 (id o) (edge id "UMLS:C0005767" o))
+  '((11582417 "UMLS:C0000039")
+    (4175774 "UMLS:C0000084")
+    (3396436 "UMLS:C0000103")
+    (3475411 "UMLS:C0000119")
+    (9750416 "UMLS:C0000163")
+    (6336638 "UMLS:C0000165")
+    (7906789 "UMLS:C0000167")
+    (1604793 "UMLS:C0000173")
+    (9276373 "UMLS:C0000215")
+    (2443460 "UMLS:C0000248")
+    (11125423 "UMLS:C0000257")
+    (5177191 "UMLS:C0000266")
+    (12962849 "UMLS:C0000294")
+    (769969 "UMLS:C0000343")
+    (6609976 "UMLS:C0000376")
+    (6784014 "UMLS:C0000379")
+    (448326 "UMLS:C0000392")
+    (1110409 "UMLS:C0000407")
+    (13525868 "UMLS:C0000473")
+    (10823557 "UMLS:C0000477")))
+
+(test 'single-object-edges
+  (run 20 (id s) (edge id s "UMLS:C0005767"))
+  '((6463675 "UMLS:C0000119")
+    (6463674 "UMLS:C0000163")
+    (6466559 "UMLS:C0000163")
+    (6466558 "UMLS:C0000167")
+    (6463673 "UMLS:C0000340")
+    (6466556 "UMLS:C0000379")
+    (6466557 "UMLS:C0000379")
+    (6463672 "UMLS:C0000392")
+    (6463671 "UMLS:C0000464")
+    (6466555 "UMLS:C0000503")
+    (6463670 "UMLS:C0000530")
+    (6466554 "UMLS:C0000530")
+    (6463669 "UMLS:C0000545")
+    (6466553 "UMLS:C0000545")
+    (6463668 "UMLS:C0000578")
+    (6463667 "UMLS:C0000608")
+    (6463666 "UMLS:C0000617")
+    (6466551 "UMLS:C0000617")
+    (6466552 "UMLS:C0000617")
+    (6463665 "UMLS:C0000779")))
+
+(test 'single-edge
+  (run* (id) (edge id "UMLS:C0005767" "UMLS:C1121571"))
+  '((10012443)))
+
+(test 'single-edge-properties
+  (run* (id k v)
+    (edge id "UMLS:C0005767" "UMLS:C1121571")
+    (eprop id k v))
+  '((10012443 "SEMMED_PRED" "LOCATION_OF")
+    (10012443 "edge_label" "location_of")
+    (10012443 "is_defined_by" "semmeddb")
+    (10012443 "n_pmids" "14")
+    (10012443 "negated" "False")
+    (10012443
+     "pmids"
+     "19402156;21663591;23551806;23551806;23551806;23551806;27062891;27253267;24048877;28903084;17297611;22683313;22172068;26418915")
+    (10012443 "provided_by" "semmeddb_sulab")
+    (10012443 "relation" "semmeddb:location_of")))
 
 (test 'chemical-substance-names
   (run 10 (curie name)
@@ -37,6 +152,21 @@
     ("UMLS:C0000137" "15S RNA")
     ("UMLS:C0000151" "17 beta-Hydroxy-5 beta-Androstan-3-One")
     ("UMLS:C0000163" "17-Hydroxycorticosteroids")))
+
+(test 'gene-names
+  (run 10 (c n)
+    (cprop c "name"     n)
+    (cprop c "category" "gene"))
+  '(("UMLS:C0002085" "Alleles")
+    ("UMLS:C0008288" "CIPC gene")
+    ("UMLS:C0008844" "Cistron")
+    ("UMLS:C0017258" "Gene Clusters")
+    ("UMLS:C0017272" "Gene Library")
+    ("UMLS:C0017337" "Genes")
+    ("UMLS:C0017338" "Genes, araC")
+    ("UMLS:C0017339" "Genes, Bacterial")
+    ("UMLS:C0017340" "Genes, Developmental")
+    ("UMLS:C0017342" "Genes, Dominant")))
 
 (test 'concept-relationships
   (run 10 (curie1 predicate curie2)
@@ -217,3 +347,10 @@
      "disease_or_phenotypic_feature"
      "Psychiatric problem"
      "manifestation_of")))
+
+;; ~20 seconds
+;(test 'single-object-affects-edges
+;  (length (run* (s id)
+;            (edge id s "UMLS:C0005767")
+;            (eprop id "edge_label" "affects")))
+;  2414)
