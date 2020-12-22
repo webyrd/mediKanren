@@ -622,3 +622,106 @@
     (<=o 2 n)
     (membero n '(0 1 2 3 4 5 6 7 8 9)))
   '((2) (3) (4) (5) (6) (7)))
+
+
+;; Simple relational interpreter tests
+
+(define-relation (eval-expo expr env value)
+  (conde
+    ((fresh (body)
+       (== `(lambda ,body) expr)
+       (== `(closure ,body ,env) value)))
+    ((== `(quote ,value) expr))
+    ((fresh (a*)
+       (== `(list . ,a*) expr)
+       (eval-listo a* env value)))
+    ((fresh (a d va vd)
+       (== `(cons ,a ,d) expr)
+       (== `(,va . ,vd) value)
+       (eval-expo a env va)
+       (eval-expo d env vd)))
+    ((fresh (index)
+       (== `(var ,index) expr)
+       (lookupo index env value)))
+    ((fresh (rator rand arg env^ body)
+       (== `(app ,rator ,rand) expr)
+       (eval-expo rator env `(closure ,body ,env^))
+       (eval-expo rand env arg)
+       (eval-expo body `(,arg . ,env^) value)))))
+
+(define-relation (lookupo index env value)
+  (fresh (arg e*)
+    (== `(,arg . ,e*) env)
+    (conde
+      ((== '() index) (== arg value))
+      ((fresh (i* a d)
+         (== `(s . ,i*) index)
+         (== `(,a . ,d) e*)
+         (lookupo i* e* value))))))
+
+(define-relation (eval-listo e* env value)
+  (conde
+    ((== '() e*) (== '() value))
+    ((fresh (ea ed va vd)
+       (== `(,ea . ,ed) e*)
+       (== `(,va . ,vd) value)
+       (eval-expo ea env va)
+       (eval-listo ed env vd)))))
+
+(define (evalo expr value) (eval-expo expr '() value))
+
+(test 'evalo-literal
+  (run 1 (e) (evalo e 5))
+  '(((quote 5))))
+
+;; ~600 ms
+;(test 'evalo-quine
+;  (time (run 1 (e) (evalo e e)))
+;  '(((app (lambda (list (quote app) (var ())
+;                        (list (quote quote) (var ()))))
+;          (quote (lambda (list (quote app) (var ())
+;                               (list (quote quote) (var ())))))))))
+
+;; ~5500 ms
+;(test 'evalo-twine
+;  (time (run 1 (p q) (evalo p q) (evalo q p)))
+;  '(((quote (app (lambda (list (quote quote)
+;                               (list (quote app) (var ())
+;                                     (list (quote quote) (var ())))))
+;                 (quote (lambda (list (quote quote)
+;                                      (list (quote app) (var ())
+;                                            (list (quote quote) (var ()))))))))
+;     (app (lambda (list (quote quote)
+;                        (list (quote app) (var ())
+;                              (list (quote quote) (var ())))))
+;          (quote (lambda (list (quote quote)
+;                               (list (quote app) (var ())
+;                                     (list (quote quote) (var ()))))))))))
+
+;; ~24000 ms
+;(test 'evalo-thrine
+;  (time (run 1 (p q r) (evalo p q) (evalo q r) (evalo r p)))
+;  '(((quote (quote (app (lambda (list (quote quote)
+;                                      (list (quote quote)
+;                                            (list (quote app) (var ())
+;                                                  (list (quote quote) (var ()))))))
+;                        (quote (lambda (list (quote quote)
+;                                             (list (quote quote)
+;                                                   (list (quote app) (var ())
+;                                                         (list (quote quote) (var ()))))))))))
+;     (quote (app (lambda (list (quote quote)
+;                               (list (quote quote)
+;                                     (list (quote app) (var ())
+;                                           (list (quote quote) (var ()))))))
+;                 (quote (lambda (list (quote quote)
+;                                      (list (quote quote)
+;                                            (list (quote app) (var ())
+;                                                  (list (quote quote) (var ())))))))))
+;     (app (lambda (list (quote quote)
+;                        (list (quote quote)
+;                              (list (quote app) (var ())
+;                                    (list (quote quote) (var ()))))))
+;          (quote (lambda (list (quote quote)
+;                               (list (quote quote)
+;                                     (list (quote app) (var ())
+;                                           (list (quote quote) (var ())))))))))))

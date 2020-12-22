@@ -881,7 +881,7 @@
                            (thunk (loop (s-next (cdr s)))))))))
 (define ((bis:apply/expand ex args) st)
   ((bis:goal (apply ex (walk* st args))) st))
-(define ((bis:expand ex args) st) ((bis:goal (apply ex args)) st))
+(define ((bis:expand ex args) st) (thunk ((bis:goal (apply ex args)) st)))
 (define (bis:goal g)
   (match g
     (`#s(conj ,g1 ,g2) (let ((k1 (bis:goal g1)) (k2 (bis:goal g2)))

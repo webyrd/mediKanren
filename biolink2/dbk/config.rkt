@@ -4,7 +4,7 @@
          current-config-set! current-config-set!/alist
          current-config-relation-path config-ref config-set config-set/alist
          policy-allow? logf logf/date)
-(require racket/date)
+(require racket/date racket/string)
 
 (define config.default
   (make-immutable-hash
@@ -51,9 +51,12 @@
 (define (current-config-set!/alist kvs)
   (current-config (current-config-set/alist kvs)))
 (define (current-config-relation-path path)
-  (define relation-root-path (current-config-ref 'relation-root-path))
-  (if relation-root-path (path->string (build-path relation-root-path path))
-    path))
+  (cond ((and (string? path) (string-prefix? path "/")) path)
+        (else (define relation-root-path
+                (current-config-ref 'relation-root-path))
+              (if relation-root-path
+                (path->string (build-path relation-root-path path))
+                path))))
 
 (define (policy-allow? policy describe prompt-message prompt-args)
   (case policy

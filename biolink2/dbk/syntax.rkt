@@ -97,9 +97,7 @@
 (define failure (== #f #t))
 (define (conj* . gs)
   (if (null? gs) success
-    (let loop ((g (car gs)) (gs (cdr gs)))
-      (if (null? gs) g
-        (conj g (loop (car gs) (cdr gs)))))))
+    (foldl (lambda (g2 g1) (conj g1 g2)) (car gs) (cdr gs))))
 (define (disj* . gs)
   (if (null? gs) failure
     (let loop ((g (car gs)) (gs (cdr gs)))

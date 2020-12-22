@@ -60,8 +60,6 @@ Typical use:
   * reordering operations endangers soundness
   * detect float literals when doing so won't hurt performance
 
-* parameterized dryrun blocks
-  * dryrun uses of materialize-relation only describe hypothetical actions
 * tee/piping output logs to file
 * background worker threads/places for materialization
 * metadata.scm protocol versioning for automatic update/migration

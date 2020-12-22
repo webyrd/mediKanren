@@ -1,5 +1,5 @@
 #lang racket/base
-(provide materialize-relation materialization value/syntax
+(provide materialize-relation! materialization value/syntax
          vector-table? call/files let/files encoder s-encode s-decode)
 (require "codec.rkt" "config.rkt" "dsv.rkt" "method.rkt" "order.rkt"
          "stream.rkt"
@@ -11,7 +11,7 @@
   (thunk (let loop () (if (eof-object? (peek-byte in)) '()
                         (cons (decode in type) (thunk (loop)))))))
 
-(define (encoder out type) (method-lambda ((put v) (encode out type v))
+(define (encoder out type) (method-lambda ((put! v) (encode out type v))
                                           ((close) (flush-output out))))
 
 (define (call/files fins fouts p)
@@ -244,7 +244,7 @@
                                 (offset-table-file-name path-prefix)))
   (define tsorter (sorter #t value-file-name offset-file-name row-type row<))
   (method-lambda
-    ((put x) (tsorter 'put x))
+    ((put! x) (tsorter 'put! x))
     ((close) (match-define (cons offset-type item-count) (tsorter 'close))
              `((file-prefix    . ,file-prefix)
                (value-file     . ,(file-stats value-file-name))
@@ -266,7 +266,7 @@
   (define out-sort-offset   (open-output-file fname-sort-offset))
   (define ms (multi-sorter out-sort-value out-sort-offset type value<))
   (method-lambda
-    ((put value) (ms 'put value))
+    ((put! value) (ms 'put! value))
     ((close)
      (match-define (vector initial-item-count chunk-count v?) (ms 'close))
      (close-output-port out-sort-value)
@@ -299,15 +299,15 @@
   (define buffer-size (current-config-ref 'buffer-size))
   (let ((v (make-vector buffer-size)) (chunk-count 0) (item-count 0) (i 0))
     (method-lambda
-      ((put value) (vector-set! v i value)
-                   (set! i (+ i 1))
-                   (when (= i buffer-size)
-                     (vector-sort! v value<)
-                     (for ((x (in-vector v))) (encode out-chunk type x))
-                     (encode out-offset 'nat (file-position out-chunk))
-                     (set! item-count  (+ item-count buffer-size))
-                     (set! chunk-count (+ chunk-count 1))
-                     (set! i           0)))
+      ((put! value) (vector-set! v i value)
+                    (set! i (+ i 1))
+                    (when (= i buffer-size)
+                      (vector-sort! v value<)
+                      (for ((x (in-vector v))) (encode out-chunk type x))
+                      (encode out-offset 'nat (file-position out-chunk))
+                      (set! item-count  (+ item-count buffer-size))
+                      (set! chunk-count (+ chunk-count 1))
+                      (set! i           0)))
       ((close) (vector-sort! v value< 0 i)
                (cond ((< 0 chunk-count)
                       (vector-sort! v value< 0 i)
@@ -398,10 +398,10 @@
   (define t (tabulator path.dir fprefix column-names column-types key-name))
   (define transform (list-arranger source-names column-names))
   (method-lambda
-    ((put x) (t 'put (transform x)))
-    ((close) (t 'close))))
+    ((put! x) (t 'put! (transform x)))
+    ((close)  (t 'close))))
 
-(define (materialize-index-tables
+(define (materialize-index-tables!
           path.dir source-fprefix name->type source-names index-descriptions)
   (define threshold (current-config-ref 'progress-logging-threshold))
   (define index-ms
@@ -420,7 +420,7 @@
     (time (s-each (lambda (x) (let ((count (car x)))
                                 (when (= 0 (remainder count threshold))
                                   (logf "ingested ~s rows\n" count))
-                                (for-each (lambda (m) (m 'put x)) index-ms)))
+                                (for-each (lambda (m) (m 'put! x)) index-ms)))
                   (s-enumerate 0 src))))
   (logf "Processing all rows\n")
   (map (lambda (m) (time (m 'close))) index-ms))
@@ -468,14 +468,14 @@
   (define primary-t (tabulator path.dir primary-fprefix
                                primary-column-names primary-column-types key))
   (method-lambda
-    ((put x) (primary-t 'put x))
+    ((put! x) (primary-t 'put! x))
     ((close) (define primary-info (primary-t 'close))
              (define key-type (nat-type/max (alist-ref primary-info 'length)))
              (define name->type
                (let ((name=>type (hash-set name=>type key key-type)))
                  (lambda (n) (hash-ref name=>type n))))
              (define index-infos
-               (materialize-index-tables
+               (materialize-index-tables!
                  path.dir primary-fname name->type primary-source-names
                  (map (lambda (fprefix td) `((file-prefix . ,fprefix)
                                              (column-names . ,td)))
@@ -493,7 +493,7 @@
   (when (eof-object? info) (error "corrupt relation metadata:" path))
   info)
 
-(define (update-materialization path.dir info tables.added tables.removed)
+(define (update-materialization! path.dir info tables.added tables.removed)
   (define path.metadata        (path->string
                                  (build-path path.dir metadata-file-name)))
   (define path.metadata.backup (string-append path.metadata ".backup"))
@@ -545,8 +545,8 @@
                   (loop (cdr colss) (+ i 1))))))))
   (define index-infos.new
     (if (null? index-descriptions.added) '()
-      (materialize-index-tables path.dir source-fprefix name->type source-names
-                                index-descriptions.added)))
+      (materialize-index-tables! path.dir source-fprefix name->type
+                                 source-names index-descriptions.added)))
   (let/files () ((metadata-out path.metadata))
     (pretty-write `((attribute-names . ,attribute-names)
                     (attribute-types . ,attribute-types)
@@ -640,7 +640,7 @@
   (cond (directory-path?
           (when (or (alist-ref kwargs 'source-file-path #f)
                     (alist-ref kwargs 'source-stream    #f))
-            (apply materialize-relation pargs))
+            (apply materialize-relation! pargs))
           (materialization/path directory-path? kwargs))
         (source-vector?  (materialization/vector source-vector?  kwargs))
         (else (error "missing relation path or source:" kwargs))))
@@ -651,7 +651,7 @@
 (define (plist->alist kvs) (if (null? kvs) '()
                              (cons (cons (car kvs) (cadr kvs))
                                    (plist->alist (cddr kvs)))))
-(define (materialize-relation . pargs)
+(define (materialize-relation! . pargs)
   (define kwargs          (plist->alist pargs))
   (define path            (alist-ref kwargs 'path))
   (define key-name        (alist-ref kwargs 'key-name #t))
@@ -707,7 +707,7 @@
                        (map/append . ,(code->info map/append-code))
                        (map        . ,(code->info map-code))
                        (filter     . ,(code->info filter-code))))
-          (else (error "materialize-relation missing file or stream source:"
+          (else (error "materialize-relation! missing file or stream source:"
                        kwargs))))
   (define map/append? (code->value map/append-code))
   (define map?        (code->value map-code))
@@ -721,7 +721,7 @@
       (time (s-each (lambda (x)
                       (when (= 0 (remainder count threshold))
                         (logf "ingested ~s rows\n" count))
-                      (mat 'put (arrange x))
+                      (mat 'put! (arrange x))
                       (set! count (+ count 1)))
                     (if map/append?
                       (s-map/append map/append? stream)
@@ -829,7 +829,7 @@
                        "Remove these old index tables from ~s?"
                        (list path))))
               (when (or add? remove?)
-                (update-materialization path.dir info
-                                        (if add?    added   '())
-                                        (if remove? removed '()))))))
+                (update-materialization! path.dir info
+                                         (if add?    added   '())
+                                         (if remove? removed '()))))))
     (materialize-source)))
