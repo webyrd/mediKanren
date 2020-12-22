@@ -17,7 +17,11 @@
 
 (define (load-config (verbose? #t) (path.config #f))
   (define (config/file path)
-    (config-set/alist (current-config) (with-input-from-file path read)))
+    (config-set/alist
+      (current-config)
+      (append (list (cons 'relation-root-path  path.data)
+                    (cons 'temporary-root-path (path/data "temporary")))
+              (with-input-from-file path read))))
   (when verbose? (printf "loading configuration defaults: ~a\n"
                          path.config.defaults))
   (current-config (config/file path.config.defaults))

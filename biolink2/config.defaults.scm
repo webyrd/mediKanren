@@ -2,7 +2,6 @@
 ;; Instead, add overrides to: config.scm
 (
  ;; Add configuration options as new association pairs.
- (relation-root-path         . "data")
  (buffer-size                . 100000)
  (progress-logging-threshold . 1000000)
  (update-policy              . interactive)
