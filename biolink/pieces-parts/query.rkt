@@ -178,8 +178,6 @@
 
 ;; TODO: catch naming errors
 (define (query concepts edge-constraints paths)
-  (unless (andmap list? (apply append (map cdr edge-constraints)))
-    (error 'query/graph "edge-contraints must all be lists"))  
   (define edges (append* (map path->edges paths)))
   (define csets (map cons (map car concepts)
                      (map (lambda (c)
