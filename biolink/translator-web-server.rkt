@@ -109,34 +109,23 @@ query_result_clear.addEventListener('click', function(){
                             "{
   \"message\": {
     \"query_graph\": {
-      \"nodes\": [
-        {
-          \"id\": \"n0\",
-          \"curie\": \"UMLS:C0935989\"
+      \"nodes\": {
+        \"n0\": { \"id\": \"UMLS:C0935989\" },
+        \"n1\": { \"category\": \"gene\" },
+        \"n2\": { \"id\": \"UMLS:C0004096\" }
+      },
+      \"edges\": {
+        \"e0\": {
+          \"predicate\": \"negatively_regulates\",
+          \"subject\": \"n0\",
+          \"object\": \"n1\"
         },
-        {
-          \"id\": \"n1\",
-          \"type\": \"gene\"
-        },
-        {
-          \"id\": \"n2\",
-          \"curie\": \"UMLS:C0004096\"
+        \"e1\": {
+          \"predicate\": \"gene_associated_with_condition\",
+          \"subject\": \"n1\",
+          \"object\": \"n2\"
         }
-      ],
-      \"edges\": [
-        {
-          \"id\": \"e0\",
-          \"type\": \"negatively_regulates\",
-          \"source_id\": \"n0\",
-          \"target_id\": \"n1\"
-        },
-        {
-          \"id\": \"e1\",
-          \"type\": \"gene_associated_with_condition\",
-          \"source_id\": \"n1\",
-          \"target_id\": \"n2\"
-        }
-      ]
+      }
     }
   }
 }"
@@ -184,34 +173,44 @@ query_result_clear.addEventListener('click', function(){
   ;; NOTE: ignore 'results and 'knowledge_graph until we find a use for them.
   (define qgraph (hash-ref msg 'query_graph hash-empty))
   (define nodes
-    (filter-not not
-      (map (lambda (n)
-             (let ((id    (str   (hash-ref n 'id    #f)))
-                   (curie (slift (hash-ref n 'curie '())))
-                   (type  (slift (hash-ref n 'type  '()))))
+    (filter-not
+      not
+      (map (lambda (id+n)
+             (let* ((id       (car id+n))
+                    (n        (cdr id+n))
+                    (curie    (slift (hash-ref n 'id       '())))
+                    (category (slift (hash-ref n 'category '()))))
                ;; TODO: use a new find-concepts based on xrefo instead?
-               (and id `(,(string->symbol id)
-                          ',(cond ((pair? curie) (find-concepts #t curie))
-                                  ((pair? type)  (find-categories type))
-                                  (else          #f))))))
-           (hash-ref qgraph 'nodes '()))))
+               `(,id ',(cond ((pair? curie)    (find-concepts #t curie))
+                             ((pair? category) (find-categories category))
+                             (else             #f)))))
+           (hash->list (olift (hash-ref qgraph 'nodes hash-empty))))))
   (define edges&paths
-    (filter-not not
-      (map (lambda (e)
-             (let ((id   (str   (hash-ref e 'id        #f)))
-                   (type (slift (hash-ref e 'type      '())))
-                   (src  (str   (hash-ref e 'source_id #f)))
-                   (tgt  (str   (hash-ref e 'target_id #f))))
-               (define preds (and (pair? type) (find-predicates type)))
-               (and id src tgt (cons `(,(string->symbol id) ',preds)
-                                     (map string->symbol (list src id tgt))))))
-           (hash-ref qgraph 'edges '()))))
-  (define edges (map car edges&paths))
-  (define paths (map cdr edges&paths))
+    (filter-not
+      not
+      (map (lambda (id+e)
+             (let* ((id        (car id+e))
+                    (e         (cdr id+e))
+                    (predicate (slift (hash-ref e 'predicate '())))
+                    (subject   (str   (hash-ref e 'subject   #f)))
+                    (object    (str   (hash-ref e 'object    #f))))
+               (and subject object
+                    `((,id ',(and (pair? predicate)
+                                  (find-predicates predicate)))
+                      (,(string->symbol subject)
+                        ,id
+                        ,(string->symbol object))))))
+           (hash->list (olift (hash-ref qgraph 'edges hash-empty))))))
+  (define edges (map car  edges&paths))
+  (define paths (map cadr edges&paths))
   (define runq #`(run/graph #,nodes #,edges . #,paths))
   (displayln "===============================================================")
   (pretty-print (syntax->datum runq))
-  (match-define (list name=>concepts name=>edges) (time (eval runq)))
+  (match-define (list name=>concepts name=>edges)
+    (if (null? paths)
+      (begin (displayln "no paths were provided")
+             (list hash-empty hash-empty))
+      (time (eval runq))))
   (displayln "result counts:")
   (pretty-print (hash-map name=>concepts (lambda (n xs) (cons n (length xs)))))
   (pretty-print (hash-map name=>edges    (lambda (n xs) (cons n (length xs)))))
