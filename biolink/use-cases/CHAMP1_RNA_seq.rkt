@@ -1,7 +1,7 @@
 #lang racket
 (require
-  "query.rkt"
-  "Thi-useful-functions.rkt")
+  "../pieces-parts/query.rkt"
+  "../pieces-parts/Thi-useful-functions.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;*******************************;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;*********GENERAL SEARCH********;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -12,7 +12,8 @@
 ;;
 ;; *** Objective:
 ;; Repurpose drugs for CHAMP1 genetic disorder using RNAseq data from patients-derived skin fibroblasts
-
+;;
+;; *** Please find the case presentation at
 ;; First, I'm doing exploratory searches for the disease information related to CHAMP1 genes:
 ;; Find disease conditions that are related to CHAMP1 genes
 (curie-synonyms/names "HGNC:20311")
