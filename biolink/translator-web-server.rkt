@@ -152,16 +152,19 @@ query_result_clear.addEventListener('click', function(){
 (define (str v)   (and (string? v) v))
 
 (define (concept->result c)
-  (hash 'id (caddr c) 'name (cadddr c) 'type (cdr (cadddr (cdr c)))))
+  (cons (string->symbol (caddr c))
+        (hash 'name (cadddr c) 'category (cdr (cadddr (cdr c))))))
 (define (edge->result e)
-  (define id (string-append (symbol->string (car e)) (number->string (cadr e))))
-  (define src (cadr (caddr e)))
-  (define tgt (cadr (cadddr e)))
-  (define pred (cdr (cadddr (cdr e))))
-  (define attrs (make-immutable-hash
-                  (map (lambda (kv) (cons (string->symbol (car kv)) (cdr kv)))
-                       (cadddr (cddr e)))))
-  (hash 'id id 'type pred 'source_id src 'target_id tgt 'attrs attrs))
+  (define id (string-append (symbol->string (car e))
+                            (number->string (cadr e))))
+  (cons (string->symbol id)
+        (hash 'predicate  (cdr (cadddr (cdr e)))
+              'subject    (cadr (caddr e))
+              'object     (cadr (cadddr e))
+              'attributes (map (lambda (kv) (hash 'name  (car kv)
+                                                  'type  "miscellaneous"
+                                                  'value (cdr kv)))
+                               (cadddr (cddr e))))))
 
 (define (message->response msg)
   (define broad-response (time (api-query (string-append url.broad path.query)
@@ -215,43 +218,48 @@ query_result_clear.addEventListener('click', function(){
   (pretty-print (hash-map name=>concepts (lambda (n xs) (cons n (length xs)))))
   (pretty-print (hash-map name=>edges    (lambda (n xs) (cons n (length xs)))))
   (define knodes
-    (hash-map name=>concepts (lambda (name xs) (map concept->result xs))))
+    (append* (hash-map name=>concepts
+                       (lambda (name xs) (map concept->result xs)))))
   (define kedges
-    (hash-map name=>edges    (lambda (name xs) (map edge->result xs))))
+    (append* (hash-map name=>edges
+                       (lambda (name xs) (map edge->result xs)))))
+  (define local-results
+    (append* (map (lambda (p)
+                    (define qsubject (car p))
+                    (define qname    (cadr p))
+                    (define qobject  (caddr p))
+                    (map (lambda (e)
+                           (define id+r    (edge->result e))
+                           (define id      (symbol->string (car id+r)))
+                           (define r       (cdr id+r))
+                           (define subject (hash-ref r 'subject))
+                           (define object  (hash-ref r 'object))
+                           (hash 'edge_bindings (hash qname (hash 'id id))
+                                 'node_bindings
+                                 (make-immutable-hash
+                                   (list (cons qsubject (hash 'id subject))
+                                         (cons qobject  (hash 'id object))))))
+                         (hash-ref name=>edges qname)))
+                  paths)))
   (merge-results
     (list broad-results
-          (hash 'results
-                (append* (map (lambda (p)
-                                (define qsrc  (symbol->string (car p)))
-                                (define qname (cadr p))
-                                (define qedge (symbol->string qname))
-                                (define qtgt  (symbol->string (caddr p)))
-                                (map (lambda (e)
-                                       (define r (edge->result e))
-                                       (define id  (hash-ref r 'id))
-                                       (define src (hash-ref r 'source_id))
-                                       (define tgt (hash-ref r 'target_id))
-                                       (hash 'edge_bindings
-                                             (list (hash 'qg_id qedge 'kg_id id))
-                                             'node_bindings
-                                             (list (hash 'qg_id qsrc  'kg_id src)
-                                                   (hash 'qg_id qtgt  'kg_id tgt))))
-                                     (hash-ref name=>edges qname)))
-                              paths))
-                'knowledge_graph (hash 'nodes (append* knodes)
-                                       'edges (append* kedges))))))
+          (hash 'results local-results
+                'knowledge_graph (hash 'nodes (make-immutable-hash knodes)
+                                       'edges (make-immutable-hash kedges))))))
 
 (define (merge-results rs)
   (let loop ((rs rs) (results '()) (nodes '()) (edges '()))
     (cond ((null? rs) (hash 'results         results
-                            'knowledge_graph (hash 'nodes nodes
-                                                   'edges edges)))
+                            'knowledge_graph (hash 'nodes (make-immutable-hash nodes)
+                                                   'edges (make-immutable-hash edges))))
           (else (define r (car rs))
-                (define kg (hash-ref r  'knowledge_graph hash-empty))
+                (define kg (hash-ref r 'knowledge_graph hash-empty))
                 (loop (cdr rs)
-                      (append (hash-ref r  'results '()) results)
-                      (append (hash-ref kg 'nodes   '()) nodes)
-                      (append (hash-ref kg 'edges   '()) edges))))))
+                      (append (hash-ref r 'results '()) results)
+                      (append (hash->list (hash-ref kg 'nodes hash-empty))
+                              nodes)
+                      (append (hash->list (hash-ref kg 'edges hash-empty))
+                              edges))))))
 
 (define (predicates)
   ;; TODO: at greater expense, we could restrict each list of predicates
@@ -279,8 +287,9 @@ query_result_clear.addEventListener('click', function(){
 (define predicates-cached-gzip (gzip/bytes predicates-cached))
 (define (query jsdata)
   (cond ((or (eof-object? jsdata) (not (hash? jsdata))) 'null)
-        (else (message->response
-                (olift (hash-ref (olift jsdata) 'message hash-empty))))))
+        (else (hash 'message
+                    (message->response (olift (hash-ref (olift jsdata) 'message
+                                                        hash-empty)))))))
 (define (accepts-gzip? req)
   (member "gzip" (map string-trim
                       (string-split (alist-ref (request-headers req)
