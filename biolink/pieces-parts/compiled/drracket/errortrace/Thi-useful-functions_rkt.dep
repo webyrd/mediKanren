@@ -1,0 +1,1 @@
+("7.9" racket ("2d7d61b62b17eb3395faaf77a6954e4d0933edc6" . "13f2bf767fd3965f3139ca4c61214e87cdfa8cfc") #"/Users/kimthi1011/Documents/mediKanren2/mediKanren/biolink/pieces-parts/query.rkt" (collects #"errortrace" #"errortrace-key.rkt") (collects #"racket" #"main.rkt") (collects #"racket" #"runtime-config.rkt"))
