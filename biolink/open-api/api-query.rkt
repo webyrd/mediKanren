@@ -13,7 +13,7 @@
 
 ;; Broad Institute KP
 (define url.broad
-  "https://translator.broadinstitute.org/molepro_reasoner")
+  "https://translator.broadinstitute.org/molepro/trapi/v1.0")
 
 ;; Broad Institute KP specific for CHEMBL queries
 (define url.broad_chembl

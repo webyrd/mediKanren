@@ -246,7 +246,7 @@ query_result_clear.addEventListener('click', function(){
                          (hash-ref name=>edges qname)))
                   paths)))
   (merge-results
-    (list broad-results
+    (list (hash-ref (olift broad-results) 'message hash-empty)
           (hash 'results local-results
                 'knowledge_graph (hash 'nodes (make-immutable-hash knodes)
                                        'edges (make-immutable-hash kedges))))))
