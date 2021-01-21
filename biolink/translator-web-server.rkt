@@ -484,6 +484,10 @@ query_result_clear.addEventListener('click', function(){
            (string->bytes/utf-8
              (xexpr->html-string
                (not-found.html (url->string (request-uri req)))))))
+(define (OK/jsexpr f req)
+  (OK req '() mime:json
+      (jsexpr->string (f (bytes->jsexpr (request-post-data/raw req))))))
+
 (define (/index req)
   (pretty-print `(request-headers: ,(request-headers req)))
   (OK req '() mime:html (xexpr->html-string index.html)))
@@ -498,9 +502,7 @@ query_result_clear.addEventListener('click', function(){
 (define (/predicates   req) (if (accepts-gzip? req)
                               (OK req '() mime:json predicates-cached-gzip #t)
                               (OK req '() mime:json predicates-cached #f)))
-(define (/query        req)
-  (OK req '() mime:json
-      (jsexpr->string (query (bytes->jsexpr (request-post-data/raw req))))))
+(define (/query        req) (OK/jsexpr query req))
 
 (define (s->jsexpr s)
   (cond ((symbol? s) (symbol->string s))
@@ -528,9 +530,7 @@ query_result_clear.addEventListener('click', function(){
 (define (/v2/find-predicates req)
   (OK req '() mime:json
       (jsexpr->string (s->jsexpr (find-predicates (list (bytes->jsexpr (request-post-data/raw req))))))))
-(define (/v2/query           req)
-  (OK req '() mime:json
-      (jsexpr->string (query                            (bytes->jsexpr (request-post-data/raw req))))))
+(define (/v2/query req)           (OK/jsexpr query req))
 
 (define (start)
   (define-values (dispatch _)
