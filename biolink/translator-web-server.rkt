@@ -308,31 +308,41 @@ query_result_clear.addEventListener('click', function(){
 (define (slift v) (cond ((pair? v) v) ((string? v) (list v)) (else '())))
 (define (str v)   (and (string? v) v))
 
-(define (concept->result c)
-  (cons (string->symbol (caddr c))
-        (hash 'name (cadddr c) 'category (cdr (cadddr (cdr c))))))
-(define (edge->result e)
-  (define id (string-append (symbol->string (car e))
-                            (number->string (cadr e))))
-  (define props (make-immutable-hash (cadddr (cddr e))))
-  (define relation (hash-ref props "relation" #f))
+(define (alist->attributes alist)
   ;; TODO: provide standard types for
   ;; * negated, publications, provided_by
   ;; * ngd_score, association_type, id
   ;; * update_date, publications_info
   ;; * is_defined_by, pmids, n_pmids, SEMMED_PRED
+  (map (lambda (kv) (hash 'name  (car kv)
+                          'type  "miscellaneous"
+                          'value (cdr kv)))
+       alist))
+
+(define (concept->result c)
   (define attrs
-    (map (lambda (kv) (hash 'name  (car kv)
-                            'type  "miscellaneous"
-                            'value (cdr kv)))
-         (hash->list
-           (foldl (lambda (k ps) (hash-remove ps k)) props
-                  '("relation" "subject" "object"
-                    "simplified_relation" "simplified_edge_label")))))
+    (alist->attributes
+      (cons (cons "mediKanren-source" (symbol->string (concept->dbname c)))
+            (concept->props c))))
+  (cons (string->symbol (concept->curie c))
+        (hash 'name       (concept->name c)
+              'category   (cdr (concept->category c))
+              'attributes attrs)))
+(define (edge->result e)
+  (define id (string-append (symbol->string (edge->dbname e)) "."
+                            (number->string (edge->eid e))))
+  (define props (make-immutable-hash (edge->props e)))
+  (define relation (hash-ref props "relation" #f))
+  (define attrs
+    (alist->attributes
+      (hash->list
+        (foldl (lambda (k ps) (hash-remove ps k)) props
+               '("relation" "subject" "object"
+                 "simplified_relation" "simplified_edge_label")))))
   (define obj
-    (hash 'predicate  (cdr (cadddr (cdr e)))
-          'subject    (cadr (caddr e))
-          'object     (cadr (cadddr e))
+    (hash 'predicate  (cdr (edge->pred e))
+          'subject    (concept->curie (edge->subject e))
+          'object     (concept->curie (edge->object e))
           'attributes attrs))
   (cons (string->symbol id) (if relation
                               (hash-set obj 'relation relation)
