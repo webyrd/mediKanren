@@ -514,33 +514,45 @@ query_result_clear.addEventListener('click', function(){
                               (OK req '() mime:json predicates-cached #f)))
 (define (/query        req) (OK/jsexpr query req))
 
-(define (s->jsexpr s)
-  (cond ((symbol? s) (symbol->string s))
-        ((pair? s) (cons (s->jsexpr (car s))
-                         (s->jsexpr
-                           ;; eliminate improper lists
-                           (if (not (or (null? (cdr s)) (pair? (cdr s))))
-                             (list (cdr s))
-                             (cdr s)))))
-        ((vector? s) (s->jsexpr (vector->list s)))
-        (else s)))
+(define (group-by-db xs)
+  (foldl (lambda (x db=>id)
+           (hash-update db=>id (car x) (lambda (xs) (cons (cdr x) xs)) '()))
+         (hash) xs))
+
+(define (pretty-synonyms ss)
+  (if (and (pair? ss) (not (cdar ss))) '()
+    (make-immutable-hash
+      (map (lambda (kv) (cons (string->symbol (car kv)) (cdr kv))) ss))))
 
 (define (find-concepts/any str)
-  (append (curie-synonyms/names str)
-          (find-concepts #t (list str))
-          (find-concepts #f (list str))))
+  (hash 'synonyms (pretty-synonyms (curie-synonyms/names str))
+        'concepts
+        (make-immutable-hash
+          (hash-map
+            (group-by-db
+              (map (lambda (c)
+                     (define r (concept->result c))
+                     (define attrs (hash-ref (cdr r) 'attributes))
+                     (define dbnames
+                       (map (lambda (attr) (hash-ref attr 'value))
+                            (filter (lambda (attr) (equal? (hash-ref attr 'name)
+                                                           "mediKanren-source"))
+                                    attrs)))
+                     (define dbname (if (null? dbnames) 'unknown
+                                      (string->symbol (car dbnames))))
+                     (cons dbname r))
+                   (append (find-concepts #t (list str))
+                           (find-concepts #f (list str)))))
+            (lambda (db cs) (cons db (make-immutable-hash cs)))))))
 
-(define (/v2/index.js        req) (OK req '() mime:js   v2:index.js))
-(define (/v2/find-concepts   req)
-  (OK req '() mime:json
-      (jsexpr->string (s->jsexpr (find-concepts/any     (bytes->jsexpr (request-post-data/raw req)))))))
-(define (/v2/find-categories req)
-  (OK req '() mime:json
-      (jsexpr->string (s->jsexpr (find-categories (list (bytes->jsexpr (request-post-data/raw req))))))))
-(define (/v2/find-predicates req)
-  (OK req '() mime:json
-      (jsexpr->string (s->jsexpr (find-predicates (list (bytes->jsexpr (request-post-data/raw req))))))))
-(define (/v2/query req)           (OK/jsexpr query req))
+(define ((find/db-id find) data)
+  (group-by-db (map (lambda (x) (cons (car x) (cddr x))) (find (list data)))))
+
+(define (/v2/index.js        req) (OK req '() mime:js v2:index.js))
+(define (/v2/query req)           (OK/jsexpr query                        req))
+(define (/v2/find-concepts   req) (OK/jsexpr find-concepts/any            req))
+(define (/v2/find-categories req) (OK/jsexpr (find/db-id find-categories) req))
+(define (/v2/find-predicates req) (OK/jsexpr (find/db-id find-predicates) req))
 
 (define (start)
   (define-values (dispatch _)
