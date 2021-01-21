@@ -2,6 +2,7 @@
 (require
   "common.rkt"
   "open-api/api-query.rkt"
+  "pieces-parts/synonymize.rkt"
   racket/file
   racket/list
   (except-in racket/match ==)
@@ -89,6 +90,21 @@ query_result_clear.addEventListener('click', function(){
 });")
 (define v2:index.js "
 window.addEventListener('load', function(){
+var find_concepts_form           = document.getElementById('find-concepts-form');
+var find_concepts_text           = document.getElementById('find-concepts-text');
+var find_concepts_submit         = document.getElementById('find-concepts-submit');
+var find_concepts_result         = document.getElementById('find-concepts-result');
+var find_concepts_result_clear   = document.getElementById('find-concepts-result-clear');
+var find_categories_form         = document.getElementById('find-categories-form');
+var find_categories_text         = document.getElementById('find-categories-text');
+var find_categories_submit       = document.getElementById('find-categories-submit');
+var find_categories_result       = document.getElementById('find-categories-result');
+var find_categories_result_clear = document.getElementById('find-categories-result-clear');
+var find_predicates_form         = document.getElementById('find-predicates-form');
+var find_predicates_text         = document.getElementById('find-predicates-text');
+var find_predicates_submit       = document.getElementById('find-predicates-submit');
+var find_predicates_result       = document.getElementById('find-predicates-result');
+var find_predicates_result_clear = document.getElementById('find-predicates-result-clear');
 var query_result       = document.getElementById('query-result');
 var query_result_clear = document.getElementById('query-result-clear');
 var query_form         = document.getElementById('query-form');
@@ -98,25 +114,79 @@ function pretty_json(json_text) {
   try { return JSON.stringify(JSON.parse(json_text), null, 2); }
   catch (_) { return json_text; }
 }
+function show(element, result) { element.textContent = pretty_json(result); }
+
+function find_concepts_show(result)     { show(find_concepts_result,   result); }
+function find_categories_show(result)   { show(find_categories_result, result); }
+function find_predicates_show(result)   { show(find_predicates_result, result); }
+function find_concepts_clear_result()   { find_concepts_result.textContent = ''; }
+function find_categories_clear_result() { find_categories_result.textContent = ''; }
+function find_predicates_clear_result() { find_predicates_result.textContent = ''; }
+function find_concepts(data) {
+  var xhr = new XMLHttpRequest();
+  xhr.addEventListener('load',  function(event){ find_concepts_show(xhr.responseText); });
+  xhr.addEventListener('error', function(event){ find_concepts_show('POST error'); });
+  xhr.open('POST', '/v2/find-concepts');
+  xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
+  xhr.send(data);
+}
+function find_categories(data) {
+  var xhr = new XMLHttpRequest();
+  xhr.addEventListener('load',  function(event){ find_categories_show(xhr.responseText); });
+  xhr.addEventListener('error', function(event){ find_categories_show('POST error'); });
+  xhr.open('POST', '/v2/find-categories');
+  xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
+  xhr.send(data);
+}
+function find_predicates(data) {
+  var xhr = new XMLHttpRequest();
+  xhr.addEventListener('load',  function(event){ find_predicates_show(xhr.responseText); });
+  xhr.addEventListener('error', function(event){ find_predicates_show('POST error'); });
+  xhr.open('POST', '/v2/find-predicates');
+  xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
+  xhr.send(data);
+}
+find_concepts_form.addEventListener('submit', function(event){
+  event.preventDefault();
+  find_concepts('\"'+find_concepts_text.value+'\"');
+}, false);
+find_categories_form.addEventListener('submit', function(event){
+  event.preventDefault();
+  find_categories('\"'+find_categories_text.value+'\"');
+}, false);
+find_predicates_form.addEventListener('submit', function(event){
+  event.preventDefault();
+  find_predicates('\"'+find_predicates_text.value+'\"');
+}, false);
+find_concepts_result_clear.addEventListener('click', function(){
+  find_concepts_clear_result();
+}, false);
+find_categories_result_clear.addEventListener('click', function(){
+  find_categories_clear_result();
+}, false);
+find_predicates_result_clear.addEventListener('click', function(){
+  find_predicates_clear_result();
+}, false);
+
 function query(data) {
   var xhr = new XMLHttpRequest();
-  xhr.addEventListener('load',  function(event){ show(xhr.responseText); });
-  xhr.addEventListener('error', function(event){ show('POST error'); });
+  xhr.addEventListener('load',  function(event){ query_show(xhr.responseText); });
+  xhr.addEventListener('error', function(event){ query_show('POST error'); });
   xhr.open('POST', '/v2/query');
   xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
   xhr.send(data);
 }
-function show(result)   { query_result.textContent = pretty_json(result); }
-function clear_result() { query_result.textContent = ''; }
-
+function query_show(result)   { show(query_result, result); }
+function query_clear_result() { query_result.textContent = ''; }
 query_text.textContent = pretty_json(query_text.textContent);
 query_form.addEventListener('submit', function(event){
   event.preventDefault();
   query(query_text.value);
 }, false);
 query_result_clear.addEventListener('click', function(){
-  clear_result();
+  query_clear_result();
 }, false);
+
 });")
 (define (not-found.html uri)
   `(html (head (title "mediKanren: 404"))
@@ -176,6 +246,30 @@ query_result_clear.addEventListener('click', function(){
                    (li (a ((href "/schema.html2")) "schema.html2"))
                    (li (a ((href "/schema.yaml")) "schema.yaml"))
                    (li (a ((href "/schema.json")) "schema.json")))
+               (form ((method "post") (id "find-concepts-form"))
+                     (div (input ((type "text")
+                                  (id "find-concepts-text")
+                                  (value "UMLS:C0935989"))))
+                     (div (button ((type "submit") (id "find-concepts-submit"))
+                                  "Find concepts")))
+               (div (button ((id "find-concepts-result-clear")) "Clear"))
+               (div (pre ((id "find-concepts-result")) "Concepts will appear here."))
+               (form ((method "post") (id "find-categories-form"))
+                     (div (input ((type "text")
+                                  (id "find-categories-text")
+                                  (value "gene"))))
+                     (div (button ((type "submit") (id "find-categories-submit"))
+                                  "Find categories")))
+               (div (button ((id "find-categories-result-clear")) "Clear"))
+               (div (pre ((id "find-categories-result")) "Categories will appear here."))
+               (form ((method "post") (id "find-predicates-form"))
+                     (div (input ((type "text")
+                                  (id "find-predicates-text")
+                                  (value "negatively_regulates"))))
+                     (div (button ((type "submit") (id "find-predicates-submit"))
+                                  "Find predicates")))
+               (div (button ((id "find-predicates-result-clear")) "Clear"))
+               (div (pre ((id "find-predicates-result")) "Predicates will appear here."))
                (p (a ((href "/predicates")) "GET /predicates"))
                (form ((method "post") (action "/v2/query") (id "query-form"))
                      (div (textarea
@@ -407,26 +501,55 @@ query_result_clear.addEventListener('click', function(){
 (define (/query        req)
   (OK req '() mime:json
       (jsexpr->string (query (bytes->jsexpr (request-post-data/raw req))))))
-(define (/v2/index.js  req) (OK req '() mime:js   v2:index.js))
-(define (/v2/query     req)
+
+(define (s->jsexpr s)
+  (cond ((symbol? s) (symbol->string s))
+        ((pair? s) (cons (s->jsexpr (car s))
+                         (s->jsexpr
+                           ;; eliminate improper lists
+                           (if (not (or (null? (cdr s)) (pair? (cdr s))))
+                             (list (cdr s))
+                             (cdr s)))))
+        ((vector? s) (s->jsexpr (vector->list s)))
+        (else s)))
+
+(define (find-concepts/any str)
+  (append (curie-synonyms/names str)
+          (find-concepts #t (list str))
+          (find-concepts #f (list str))))
+
+(define (/v2/index.js        req) (OK req '() mime:js   v2:index.js))
+(define (/v2/find-concepts   req)
   (OK req '() mime:json
-      (jsexpr->string (query (bytes->jsexpr (request-post-data/raw req))))))
+      (jsexpr->string (s->jsexpr (find-concepts/any     (bytes->jsexpr (request-post-data/raw req)))))))
+(define (/v2/find-categories req)
+  (OK req '() mime:json
+      (jsexpr->string (s->jsexpr (find-categories (list (bytes->jsexpr (request-post-data/raw req))))))))
+(define (/v2/find-predicates req)
+  (OK req '() mime:json
+      (jsexpr->string (s->jsexpr (find-predicates (list (bytes->jsexpr (request-post-data/raw req))))))))
+(define (/v2/query           req)
+  (OK req '() mime:json
+      (jsexpr->string (query                            (bytes->jsexpr (request-post-data/raw req))))))
 
 (define (start)
   (define-values (dispatch _)
     (dispatch-rules
-      (("")              #:method  "get"  /index)
-      (("index.js")      #:method  "get"  /index.js)
-      (("schema.json")   #:method  "get"  /schema.json)
-      (("schema.yaml")   #:method  "get"  /schema.yaml)
-      (("schema.html")   #:method  "get"  /schema.html)
-      (("schema.html2")  #:method  "get"  /schema.html2)
-      (("predicates")    #:method  "get"  /predicates)
-      (("query")         #:method  "post" /query)
-      (("v2")            #:method  "get"  /v2/index)
-      (("v2" "index.js") #:method  "get"  /v2/index.js)
-      (("v2" "query")    #:method  "post" /v2/query)
-      (else                               not-found)))
+      (("")                     #:method "get"  /index)
+      (("index.js")             #:method "get"  /index.js)
+      (("schema.json")          #:method "get"  /schema.json)
+      (("schema.yaml")          #:method "get"  /schema.yaml)
+      (("schema.html")          #:method "get"  /schema.html)
+      (("schema.html2")         #:method "get"  /schema.html2)
+      (("predicates")           #:method "get"  /predicates)
+      (("query")                #:method "post" /query)
+      (("v2")                   #:method "get"  /v2/index)
+      (("v2" "index.js")        #:method "get"  /v2/index.js)
+      (("v2" "find-concepts")   #:method "post" /v2/find-concepts)
+      (("v2" "find-categories") #:method "post" /v2/find-categories)
+      (("v2" "find-predicates") #:method "post" /v2/find-predicates)
+      (("v2" "query")           #:method "post" /v2/query)
+      (else                                     not-found)))
   (serve/servlet dispatch
                  ;; none-manager for better performance:
                  ;; only possible because we're not using web continuations.
