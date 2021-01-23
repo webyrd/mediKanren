@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Vis Shortest Path Map</title>
+    <meta charset="UTF-8">
+    <script
+      type="text/javascript"
+      src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"
+    ></script>
+
+    <style type="text/css">
+      #mynetwork {
+        width: 800px;
+        height: 450px;
+        border: 1px solid lightgray;
+      }
+    </style>
+  </head>
+  <body>
+    <h3>
+      Hover over an arrow to see the predicate(s)
+      connecting the concept CURIE prefixes.
+    </h3>
+
+    <div id="mynetwork"></div>
+
+    <h4 id="eventSpanHeading"></h4>
+    <pre id="eventSpanContent"></pre>
+
+    <!-- create an array with nodes -->
+    <script src="shorest-path-graph-vars.js"> </script>
+
+    <script type="text/javascript">
+
+      // create a network
+      var container = document.getElementById("mynetwork");
+      var data = {
+        nodes: nodes,
+        edges: edges,
+      };
+
+      var options = {
+        interaction: { hover: true }
+      };
+
+      var network = new vis.Network(container, data, options);
+
+      /*
+      network.on("click", function (params) {
+	     console.log("click");
+	     console.log(params);
+       var edgesIDs = params.edges[0];
+	     console.log(edgesIDs);
+       var edge = edges.get(edgesIDs);
+	     console.log(edge);
+
+       document.getElementById("eventSpanHeading").innerText =
+       "Predicate(s) connect " + "subject " + edge.from + " with object " + edge.to;
+       document.getElementById("eventSpanContent").innerText = edge.predicate;
+      });
+      */
+
+      network.on("hoverEdge", function (params) {
+        console.log("hoverEdge");
+        console.log(params);
+        var edgesID = params.edge;
+	      console.log(edgesID);
+        var edge = edges.get(edgesID);
+        console.log(edge);
+        document.getElementById("eventSpanHeading").innerText =
+              "Predicate(s) connect " + "subject " + edge.from + " with object " + edge.to;
+        document.getElementById("eventSpanContent").innerText = edge.predicate;
+      });
+
+    </script>
+  </body>
+</html>

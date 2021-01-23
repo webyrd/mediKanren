@@ -2,6 +2,7 @@
 (require
   "common.rkt"
   "open-api/api-query.rkt"
+  "pieces-parts/synonymize.rkt"
   racket/file
   racket/list
   (except-in racket/match ==)
@@ -87,6 +88,106 @@ query_result_clear.addEventListener('click', function(){
   clear_result();
 }, false);
 });")
+(define v2:index.js "
+window.addEventListener('load', function(){
+var find_concepts_form           = document.getElementById('find-concepts-form');
+var find_concepts_text           = document.getElementById('find-concepts-text');
+var find_concepts_submit         = document.getElementById('find-concepts-submit');
+var find_concepts_result         = document.getElementById('find-concepts-result');
+var find_concepts_result_clear   = document.getElementById('find-concepts-result-clear');
+var find_categories_form         = document.getElementById('find-categories-form');
+var find_categories_text         = document.getElementById('find-categories-text');
+var find_categories_submit       = document.getElementById('find-categories-submit');
+var find_categories_result       = document.getElementById('find-categories-result');
+var find_categories_result_clear = document.getElementById('find-categories-result-clear');
+var find_predicates_form         = document.getElementById('find-predicates-form');
+var find_predicates_text         = document.getElementById('find-predicates-text');
+var find_predicates_submit       = document.getElementById('find-predicates-submit');
+var find_predicates_result       = document.getElementById('find-predicates-result');
+var find_predicates_result_clear = document.getElementById('find-predicates-result-clear');
+var query_result       = document.getElementById('query-result');
+var query_result_clear = document.getElementById('query-result-clear');
+var query_form         = document.getElementById('query-form');
+var query_text         = document.getElementById('query-text');
+var query_submit       = document.getElementById('query-submit');
+function pretty_json(json_text) {
+  try { return JSON.stringify(JSON.parse(json_text), null, 2); }
+  catch (_) { return json_text; }
+}
+function show(element, result) { element.textContent = pretty_json(result); }
+
+function find_concepts_show(result)     { show(find_concepts_result,   result); }
+function find_categories_show(result)   { show(find_categories_result, result); }
+function find_predicates_show(result)   { show(find_predicates_result, result); }
+function find_concepts_clear_result()   { find_concepts_result.textContent = ''; }
+function find_categories_clear_result() { find_categories_result.textContent = ''; }
+function find_predicates_clear_result() { find_predicates_result.textContent = ''; }
+function find_concepts(data) {
+  var xhr = new XMLHttpRequest();
+  xhr.addEventListener('load',  function(event){ find_concepts_show(xhr.responseText); });
+  xhr.addEventListener('error', function(event){ find_concepts_show('POST error'); });
+  xhr.open('POST', '/v2/find-concepts');
+  xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
+  xhr.send(data);
+}
+function find_categories(data) {
+  var xhr = new XMLHttpRequest();
+  xhr.addEventListener('load',  function(event){ find_categories_show(xhr.responseText); });
+  xhr.addEventListener('error', function(event){ find_categories_show('POST error'); });
+  xhr.open('POST', '/v2/find-categories');
+  xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
+  xhr.send(data);
+}
+function find_predicates(data) {
+  var xhr = new XMLHttpRequest();
+  xhr.addEventListener('load',  function(event){ find_predicates_show(xhr.responseText); });
+  xhr.addEventListener('error', function(event){ find_predicates_show('POST error'); });
+  xhr.open('POST', '/v2/find-predicates');
+  xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
+  xhr.send(data);
+}
+find_concepts_form.addEventListener('submit', function(event){
+  event.preventDefault();
+  find_concepts('\"'+find_concepts_text.value+'\"');
+}, false);
+find_categories_form.addEventListener('submit', function(event){
+  event.preventDefault();
+  find_categories('\"'+find_categories_text.value+'\"');
+}, false);
+find_predicates_form.addEventListener('submit', function(event){
+  event.preventDefault();
+  find_predicates('\"'+find_predicates_text.value+'\"');
+}, false);
+find_concepts_result_clear.addEventListener('click', function(){
+  find_concepts_clear_result();
+}, false);
+find_categories_result_clear.addEventListener('click', function(){
+  find_categories_clear_result();
+}, false);
+find_predicates_result_clear.addEventListener('click', function(){
+  find_predicates_clear_result();
+}, false);
+
+function query(data) {
+  var xhr = new XMLHttpRequest();
+  xhr.addEventListener('load',  function(event){ query_show(xhr.responseText); });
+  xhr.addEventListener('error', function(event){ query_show('POST error'); });
+  xhr.open('POST', '/v2/query');
+  xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
+  xhr.send(data);
+}
+function query_show(result)   { show(query_result, result); }
+function query_clear_result() { query_result.textContent = ''; }
+query_text.textContent = pretty_json(query_text.textContent);
+query_form.addEventListener('submit', function(event){
+  event.preventDefault();
+  query(query_text.value);
+}, false);
+query_result_clear.addEventListener('click', function(){
+  query_clear_result();
+}, false);
+
+});")
 (define (not-found.html uri)
   `(html (head (title "mediKanren: 404"))
          (body (h1 "What are you looking for?")
@@ -109,51 +210,96 @@ query_result_clear.addEventListener('click', function(){
                             "{
   \"message\": {
     \"query_graph\": {
-      \"nodes\": [
-        {
-          \"id\": \"n0\",
-          \"curie\": \"UMLS:C0935989\"
+      \"nodes\": {
+        \"n0\": { \"id\": \"UMLS:C0935989\" },
+        \"n1\": { \"category\": \"gene\" },
+        \"n2\": { \"id\": \"UMLS:C0004096\" }
+      },
+      \"edges\": {
+        \"e0\": {
+          \"predicate\": \"negatively_regulates\",
+          \"subject\": \"n0\",
+          \"object\": \"n1\"
         },
-        {
-          \"id\": \"n1\",
-          \"type\": \"gene\"
-        },
-        {
-          \"id\": \"n2\",
-          \"curie\": \"UMLS:C0004096\"
+        \"e1\": {
+          \"predicate\": \"gene_associated_with_condition\",
+          \"subject\": \"n1\",
+          \"object\": \"n2\"
         }
-      ],
-      \"edges\": [
-        {
-          \"id\": \"e0\",
-          \"type\": \"negatively_regulates\",
-          \"source_id\": \"n0\",
-          \"target_id\": \"n1\"
-        },
-        {
-          \"id\": \"e1\",
-          \"type\": \"gene_associated_with_condition\",
-          \"source_id\": \"n1\",
-          \"target_id\": \"n2\"
-        }
-      ]
+      }
     }
   }
 }"
-                            ;,(jsexpr->string
-                               ;;; TODO: factor this out
-                               ;(hash 'message
-                                     ;(hash 'query_graph
-                                           ;(hash 'nodes (list (hash 'id ""
-                                                                    ;'curie ""
-                                                                    ;'type ""))
-                                                 ;'edges (list (hash 'id ""
-                                                                    ;'type ""
-                                                                    ;'source_id ""
-                                                                    ;'target_id ""))))))
                             ))
                      (div (button ((type "submit") (id "query-submit"))
                                   "POST /query")))
+               (div (button ((id "query-result-clear")) "Clear Result"))
+               (div (pre ((id "query-result")) "Result will appear here.")))))
+
+(define v2:index.html
+  `(html (head (title "mediKanren Reasoner API")
+               (script ((src "/v2/index.js"))))
+         (body (h1 "mediKanren Reasoner API")
+               (p (a ((href "https://github.com/NCATS-Tangerine/NCATS-ReasonerStdAPI"))
+                     "NCATS Biomedical Translator Reasoners Standard API"))
+               (ul (li (a ((href "/schema.html")) "schema.html"))
+                   (li (a ((href "/schema.html2")) "schema.html2"))
+                   (li (a ((href "/schema.yaml")) "schema.yaml"))
+                   (li (a ((href "/schema.json")) "schema.json")))
+               (form ((method "post") (id "find-concepts-form"))
+                     (div (input ((type "text")
+                                  (id "find-concepts-text")
+                                  (value "UMLS:C0935989"))))
+                     (div (button ((type "submit") (id "find-concepts-submit"))
+                                  "Find concepts")))
+               (div (button ((id "find-concepts-result-clear")) "Clear"))
+               (div (pre ((id "find-concepts-result")) "Concepts will appear here."))
+               (form ((method "post") (id "find-categories-form"))
+                     (div (input ((type "text")
+                                  (id "find-categories-text")
+                                  (value "gene"))))
+                     (div (button ((type "submit") (id "find-categories-submit"))
+                                  "Find categories")))
+               (div (button ((id "find-categories-result-clear")) "Clear"))
+               (div (pre ((id "find-categories-result")) "Categories will appear here."))
+               (form ((method "post") (id "find-predicates-form"))
+                     (div (input ((type "text")
+                                  (id "find-predicates-text")
+                                  (value "negatively_regulates"))))
+                     (div (button ((type "submit") (id "find-predicates-submit"))
+                                  "Find predicates")))
+               (div (button ((id "find-predicates-result-clear")) "Clear"))
+               (div (pre ((id "find-predicates-result")) "Predicates will appear here."))
+               (p (a ((href "/predicates")) "GET /predicates"))
+               (form ((method "post") (action "/v2/query") (id "query-form"))
+                     (div (textarea
+                            ((id "query-text"))
+                            "{
+  \"message\": {
+    \"query_graph\": {
+      \"nodes\": {
+        \"n0\": { \"id\": \"UMLS:C0935989\" },
+        \"n1\": { \"category\": \"gene\" },
+        \"n2\": { \"id\": \"UMLS:C0004096\" }
+      },
+      \"edges\": {
+        \"e0\": {
+          \"predicate\": \"negatively_regulates\",
+          \"subject\": \"n0\",
+          \"object\": \"n1\"
+        },
+        \"e1\": {
+          \"predicate\": \"gene_associated_with_condition\",
+          \"subject\": \"n1\",
+          \"object\": \"n2\"
+        }
+      }
+    }
+  }
+}"
+                            ))
+                     (div (button ((type "submit") (id "query-submit"))
+                                  "POST /v2/query")))
                (div (button ((id "query-result-clear")) "Clear Result"))
                (div (pre ((id "query-result")) "Result will appear here.")))))
 
@@ -162,17 +308,45 @@ query_result_clear.addEventListener('click', function(){
 (define (slift v) (cond ((pair? v) v) ((string? v) (list v)) (else '())))
 (define (str v)   (and (string? v) v))
 
+(define (alist->attributes alist)
+  ;; TODO: provide standard types for
+  ;; * negated, publications, provided_by
+  ;; * ngd_score, association_type, id
+  ;; * update_date, publications_info
+  ;; * is_defined_by, pmids, n_pmids, SEMMED_PRED
+  (map (lambda (kv) (hash 'name  (car kv)
+                          'type  "miscellaneous"
+                          'value (cdr kv)))
+       alist))
+
 (define (concept->result c)
-  (hash 'id (caddr c) 'name (cadddr c) 'type (cdr (cadddr (cdr c)))))
+  (define attrs
+    (alist->attributes
+      (cons (cons "mediKanren-source" (symbol->string (concept->dbname c)))
+            (concept->props c))))
+  (cons (string->symbol (concept->curie c))
+        (hash 'name       (concept->name c)
+              'category   (cdr (concept->category c))
+              'attributes attrs)))
 (define (edge->result e)
-  (define id (string-append (symbol->string (car e)) (number->string (cadr e))))
-  (define src (cadr (caddr e)))
-  (define tgt (cadr (cadddr e)))
-  (define pred (cdr (cadddr (cdr e))))
-  (define attrs (make-immutable-hash
-                  (map (lambda (kv) (cons (string->symbol (car kv)) (cdr kv)))
-                       (cadddr (cddr e)))))
-  (hash 'id id 'type pred 'source_id src 'target_id tgt 'attrs attrs))
+  (define id (string-append (symbol->string (edge->dbname e)) "."
+                            (number->string (edge->eid e))))
+  (define props (make-immutable-hash (edge->props e)))
+  (define relation (hash-ref props "relation" #f))
+  (define attrs
+    (alist->attributes
+      (hash->list
+        (foldl (lambda (k ps) (hash-remove ps k)) props
+               '("relation" "subject" "object"
+                 "simplified_relation" "simplified_edge_label")))))
+  (define obj
+    (hash 'predicate  (cdr (edge->pred e))
+          'subject    (concept->curie (edge->subject e))
+          'object     (concept->curie (edge->object e))
+          'attributes attrs))
+  (cons (string->symbol id) (if relation
+                              (hash-set obj 'relation relation)
+                              obj)))
 
 (define (message->response msg)
   (define broad-response (time (api-query (string-append url.broad path.query)
@@ -184,75 +358,90 @@ query_result_clear.addEventListener('click', function(){
   ;; NOTE: ignore 'results and 'knowledge_graph until we find a use for them.
   (define qgraph (hash-ref msg 'query_graph hash-empty))
   (define nodes
-    (filter-not not
-      (map (lambda (n)
-             (let ((id    (str   (hash-ref n 'id    #f)))
-                   (curie (slift (hash-ref n 'curie '())))
-                   (type  (slift (hash-ref n 'type  '()))))
+    (filter-not
+      not
+      (map (lambda (id+n)
+             (let* ((id       (car id+n))
+                    (n        (cdr id+n))
+                    (curie    (slift (hash-ref n 'id       '())))
+                    (category (slift (hash-ref n 'category '()))))
                ;; TODO: use a new find-concepts based on xrefo instead?
-               (and id `(,(string->symbol id)
-                          ',(cond ((pair? curie) (find-concepts #t curie))
-                                  ((pair? type)  (find-categories type))
-                                  (else          #f))))))
-           (hash-ref qgraph 'nodes '()))))
+               `(,id ',(cond ((pair? curie)    (find-concepts #t curie))
+                             ((pair? category) (find-categories category))
+                             (else             #f)))))
+           (hash->list (olift (hash-ref qgraph 'nodes hash-empty))))))
   (define edges&paths
-    (filter-not not
-      (map (lambda (e)
-             (let ((id   (str   (hash-ref e 'id        #f)))
-                   (type (slift (hash-ref e 'type      '())))
-                   (src  (str   (hash-ref e 'source_id #f)))
-                   (tgt  (str   (hash-ref e 'target_id #f))))
-               (define preds (and (pair? type) (find-predicates type)))
-               (and id src tgt (cons `(,(string->symbol id) ',preds)
-                                     (map string->symbol (list src id tgt))))))
-           (hash-ref qgraph 'edges '()))))
-  (define edges (map car edges&paths))
-  (define paths (map cdr edges&paths))
+    (filter-not
+      not
+      (map (lambda (id+e)
+             (let* ((id        (car id+e))
+                    (e         (cdr id+e))
+                    (predicate (slift (hash-ref e 'predicate '())))
+                    (subject   (str   (hash-ref e 'subject   #f)))
+                    (object    (str   (hash-ref e 'object    #f))))
+               (and subject object
+                    `((,id ',(and (pair? predicate)
+                                  (find-predicates predicate)))
+                      (,(string->symbol subject)
+                        ,id
+                        ,(string->symbol object))))))
+           (hash->list (olift (hash-ref qgraph 'edges hash-empty))))))
+  (define edges (map car  edges&paths))
+  (define paths (map cadr edges&paths))
   (define runq #`(run/graph #,nodes #,edges . #,paths))
   (displayln "===============================================================")
   (pretty-print (syntax->datum runq))
-  (match-define (list name=>concepts name=>edges) (time (eval runq)))
+  (match-define (list name=>concepts name=>edges)
+    (if (null? paths)
+      (begin (displayln "no paths were provided")
+             (list hash-empty hash-empty))
+      (time (eval runq))))
   (displayln "result counts:")
   (pretty-print (hash-map name=>concepts (lambda (n xs) (cons n (length xs)))))
   (pretty-print (hash-map name=>edges    (lambda (n xs) (cons n (length xs)))))
   (define knodes
-    (hash-map name=>concepts (lambda (name xs) (map concept->result xs))))
+    (append* (hash-map name=>concepts
+                       (lambda (name xs) (map concept->result xs)))))
   (define kedges
-    (hash-map name=>edges    (lambda (name xs) (map edge->result xs))))
+    (append* (hash-map name=>edges
+                       (lambda (name xs) (map edge->result xs)))))
+  (define local-results
+    (append* (map (lambda (p)
+                    (define qsubject (car p))
+                    (define qname    (cadr p))
+                    (define qobject  (caddr p))
+                    (map (lambda (e)
+                           (define id+r    (edge->result e))
+                           (define id      (symbol->string (car id+r)))
+                           (define r       (cdr id+r))
+                           (define subject (hash-ref r 'subject))
+                           (define object  (hash-ref r 'object))
+                           (hash 'edge_bindings (hash qname (hash 'id id))
+                                 'node_bindings
+                                 (make-immutable-hash
+                                   (list (cons qsubject (hash 'id subject))
+                                         (cons qobject  (hash 'id object))))))
+                         (hash-ref name=>edges qname)))
+                  paths)))
   (merge-results
-    (list broad-results
-          (hash 'results
-                (append* (map (lambda (p)
-                                (define qsrc  (symbol->string (car p)))
-                                (define qname (cadr p))
-                                (define qedge (symbol->string qname))
-                                (define qtgt  (symbol->string (caddr p)))
-                                (map (lambda (e)
-                                       (define r (edge->result e))
-                                       (define id  (hash-ref r 'id))
-                                       (define src (hash-ref r 'source_id))
-                                       (define tgt (hash-ref r 'target_id))
-                                       (hash 'edge_bindings
-                                             (list (hash 'qg_id qedge 'kg_id id))
-                                             'node_bindings
-                                             (list (hash 'qg_id qsrc  'kg_id src)
-                                                   (hash 'qg_id qtgt  'kg_id tgt))))
-                                     (hash-ref name=>edges qname)))
-                              paths))
-                'knowledge_graph (hash 'nodes (append* knodes)
-                                       'edges (append* kedges))))))
+    (list (hash-ref (olift broad-results) 'message hash-empty)
+          (hash 'results local-results
+                'knowledge_graph (hash 'nodes (make-immutable-hash knodes)
+                                       'edges (make-immutable-hash kedges))))))
 
 (define (merge-results rs)
   (let loop ((rs rs) (results '()) (nodes '()) (edges '()))
     (cond ((null? rs) (hash 'results         results
-                            'knowledge_graph (hash 'nodes nodes
-                                                   'edges edges)))
+                            'knowledge_graph (hash 'nodes (make-immutable-hash nodes)
+                                                   'edges (make-immutable-hash edges))))
           (else (define r (car rs))
-                (define kg (hash-ref r  'knowledge_graph hash-empty))
+                (define kg (hash-ref r 'knowledge_graph hash-empty))
                 (loop (cdr rs)
-                      (append (hash-ref r  'results '()) results)
-                      (append (hash-ref kg 'nodes   '()) nodes)
-                      (append (hash-ref kg 'edges   '()) edges))))))
+                      (append (hash-ref r 'results '()) results)
+                      (append (hash->list (hash-ref kg 'nodes hash-empty))
+                              nodes)
+                      (append (hash->list (hash-ref kg 'edges hash-empty))
+                              edges))))))
 
 (define (predicates)
   ;; TODO: at greater expense, we could restrict each list of predicates
@@ -280,8 +469,9 @@ query_result_clear.addEventListener('click', function(){
 (define predicates-cached-gzip (gzip/bytes predicates-cached))
 (define (query jsdata)
   (cond ((or (eof-object? jsdata) (not (hash? jsdata))) 'null)
-        (else (message->response
-                (olift (hash-ref (olift jsdata) 'message hash-empty))))))
+        (else (hash 'message
+                    (message->response (olift (hash-ref (olift jsdata) 'message
+                                                        hash-empty)))))))
 (define (accepts-gzip? req)
   (member "gzip" (map string-trim
                       (string-split (alist-ref (request-headers req)
@@ -304,9 +494,16 @@ query_result_clear.addEventListener('click', function(){
            (string->bytes/utf-8
              (xexpr->html-string
                (not-found.html (url->string (request-uri req)))))))
-(define (index         req)
+(define (OK/jsexpr f req)
+  (OK req '() mime:json
+      (jsexpr->string (f (bytes->jsexpr (request-post-data/raw req))))))
+
+(define (/index req)
   (pretty-print `(request-headers: ,(request-headers req)))
   (OK req '() mime:html (xexpr->html-string index.html)))
+(define (/v2/index req)
+  (pretty-print `(request-headers: ,(request-headers req)))
+  (OK req '() mime:html (xexpr->html-string v2:index.html)))
 (define (/index.js     req) (OK req '() mime:js   index.js))
 (define (/schema.json  req) (OK req '() mime:text schema.json.txt))
 (define (/schema.yaml  req) (OK req '() mime:text schema.yaml.txt))
@@ -315,21 +512,65 @@ query_result_clear.addEventListener('click', function(){
 (define (/predicates   req) (if (accepts-gzip? req)
                               (OK req '() mime:json predicates-cached-gzip #t)
                               (OK req '() mime:json predicates-cached #f)))
-(define (/query        req)
-  (OK req '() mime:json
-      (jsexpr->string (query (bytes->jsexpr (request-post-data/raw req))))))
+(define (/query        req) (OK/jsexpr query req))
+
+(define (group-by-db xs)
+  (foldl (lambda (x db=>id)
+           (hash-update db=>id (car x) (lambda (xs) (cons (cdr x) xs)) '()))
+         (hash) xs))
+
+(define (pretty-synonyms ss)
+  (if (and (pair? ss) (not (cdar ss))) '()
+    (make-immutable-hash
+      (map (lambda (kv) (cons (string->symbol (car kv)) (cdr kv))) ss))))
+
+(define (find-concepts/any str)
+  (hash 'synonyms (pretty-synonyms (curie-synonyms/names str))
+        'concepts
+        (make-immutable-hash
+          (hash-map
+            (group-by-db
+              (map (lambda (c)
+                     (define r (concept->result c))
+                     (define attrs (hash-ref (cdr r) 'attributes))
+                     (define dbnames
+                       (map (lambda (attr) (hash-ref attr 'value))
+                            (filter (lambda (attr) (equal? (hash-ref attr 'name)
+                                                           "mediKanren-source"))
+                                    attrs)))
+                     (define dbname (if (null? dbnames) 'unknown
+                                      (string->symbol (car dbnames))))
+                     (cons dbname r))
+                   (append (find-concepts #t (list str))
+                           (find-concepts #f (list str)))))
+            (lambda (db cs) (cons db (make-immutable-hash cs)))))))
+
+(define ((find/db-id find) data)
+  (group-by-db (map (lambda (x) (cons (car x) (cddr x))) (find (list data)))))
+
+(define (/v2/index.js        req) (OK req '() mime:js v2:index.js))
+(define (/v2/query req)           (OK/jsexpr query                        req))
+(define (/v2/find-concepts   req) (OK/jsexpr find-concepts/any            req))
+(define (/v2/find-categories req) (OK/jsexpr (find/db-id find-categories) req))
+(define (/v2/find-predicates req) (OK/jsexpr (find/db-id find-predicates) req))
 
 (define (start)
   (define-values (dispatch _)
     (dispatch-rules
-      (("")             #:method         "get"  index)
-      (("index.js")     #:method         "get"  /index.js)
-      (("schema.json")  #:method         "get"  /schema.json)
-      (("schema.yaml")  #:method         "get"  /schema.yaml)
-      (("schema.html")  #:method         "get"  /schema.html)
-      (("schema.html2") #:method         "get"  /schema.html2)
-      (("predicates")   #:method         "get"  /predicates)
-      (("query")        #:method         "post" /query)
+      (("")                     #:method "get"  /index)
+      (("index.js")             #:method "get"  /index.js)
+      (("schema.json")          #:method "get"  /schema.json)
+      (("schema.yaml")          #:method "get"  /schema.yaml)
+      (("schema.html")          #:method "get"  /schema.html)
+      (("schema.html2")         #:method "get"  /schema.html2)
+      (("predicates")           #:method "get"  /predicates)
+      (("query")                #:method "post" /query)
+      (("v2")                   #:method "get"  /v2/index)
+      (("v2" "index.js")        #:method "get"  /v2/index.js)
+      (("v2" "find-concepts")   #:method "post" /v2/find-concepts)
+      (("v2" "find-categories") #:method "post" /v2/find-categories)
+      (("v2" "find-predicates") #:method "post" /v2/find-predicates)
+      (("v2" "query")           #:method "post" /v2/query)
       (else                                     not-found)))
   (serve/servlet dispatch
                  ;; none-manager for better performance:
