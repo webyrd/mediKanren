@@ -45,11 +45,19 @@ example (although rewriting the code to take advantage of the
 
 
 ;; *** Change this string to match the name of the KG you want to map! ***
-;(define kg-name "rtx2_2020_09_16")
-;(define kg-name "textminingprovider")
-;(define kg-name "pr-owl")
+;(define kg-name "chemstructure")
 ;(define kg-name "co-occur")
-(define kg-name "orange")
+;(define kg-name "covid19")
+;(define kg-name "orange")
+;(define kg-name "pr-owl")
+;(define kg-name "robokop")
+(define kg-name "rtx2_2020_09_16")
+;(define kg-name "semmed")
+;(define kg-name "sri-reference-kg-0.2.0")
+;(define kg-name "sri_semmeddb")
+;(define kg-name "textminingprovider")
+;(define kg-name "umlsmeta")
+;(define kg-name "unichem")
 
 
 #|
@@ -418,13 +426,29 @@ be written to the TSV
               list-of-list-of-strings
               (lambda (los1 los2)
                 (cond
-                  [(string-ci<? (car los1) (car los2)) #t]
-                  [(and (string-ci=? (car los1) (car los2))
-                        (string-ci<? (cadr los1) (cadr los2)))
+                  [(and
+                    (string? (car los1))
+                    (string? (car los2))
+                    (string-ci<? (car los1) (car los2)))
                    #t]
-                  [(and (string-ci=? (car los1) (car los2))
-                        (string-ci=? (cadr los1) (cadr los2))
-                        (string-ci<? (caddr los1) (caddr los2)))
+                  [(and
+                    (string? (car los1))
+                    (string? (car los2))
+                    (string? (cadr los1))
+                    (string? (cadr los2))
+                    (string-ci=? (car los1) (car los2))
+                    (string-ci<? (cadr los1) (cadr los2)))
+                   #t]
+                  [(and
+                    (string? (car los1))
+                    (string? (car los2))
+                    (string? (cadr los1))
+                    (string? (cadr los2))
+                    (string? (caddr los1))
+                    (string? (caddr los2))
+                    (string-ci=? (car los1) (car los2))
+                    (string-ci=? (cadr los1) (cadr los2))
+                    (string-ci<? (caddr los1) (caddr los2)))
                    #t]
                   [else #f])))))
         (with-output-to-file tsv-file-path
