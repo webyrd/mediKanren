@@ -56,14 +56,27 @@ example (although rewriting the code to take advantage of the
 Define paths to the critical data files for the given KG.
 |#
 (define-runtime-path path:root "..")
-(define (path/root relative-path) (build-path path:root relative-path))
-(define path:data                 (path/root "data"))
-(define (path/data relative-path) (build-path path:data kg-name relative-path))
+(define (path/root relative-path)   (build-path path:root relative-path))
+(define path:data                   (path/root "data"))
+(define (path/data relative-path)   (build-path path:data kg-name relative-path))
+(define path:kg-maps                (build-path path:root "kg-maps"))
+(define path:kg-maps/kg-name        (build-path path:kg-maps kg-name))
+(define (path/kg-map/kg-name relative-path) (build-path path:kg-maps/kg-name relative-path))
 
 (define predicates-file-path (path/data "predicates.scm"))
 (define categories-file-path (path/data "categories.scm"))
-(define concepts-file-path (path/data "concepts.scm"))
-(define edges-file-path (path/data "edges.scm"))
+(define concepts-file-path   (path/data "concepts.scm"))
+(define edges-file-path      (path/data "edges.scm"))
+
+
+;; Create the directories to hold the KG maps, if they do not exist already
+(unless (directory-exists? path:kg-maps)
+  (printf "directory ~s not found\ncreating directory ~s\n" path:kg-maps path:kg-maps)
+  (make-directory path:kg-maps))
+
+(unless (directory-exists? path:kg-maps/kg-name)
+  (printf "directory ~s not found\ncreating directory ~s\n" path:kg-maps/kg-name path:kg-maps/kg-name)
+  (make-directory path:kg-maps/kg-name))
 
 
 #|
@@ -71,14 +84,17 @@ Define file names and paths for the output TSV files.
 |#
 (define TSV-file-name-suffix ".tsv")
 
-(define CURIE-prefix_to_CURIE-prefix-file-name-prefix "_subject-prefix_object-prefix_predicate_count")
+(define CURIE-prefix_to_CURIE-prefix-file-name-prefix "subject-prefix_object-prefix_predicate_count")
 (define CURIE-prefix_to_CURIE-prefix-file-name
-  (string-append kg-name CURIE-prefix_to_CURIE-prefix-file-name-prefix TSV-file-name-suffix))
+  (string-append CURIE-prefix_to_CURIE-prefix-file-name-prefix TSV-file-name-suffix))
+(define CURIE-prefix_to_CURIE-prefix-file-path
+  (path/kg-map/kg-name CURIE-prefix_to_CURIE-prefix-file-name))
 
-(define category_to_category-file-name-prefix "_subject-category_object-category_predicate_count")
+(define category_to_category-file-name-prefix "subject-category_object-category_predicate_count")
 (define category_to_category-file-name
-  (string-append kg-name category_to_category-file-name-prefix TSV-file-name-suffix))
-
+  (string-append category_to_category-file-name-prefix TSV-file-name-suffix))
+(define category_to_category-file-path
+  (path/kg-map/kg-name category_to_category-file-name))
 
 ;; Represents a CURIE that does not conform to the standard <prefix>:<suffix> CURIE format.
 (define NON-STANDARD-CURIE-STRING "*non-standard CURIE*")
@@ -423,7 +439,7 @@ Generate TSV file with the subject CURIE prefix, predicate, object
 CURIE prefix, and edge counts
 |#
 (sort-and-write-map-hash-table-to-tsv-file
- CURIE-prefix_to_CURIE-prefix-file-name
+ CURIE-prefix_to_CURIE-prefix-file-path
  subject-prefix/object-prefix/predicate-id-hash
  "subject CURIE prefix\tobject CURIE prefix\tpredicate\tedge count\n"
  (list
@@ -436,7 +452,7 @@ Generate TSV file with the subject concept category, object concept
 category, predicate, and edge counts
 |#
 (sort-and-write-map-hash-table-to-tsv-file
- category_to_category-file-name
+ category_to_category-file-path
  subject-category-id/object-category-id/predicate-id-hash
  "subject category\tobject category\tpredicate\tedge count\n"
  (list
