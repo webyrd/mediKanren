@@ -1,155 +1,435 @@
 #lang racket
 
 (require
-  racket/runtime-path)
+ racket/date
+ racket/runtime-path)
 
-;; Faster version of the `make-map.rkt` functionality, reading
-;; directly from the raw data files.
+#|
+
+Generate tab-separed value (TSV) files describing the mappings between
+concepts for a specified Knowledge Graph (KG).
+
+
+Here are the tab-sepated columns for each of the generated TSV files.
+
+CURIE-prefix to CURIE-prefix mapping:
+
+subject concept CURIE-prefix
+object concept CURIE-prefix
+predicate string
+edge counts
+
+
+
+concept-category to concept-category mapping:
+
+subject concept category
+object concept category
+predicate string
+edge counts
+
+
+
+**CAUTION**
+
+This implementation reads from the KG's raw data files to reduce the
+running time and (especially) to reduce the (RAM) memory footprint.
+As a result, this code makes assumptions about the formats of the raw
+'biolink' KG files, which is fragile.  This code would need to be
+modified to work with the 'biolink2' KG file format, for
+example (although rewriting the code to take advantage of the
+'biolink2' improvements may make more sense).
+
+|#
+
+
 
 ;; *** Change this string to match the name of the KG you want to map! ***
 ;(define kg-name "rtx2_2020_09_16")
 ;(define kg-name "textminingprovider")
-;(define kg-name "pr-owl")
+(define kg-name "pr-owl")
 ;(define kg-name "co-occur")
+;(define kg-name "orange")
 
+
+#|
+Define paths to the critical data files for the given KG.
+|#
 (define-runtime-path path:root "..")
 (define (path/root relative-path) (build-path path:root relative-path))
 (define path:data                 (path/root "data"))
 (define (path/data relative-path) (build-path path:data kg-name relative-path))
 
 (define predicates-file-path (path/data "predicates.scm"))
+(define categories-file-path (path/data "categories.scm"))
 (define concepts-file-path (path/data "concepts.scm"))
 (define edges-file-path (path/data "edges.scm"))
 
 
-(define predicates-vector
-  (with-input-from-file
-      predicates-file-path
+#|
+Define file names and paths for the output TSV files.
+|#
+(define TSV-file-name-suffix ".tsv")
+
+(define CURIE-prefix_to_CURIE-prefix-file-name-prefix "_subject-prefix_object-prefix_predicate_count")
+(define CURIE-prefix_to_CURIE-prefix-file-name
+  (string-append kg-name CURIE-prefix_to_CURIE-prefix-file-name-prefix TSV-file-name-suffix))
+
+(define category_to_category-file-name-prefix "_subject-category_object-category_predicate_count")
+(define category_to_category-file-name
+  (string-append kg-name category_to_category-file-name-prefix TSV-file-name-suffix))
+
+
+;; Represents a CURIE that does not conform to the standard <prefix>:<suffix> CURIE format.
+(define NON-STANDARD-CURIE-STRING "*non-standard CURIE*")
+
+
+
+#|
+Takes a Racket date object and returns a string containing the
+hour:minute:second + date in a pretty format.
+|#
+(define date->pretty-time/date
+  (lambda (d)
+    (let ((h (date-hour d))
+          (m (date-minute d))
+          (s (date-second d)))
+      (let ((num->pretty-string
+             (lambda (n)
+               (if (< n 10)
+                   (string-append "0" (number->string n))
+                   (number->string n)))))
+        (format "~a:~a:~a ~a"
+                (num->pretty-string h)
+                (num->pretty-string m)
+                (num->pretty-string s)
+                (date->string d))))))
+
+
+(printf "\n\nProcessing KG ~s\n" kg-name)
+(printf "started processing at ~s\n" (date->pretty-time/date (current-date)))
+(define start-seconds (current-seconds))
+
+#|
+Open a text file with the given file path, reading in each row, and
+returning a vector of those values. Closes the file automatically.
+|#
+(define file->vector
+  (lambda (file-path)
+    (with-input-from-file file-path
       (lambda ()
         (let loop ((ls '())
                    (x (read)))
           (cond
             ((eof-object? x) (list->vector (reverse ls)))
             (else (loop (cons x ls) (read))))))
-      #:mode 'text))
+      #:mode 'text)))
 
+#|
+Vector containing all the predicate strings for the given KG,
+in the same order as in the KG's 'predicates.scm' file.
+|#
+(define predicates-vector (file->vector predicates-file-path))
 (printf "created predicates vector with ~s entries\n" (vector-length predicates-vector))
-;(printf "created predicates vector:\n~s\n\n" predicates-vector)
+
+#|
+Vector containing all the category strings for the given KG,
+in the same order as in the KG's 'categories.scm' file.
+|#
+(define categories-vector (file->vector categories-file-path))
+(printf "created categories vector with ~s entries\n" (vector-length categories-vector))
 
 
-(define concept/curie-prefix-vector
-  (time
-   (let ((number-of-concepts (with-input-from-file
-                                 concepts-file-path
-                               (lambda () (let loop ((i 0) (x (read)))
-                                            (cond
-                                              [(eof-object? x) i]
-                                              [else (loop (add1 i) (read))])))
-                               #:mode 'text)))
-     (printf "ready to read ~s concepts\n" number-of-concepts)    
-     (with-input-from-file
-         concepts-file-path
-       (lambda ()
-         (let ((vec (make-vector number-of-concepts)))
-           (printf "created vector to hold ~s concept/curie-prefixes\n" number-of-concepts)
-           (let loop ((i 0)
-                      (good-curie-count 0)
-                      (non-standard-curie-count 0)
-                      (x (read)))
-             (when (= (modulo i 100000) 0)
-               (printf "read \n~s good CURIES and ~s non-standard CURIES so far...\n" good-curie-count non-standard-curie-count))
-             (cond
-               ((eof-object? x)
-                (printf "finished reading all CURIES:\n~s good CURIES and ~s non-standard CURIES\n" good-curie-count non-standard-curie-count)
-                vec)
-               (else
-                (begin
-                  (let ((curie (vector-ref x 0)))
+#|
+Returns the number of rows in a file.
+|#
+(define count-number-of-rows
+  (lambda (file-path)
+    (printf "counting the number of rows in file ~s\n" file-path)
+    (time
+     (with-input-from-file file-path
+       (lambda () (let loop ((i 0) (x (read-char)))
                     (cond
-                      [(string-contains? curie ":")
-                       (let ((curie-prefix (car (string-split curie ":" #:trim? #f))))
-                         (begin
-                           (vector-set! vec i curie-prefix)
-                           (loop (add1 i)
-                                 (add1 good-curie-count)
-                                 non-standard-curie-count
-                                 (read))))]
-                      [else
-                       (begin
-                         (vector-set! vec i "*non-standard CURIE*")
-                         (loop (add1 i)
-                               good-curie-count
-                               (add1 non-standard-curie-count)
-                               (read)))]))))))))
+                      [(eof-object? x) i]
+                      [(char=? x #\newline) (loop (add1 i) (read-char))]
+                      [else (loop i (read-char))])))
        #:mode 'text))))
 
-(printf "created concept/curie-prefix vector with ~s entries\n" (vector-length concept/curie-prefix-vector));(printf "created concept/curie-prefix vector:\n~s\n\n" concept/curie-prefix-vector)
-
-
-(define edge-type-hash
-  (time
-   (with-input-from-file
-       edges-file-path
-     (lambda ()
-       (let ((ht (make-hash)))
-         (let loop ((i 0)
-                    (x (read)))
-           (when (= (modulo i 100000) 0)
-             (printf "read \n~s edges so far...\n" i)
-             ;(printf "ht: ~s\n" ht)
-             )
-           (cond
-             ((eof-object? x) ht)
-             (else
-              (let ((subject-id (vector-ref x 0))
-                    (predicate-id (vector-ref x 1))
-                    (object-id (vector-ref x 2)))
-                (let ((subject-curie-prefix (vector-ref concept/curie-prefix-vector subject-id))
-                      (predicate-string (vector-ref predicates-vector predicate-id))
-                      (object-curie-prefix (vector-ref concept/curie-prefix-vector object-id)))
-                  (let ((key (list subject-curie-prefix predicate-string object-curie-prefix)))
-                    (let ((count (hash-ref ht key #f)))
-                      (begin
-                        (if count
-                            (hash-set! ht key (add1 count))
-                            (hash-set! ht key 1))
-                        (loop (add1 i) (read))))))))))))
-     #:mode 'text)))
-
-(printf "created edge-type hash table with ~s entries\n" (hash-count edge-type-hash))
-(printf "edge-type hash table: ~s\n" edge-type-hash)
 
 #|
-The entire dot graph can then be copied and pasted into a vis.js file and parsed as a DOT network. 
+Takes a string representing a CURIE.
+
+If the string is a "standard" CURIE of the form
+
+<prefix>:<suffix>
+
+then 'get-curie-prefix' returns the string <prefix>.
+
+Otherwise, the string is not a CURIE in the standard format,
+in which case 'get-curie-prefix' returns #f.
 |#
-(with-output-to-file (string-append kg-name ".dot")
-  (lambda ()
-    (printf "digraph{graph [ bgcolor=lightgray, fontname=Arial, fontcolor=blue, fontsize=12 ]; node [ fontname=Arial, fontcolor=blue, fontsize=11]; edge [ fontname=Helvetica, fontcolor=red, fontsize=10, labeldistance=2, labelangle=-50 ]; splines=\"FALSE\"; rankdir=\"LR\";")
-    (map
-     (lambda (key)
-       (match key
-         [`(,subject-curie-prefix ,predicate-string ,object-curie-prefix)
-          (let ((count (hash-ref edge-type-hash key)))
-            (printf "\t~s -> ~s [label=\"~a (~s)\"]; " subject-curie-prefix object-curie-prefix predicate-string count))]))
-     (hash-keys edge-type-hash))
-    (printf "}")
-    )
-  #:mode 'text
-  #:exists 'replace)
+(define get-curie-prefix
+  (lambda (curie)
+    (cond
+      [(string-contains? curie ":")
+       (let ((curie-prefix (car (string-split curie ":" #:trim? #f))))
+         curie-prefix)]
+      [else #t])))
+
+#|
+Number of distinct concepts in the KG.
+|#
+(define num-concepts (count-number-of-rows concepts-file-path))
+(printf "KG ~s contains ~s distinct concepts\n" kg-name num-concepts)
 
 
 #|
-Generate TSV file with the subject, object, predicate, and counts
+Vector that maps concept indices (natural numbers) to CURIE prefixes.
+
+To find the CURIE prefix for the concept with index N, reference the
+Nth entry in 'concept->curie-prefix-vector'.  For example, this
+expression will return the CURIE prefix for concept 7:
+
+(vector-ref concept->curie-prefix-vector 7)
+
+If the CURIE string for a concept does not match the standard
+<prefix>:<suffix> format, the vector will instead contain the special
+string bound to the NON-STANDARD-CURIE-STRING constant.
 |#
-(with-output-to-file (string-append kg-name "-subject_predicate_object_count" ".tsv")
-  (lambda ()
-    (printf "subject CURIE prefix\tobject CURIE prefix\tpredicate\tedge count\n")
-    (map
-     (lambda (key)
-       (match key
-         [`(,subject-curie-prefix ,predicate-string ,object-curie-prefix)
-          (let ((count (hash-ref edge-type-hash key)))
-            (printf "~a\t~a\t~a\t~a\n" subject-curie-prefix object-curie-prefix predicate-string count))]))
-     (hash-keys edge-type-hash)))
-  #:mode 'text
-  #:exists 'replace)
+(define concept->curie-prefix-vector (make-vector num-concepts))
+
+#|
+Vector that maps concept indices (natural numbers) to category indices (natural numbers).
+
+To find the category index for the concept with index N, reference the
+Nth entry in 'concept->category-vector'.  For example, this expression
+will return the category index for concept 7:
+
+(vector-ref concept->category-vector 7)
+
+To map the category index to the category name, reference the category
+index in 'categories-vector':
+
+(vector-ref categories-vector (vector-ref concept->category-vector 7))
+|#
+(define concept->category-vector (make-vector num-concepts))
+
+(time
+ (with-input-from-file concepts-file-path
+   (lambda ()
+     (let loop ((i 0) ;; number of concepts read in
+                (good-curie-count 0) ;; number of CURIEs in the standard <prefix>:<suffix> format
+                (non-standard-curie-count 0) ;; number of CURIEs that don't match the standard format
+                (x (read)))
+       (when (zero? (modulo i (expt 10 5)))
+         (printf "read ~s concepts, with ~s good CURIES and ~s non-standard CURIES so far...\n"
+                 i good-curie-count non-standard-curie-count))
+       (cond
+         ((eof-object? x)
+          (printf "finished reading all ~s concepts, with \n~s good CURIES and ~s non-standard CURIES\n"
+                  i good-curie-count non-standard-curie-count)
+          (void))
+         (else
+          (let ((concept-vec x))
+            (let ((curie (vector-ref concept-vec 0))
+                  (category (vector-ref concept-vec 1)))
+              (begin
+                ;; set the category for the current concept in the
+                ;; 'concept->category-vector' vector
+                (vector-set! concept->category-vector i category)
+                (let ((curie-prefix (get-curie-prefix curie)))
+                  (cond
+                    [curie-prefix ;; We were able to get the prefix of the CURIE string
+                     (begin
+                       (vector-set! concept->curie-prefix-vector i curie-prefix)
+                       (loop (add1 i)
+                             (add1 good-curie-count)
+                             non-standard-curie-count
+                             (read)))]
+                    [else ;; the CURIE string does not match the standard <prefix>:<suffix> format
+                     (begin
+                       (vector-set! concept->curie-prefix-vector i NON-STANDARD-CURIE-STRING)
+                       (loop (add1 i)
+                             good-curie-count
+                             (add1 non-standard-curie-count)
+                             (read)))])))))))))
+   #:mode 'text))
+
+(printf "populated concept->curie-prefix-vector with ~s entries\n" (vector-length concept->curie-prefix-vector))
+(printf "populated concept->category-vector with ~s entries\n" (vector-length concept->category-vector))
+
+
+;; functions that map ids (natural numbers) to strings
+(define identity (lambda (x) x))
+(define concept-id->curie-prefix (lambda (x) (vector-ref concept->curie-prefix-vector x)))
+(define category-id->category-name (lambda (x) (vector-ref categories-vector x)))
+(define predicate-id->predicate-name (lambda (x) (vector-ref predicates-vector x)))
+
+
+#|
+Hash table containing a mapping between the key:
+
+(list subject-id object-id predicate-id)
+
+and:
+
+edge-count
+
+where 'edge-count' is the number of entries in the hash-table
+that match the key.
+|#
+(define subject-prefix/object-prefix/predicate-id-hash (make-hash))
+
+#|
+Hash table containing a mapping between the key:
+
+(list subject-category-id object-category-id predicate-id)
+
+and:
+
+edge-count
+
+where 'edge-count' is the number of entries in the hash-table
+that match the key.
+|#
+(define subject-category-id/object-category-id/predicate-id-hash (make-hash))
+
+(time
+ (with-input-from-file edges-file-path
+   (lambda ()
+     (let loop ((i 0)
+                (x (read)))
+       (when (zero? (modulo i (expt 10 5)))
+         (printf "read \n~s edges so far...\n" i))
+       (cond
+         ((eof-object? x) (void))
+         (else
+          (let ((edge-vec x))
+            (let ((subject-id (vector-ref edge-vec 0))
+                  (predicate-id (vector-ref edge-vec 1))
+                  (object-id (vector-ref edge-vec 2)))
+              (let ((subject-prefix (concept-id->curie-prefix subject-id))
+                    (object-prefix (concept-id->curie-prefix object-id))
+                    (subject-category-id (vector-ref concept->category-vector subject-id))
+                    (object-category-id (vector-ref concept->category-vector object-id)))
+                (let ((subject-prefix/object-prefix/predicate-id-key
+                       (list subject-prefix object-prefix predicate-id))
+                      (subject-category-id/object-category-id/predicate-id-key
+                       (list subject-category-id object-category-id predicate-id)))
+                  (let ((subject-prefix/object-prefix/predicate-id-edge-count
+                         (let ((c (hash-ref subject-prefix/object-prefix/predicate-id-hash
+                                            subject-prefix/object-prefix/predicate-id-key
+                                            #f)))
+                           (if c (add1 c) 1)))
+                        (subject-category-id/object-category-id/predicate-id-edge-count
+                         (let ((c (hash-ref subject-category-id/object-category-id/predicate-id-hash
+                                            subject-category-id/object-category-id/predicate-id-key
+                                            #f)))
+                           (if c (add1 c) 1))))
+                    (begin
+                      ;;
+                      (hash-set! subject-prefix/object-prefix/predicate-id-hash
+                                 subject-prefix/object-prefix/predicate-id-key
+                                 subject-prefix/object-prefix/predicate-id-edge-count)
+                      ;;
+                      (hash-set! subject-category-id/object-category-id/predicate-id-hash
+                                 subject-category-id/object-category-id/predicate-id-key
+                                 subject-category-id/object-category-id/predicate-id-edge-count)
+                      ;;
+                      (loop (add1 i) (read))))))))))))
+   #:mode 'text))
+
+
+(printf "populated subject-prefix/object-prefix/predicate-id-hash hash table with ~s entries\n"
+        (hash-count subject-prefix/object-prefix/predicate-id-hash))
+(printf "subject-prefix/object-prefix/predicate-id-hash hash table: ~s\n"
+        subject-prefix/object-prefix/predicate-id-hash)
+
+(printf "populated subject-category-id/object-category-id/predicate-id-hash hash table with ~s entries\n"
+        (hash-count subject-category-id/object-category-id/predicate-id-hash))
+(printf "subject-category-id/object-category-id/predicate-id-hash hash table: ~s\n"
+        subject-category-id/object-category-id/predicate-id-hash)
+
+
+
+#|
+'print-tab-separated-line' takes a list of values, and prints each
+value in the list, separated by tab characters. A newline-character,
+instead of a tab character, is printed after the last value in the
+list.
+|#
+(define print-tab-separated-line
+  (lambda (args)
+    (cond
+      ((null? args) (newline))
+      ((null? (cdr args))
+       (begin
+         (display (car args))
+         (print-tab-separated-line (cdr args))))
+      (else
+       (begin
+         (display (car args))
+         (display #\tab)
+         (print-tab-separated-line (cdr args)))))))
+
+#|
+Write the hash-table information to a TSV file,
+with the "prettified" values in the 'key' list written first,
+followed by the edge counts.
+
+'tsv-file-path' is the path to the TSV file to be written
+
+'map-hash-table' is the hash table whose prettified information is to
+be written to the TSV
+
+'column-names-string' must be a format string
+
+'prettify-functions' must be a list of functions, the same length as 'key'
+|#
+(define write-map-hash-table-to-tsv-file
+  (lambda (tsv-file-path map-hash-table column-names-string prettify-functions)
+    (printf "writing output to ~s...\n" tsv-file-path)
+    (with-output-to-file tsv-file-path
+      (lambda ()
+        (printf column-names-string)
+        (for-each
+          (lambda (key)
+            (let ((pretty-values (map (lambda (f a) (f a)) prettify-functions key))
+                  (edge-count (hash-ref map-hash-table key)))
+              (print-tab-separated-line (append pretty-values (list edge-count)))))
+          (hash-keys map-hash-table)))
+      #:mode 'text
+      #:exists 'replace)))
+
+
+#|
+Generate TSV file with the subject CURIE prefix, predicate, object
+CURIE prefix, and edge counts
+|#
+(write-map-hash-table-to-tsv-file
+ CURIE-prefix_to_CURIE-prefix-file-name
+ subject-prefix/object-prefix/predicate-id-hash
+ "subject CURIE prefix\tobject CURIE prefix\tpredicate\tedge count\n"
+ (list
+  identity
+  identity
+  predicate-id->predicate-name))
+
+#|
+Generate TSV file with the subject concept category, object concept
+category, predicate, and edge counts
+|#
+(write-map-hash-table-to-tsv-file
+ category_to_category-file-name
+ subject-category-id/object-category-id/predicate-id-hash
+ "subject category\tobject category\tpredicate\tedge count\n"
+ (list
+  category-id->category-name
+  category-id->category-name
+  predicate-id->predicate-name))
+
+(define end-seconds (current-seconds))
+
+(printf "Finished processing KG ~s\n" kg-name)
+(printf "finished processing at ~s\n" (date->pretty-time/date (current-date)))
+(printf "~s seconds elapsed wall-time\n\n" (- end-seconds start-seconds))
