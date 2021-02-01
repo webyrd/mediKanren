@@ -47,9 +47,9 @@ example (although rewriting the code to take advantage of the
 ;; *** Change this string to match the name of the KG you want to map! ***
 ;(define kg-name "rtx2_2020_09_16")
 ;(define kg-name "textminingprovider")
-(define kg-name "pr-owl")
+;(define kg-name "pr-owl")
 ;(define kg-name "co-occur")
-;(define kg-name "orange")
+(define kg-name "orange")
 
 
 #|
@@ -373,7 +373,7 @@ list.
          (print-tab-separated-line (cdr args)))))))
 
 #|
-Write the hash-table information to a TSV file,
+Sorts and writes the hash-table information to a TSV file,
 with the "prettified" values in the 'key' list written first,
 followed by the edge counts.
 
@@ -386,27 +386,43 @@ be written to the TSV
 
 'prettify-functions' must be a list of functions, the same length as 'key'
 |#
-(define write-map-hash-table-to-tsv-file
+(define sort-and-write-map-hash-table-to-tsv-file
   (lambda (tsv-file-path map-hash-table column-names-string prettify-functions)
     (printf "writing output to ~s...\n" tsv-file-path)
-    (with-output-to-file tsv-file-path
-      (lambda ()
-        (printf column-names-string)
-        (for-each
-          (lambda (key)
-            (let ((pretty-values (map (lambda (f a) (f a)) prettify-functions key))
-                  (edge-count (hash-ref map-hash-table key)))
-              (print-tab-separated-line (append pretty-values (list edge-count)))))
-          (hash-keys map-hash-table)))
-      #:mode 'text
-      #:exists 'replace)))
-
+    (let ((list-of-list-of-strings
+           (map
+            (lambda (key)
+              (let ((pretty-values (map (lambda (f a) (f a)) prettify-functions key))
+                    (edge-count-string (format "~s" (hash-ref map-hash-table key))))
+                (let ((string-ls (append pretty-values (list edge-count-string))))
+                  string-ls)))
+            (hash-keys map-hash-table))))
+      (let ((sorted-list-of-list-of-strings
+             (sort
+              list-of-list-of-strings
+              (lambda (los1 los2)
+                (cond
+                  [(string-ci<? (car los1) (car los2)) #t]
+                  [(and (string-ci=? (car los1) (car los2))
+                        (string-ci<? (cadr los1) (cadr los2)))
+                   #t]
+                  [(and (string-ci=? (car los1) (car los2))
+                        (string-ci=? (cadr los1) (cadr los2))
+                        (string-ci<? (caddr los1) (caddr los2)))
+                   #t]
+                  [else #f])))))
+        (with-output-to-file tsv-file-path
+          (lambda ()
+            (printf column-names-string)
+            (for-each print-tab-separated-line sorted-list-of-list-of-strings))
+          #:mode 'text
+          #:exists 'replace)))))
 
 #|
 Generate TSV file with the subject CURIE prefix, predicate, object
 CURIE prefix, and edge counts
 |#
-(write-map-hash-table-to-tsv-file
+(sort-and-write-map-hash-table-to-tsv-file
  CURIE-prefix_to_CURIE-prefix-file-name
  subject-prefix/object-prefix/predicate-id-hash
  "subject CURIE prefix\tobject CURIE prefix\tpredicate\tedge count\n"
@@ -419,7 +435,7 @@ CURIE prefix, and edge counts
 Generate TSV file with the subject concept category, object concept
 category, predicate, and edge counts
 |#
-(write-map-hash-table-to-tsv-file
+(sort-and-write-map-hash-table-to-tsv-file
  category_to_category-file-name
  subject-category-id/object-category-id/predicate-id-hash
  "subject category\tobject category\tpredicate\tedge count\n"
