@@ -151,6 +151,7 @@
           (and kv (cdr kv)))
         (define type (or (required-prop props "edge_label")
                          (required-prop props "type")
+                         (required-prop props "predicate")
                          (error "missing required property:" id props)))
         (define pid (add-predicate type))
         (define (other-key? kv)
