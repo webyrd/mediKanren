@@ -416,10 +416,10 @@ query_result_clear.addEventListener('click', function(){
                            (define r       (cdr id+r))
                            (define subject (hash-ref r 'subject))
                            (define object  (hash-ref r 'object))
-                           (hash 'edge_bindings (list (hash qname (hash 'id id)))
-                                 'node_bindings (list (make-immutable-hash
-                                                        (list (cons qsubject (hash 'id subject))
-                                                              (cons qobject  (hash 'id object)))))))
+                           (hash 'edge_bindings (hash qname (list (hash 'id id)))
+                                 'node_bindings (make-immutable-hash
+                                                  (list (cons qsubject (list (hash 'id subject)))
+                                                        (cons qobject  (list (hash 'id object)))))))
                          (hash-ref name=>edges qname)))
                   paths)))
   (merge-results
