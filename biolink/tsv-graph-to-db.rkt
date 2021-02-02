@@ -151,7 +151,7 @@
           (and kv (cdr kv)))
         (define type (or (required-prop props "edge_label")
                          (required-prop props "type")
-                         (error "missing required property:" id key)))
+                         (error "missing required property:" id props)))
         (define pid (add-predicate type))
         (define (other-key? kv)
           (not (ormap (lambda (k) (equal? k (car kv))) '("type" "edge_label"))))
