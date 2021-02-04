@@ -8,7 +8,8 @@
 
 (define (json-simplify json)
   (if (and (string? json) (< 0 (string-length json))
-           (eqv? #\" (string-ref json 0)))
+           (eqv? #\" (string-ref json 0))
+           (eqv? #\" (string-ref json (- (string-length json) 1))))
     (string->jsexpr json)
     json))
 
