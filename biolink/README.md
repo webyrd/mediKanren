@@ -11,6 +11,57 @@
 * Clone the kgx repo: https://github.com/NCATS-Tangerine/kgx
 * Checkout the `source-sink` branch in kgx: `git checkout origin/source-sink`
 * Install dependencies via: `pip3 install -r requirements.txt`
+  * If `pip3` isn't found, try using `pip` instead
+
+
+## Using a local neo4j instance
+
+If you were given a dump file instead of a remote neo4j instance to connect to, start here.
+Otherwise, skip to the ingestion section.
+Follow these instructions to set up a local instance using the dump file.  Then follow the usual ingestion instructions.
+
+### Download neo4J community server
+
+On Mac: `brew install neo4j`
+
+Complete setup by running `neo4j start`, then once that suceeds, `neo4j stop`.  This will set up `var/neo4j/data/transaction`.
+
+### Start a local neo4j instance from a dump file
+
+Assuming `neo4j` is already stopped, convert a Robokop (or RTX) `X.dump` to TSV format via:
+
+```
+neo4j-admin load --from X.dump --database graph.db --force  # If this is your first time, remove the --force option.
+neo4j start
+cd YOUR-PATH-TO-NCATS-ROOT/ncats-translator/kgx
+cp config-robokop.yml config.yml
+time python3 neo4j_download.py
+neo4j stop
+```
+
+Then follow the instructions for converting the TSVs to mediKanren format.
+
+(If you've just set neo4j up for the first time and kgx failed due to authorization, try visiting localhost:7474 in the browser, and logging in with username=neo4j password=neo4j.  You'll be prompted to set a new password.  Set it to be consistent with the password in your kgx config file.)
+
+### Freeing up space once you are finished
+
+If you installed neo4j using homebrew:
+
+```
+neo4j stop
+# Your data might live here.
+rm -rf /usr/local/Cellar/neo4j/VERSION/libexec/data/databases/*
+# Or it might live here.
+rm -rf /usr/local/var/neo4j/data/databases/*
+```
+
+Supposedly this query should also work, but I get a memory error:
+
+```
+neo4j start
+cypher-shell -u YOURUSERNAME -p YOURPASSWORD --non-interactive 'MATCH(n) DETACH DELETE n'
+neo4j stop
+```
 
 
 ## Ingesting new data sources
@@ -21,6 +72,7 @@
 * `cd` to the kgx repo.
 * Modify `config.yml` to use the instance information you obtained.  Set the `outputname` here to describe your data source, e.g., `robokop`.
 * Run the download script via `python3`, likely with this command: `python3 neo4j_download.py` (For a typical data source, the download may take an hour or so.)
+  * If `python3` isn't found, try using `python` instead
 
 ### Converting TSVs (or CSVs) to mediKanren format
 
@@ -68,47 +120,6 @@ zip -r robokop.db.zip robokop
 ```
 
 
-## Using a local neo4j instance
-
-If you were given a dump file instead of a remote neo4j instance to connect to, start here.
-Follow these instructions to set up a local instance using the dump file.  Then follow the usual ingestion instructions.
-
-### Start a local neo4j instance from a dump file
-
-Assuming `neo4j` is already stopped, convert a Robokop (or RTX) `X.dump` to TSV format via:
-
-```
-neo4j-admin load --from X.dump --database graph.db --force  # If this is your first time, remove the --force option.
-neo4j start
-cd YOUR-PATH-TO-NCATS-ROOT/ncats-translator/kgx
-cp config-robokop.yml config.yml
-time python3 neo4j_download.py
-neo4j stop
-```
-
-Then follow the instructions for converting the TSVs to mediKanren format.
-
-(If you've just set neo4j up for the first time and kgx failed due to authorization, try visiting localhost:7474 in the browser, and logging in with username=neo4j password=neo4j.  You'll be prompted to set a new password.  Set it to be consistent with the password in your kgx config file.)
-
-### Freeing up space once you are finished
-
-If you installed neo4j using homebrew:
-
-```
-neo4j stop
-# Your data might live here.
-rm -rf /usr/local/Cellar/neo4j/VERSION/libexec/data/databases/*
-# Or it might live here.
-rm -rf /usr/local/var/neo4j/data/databases/*
-```
-
-Supposedly this query should also work, but I get a memory error:
-
-```
-neo4j start
-cypher-shell -u YOURUSERNAME -p YOURPASSWORD --non-interactive 'MATCH(n) DETACH DELETE n'
-neo4j stop
-```
 
 
 ## TODO
