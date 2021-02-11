@@ -493,9 +493,8 @@ query_result_clear.addEventListener('click', function(){
              (xexpr->html-string
                (not-found.html (url->string (request-uri req)))))))
 (define (OK/jsexpr f req)
-  (OK req '() mime:json
-      (jsexpr->string
-        (job (thunk (f (bytes->jsexpr (request-post-data/raw req))))))))
+  (define input (bytes->jsexpr (request-post-data/raw req)))
+  (OK req '() mime:json (jsexpr->string (job (thunk (f input))))))
 
 (define (/index req)
   (pretty-print `(request-headers: ,(request-headers req)))
