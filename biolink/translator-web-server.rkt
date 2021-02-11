@@ -3,8 +3,7 @@
   "common.rkt"
   "open-api/api-query.rkt"
   "pieces-parts/synonymize.rkt"
-  racket/file
-  racket/list
+  racket/file racket/function racket/list
   (except-in racket/match ==)
   racket/pretty
   racket/runtime-path
@@ -495,7 +494,8 @@ query_result_clear.addEventListener('click', function(){
                (not-found.html (url->string (request-uri req)))))))
 (define (OK/jsexpr f req)
   (OK req '() mime:json
-      (jsexpr->string (f (bytes->jsexpr (request-post-data/raw req))))))
+      (jsexpr->string
+        (job (thunk (f (bytes->jsexpr (request-post-data/raw req))))))))
 
 (define (/index req)
   (pretty-print `(request-headers: ,(request-headers req)))
@@ -552,6 +552,17 @@ query_result_clear.addEventListener('click', function(){
 (define (/v2/find-concepts   req) (OK/jsexpr find-concepts/any            req))
 (define (/v2/find-categories req) (OK/jsexpr (find/db-id find-categories) req))
 (define (/v2/find-predicates req) (OK/jsexpr (find/db-id find-predicates) req))
+
+(define (job p)
+  (define job-response (make-channel))
+  (channel-put job-request (thunk (channel-put job-response (p))))
+  (channel-get job-response))
+
+(define job-request (make-channel))
+
+(define worker (thread (thunk (let loop ()
+                                ((channel-get job-request))
+                                (loop)))))
 
 (define (start)
   (define-values (dispatch _)
