@@ -3,7 +3,7 @@
   "common.rkt"
   "open-api/api-query.rkt"
   "pieces-parts/synonymize.rkt"
-  racket/file racket/function racket/list
+  racket/file racket/function racket/list racket/hash
   (except-in racket/match ==)
   racket/pretty
   racket/runtime-path
@@ -424,8 +424,19 @@ query_result_clear.addEventListener('click', function(){
   (merge-results
     (list (hash-ref (olift broad-results) 'message hash-empty)
           (hash 'results local-results
-                'knowledge_graph (hash 'nodes (make-immutable-hash knodes)
-                                       'edges (make-immutable-hash kedges))))))
+                'knowledge_graph
+                (hash 'nodes (apply hash-union (hash)
+                                    (map (lambda (knode) (hash (car knode) (cdr knode)))
+                                         knodes)
+                                    #:combine
+                                    (lambda (c.0 c.1)
+                                      (hash-update
+                                        c.0 'attributes
+                                        (lambda (attrs)
+                                          (append (alist->attributes
+                                                    (list (cons "extra-result" (cdr c.1))))
+                                                  attrs)))))
+                      'edges (make-immutable-hash kedges))))))
 
 (define (merge-results rs)
   (let loop ((rs rs) (results '()) (nodes '()) (edges '()))
