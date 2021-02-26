@@ -434,7 +434,7 @@ query_result_clear.addEventListener('click', function(){
                                         c.0 'attributes
                                         (lambda (attrs)
                                           (append (alist->attributes
-                                                    (list (cons "extra-result" (cdr c.1))))
+                                                    (list (cons "extra-result" c.1)))
                                                   attrs)))))
                       'edges (make-immutable-hash kedges))))))
 
