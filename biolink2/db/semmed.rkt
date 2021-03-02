@@ -3,7 +3,7 @@
 (require "../common.rkt" (except-in racket/match ==))
 
 ;; TODO: this might be useful later
-;(define-materialized-relation concept
+;(define-relation/table concept
   ;'path               "semmed/concept"
   ;'source-file-path   "semmed/semmed.node.csv"
   ;'source-file-header '(":ID")
@@ -13,7 +13,7 @@
   (fresh (k v)
     (cprop curie k v)))
 
-(define-materialized-relation cprop
+(define-relation/table cprop
   'path               "semmed/cprop"
   'source-file-path   "semmed/semmed.nodeprop.csv"
   'source-file-header '(:ID propname value)
@@ -28,7 +28,7 @@
   ;'retrieval-type     'scm
   )
 
-(define-materialized-relation edge
+(define-relation/table edge
   'path               "semmed/edge"
   'source-file-path   "semmed/semmed.edge.csv"
   'source-file-header '(":ID" ":START" ":END")
@@ -41,7 +41,7 @@
   'indexes            '((subject object)
                         (object subject)))
 
-(define-materialized-relation eprop
+(define-relation/table eprop
   'path               "semmed/eprop"
   'source-file-path   "semmed/semmed.edgeprop.csv"
   'source-file-header '(":ID" "propname" "value")

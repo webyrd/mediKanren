@@ -53,12 +53,12 @@
 
 (time (let ()
         ;; ~4x faster retrieval; ~400x slower loading
-        ;(define-materialized-relation concept   `((path . ,(db-path "concept")) (retrieval-type . bytes)))
+        ;(define-relation/table concept   `((path . ,(db-path "concept")) (retrieval-type . bytes)))
         ;; ~10x faster retrieval; ~6000x slower loading
-        ;(define-materialized-relation concept   `((path . ,(db-path "concept")) (retrieval-type . scm)))
+        ;(define-relation/table concept   `((path . ,(db-path "concept")) (retrieval-type . scm)))
         ;; baseline; including (retrieval-type . disk) is optional
-        (define-materialized-relation concept `((path . ,(db-path "concept"))))
-        (define-materialized-relation edge    `((path . ,(db-path "edge"))))
+        (define-relation/table concept `((path . ,(db-path "concept"))))
+        (define-relation/table edge    `((path . ,(db-path "edge"))))
         (time (pretty-print
                 (run 10 (id name domain class)
                   (concept id "RXNORM:763521" name domain class))))
