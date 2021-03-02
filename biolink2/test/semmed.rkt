@@ -354,3 +354,26 @@
 ;            (edge id s "UMLS:C0005767")
 ;            (eprop id "edge_label" "affects")))
 ;  2414)
+
+;; ~190 seconds
+;(test 'all-concept-category-counts
+;  (run* (category count)
+;    (fresh (curie)
+;      (cprop curie "category" category)
+;      (:== count (category)
+;           (s-length (run^ (curie)
+;                           (cprop curie "category" category))))))
+;
+;  '(("activity_and_behavior" 935)
+;    ("anatomical_entity" 2750)
+;    ("biological_entity" 14905)
+;    ("biological_process_or_activity" 6887)
+;    ("cell" 1099)
+;    ("cell_component" 1644)
+;    ("chemical_substance" 58812)
+;    ("disease_or_phenotypic_feature" 36248)
+;    ("gene" 20695)
+;    ("genomic_entity" 174)
+;    ("gross_anatomical_structure" 8472)
+;    ("phenotypic_feature" 393)
+;    ("protein" 12644)))
