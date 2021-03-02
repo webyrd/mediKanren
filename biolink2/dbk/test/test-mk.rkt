@@ -18,8 +18,8 @@
              (pretty-print expected)))))
 
 (test 'appendo.forward
-  (run* (z) (appendo '(1 2 3) '(4 5) z))
-  '(((1 2 3 4 5))))
+  (run* z (appendo '(1 2 3) '(4 5) z))
+  '((1 2 3 4 5)))
 (test 'appendo.backward
   (run* (x y) (appendo x y '(1 2 3 4 5)))
   '((() (1 2 3 4 5))
@@ -103,8 +103,7 @@
                      ((1 2 3 4) (5))
                      ((1 2 3 4 5) ())))))
 
-(define-materialized-relation
-  tripleo
+(define-relation/table tripleo
   'attribute-names '(i x y z)
   'key-name        'i
   'source-vector   (vector #(a b c)
@@ -144,35 +143,7 @@
            ((== z 'i))))
   '((0 a b c) (2 g h i)))
 
-;((hash-ref (relations-ref tripleo) 'cell)
- ;'set!
- ;(lambda args
-   ;(constrain '(retrieve ((10 r s t) (11 u v w) (12 x y z))) args)))
-
-;(test 'tripleo-rewired-filter-before
-  ;(run* (i x y z)
-    ;(conde ((== i 11))
-           ;((== i 12)))
-    ;(tripleo i x y z))
-  ;'((11 u v w) (12 x y z)))
-;(test 'tripleo-rewired-filter-after
-  ;(run* (i x y z)
-    ;(tripleo i x y z)
-    ;(conde ((== i 10))
-           ;((== i 12))))
-  ;'((10 r s t) (12 x y z)))
-
-;((hash-ref (relations-ref appendo) 'cell)
- ;'set!
- ;(lambda args
-   ;(constrain '(retrieve ((10 20 30) (100 200 300))) args)))
-
-;(test 'appendo-rewired
-  ;(run* (a b c) (appendo a b c))
-  ;'((10 20 30) (100 200 300)))
-
-(define-materialized-relation
-  triple2o
+(define-relation/table triple2o
   'attribute-names '(x y z)
   'tables          '((y z x))
   'indexes         '((x))
@@ -228,48 +199,48 @@
       (12 c d))))
 
 (test '=/=.atom.1
-  (run* (x) (=/= 1 x))
-  '(#s(cx (#s(var 0)) (=/=** ((#s(var 0) 1))))))
+  (run* x (=/= 1 x))
+  '(#s(cx #s(var 0) (constraints: (=/= #s(var 0) 1)))))
 (test '=/=.atom.2
-  (run* (x) (=/= x 2))
-  '(#s(cx (#s(var 0)) (=/=** ((#s(var 0) 2))))))
+  (run* x (=/= x 2))
+  '(#s(cx #s(var 0) (constraints: (=/= #s(var 0) 2)))))
 
 (test '=/=.atom.==.1
-  (run* (x) (== x 1) (=/= x 1))
+  (run* x (== x 1) (=/= x 1))
   '())
 (test '=/=.atom.==.2
-  (run* (x) (=/= x 2) (== x 2))
+  (run* x (=/= x 2) (== x 2))
   '())
 (test '=/=.atom.==.3
-  (run* (x) (=/= x 3) (== x 'not-3))
-  '((not-3)))
+  (run* x (=/= x 3) (== x 'not-3))
+  '(not-3))
 (test '=/=.atom.==.4
-  (run* (x) (== x 'not-4) (=/= x 4))
-  '((not-4)))
+  (run* x (== x 'not-4) (=/= x 4))
+  '(not-4))
 
 (test '=/=.var.==.1
-  (run* (x)
+  (run* x
     (fresh (y)
       (=/= x y)
       (== x 1)
       (== y 1)))
   '())
 (test '=/=.var.==.2
-  (run* (x)
+  (run* x
     (fresh (y)
       (== x 2)
       (== y 2)
       (=/= x y)))
   '())
 (test '=/=.var.==.3
-  (run* (x)
+  (run* x
     (fresh (y)
       (== x 3)
       (=/= x y)
       (== y 3)))
   '())
 (test '=/=.var.==.4
-  (run* (x)
+  (run* x
     (fresh (y z)
       (=/= x 4)
       (== x y)
@@ -277,7 +248,7 @@
       (== z 4)))
   '())
 (test '=/=.var.==.5
-  (run* (x)
+  (run* x
     (fresh (y z)
       (=/= x 5)
       (== y z)
@@ -285,138 +256,142 @@
       (== z 5)))
   '())
 (test '=/=.var.==.6
-  (run* (x)
+  (run* x
     (fresh (y)
       (=/= x y)
       (== x y)))
   '())
 (test '=/=.var.==.7
-  (run* (x)
+  (run* x
     (fresh (y)
       (=/= x y)
       (== y x)))
   '())
 
 (test '=/=.pair.==.1
-  (run* (x)
+  (run* x
     (=/= x '(1 . 2))
     (==  x '(1 . 2)))
   '())
 (test '=/=.pair.==.2
-  (run* (x)
+  (run* x
     (fresh (y)
       (=/= x `(1 . ,y))
       (==  x `(1 . 2))
       (==  y 2)))
   '())
 (test '=/=.pair.==.3
-  (run* (x)
+  (run* x
     (fresh (y)
       (==  x `(1 . 2))
       (=/= x `(1 . ,y))
       (==  y 2)))
   '())
 (test '=/=.pair.==.4
-  (run* (x)
+  (run* x
     (fresh (y)
       (==  x `(1 . 2))
       (==  y 2)
       (=/= x `(1 . ,y))))
   '())
 (test '=/=.pair.==.5
-  (run* (x)
+  (run* x
     (fresh (y)
       (=/= x `(1 . ,y))
       (==  y 2)
       (==  x `(1 . 2))))
   '())
 (test '=/=.pair.==.6
-  (run* (x)
+  (run* x
     (fresh (y)
       (=/= `(,x .  1) `(0 . ,y))
       (==  `(,x . ,y) '(0 .  1))))
   '())
 (test '=/=.pair.==.7
-  (run* (x)
+  (run* x
     (fresh (y)
       (==  `(,x . ,y) '(0 .  1))
       (=/= `(,x .  1) `(0 . ,y))))
   '())
 
 (test '=/=.pair.=/=.1
-  (run* (x)
+  (run* x
     (=/= x '(1 . 2))
     (==  x '(0 . 2)))
-  '(((0 . 2))))
+  '((0 . 2)))
 (test '=/=.pair.=/=.2
-  (run* (x)
+  (run* x
     (fresh (y)
       (=/= x `(1 . ,y))
       (==  x `(1 . 2))
       (==  y 0)))
-  '(((1 . 2))))
+  '((1 . 2)))
 (test '=/=.pair.=/=.3
-  (run* (x)
+  (run* x
     (fresh (y)
       (==  x `(1 . 2))
       (=/= x `(1 . ,y))
       (==  y 0)))
-  '(((1 . 2))))
+  '((1 . 2)))
 (test '=/=.pair.=/=.4
-  (run* (x)
+  (run* x
     (fresh (y)
       (==  x `(1 . 2))
       (==  y 0)
       (=/= x `(1 . ,y))))
-  '(((1 . 2))))
+  '((1 . 2)))
 (test '=/=.pair.=/=.5
-  (run* (x)
+  (run* x
     (fresh (y)
       (=/= x `(1 . ,y))
       (==  y 0)
       (==  x `(1 . 2))))
-  '(((1 . 2))))
+  '((1 . 2)))
 (test '=/=.pair.=/=.6
-  (run* (x)
+  (run* x
     (fresh (y)
       (=/= `(,x .  1) `(0 . ,y))
       (==  `(,x . ,y) '(0 .  2))))
-  '((0)))
+  '(0))
 (test '=/=.pair.=/=.7
-  (run* (x)
+  (run* x
     (fresh (y)
       (==  `(,x . ,y) '(0 .  2))
       (=/= `(,x .  1) `(0 . ,y))))
-  '((0)))
+  '(0))
 
 (test '=/=.fresh.1
-  (run* (x)
+  (run* x
     (fresh (y)
       (=/= y 1)))
-  '((#s(var 0))))
+  '(#s(cx #s(var 0) (constraints:))))
 (test '=/=.fresh.2
-  (run* (x)
+  (run* x
     (fresh (y)
       (=/= x 0)
       (=/= y 1)))
-  '(#s(cx (#s(var 0)) (=/=** ((#s(var 0) 0))))))
+  '(#s(cx #s(var 0) (constraints: (=/= #s(var 0) 0)))))
 (test '=/=.fresh.3
-  (run* (x)
+  (run* x
     (fresh (y)
       (=/= x 0)
       (=/= x y)))
-  '(#s(cx (#s(var 0)) (=/=** ((#s(var 0) 0))))))
+  '(#s(cx #s(var 0) (constraints: (=/= #s(var 0) #s(var 1))
+                                  (=/= #s(var 0) 0)))))
 (test '=/=.fresh.4
   (run* (x y)
     (fresh (z)
       (=/= `(,x . ,y) '(0 . 2))
       (=/= z 1)))
-  '(#s(cx (#s(var 0) #s(var 1)) (=/=** ((#s(var 0) 0) (#s(var 1) 2))))))
+  '(#s(cx (#s(var 0) #s(var 1)) (constraints: (=/= #s(var 0) 0)))
+    #s(cx (#s(var 0) #s(var 1)) (constraints: (=/= #s(var 1) 2)))))
 (test '=/=.fresh.5
   (run* (x y)
     (fresh (z)
       (=/= `(,x ,y ,z) '(0 1 2))))
-  '((#s(var 0) #s(var 1))))
+  '(#s(cx (#s(var 0) #s(var 1)) (constraints: (=/= #s(var 0) 0)))
+    #s(cx (#s(var 0) #s(var 1)) (constraints: (=/= #s(var 1) 1)))
+    #s(cx (#s(var 0) #s(var 1)) (constraints:))))
 
 (test 'membero.forward
   (run* () (membero 3 '(1 2 3 4 3 5)))
@@ -567,7 +542,7 @@
 
 (define intersected-tables
   (map (lambda (i v)
-         (materialized-relation
+         (relation/table
            'relation-name   (string->symbol (format "intersected-table.~v" i))
            'attribute-names '(i n m x)
            'key-name        'i
@@ -604,24 +579,165 @@
       (9 1 o0   o1.1 o2)
       (9 5 q0   q1   q2))))
 
-(test '<=-1
-  (run* (n)
+(test '<=.1
+  (run* n
     (membero n '(0 1 2 3 4 5 6 7 8 9))
     (<=o 2 n)
     (<o  n 8))
-  '((2) (3) (4) (5) (6) (7)))
-(test '<=-2
-  (run* (n)
+  '(2 3 4 5 6 7))
+(test '<=.2
+  (run* n
     (<=o 2 n)
     (<o  n 8)
     (membero n '(0 1 2 3 4 5 6 7 8 9)))
-  '((2) (3) (4) (5) (6) (7)))
-(test '<=-3
-  (run* (n)
+  '(2 3 4 5 6 7))
+(test '<=.3
+  (run* n
     (<o  n 8)
     (<=o 2 n)
     (membero n '(0 1 2 3 4 5 6 7 8 9)))
-  '((2) (3) (4) (5) (6) (7)))
+  '(2 3 4 5 6 7))
+(test 'any<=.fd.1
+  (run* x
+    (any<=o '(#t . #f) x)
+    (any<=o x '#(())))
+  '((#t . #f)
+    (#t . #t)
+    #()
+    #(())))
+(test 'any<=.fd.2
+  (run* x
+    (any<=o '(#f . #f) x)
+    (any<=o x '(#t . ())))
+  '((#f . #f)
+    (#f . #t)
+    (#t . ())))
+(test 'any<=.fd.3
+  (run* x
+    (any<=o '#(5 #f #f #f) x)
+    (any<=o x '#(5 #f #t ())))
+  '(#(5 #f #f #f)
+    #(5 #f #f #t)
+    #(5 #f #t ())))
+(test 'any<=.fd.4
+  (run* x
+    (any<=o '#(#f #t #f) x)
+    (any<=o x '#(#t () ())))
+  '(#(#f #t #f)
+    #(#f #t #t)
+    #(#t () ())))
+(test 'any<=.fd.5
+  (run* x
+    (any<=o '#(#t #t #f) x)
+    (any<=o x '#(() () () ())))
+  '(#(#t #t #f)
+    #(#t #t #t)
+    #(() () () ())))
+(test 'any<=.cycle.0
+  (run* (a b c)
+    (any<=o a b)
+    (any<=o b c)
+    (any<=o c a))
+  '(#s(cx (#s(var 0) #s(var 0) #s(var 0)) (constraints:))))
+(test 'any<=.cycle.1
+  (run* (a b c d e)
+    (any<=o a b)
+    (any<=o b c)
+    (any<=o c d)
+    (any<=o d e)
+    (any<=o e a))
+  '(#s(cx (#s(var 0) #s(var 0) #s(var 0) #s(var 0) #s(var 0)) (constraints:))))
+(test 'any<=.cycle.2
+  (run* (a b c d e)
+    (=/= b d)
+    (any<=o a b)
+    (any<=o b c)
+    (any<=o c d)
+    (any<=o d e)
+    (any<=o e a))
+  '())
+(test 'any<=.cycle.3
+  (run* (a b c d e)
+    (any<=o a b)
+    (any<=o b c)
+    (any<=o c d)
+    (any<=o d e)
+    (any<=o e a)
+    (=/= b d))
+  '())
+(test 'any<=.cycle.4
+  (run* (a b c d e f)
+    (any<=o a b)
+    (any<=o b c)
+    (any<=o c d)
+    (any<=o d e)
+    (any<=o e f)
+    (any<=o d b))
+  '(#s(cx (#s(var 0) #s(var 1) #s(var 1) #s(var 1) #s(var 2) #s(var 3))
+          (constraints:
+            (any<=o #s(var 0) #s(var 1))
+            (any<=o #s(var 1) #s(var 2))
+            (any<=o #s(var 2) #s(var 3))))))
+(test 'any<.transitive.1
+  (run* (x y z)
+    (any<=o x y)
+    (any<=o y z)
+    (=/= x y)
+    (=/= y z))
+  '(#s(cx (#s(var 0) #s(var 1) #s(var 2))
+          (constraints:
+            (() <  #s(var 1) <= #f)
+            (() <  #s(var 2) <= #t)
+            (() <= #s(var 0) <  #f)
+            (=/= #s(var 0) #s(var 1))
+            (=/= #s(var 1) #s(var 2))
+            (any<=o #s(var 0) #s(var 1))
+            (any<=o #s(var 1) #s(var 2))))))
+(test 'any<.transitive.2
+  (run* (x y z)
+    (=/= x y)
+    (=/= y z)
+    (any<=o x y)
+    (any<=o y z))
+  '(#s(cx (#s(var 0) #s(var 1) #s(var 2))
+          (constraints:
+            (() <  #s(var 1) <= #f)
+            (() <  #s(var 2) <= #t)
+            (() <= #s(var 0) <  #f)
+            (=/= #s(var 0) #s(var 1))
+            (=/= #s(var 1) #s(var 2))
+            (any<=o #s(var 0) #s(var 1))
+            (any<=o #s(var 1) #s(var 2))))))
+(test 'any<.transitive.3
+  (run* (x y z)
+    (any<=o y z)
+    (any<=o x y)
+    (=/= x y)
+    (=/= y z))
+  '(#s(cx (#s(var 0) #s(var 1) #s(var 2))
+          (constraints:
+            (() <  #s(var 1) <= #f)
+            (() <  #s(var 2) <= #t)
+            (() <= #s(var 0) <  #f)
+            (=/= #s(var 0) #s(var 1))
+            (=/= #s(var 1) #s(var 2))
+            (any<=o #s(var 0) #s(var 1))
+            (any<=o #s(var 1) #s(var 2))))))
+(test 'any<.transitive.4
+  (run* (x y z)
+    (=/= x y)
+    (=/= y z)
+    (any<=o y z)
+    (any<=o x y))
+  '(#s(cx (#s(var 0) #s(var 1) #s(var 2))
+          (constraints:
+            (() <  #s(var 1) <= #f)
+            (() <  #s(var 2) <= #t)
+            (() <= #s(var 0) <  #f)
+            (=/= #s(var 0) #s(var 1))
+            (=/= #s(var 1) #s(var 2))
+            (any<=o #s(var 0) #s(var 1))
+            (any<=o #s(var 1) #s(var 2))))))
 
 
 ;; Simple relational interpreter tests
@@ -671,16 +787,16 @@
 (define (evalo expr value) (eval-expo expr '() value))
 
 (test 'evalo-literal
-  (run 1 (e) (evalo e 5))
-  '(((quote 5))))
+  (run 1 e (evalo e 5))
+  '((quote 5)))
 
 ;; ~600 ms
-;(test 'evalo-quine
-;  (time (run 1 (e) (evalo e e)))
-;  '(((app (lambda (list (quote app) (var ())
-;                        (list (quote quote) (var ()))))
-;          (quote (lambda (list (quote app) (var ())
-;                               (list (quote quote) (var ())))))))))
+(test 'evalo-quine
+  (time (run 1 e (evalo e e)))
+  '((app (lambda (list (quote app) (var ())
+                       (list (quote quote) (var ()))))
+         (quote (lambda (list (quote app) (var ())
+                              (list (quote quote) (var ()))))))))
 
 ;; ~5500 ms
 ;(test 'evalo-twine

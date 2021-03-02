@@ -1,10 +1,11 @@
 #lang racket/base
-(provide materialize-relation! materialization value/syntax
+(provide materialize-relation! materialization value/syntax table
+         (struct-out statistics) statistics-intersect
          vector-table? call/files let/files encoder s-encode s-decode)
-(require "codec.rkt" "config.rkt" "dsv.rkt" "method.rkt" "order.rkt"
-         "stream.rkt"
-         racket/file racket/function racket/list racket/match racket/pretty
-         racket/set racket/vector)
+(require "codec.rkt" "config.rkt" "dsv.rkt" "method.rkt" "misc.rkt"
+         "order.rkt" "stream.rkt"
+         racket/file racket/function racket/hash racket/list racket/match
+         racket/pretty racket/set racket/vector)
 
 (define (s-encode out type s) (s-each (lambda (v) (encode out type v)) s))
 (define (s-decode in type)
@@ -29,10 +30,175 @@
   (call/files (list fin ...) (list fout ...)
               (lambda (in ... out ...) body ...)))
 
+(struct statistics (ratio cardinality) #:prefab)
+(define (statistics-intersect a b)
+  (match-define (statistics r.a c.a) a)
+  (match-define (statistics r.b c.b) b)
+  (statistics (min r.a r.b) (min c.a c.b)))
+
+;; TODO: can we simplify by virtually separating bisecting tries from random-access tries?
+;;       technically each prefix of a trie has either bisecting or random-access behavior
+;; virtualized tries can subsume each other when making progress: a kind of exclusive-or trie
+;; - exclusive-or (for grouping with subsumption)
+;; - random-access/position-key (each column value is a table position)
+;; - bisect-key                 (each column value has a unique entry)
+;; - bisect-multi               (each column value may have multiple entries)
+;(define (trie:xor ))
+;; TODO: this one is for monotone dependencies (grouping without subsumption)
+;(define (trie:or ))
+;; TODO: there could be tabular and columnar varieties of these
+;(define (trie:position-key ))
+;(define (trie:bisect-key ))
+;(define (trie:bisect-multi ))
+
 ;; TODO: support multiple sorted columns using tables that share key columns
 ;;       (wait until column-oriented tables are implemented for simplicity?)
 
-(define (table vref key-col cols.all types row-count)
+(define (table ixs)
+  (and (not (ormap not ixs))
+       (let table ((ixs         (filter (lambda (ix) (not (ix 'done?))) ixs))
+                   (col=>bounds (foldl (lambda (ix c=>b)
+                                         (hash-union c=>b (ix 'bounds)
+                                                     ;; TODO: verify no errors during testing.
+                                                     ;;       Should be able to replace this with:
+                                                     ;;       #:combine (lambda (b.0 b.1) b.0)
+                                                     #:combine/key
+                                                     (lambda (k b.0 b.1)
+                                                       (if (equal? b.0 b.1)
+                                                         b.0
+                                                         (error "incompatible initial bounds:" k b.0 b.1)))))
+                                       (hash) ixs)))
+         (method-lambda
+           ((done?)      (null? ixs))
+           ((bounds)     col=>bounds)
+           ((statistics) (apply hash-union (hash)
+                                (map (lambda (ix) (ix 'statistics)) ixs)
+                                #:combine statistics-intersect))
+           ((update cbs)
+            (let loop ((c=>b (foldl (lambda (cb c=>b) (hash-set c=>b (car cb) (cdr cb)))
+                                    col=>bounds cbs))
+                       (ixs.pending ixs)
+                       (ixs.updated '()))
+              (if (null? ixs.pending)
+                (table (reverse ixs.updated) c=>b)
+                (let*/and ((ix.new ((car ixs.pending) 'update c=>b))
+                           (c=>b   (hash-union c=>b (ix.new 'bounds)
+                                               #:combine (lambda (v.0 v.1) v.1))))
+                  (cond ((not (ix.new 'done?)) (loop c=>b (cdr ixs.pending) (cons ix.new ixs.updated)))
+                        ((not (ix.new 'full?)) (loop c=>b (cdr ixs.pending)              ixs.updated))
+                        (else                  (table '() c=>b)))))))))))
+
+(define (tabular-trie vref key-column nonkey-columns types row-count)
+  (define (ref mask i)          (vector-ref (vref i) mask))
+  (define ((make-i<  mask v) i) (any<?  (ref mask i) v))
+  (define ((make-i<= mask v) i) (any<=? (ref mask i) v))
+  (define ((make-i>  mask v) i) (any<?  v (ref mask i)))
+  (define ((make-i>= mask v) i) (any<=? v (ref mask i)))
+  (define (update/pending c=>b.new cols.pending col=>bounds mask start end)
+    (define c.next    (car cols.pending))
+    (define b.current (hash-ref col=>bounds c.next bounds.any))
+    (define b         (bounds-intersect (hash-ref c=>b.new c.next bounds.any)
+                                        b.current))
+    (define (update/bounds lb lbi? ub ubi?)
+      (define start.new (bisect-next start end ((if lbi? make-i< make-i<=) mask lb)))
+      (define end.new (if (< start.new end)
+                        (bisect-prev start end ((if ubi? make-i> make-i>=) mask ub))
+                        start.new))
+      (update/trim c=>b.new cols.pending col=>bounds mask start.new end.new))
+    (cond ((equal? b b.current) (new cols.pending col=>bounds mask start end))
+          (else                 (update/bounds (bounds-lb b)
+                                               (bounds-lb-inclusive? b)
+                                               (bounds-ub b)
+                                               (bounds-ub-inclusive? b)))))
+  (define (update/trim c=>b.new cols.pending col=>bounds mask start end)
+    (if (null? cols.pending)
+      (new '() (hash-set col=>bounds key-column (bounds start #t (- end 1) #t))
+           mask start end)
+      (and (< start end)
+           (let ((c.next (car cols.pending))
+                 (lb     (ref mask start))
+                 (ub     (ref mask (- end 1))))
+             (if (equal? lb ub)
+               (update/trim c=>b.new (cdr cols.pending)
+                            (hash-set col=>bounds c.next (bounds lb #t lb #t))
+                            (+ mask 1) start end)
+               (let ((col=>bounds (hash-set (hash-set col=>bounds c.next (bounds lb #t ub #t))
+                                            key-column (if (= start (- end 1))
+                                                         start
+                                                         (bounds start #t (- end 1) #t)))))
+                 (update/pending c=>b.new cols.pending col=>bounds mask start end)))))))
+  (define (new cols.pending col=>bounds mask start end)
+    (method-lambda
+      ;; TODO: this will be incorrect if the nonkey-columns do not map to a single key, which
+      ;; can happen when the table includes the key-column as an attribute.
+      ((done?)  (null? cols.pending))
+      ;; TODO: allow full? to be #t when nonkey-columns include all attributes
+      ((full?)  (not (not key-column)))
+      ((bounds) col=>bounds)
+      ((statistics)
+       (define ratio (/ (- end start) row-count))
+       (make-immutable-hash
+         (cons (cons (car cols.pending)
+                     (statistics ratio
+                                 (let ((v.lb (ref mask start))
+                                       (v.ub (ref mask (- end 1))))
+                                   (if (equal? v.lb v.ub)
+                                     1
+                                     (+ 2 (- (bisect-prev start end (make-i>= mask v.ub))
+                                             (bisect-next start end (make-i<= mask v.lb))))))))
+               (if key-column
+                 (list (cons key-column (statistics ratio (- end start))))
+                 '()))))
+      ((update c=>b)
+       (cond (key-column
+               (define b.key.0 (hash-ref col=>bounds key-column bounds.any))
+               (define b       (hash-ref c=>b        key-column bounds.any))
+               (cond ((not (equal? b b.key.0))
+                      ;; Assume these bounds will always be numbers in c=>b
+                      (let ((lb (let ((lb.0 (bounds-lb b)))
+                                  (cond ((not (integer? lb.0))    (ceiling lb.0))
+                                        ((bounds-lb-inclusive? b)          lb.0)
+                                        (else                           (+ lb.0 1)))))
+                            (ub (let ((ub.0 (bounds-ub b)))
+                                  (cond ((not (integer? ub.0))    (floor ub.0))
+                                        ((bounds-ub-inclusive? b)        ub.0)
+                                        (else                         (- ub.0 1))))))
+                        (and (<= start lb ub) (< ub end)
+                             (update/trim c=>b cols.pending col=>bounds mask lb (+ ub 1)))))
+                     (else (update/pending c=>b cols.pending col=>bounds mask start end))))
+             (else         (update/pending c=>b cols.pending col=>bounds mask start end))))))
+  (update/trim (hash) nonkey-columns (hash) 0 0 row-count))
+
+(define (table-length t key)       (statistics-cardinality (hash-ref (t 'statistics) key)))
+(define (table-ref    t key i col) (bounds-lb (hash-ref ((t 'update (hash key (bounds i #t i #t))) 'bounds) col)))
+
+(define (table/port/offsets table.offsets key-col cols types in)
+  (define type `#(tuple ,@types))
+  (define (ref i)
+    (file-position in (table-ref table.offsets #t i 'offset))
+    (decode in type))
+  (and table.offsets
+       (tabular-trie ref key-col cols types (table-length table.offsets #t))))
+
+(define (table/bytes/offsets table.offsets key-col cols types bs)
+  (define in (open-input-bytes bs))
+  (table/port/offsets table.offsets key-col cols types in))
+
+(define (table/port len key-col cols types in)
+  (define type `#(tuple ,@types))
+  (define width (sizeof type (void)))
+  (define (ref i) (file-position in (* i width)) (decode in type))
+  (tabular-trie ref key-col cols types len))
+
+(define (table/bytes key-col cols types bs)
+  (define in (open-input-bytes bs))
+  (table/port (quotient (bytes-length bs) (sizeof types (void)))
+              key-col cols types in))
+
+(define (table/vector key-col cols types v)
+  (tabular-trie (lambda (i) (vector-ref v i)) key-col cols types (vector-length v)))
+
+(define (table.old vref key-col cols.all types row-count)
   (let table ((cols  cols.all)
               (types types)
               (key-bound? #f) (bound '()) (mask 0) (start 0) (end row-count))
@@ -94,35 +260,6 @@
                           (table (cdr cols) (cdr types) key-bound?
                                  (cons col bound) (+ mask 1)
                                  start.new end.new)))))))))
-
-(define (table-length t key)       (t 'max-count key))
-(define (table-ref    t key i col) ((t '= key i) 'min col))
-
-(define (table/port/offsets table.offsets key-col cols types in)
-  (define type `#(tuple ,@types))
-  (define (ref i)
-    (file-position in (table-ref table.offsets #t i 'offset))
-    (decode in type))
-  (and table.offsets
-       (table ref key-col cols types (table-length table.offsets #t))))
-
-(define (table/bytes/offsets table.offsets key-col cols types bs)
-  (define in (open-input-bytes bs))
-  (table/port/offsets table.offsets key-col cols types in))
-
-(define (table/port len key-col cols types in)
-  (define type `#(tuple ,@types))
-  (define width (sizeof type (void)))
-  (define (ref i) (file-position in (* i width)) (decode in type))
-  (table ref key-col cols types len))
-
-(define (table/bytes key-col cols types bs)
-  (define in (open-input-bytes bs))
-  (table/port (quotient (bytes-length bs) (sizeof types (void)))
-              key-col cols types in))
-
-(define (table/vector key-col cols types v)
-  (table (lambda (i) (vector-ref v i)) key-col cols types (vector-length v)))
 
 (define (vector-table? types v)
   (define v< (compare-><? (type->compare types)))
@@ -309,8 +446,9 @@
                       (set! chunk-count (+ chunk-count 1))
                       (set! i           0)))
       ((close) (vector-sort! v value< 0 i)
-               (cond ((< 0 chunk-count)
-                      (vector-sort! v value< 0 i)
+               (cond ((and (< 0 chunk-count) (= i 0))
+                      (vector item-count chunk-count #f))
+                     ((< 0 chunk-count)
                       (for ((i (in-range i)))
                         (encode out-chunk type (vector-ref v i)))
                       (encode out-offset 'nat (file-position out-chunk))
@@ -403,27 +541,31 @@
 
 (define (materialize-index-tables!
           path.dir source-fprefix name->type source-names index-descriptions)
-  (define threshold (current-config-ref 'progress-logging-threshold))
-  (define index-ms
-    (map (lambda (td)
-           (define fprefix      (alist-ref td 'file-prefix))
-           (define column-names (alist-ref td 'column-names))
-           (define column-types (map name->type column-names))
-           (table-materializer source-names path.dir fprefix
-                               column-names column-types #f))
-         index-descriptions))
-  (logf "Materializing ~s index table(s) from primary:\n" (length index-ms))
-  (for-each (lambda (td) (pretty-write (alist-ref td 'column-names)))
-            index-descriptions)
-  (let/files ((in (value-table-file-name source-fprefix))) ()
-    (define src (s-decode in (map name->type (cdr source-names))))
-    (time (s-each (lambda (x) (let ((count (car x)))
-                                (when (= 0 (remainder count threshold))
-                                  (logf "ingested ~s rows\n" count))
-                                (for-each (lambda (m) (m 'put! x)) index-ms)))
-                  (s-enumerate 0 src))))
-  (logf "Processing all rows\n")
-  (map (lambda (m) (time (m 'close))) index-ms))
+  (cond ((null? index-descriptions) '())
+        (else
+          (define threshold (current-config-ref 'progress-logging-threshold))
+          (define index-ms
+            (map (lambda (td)
+                   (define fprefix      (alist-ref td 'file-prefix))
+                   (define column-names (alist-ref td 'column-names))
+                   (define column-types (map name->type column-names))
+                   (table-materializer source-names path.dir fprefix
+                                       column-names column-types #f))
+                 index-descriptions))
+          (logf "Materializing ~s index table(s) from primary:\n"
+                (length index-ms))
+          (for-each (lambda (td) (pretty-write (alist-ref td 'column-names)))
+                    index-descriptions)
+          (let/files ((in (value-table-file-name source-fprefix))) ()
+            (define src (s-decode in (map name->type (cdr source-names))))
+            (time (s-each (lambda (x)
+                            (let ((count (car x)))
+                              (when (= 0 (remainder count threshold))
+                                (logf "ingested ~s rows\n" count))
+                              (for-each (lambda (m) (m 'put! x)) index-ms)))
+                          (s-enumerate 0 src))))
+          (logf "Processing all rows\n")
+          (map (lambda (m) (time (m 'close))) index-ms))))
 
 (define (valid-key-type? t)
   (match t
@@ -544,9 +686,8 @@
             (cons `((file-prefix  . ,fprefix) (column-names . ,(car colss)))
                   (loop (cdr colss) (+ i 1))))))))
   (define index-infos.new
-    (if (null? index-descriptions.added) '()
-      (materialize-index-tables! path.dir source-fprefix name->type
-                                 source-names index-descriptions.added)))
+    (materialize-index-tables! path.dir source-fprefix name->type
+                               source-names index-descriptions.added))
   (let/files () ((metadata-out path.metadata))
     (pretty-write `((attribute-names . ,attribute-names)
                     (attribute-types . ,attribute-types)
@@ -678,7 +819,7 @@
   (define path.in   (and fn.in (current-config-relation-path fn.in)))
   (define path.dir  (current-config-relation-path path))
   (define path.log  (build-path path.dir "progress.log"))
-  (define format    (or format.in (path->format fn.in)))
+  (define format    (or format.in (and fn.in (path->format fn.in))))
   (define header    (if (pair? header.in)
                       (map (lambda (s) (if (symbol? s) (symbol->string s) s))
                            header.in)

@@ -3,9 +3,10 @@
          term.symbol.min term.symbol.max term.string.min term.string.max
          term.bytes.min term.bytes.max term.pair.min term.pair.max
          term.vector.min term.vector.max
+         (struct-out bounds) bounds.any bounds-intersect
          domain.any domain.null domain.number domain.symbol
          domain.string domain.bytes domain.pair domain.vector domain.boolean
-         any-increment any-decrement
+         any-increment any-decrement finite-interval?
          (struct-out interval)
          type->compare compare-term compare-any compare-null compare-boolean
          compare-nat compare-number
@@ -54,6 +55,22 @@
 (define domain.pair    `#((() .()) ,(interval '(() . ()) '(#t . #t)) '(#t . #t)))
 (define domain.vector  `#(#()      ,(interval '#()       #f)))
 (define domain.boolean `#(#f                             #t))
+
+(struct bounds (lb lb-inclusive? ub ub-inclusive?) #:prefab)
+(define bounds.any (bounds term.min #t term.max #t))
+
+(define (bounds-intersect x y)
+  (cond ((eq? x y) x)
+        (else (match-define (bounds lb.x lbi.x ub.x ubi.x) x)
+              (match-define (bounds lb.y lbi.y ub.y ubi.y) y)
+              (apply bounds (append (match (compare-any lb.x lb.y)
+                                      (-1 (list lb.y lbi.y))
+                                      ( 0 (list lb.x (and lbi.x lbi.y)))
+                                      ( 1 (list lb.x lbi.x)))
+                                    (match (compare-any ub.y ub.x)
+                                      (-1 (list ub.y ubi.y))
+                                      ( 0 (list ub.x (and ubi.x ubi.y)))
+                                      ( 1 (list ub.x ubi.x))))))))
 
 (define (any-increment x)
   (define (list-increment xs)
@@ -107,6 +124,14 @@
                  (define xs.new (list-decrement xs))
                  (if (eq? xs xs.new) x (list->vector xs.new)))
     (_           x)))
+
+(define (finite-interval? lb ub)
+  (let loop ((lb lb) (acc '()))
+    (if (equal? lb ub)
+      (reverse (cons ub acc))
+      (let ((lb.new (any-increment lb)))
+        (and (not (equal? lb lb.new))
+             (loop lb.new (cons lb acc)))))))
 
 (define ((compare-><?  compare) a b)      (eqv? (compare a b) -1))
 (define ((compare-><=? compare) a b) (not (eqv? (compare a b)  1)))
@@ -172,7 +197,7 @@
   (not (eqv? ((compare-list compare-element) a b) 1)))
 
 (define ((compare-array compare-element) a b)
-  (let ((alen (vector-length a)) (blen (vector-length a)))
+  (let ((alen (vector-length a)) (blen (vector-length b)))
     (cond ((< alen blen) -1)
           ((< blen alen)  1)
           (else (let loop ((i 0))

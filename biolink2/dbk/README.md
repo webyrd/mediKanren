@@ -12,35 +12,83 @@ Typical use:
 
 ## TODO
 
+* only register `c:table` with the subset of variables that are indexable
+* factor out table choosing
+
+* redesign tables, indexing, variable ordering heuristics
+  * to get array-based lookup, specify appropriate column constraints
+  * also, define tables that use column-oriented layout
+  * identify most-constrained-variable more appropriately
+    * simple cardinality (minimum-remaining-values) heuristic is not effective
+    * cardinality is innaccurate since we only track bounds and don't eagerly
+      maintain arc consistency
+    * instead of MRV heuristic, a better heuristic considers how variables
+      constrain relations
+      * rank relation constraints by the ratio of rows `remaining/total`
+        * a constraint's remaining rows are those whose first column value
+          falls within the constraint's corresponding variable's bounds
+        * smallest ratio wins, choose that constraint's first column variable
+      * it may also make sense to consider all the ratios a variable
+        participates in, and rank variables by some function on these ratios
+        * e.g., could take minimum (described above), could multiply, etc.
+    * we can speculatively compute a fixed number of members of a variable's
+      finite domain, working inward from its bounds, to improve accuracy
+      * helps accuracy of both MRV and most-constrained-relation heuristic
+    * maybe augment this heuristic with consideration of a variable's
+      index-path effectiveness (i.e., starting at this variable makes it easy
+      to efficiently use other indexes)
+      * see index-based path-finding below
+  * maybe support intra-table/inter-table selectivity hints
+    * intra: how many values of attr A do you get when setting attrs B, C, etc.?
+      * degree constraints
+      * could also declare that a column's values appear frequently
+        * if they appear frequently, constraints to that column should not
+          constrain other columns much
+    * inter: `(conj (P a b c) (Q c d e))`
+      * a form of join dependency
+      * what proportion of distinct values `c` from each of `P` and `Q` remain
+        after taking their intersection? e.g., maybe `(3/4 in P . 1/2 in Q)`
+  * analyze, simplify, and plan with query structure
+    * index-based path-finding to find candidate variable orderings
+      * stick with one variable choice order until invalidation is possible
+        * only long-distance constraints can invalidate assumptions
+          * this includes monotone dependencies
+      * when appropriate index paths aren't available, or query can be
+        decomposed, consider materializing/indexing results for subqueries
+    * articulation vertices for fast recognition of decomposable queries
+      * may store intermediate results per subquery for faster integration
+
+* redesign states, strategies to support adaptive analysis and optimization
+  * hypothetical states for analyzing and transforming disjunction components
+    * should also use this approach for transforming arbitrary formulas
+    * process a disjunct's constraints in the usual way, but retain simplified
+      residual constraints
+      * optionally expand user-defined relations
+    * may detect more opportunities for subsumption by reordering
+    * may drop constraints for eliminated disjunct-local variables
+      * e.g., simple equality constraints that have fully propagated
+    * extract shared constraints from disjunction components via lattice-join
+      * e.g., to implement efficient union of table constraints
+  * decorate unexpanded user-defined relation constraints with the chain of
+    already-expanded parent/caller relations that led to this constraint
+    * to identify nonterminating loops
+    * to help measure progress
+  * optional bottom-up evaluation strategy
+    * safety analysis of relations referenced during query/materialization
+  * randomized variants of interleaving or depth-first search
+
+* support small tables, particularly for finite domains
+* fixed point computation
+
 * place-based concurrency/parallelism?
-
-* `state-pending-run` before splitting search on any disj
-  * instead, maybe even go so far as to `state-enumerate` before?
-
-* properly 2-watch `=/=*` constraints to make sure inclusiveness trimming
-  opportunities are not missed
-  * possibly also switch to eager disunify processing
-* implement simple `any<=o` constraints (at most one term is non-ground)
-* support branchless disjunctions when all leaf constraints are simple?
-  * no user-defined relations for now
-* re-express bounds-apply using branchless disjunctions
-* recognize finite domains and express using branchless disjunctions?
-
-* define tables that use column-oriented layout
-
-* eventually, make sure relation metadata contains information for analysis
-  * e.g., degree constraints, fast column ordering, subsumption tag/rules
-  * descriptions used for subsumption
-    * #(,relation ,attributes-satisfied ,attributes-pending)
-    * within a relation, table constraint A subsumes B if
-      B's attributes-pending is a prefix of A's
-      AND
-      B does not have any attributes-satisfied that A does not have
-
-* remaining loose ends necessary for full expressiveness
-  * fixed point computation
-  * strategy w/ flexible goal ordering
-  * these are defined in the "evaluation" section below
+* thread-safe table retrieval
+* tee/piping output logs to file
+* background worker threads/places for materialization
+* metadata.scm protocol versioning for automatic update/migration
+* documentation and examples
+  * small tsv data example for testing materialization
+* support an interactive stepping/user-choice "strategy"
+  * both for debugging and devising new strategies
 
 * how do we express columns of suffix type?
   * it would have this representation type: `#(suffix count len)`
@@ -56,15 +104,27 @@ Typical use:
     * constraint evaluations can be pre-simplified and reordered
   * code generation
 
+* eventually, make sure relation metadata contains information for analysis
+  * e.g., degree constraints, fast column ordering, subsumption tag/rules
+  * descriptions used for subsumption
+    * #(,relation ,attributes-satisfied ,attributes-pending)
+    * within a relation, table constraint A subsumes B if
+      B's attributes-pending is a prefix of A's
+      AND
+      B does not have any attributes-satisfied that A does not have
+  * schema: heading, constraints, other dependencies
+    * heading: set of attributes and their types
+    * degree constraints (generalized functional dependencies)
+      * interpret degree constraints to find useful special cases
+        * functional dependency
+        * bijection (one-to-one mapping via opposing functional dependencies)
+        * uniqueness (functional dependency to full set of of attributes)
+    * maybe join and inclusion dependencies
+  * body: finite set of tuples
+
 * floating point numbers are not valid terms
   * reordering operations endangers soundness
   * detect float literals when doing so won't hurt performance
-
-* tee/piping output logs to file
-* background worker threads/places for materialization
-* metadata.scm protocol versioning for automatic update/migration
-
-* small tsv data example for testing materialization
 
 
 ### Data processing
@@ -132,7 +192,6 @@ Typical use:
 * intensional relations (user-level)
   * search strategy: backward or forward chaining
     * could be inferred
-    * try automatic goal reordering based on cardinality/statistics
   * forward-chaining supports stratified negation and aggregation
   * materialization (caching/tabling)
     * if materialized, may be populated on-demand or up-front
@@ -149,7 +208,8 @@ Typical use:
         * in relation R, given (A B C), how many (D E F)s are there?
           * lower and upper bounds, i.e., 0 to 2, exactly 1, at least 5, etc.
         * maybe support more precise constraints given specific field values
-      * sorted-columns: C is nondecreasing when sorting by (A B C D)
+      * monotone dependencies
+        * e.g., C is nondecreasing when sorting by (A B C D)
         * implies sorted rows for (C A B D) appear in same order as (A B C D)
           * one index can support either ordering
         * generalized: (sorted-columns (A B . C) (B . D) B) means:
@@ -191,16 +251,16 @@ Typical use:
     * by default, `:==` will stratify based on dependencies
 
 * relations
-  * `(define-relation (name param ...) goal ...) => (define name (relation (param ...) goal ...))`
+  * `(define-relation (name param ...) formula ...) => (define name (relation (param ...) formula ...))`
   * `(define-relation/data (name param ...) data-description)`
-  * `(relation (param-name ...) goal ...)`
+  * `(relation (param-name ...) formula ...)`
   * `(:== term (var-name ...) term-computation ...)`
     * computed term that indicates its logic variable dependencies
     * force vars to be grounded so that embedded Racket computation succeeds
     * result is equated with left-hand term (first argument to `:==`)
   * local relation definitions to share work (cached results) during aggregation
-    * `(let-relations (((name param ...) goal ...) ...) goal ...)`
-  * usual mk operators for forming goals:
+    * `(let-relations (((name param ...) formula ...) ...) formula ...)`
+  * usual mk formula constructors:
     * `fresh`, `conde`, and constraints such as `==`, `=/=`, `symbolo`, etc.
     * `(r arg+ ...)` where `r` is a relation and `arg+ ...` are terms
   * if `r` is a relation:
@@ -247,7 +307,9 @@ Typical use:
           * recursive calls of exactly the same size are considered failures
         * keep results of branching relation calls independent until join phase
       * maintain constraint satisfiability
-        * cheap first-pass via domain consistency, then arc consistency
+        * constraint propagation loop: `state-enforce-local-consistency`
+          * cheap first-pass via domain consistency, then arc consistency
+          * backjump and learn clauses when conflict is detected
         * then global satisfiability via search
           * choose candidate for the most-constrained variable
             * maybe the variable participating in largest number of constraints
@@ -328,3 +390,30 @@ Typical use:
       * multiple needles
         * `(conj (string-appendo n1 t1 hay-s) (string-appendo n2 t2 hay-s))`
       * maybe best done explicitly as aggregation via `:==`
+
+
+## Naming conventions
+
+```
+_    = blank
+x-y  = x <space> y     ; for multi-word phrases, e.g., launch-all-missiles
+x/y  = x with y
+x^y  = x superscript y
+x.y  = x subscript y   ; emphasizing grouping by x
+y:x  = x subscript y   ; emphasizing grouping by y, the subscript; e.g., a type
+                       ; y with constructors x, or implementing a common
+                       ; interface of operations x, or other situations where
+                       ; if the context is clear, the y: could be dropped from
+                       ; the name
+x@y  = x at y          ; result of projection or access using address/key y
+x->y = x to y          ; procedure mapping type x to y
+x=>y = x to y          ; finite map (e.g., hash or vector) with key type x
+x&y  = x and y         ; a pair, or sometimes a 2-element list or vector
+x*   = 0 or more xs    ; (typically homogeneous) lists, sometimes vectors
+x?   = x huh           ; x is either a boolean(-ish) value itself, or a
+                       ; predicate (procedure returning a boolean(-ish) value)
+x!   = x bang          ; x may cause important side effects, such as mutation
+                       ; or throwing an error; I/O operations often don't use
+                       ; this convention
+x?!  = assert x        ; a predicate/guard that throws an error if false
+```
