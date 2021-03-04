@@ -5,6 +5,7 @@
   "pieces-parts/synonymize.rkt"
   racket/file racket/function racket/list racket/hash
   (except-in racket/match ==)
+  racket/port
   racket/pretty
   racket/runtime-path
   racket/string
@@ -505,7 +506,11 @@ query_result_clear.addEventListener('click', function(){
                (not-found.html (url->string (request-uri req)))))))
 (define (OK/jsexpr f req)
   (define input (bytes->jsexpr (request-post-data/raw req)))
-  (OK req '() mime:json (jsexpr->string (job (thunk (f input))))))
+  (define result (job (thunk (f input))))
+  (if (job-failure? result)
+    (respond 400 "Bad Request" '() mime:text
+             (string->bytes/utf-8 (job-failure-message result)))
+    (OK req '() mime:json (jsexpr->string result))))
 
 (define (/index req)
   (pretty-print `(request-headers: ,(request-headers req)))
@@ -563,16 +568,33 @@ query_result_clear.addEventListener('click', function(){
 (define (/v2/find-categories req) (OK/jsexpr (find/db-id find-categories) req))
 (define (/v2/find-predicates req) (OK/jsexpr (find/db-id find-predicates) req))
 
-(define (job p)
+(struct job-failure (message))
+
+(define (job work)
   (define job-response (make-channel))
-  (channel-put job-request (thunk (channel-put job-response (p))))
+  (channel-put job-request (cons job-response work))
   (channel-get job-response))
 
 (define job-request (make-channel))
 
-(define worker (thread (thunk (let loop ()
-                                ((channel-get job-request))
-                                (loop)))))
+(define worker
+  (thread
+    (thunk (let loop ()
+             (match-define (cons job-response work) (channel-get job-request))
+             (channel-put job-response
+                          (with-handlers ((exn:fail?
+                                            (lambda (v)
+                                              ((error-display-handler) (exn-message v) v)
+                                              (job-failure (exn-message v))))
+                                          ((lambda _ #t)
+                                           (lambda (v)
+                                             (define message
+                                               (string-append "unknown error: "
+                                                              (with-output-to-string (thunk (write v)))))
+                                             (pretty-write message)
+                                             (job-failure message))))
+                            (work)))
+             (loop)))))
 
 (define (start)
   (define-values (dispatch _)
