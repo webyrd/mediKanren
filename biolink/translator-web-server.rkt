@@ -304,9 +304,12 @@ query_result_clear.addEventListener('click', function(){
                (div (pre ((id "query-result")) "Result will appear here.")))))
 
 (define hash-empty (hash))
-(define (olift v) (if (hash? v) v hash-empty))
-(define (slift v) (cond ((pair? v) v) ((string? v) (list v)) (else '())))
-(define (str v)   (and (string? v) v))
+(define (str   v) (if (string? v) v (error "invalid string:" v)))
+(define (olift v) (if (hash?   v) v (error "invalid object:" v)))
+(define (slift v) (cond ((pair?   v) v)
+                        ((string? v) (list v))
+                        ((null?   v) '())
+                        (else        (error "invalid string or list of strings:" v))))
 
 (define (alist->attributes alist)
   ;; TODO: provide standard types for
