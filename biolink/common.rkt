@@ -68,6 +68,10 @@
   load-databases
   conde/databases
 
+  config
+  config-ref
+  load-config
+
   keep
   read/file
   read/string
