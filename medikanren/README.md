@@ -1,4 +1,4 @@
-# Biolink interface
+# MediKanren
 
 [Biolink model](https://biolink.github.io/biolink-model/)
 
@@ -76,8 +76,8 @@ neo4j stop
 
 ### Converting TSVs (or CSVs) to mediKanren format
 
-* `cd` to the `biolink` subdirectory of the `mediKanren` repo (which is this repo).
-* Move or copy the downloaded TSV (or CSV) files to an appropriately-named subdirectory of the `biolink/data` directory.  We'll assume your datasource is named `NAME`, and will live at `biolink/data/NAME`.
+* `cd` to the `medikanren` subdirectory of the `medikanren` repo (which is this repo).
+* Move or copy the downloaded TSV (or CSV) files to an appropriately-named subdirectory of the `medikanren/data` directory.  We'll assume your datasource is named `NAME`, and will live at `medikanren/data/NAME`.
 * For TSV files, perform conversion by running: (For a typical data source, conversion may take an hour or so.)
 ```
 racket tsv-graph-to-db.rkt data NAME
@@ -198,7 +198,7 @@ zip -r robokop.db.zip robokop
 * consolidate db generation with one script
 
 * reorganize directory structure
-  * lift biolink to main directory, moving current main contents somewhere else
+  * lift medikanren to main directory, moving current main contents somewhere else
   * keep configs, logs, and user programs (such as gui, web-server...) in main directory
   * move library and data processing code to a new subdirectory
   * move tests and examples into their own subdirectories
