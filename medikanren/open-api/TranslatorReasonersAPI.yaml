@@ -9,6 +9,10 @@ info:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
   termsOfService: INSERT-URL-HERE
+  x-translator: 
+    component: ARA
+    team:
+    - "Unsecret Agent"
 externalDocs:
   description: >-
     Documentation for the NCATS Biomedical Translator Reasoners web services
@@ -18,12 +22,12 @@ tags:
     description: Get supported relationships by source and target
     externalDocs:
       description: Documentation for the reasoner predicates function
-      url: http://reasonerhost.ncats.io/overview.html#predicates
+      url: http://unsecret.ncats.io/overview.html#predicates
   - name: query
     description: Query reasoner using a predefined question type
     externalDocs:
       description: Documentation for the reasoner query function
-      url: http://reasonerhost.ncats.io/overview.html#query
+      url: http://unsecret.ncats.io/overview.html#query
   - name: translator
   - name: reasoner
 paths:
