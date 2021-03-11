@@ -14,11 +14,11 @@
   (all-defined-out))
 
 (require
-  "mk.rkt"
-  "db.rkt"
-  "mk-db.rkt"
-  "common.rkt"
-  "create-all-hashtables.rkt"
+  "../../medikanren/mk.rkt"
+  "../../medikanren/db.rkt"
+  "../../medikanren/mk-db.rkt"
+  "../../medikanren/pieces-parts/common.rkt"
+  "../../medikanren/pieces-parts/create-all-hashtables.rkt"
   racket/date
   (except-in racket/match ==))
 

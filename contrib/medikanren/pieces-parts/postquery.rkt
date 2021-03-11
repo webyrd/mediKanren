@@ -1,7 +1,7 @@
 #lang racket/base
 
 (provide (all-defined-out))
-(require "query.rkt")
+(require "../../../medikanren/pieces-parts/query.rkt")
 (require  racket/list)
 (require (for-syntax racket/base syntax/parse racket/syntax syntax/transformer))
 

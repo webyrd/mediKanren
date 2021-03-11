@@ -1,6 +1,6 @@
 #lang racket
 (provide (all-defined-out))
-(require "../pieces-parts/query.rkt"         
+(require "../../../medikanren/pieces-parts/query.rkt"         
          racket/engine)
 
 ;; "MONDO:0004989" = carcinoma of the breast

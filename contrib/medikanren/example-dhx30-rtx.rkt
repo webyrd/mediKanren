@@ -1,7 +1,7 @@
 #lang racket
 (provide
-  (all-from-out "mk.rkt")
-  (all-from-out "mk-db.rkt")
+  (all-from-out "../../medikanren/mk.rkt")
+  (all-from-out "../../medikanren/mk-db.rkt")
 
   membero
   edgeo

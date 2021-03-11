@@ -1,7 +1,7 @@
 #lang racket
 (require
-  "../db.rkt"
-  "query.rkt")
+  "../../../medikanren/db.rkt"
+  "../../../medikanren/pieces-parts/query.rkt")
 
 #|
 This line binds the identifier S to the result of the following expression,

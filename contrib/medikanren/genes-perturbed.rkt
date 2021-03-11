@@ -1,6 +1,6 @@
 #lang racket/base
-(provide (all-defined-out) (all-from-out "common.rkt"))
-(require "common.rkt" "repr.rkt"
+(provide (all-defined-out) (all-from-out "../../medikanren/common.rkt"))
+(require "../../medikanren/common.rkt" "../../medikanren/repr.rkt"
          (except-in racket/match ==) racket/set racket/string)
 
 (define increases

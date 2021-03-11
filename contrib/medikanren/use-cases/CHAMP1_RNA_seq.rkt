@@ -1,6 +1,6 @@
 #lang racket
 (require
-  "../pieces-parts/query.rkt"
+  "../../../medikanren/pieces-parts/query.rkt"
   "../pieces-parts/Thi-useful-functions.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;*******************************;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

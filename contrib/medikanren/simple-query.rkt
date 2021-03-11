@@ -1,10 +1,10 @@
 #lang racket
 
 (provide
-  (all-from-out "mk.rkt")
-  (all-from-out "db.rkt")
-  (all-from-out "mk-db.rkt")
-  (all-from-out "common.rkt")  
+  (all-from-out "../../medikanren/mk.rkt")
+  (all-from-out "../../medikanren/pieces-parts/db.rkt")
+  (all-from-out "../../medikanren/pieces-parts/mk-db.rkt")
+  (all-from-out "../../medikanren/pieces-parts/common.rkt")  
   (all-from-out racket/date)
   (all-defined-out))
 

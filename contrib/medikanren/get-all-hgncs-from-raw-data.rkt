@@ -1,7 +1,7 @@
 #lang racket
 (provide (all-defined-out)
-         (all-from-out "pieces-parts/synonymize.rkt"))
-(require "pieces-parts/synonymize.rkt")
+         (all-from-out "../../medikanren/pieces-parts/synonymize.rkt"))
+(require "../../medikanren/pieces-parts/synonymize.rkt")
 
 
 ;; rtx2 contains a bunch of weird entries of the form:

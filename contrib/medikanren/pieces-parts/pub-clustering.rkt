@@ -1,5 +1,5 @@
 #lang racket
-(require "query.rkt")
+(require "../../../medikanren/pieces-parts/query.rkt")
                  
 (define spike-covid19 "UniProtKB:P0DTC2")
 

@@ -1,5 +1,5 @@
 #lang racket
-(require "query.rkt")
+(require "../../../medikanren/pieces-parts/query.rkt")
 
 (define gene-list (list->set '("ENSEMBL:ENSG00000167972"
                                "ENSEMBL:ENSG00000198691"

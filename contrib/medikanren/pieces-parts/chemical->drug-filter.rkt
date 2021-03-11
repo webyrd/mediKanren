@@ -1,5 +1,5 @@
 #lang racket
-(require "query.rkt")
+(require "../../../medikanren/pieces-parts/query.rkt")
 
 
 ;; chemical->drug-filter functions take a chemical list and

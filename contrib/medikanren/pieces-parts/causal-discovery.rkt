@@ -1,6 +1,6 @@
 #lang racket
 (require
-  "../db.rkt"
+  "../../../medikanren/db.rkt"
   "query.rkt")
 
 ;; Note:  we should check if the 'negated' property on an edge is set to 'true'!

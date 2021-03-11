@@ -1,6 +1,6 @@
 #lang racket
 (require
-  "query.rkt")
+  "../../../medikanren/pieces-parts/query.rkt")
 
 #|
 takes: a drug curie as a string (a-drug), a list of predicates of interest (predicates)

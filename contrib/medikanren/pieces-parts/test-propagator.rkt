@@ -1,10 +1,10 @@
 #lang racket
 (provide
-  (all-from-out "../common.rkt")
-  (all-from-out "../mk-db.rkt")
-  (all-from-out "propagator.rkt")
+  (all-from-out "../../../medikanren/pieces-parts/common.rkt")
+  (all-from-out "../../../medikanren/pieces-parts/mk-db.rkt")
+  (all-from-out "../../../medikanren/pieces-parts/propagator.rkt")
   (all-defined-out))
-(require "../common.rkt" "../mk-db.rkt" "propagator.rkt")
+(require "../../../medikanren/common.rkt" "../../../medikanren/mk-db.rkt" "../../../medikanren/pieces-parts/propagator.rkt")
 (load-databases #t)
 
 (define positively-regulates '("causes"))

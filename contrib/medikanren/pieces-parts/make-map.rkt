@@ -1,7 +1,7 @@
 #lang racket
 (require
-  "../repr.rkt"
-  "../common.rkt"
+  "../../../medikanren/repr.rkt"
+  "../../../medikanren/pieces-parts/common.rkt"
   )
 
 (define db (cdr (car (databases))))

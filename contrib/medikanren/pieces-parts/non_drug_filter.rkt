@@ -1,6 +1,6 @@
 #lang racket
 (require
-  "query.rkt")
+  "../../../medikanren/pieces-parts/query.rkt")
 
 ;; define a number of helper functions for the function drug-info-for-curie
 (define curie-to-anything

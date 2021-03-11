@@ -1,6 +1,6 @@
 #lang racket
 (require
-  "mk-db.rkt"
+  "../../medikanren/pieces-parts/mk-db.rkt"
   )
 
 (define semmed (make-db "data/semmed"))

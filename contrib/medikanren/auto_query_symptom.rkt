@@ -1,12 +1,12 @@
 #lang racket
 (provide (all-defined-out)
-         (all-from-out "common.rkt" "mk-db.rkt"))
-(require "common.rkt" "mk-db.rkt")
+         (all-from-out "../../medikanren/common.rkt" "../../medikanren/pieces-parts/mk-db.rkt"))
+(require "../../medikanren/pieces-parts/common.rkt" "../../medikanren/pieces-parts/mk-db.rkt")
 (require racket/date)
 (require csv-reading)
 (require csv-writing)
-(require "csv.rkt"
-         "repr.rkt")
+(require "../../medikanren/pieces-parts/csv.rkt"
+         "../../medikanren/pieces-parts/repr.rkt")
 (require racket/list racket/port racket/set racket/stream racket/string)
 (provide set-field-separator!
          csv-records)
