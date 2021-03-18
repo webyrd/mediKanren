@@ -4,12 +4,14 @@ info:
   version: 1.0.0-beta
   title: OpenAPI for NCATS Biomedical Translator Reasoners
   contact:
-    email: edeutsch@systemsbiology.org
+    email: webyrd@gmail.com
+    name: William E. Byrd
+    url: https://github.com/webyrd
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
   termsOfService: INSERT-URL-HERE
-  x-translator: 
+  x-translator:
     component: ARA
     team:
     - "Unsecret Agent"
