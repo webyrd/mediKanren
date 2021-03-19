@@ -9,9 +9,12 @@
                ))
  (cache-synonyms? . #t)
 
+ (in-memory-names? . #t)
+ (in-memory-cuis?  . #t)
+
  (query-results.write-to-file?  . #t)  ;; #t will write the query and results to file, #f will not
  (query-results.file-name       . "last.sx")
- (query-results.file-name-human . "last.txt") 
+ (query-results.file-name-human . "last.txt")
  (query-results.file-name-spreadsheet . "last.tsv")
  ;; Uncomment exactly one of these:
  (query-results.file-mode       . replace)  ;; Clobber the save file each time you run a query.
@@ -70,6 +73,6 @@
    ;; "predisposes"
    ;; "decreases_metabolic_processing_of"
    ))
- 
+
  ;; Add configuration options as new association pairs.
  )
