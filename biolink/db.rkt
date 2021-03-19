@@ -145,6 +145,7 @@
     (if (not in-memory-names?) #""
       (time (displayln "* name-index:")
             (file->bytes (db-path fnin-concept-name-index)))))
+  (define (~name*->cid* ~name*) (suffix:corpus-find* name-corpus name-index ~name*))
 
   (define catid=>cid* (make-vector (vector-length category*) #f))
   (for ((catid (in-range 0 (vector-length category*))))
@@ -199,8 +200,7 @@
   (define (pmid&eid*-stream) (detail-stream in-pubmed-edges))
 
   (vector category* predicate*
-          cui*->cid*
-          (cons name-corpus name-index)
+          cui*->cid* ~name*->cid*
           catid->cid* cid->concept eid->edge
           cid&concept-stream eid&edge/props-stream
           subject->edge-stream object->edge-stream
@@ -210,8 +210,7 @@
 (define (db:category*             db)        (vector-ref db 0))
 (define (db:predicate*            db)        (vector-ref db 1))
 (define (db:cui*->cids            db   cui*) ((vector-ref db 2) cui*))
-(define (db:concept-name-corpus   db)        (car (vector-ref db 3)))
-(define (db:concept-name-index    db)        (cdr (vector-ref db 3)))
+(define (db:~name*->cids          db ~name*) ((vector-ref db 3) ~name*))
 (define (db:catid->cid*           db . args) (apply (vector-ref db 4) args))
 (define (db:cid->concept          db . args) (apply (vector-ref db 5) args))
 (define (db:eid->edge             db . args) (apply (vector-ref db 6) args))
@@ -284,8 +283,7 @@
 
 (define (db:~name*->cid&concept*/options
           case-sensitive? chars:ignore chars:split db ~name*)
-  (define cids (suffix:corpus-find* (db:concept-name-corpus db)
-                                    (db:concept-name-index db) ~name*))
+  (define cids (db:~name*->cids db ~name*))
   (define found (foldr (lambda (i cs)
                          (stream-cons (cons i (db:cid->concept db i)) cs))
                        '() cids))
