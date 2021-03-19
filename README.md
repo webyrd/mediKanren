@@ -6,6 +6,6 @@ Proof-of-concept for reasoning over medical knowledge graphs, using miniKanren +
 
 There are several prototypes, each in its directory:
 
-- [`code`](code) is the original prototype.
-- [`biolink`](biolink) is the working prototype.
-- [`biolink2`](biolink2) is the next-generation prototype.
+- [`attic/code`](attic/code) is the original prototype.
+- [`medikanren`](medikanren) is the working prototype.
+- [`medikanren2`](medikanren2) is the next-generation prototype.
