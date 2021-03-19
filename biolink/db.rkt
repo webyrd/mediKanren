@@ -4,7 +4,7 @@
 
   db:category*
   db:predicate*
-  db:cui*->cids
+  db:concept-cui-corpus
 
   db:catid->category
   db:pid->predicate
@@ -101,7 +101,6 @@
     (open-db-path (fname-offset fnin-concepts-by-xref)))
   (define in-xrefs               (open-db-path fnin-xrefs))
   (define in-offset-xrefs        (open-db-path (fname-offset fnin-xrefs)))
-  (define in-concept-cui-corpus  (open-db-path fnin-concept-cui-corpus))
   (define in-concept-cui-index   (open-db-path fnin-concept-cui-index))
   (define in-concept-name-corpus (open-db-path fnin-concept-name-corpus))
   (define in-offset-concepts  (open-db-path (fname-offset fnin-concepts)))
@@ -122,18 +121,26 @@
   (define predicate*
     (list->vector (read-all-from-file (db-path fnin-predicates))))
 
+  (define (get-cui-corpus/raw)
+    (call-with-input-file
+      (db-path fnin-concept-cui-corpus)
+      (lambda (in-concept-cui-corpus)
+        (displayln "* cui-corpus:")
+        (time (for/vector ((x (port->stream-offset&values in-concept-cui-corpus)))
+                (cdr x))))))
+  (define get-cui-corpus
+    (cond (in-memory-cuis? (define cui-corpus (get-cui-corpus/raw))
+                           (lambda () cui-corpus))
+          (else            get-cui-corpus/raw)))
+
   (define cui*->cid*
     (cond (in-memory-cuis?
-            (displayln "* cui-corpus:")
-            (define cui-corpus
-              (time (for/vector ((x (port->stream-offset&values in-concept-cui-corpus)))
-                      (cdr x))))
+            (define cui-corpus (get-cui-corpus))
             (define cui-index (port->string-keys in-concept-cui-index))
             (close-input-port in-concept-cui-index)
             (lambda (cui*) (string:corpus-find*      cui-corpus   cui-index            cui*)))
           (else
             (lambda (cui*) (string:corpus-find*/disk cid->concept in-concept-cui-index cui*)))))
-  (close-input-port in-concept-cui-corpus)
 
   (define ~name*->cid*
     (cond (in-memory-names?
@@ -207,7 +214,8 @@
           cid&concept-stream eid&edge/props-stream
           subject->edge-stream object->edge-stream
           pmid->eid* pmid&eid*-stream subject->pids object->pids
-          synonym->cid* xref->cid*))
+          synonym->cid* xref->cid*
+          get-cui-corpus))
 
 (define (db:category*             db)        (vector-ref db 0))
 (define (db:predicate*            db)        (vector-ref db 1))
@@ -226,6 +234,7 @@
 (define (db:object->pids          db . args) (apply (vector-ref db 14) args))
 (define (db:synonym->cid*         db . args) (apply (vector-ref db 15) args))
 (define (db:xref->cid*            db . args) (apply (vector-ref db 16) args))
+(define (db:concept-cui-corpus    db)        ((vector-ref db 17)))
 
 (define (db:catid->category db catid) (vector-ref (db:category* db) catid))
 (define (db:pid->predicate db pid)    (vector-ref (db:predicate* db) pid))
