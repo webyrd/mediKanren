@@ -23,6 +23,8 @@
   bytes->string-key
   write-string-keys
   port->string-keys
+  string-index->string-key
+  string-key-count
 
   suffix-key-count
   suffix-key-ref
@@ -132,6 +134,12 @@
   (file-position in 0)
   (for/vector ((_ (in-range (/ end string-key-byte-size))))
               (bytes->string-key (read-string-key-bytes in))))
+(define (string-index->string-key in si)
+  (file-position in (* string-key-byte-size si))
+  (bytes->string-key (read-string-key-bytes in)))
+(define (string-key-count in)
+  (file-position in eof)
+  (/ (file-position in) string-key-byte-size))
 
 (define suffix-key-byte-size (+ 4 2))
 (define (suffix-key-count bs) (/ (bytes-length bs) suffix-key-byte-size))
