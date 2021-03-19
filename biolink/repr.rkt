@@ -27,9 +27,11 @@
   string-key-count
 
   suffix-key-count
+  suffix-key-count/port
   suffix-key-ref
   suffix-key->bytes
   write-suffix-keys
+  suffix-index->suffix-key
 
   edge-pids-by-X
   stream-edges-by-X
@@ -143,6 +145,9 @@
 
 (define suffix-key-byte-size (+ 4 2))
 (define (suffix-key-count bs) (/ (bytes-length bs) suffix-key-byte-size))
+(define (suffix-key-count/port in)
+  (file-position in eof)
+  (/ (file-position in) suffix-key-byte-size))
 (define (suffix-key-ref index i) (bytes->suffix-key index i))
 (define (suffix-key->bytes s)
   (define cid (car s))
@@ -157,6 +162,9 @@
 (define (read-suffix-key-bytes in) (read-bytes suffix-key-byte-size in))
 (define (write-suffix-keys out v)
   (for ((s (in-vector v))) (write-bytes (suffix-key->bytes s) out)))
+(define (suffix-index->suffix-key in si)
+  (file-position in (* suffix-key-byte-size si))
+  (bytes->suffix-key (read-suffix-key-bytes in) 0))
 
 (define (edge-pids-by-X in in-offset src)
   (define start (offset-ref in-offset src))
