@@ -128,24 +128,26 @@
             (define cui-corpus
               (time (for/vector ((x (port->stream-offset&values in-concept-cui-corpus)))
                       (cdr x))))
-            (close-input-port in-concept-cui-corpus)
             (define cui-index (port->string-keys in-concept-cui-index))
             (close-input-port in-concept-cui-index)
             (lambda (cui*) (string:corpus-find*      cui-corpus   cui-index            cui*)))
           (else
             (lambda (cui*) (string:corpus-find*/disk cid->concept in-concept-cui-index cui*)))))
+  (close-input-port in-concept-cui-corpus)
 
-  (define name-corpus
-    (if (not in-memory-names?) '#()
-      (time (displayln "* name-corpus:")
-            (for/vector ((x (port->stream-offset&values in-concept-name-corpus)))
-              (cdr x)))))
+  (define ~name*->cid*
+    (cond (in-memory-names?
+            (displayln "* name-corpus:")
+            (define name-corpus
+              (time (for/vector ((x (port->stream-offset&values in-concept-name-corpus)))
+                      (cdr x))))
+            (displayln "* name-index:")
+            (define name-index (time (file->bytes (db-path fnin-concept-name-index))))
+            (lambda (~name*) (suffix:corpus-find*      name-corpus  name-index            ~name*)))
+          (else
+            (define in-concept-name-index (open-input-file (db-path fnin-concept-name-index)))
+            (lambda (~name*) (suffix:corpus-find*/disk cid->concept in-concept-name-index ~name*)))))
   (close-input-port in-concept-name-corpus)
-  (define name-index
-    (if (not in-memory-names?) #""
-      (time (displayln "* name-index:")
-            (file->bytes (db-path fnin-concept-name-index)))))
-  (define (~name*->cid* ~name*) (suffix:corpus-find* name-corpus name-index ~name*))
 
   (define catid=>cid* (make-vector (vector-length category*) #f))
   (for ((catid (in-range 0 (vector-length category*))))
