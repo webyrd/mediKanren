@@ -3,12 +3,14 @@
   string/searchable
   suffix:corpus->index
   suffix:corpus-find*
+  suffix:corpus-find*/disk
   string:corpus->index
   string:corpus-find*
   string:corpus-find*/disk)
 (require
   "repr.rkt"
   racket/list
+  racket/match
   racket/string
   racket/unsafe/ops
   racket/vector)
@@ -138,6 +140,16 @@
   (define (suffix-ref s i)  (suffix-string-ref corpus s i))
   (msd-radix-sort suffixes suffix-length suffix-ref suffix<?))
 
+(define (remove-adjacent-duplicates xs)
+  (define (remove/x x xs)
+    (cons x (let loop ((xs xs))
+              (cond ((null? xs)              '())
+                    ((equal? (car xs) x)     (loop (cdr xs)))
+                    (else (remove/x (car xs) (cdr xs)))))))
+  (if (null? xs) '() (remove/x (car xs) (cdr xs))))
+
+(define (dedup/< ns) (remove-adjacent-duplicates (sort ns <)))
+
 (define (suffix:corpus-find-range corpus index str)
   (define needle (string/searchable str))
   (define (compare si needle)
@@ -174,16 +186,6 @@
               (cons rstart rend))))
           (else (cons start end)))))
 
-(define (remove-adjacent-duplicates xs)
-  (define (remove/x x xs)
-    (cons x (let loop ((xs xs))
-              (cond ((null? xs)              '())
-                    ((equal? (car xs) x)     (loop (cdr xs)))
-                    (else (remove/x (car xs) (cdr xs)))))))
-  (if (null? xs) '() (remove/x (car xs) (cdr xs))))
-
-(define (dedup/< ns) (remove-adjacent-duplicates (sort ns <)))
-
 (define (suffix:corpus-find* corpus index str*)
   (define (rz r) (- (cdr r) (car r)))
   (define rs (map (lambda (s) (suffix:corpus-find-range corpus index s)) str*))
@@ -191,6 +193,53 @@
                                             (rz (car rs)) (cdr rs)))))
   (nlist-intersection
     (map (lambda (r) (dedup/< (map (lambda (i) (car (suffix-key-ref index i)))
+                                   (range (car r) (cdr r)))))
+         (filter (lambda (r) (<= (rz r) zmin)) rs))))
+
+(define (suffix:corpus-find-range/disk cid->concept in-index str)
+  (define needle (string/searchable str))
+  (define (compare si needle)
+    (match-define (cons cid pos) (suffix-index->suffix-key in-index si))
+    (define hay (substring (string/searchable (concept-name (cid->concept cid))) pos))
+    (cond ((string-prefix? hay needle) 0)
+          ((string<? hay needle)      -1)
+          (else                        1)))
+  ;; Find a point in the desired range...
+  (let find-range ((start 0) (end (suffix-key-count/port in-index)))
+    (cond ((< start end)
+           (define mid (+ start (quotient (- end start) 2)))
+           (case (compare mid needle)
+             ((-1) (find-range (+ 1 mid) end))
+             (( 1) (find-range start mid))
+             (( 0) ;; ... then find the start and end of that range.
+              (define rstart
+                (let loop ((start start) (end mid))
+                  (cond ((< start end)
+                         (define mid (+ start (quotient (- end start) 2)))
+                         (case (compare mid needle)
+                           ((-1) (loop (+ 1 mid) end))
+                           (( 0) (loop start mid))
+                           (else (error "rstart: this shouldn't happen."))))
+                        (else end))))
+              (define rend
+                (let loop ((start (+ 1 mid)) (end end))
+                  (cond ((< start end)
+                         (define mid (+ start (quotient (- end start) 2)))
+                         (case (compare mid needle)
+                           ((1) (loop start mid))
+                           ((0) (loop (+ 1 mid) end))
+                           (else (error "rend: this shouldn't happen."))))
+                        (else end))))
+              (cons rstart rend))))
+          (else (cons start end)))))
+
+(define (suffix:corpus-find*/disk cid->concept in-index str*)
+  (define (rz r) (- (cdr r) (car r)))
+  (define rs (map (lambda (s) (suffix:corpus-find-range/disk cid->concept in-index s)) str*))
+  (define zmin (* 2 (if (null? rs) 0 (foldl (lambda (r z) (min z (rz r)))
+                                            (rz (car rs)) (cdr rs)))))
+  (nlist-intersection
+    (map (lambda (r) (dedup/< (map (lambda (i) (car (suffix-index->suffix-key in-index i)))
                                    (range (car r) (cdr r)))))
          (filter (lambda (r) (<= (rz r) zmin)) rs))))
 
