@@ -4,7 +4,7 @@
 
   db:category*
   db:predicate*
-  db:concept-cui-corpus
+  db:cui*->cids
 
   db:catid->category
   db:pid->predicate
@@ -129,6 +129,8 @@
   (close-input-port in-concept-cui-corpus)
   (define cui-index (port->string-keys in-concept-cui-index))
   (close-input-port in-concept-cui-index)
+  (define (cui*->cid* cui*) (string:corpus-find* cui-corpus cui-index cui*))
+
   (displayln "* name-corpus:")
   (define name-corpus
     (time (for/vector ((x (port->stream-offset&values in-concept-name-corpus)))
@@ -190,7 +192,7 @@
   (define (pmid&eid*-stream) (detail-stream in-pubmed-edges))
 
   (vector category* predicate*
-          (cons cui-corpus cui-index)
+          cui*->cid*
           (cons name-corpus name-index)
           catid->cid* cid->concept eid->edge
           cid&concept-stream eid&edge/props-stream
@@ -200,8 +202,7 @@
 
 (define (db:category*             db)        (vector-ref db 0))
 (define (db:predicate*            db)        (vector-ref db 1))
-(define (db:concept-cui-corpus    db)        (car (vector-ref db 2)))
-(define (db:concept-cui-index     db)        (cdr (vector-ref db 2)))
+(define (db:cui*->cids            db   cui*) ((vector-ref db 2) cui*))
 (define (db:concept-name-corpus   db)        (car (vector-ref db 3)))
 (define (db:concept-name-index    db)        (cdr (vector-ref db 3)))
 (define (db:catid->cid*           db . args) (apply (vector-ref db 4) args))
@@ -268,8 +269,7 @@
     ~predicate (lambda (v) v)))
 
 (define (db:~cui*->cid&concept* db ~cui*)
-  (define cids (string:corpus-find* (db:concept-cui-corpus db)
-                                    (db:concept-cui-index db) ~cui*))
+  (define cids (db:cui*->cids db ~cui*))
   (foldr (lambda (i cs) (stream-cons (cons i (db:cid->concept db i)) cs))
          '() cids))
 (define (db:~cui->cid&concept* db ~cui)
