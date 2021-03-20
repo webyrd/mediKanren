@@ -18,3 +18,7 @@
   (syntax-rules () ((_ n body ...) (s-take n      (run^   body ...)))))
 (define-syntax run*
   (syntax-rules () ((_   body ...)                (run #f body ...))))
+
+;; TODO: special case aggregation operators that could be implemented more
+;; efficiently than post-processing `run*` results:
+;; * run/min, run/max, run/count

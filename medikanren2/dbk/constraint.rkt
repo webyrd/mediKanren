@@ -372,9 +372,16 @@
 
 (define (c-success? c) (and (c:conj? c) (null? (c:conj-cs c))))
 
-(define (c-simplify st c)
-  (let*/and ((st (c-apply (state:set st (log '())) #f c))
-             (st (state-enforce-local-consistency st)))
+(define (c-simplify st.0 effort? c)
+  (let*/and ((st (c-apply (state:set st.0 (log '()) (cx (hash)))
+                          #f c))
+             (st (if effort?
+                   (let*/and ((st (foldl/and (lambda (u&c st)
+                                               (match-define (cons uid? c) u&c)
+                                               (c-apply st uid? c))
+                                             st (hash->list (state-cx st.0)))))
+                     (state-enforce-local-consistency st))
+                   st)))
     (let ((log (state-log st)))
       (if (and (pair? log) (null? (cdr log)))
         (car log)
@@ -508,7 +515,7 @@
                       (if (null? vs)
                         (error "TODO: unexpanded c:proc without vars:" cx)
                         (state-cx-add st vs vcx-disj-add uid? cx))))
-      (match (c-simplify st (car cs))
+      (match (c-simplify st #f (car cs))
         ;; TODO: if applicable, negate (car cs) in st while simplifying (cdr cs).
         ;; This achieves some disjoint-ness across branches, reducing redundancy
         ;; in the search space.  (Ideally we would also do the same in reverse,
@@ -676,9 +683,7 @@
               (define domain? (and lbi ubi (finite-interval? lb ub)))
               (if domain?
                 ;; TODO: instead, produce a table constraint for efficiency?
-                ;; TODO: how do we prevent repeated introduction of this finite
-                ;; domain constraint?
-                (disjoin st.new #f (map (lambda (t) (c:== x t)) domain?))
+                (disjoin st.new x (map (lambda (t) (c:== x t)) domain?))
                 st.new))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -12,6 +12,10 @@ Typical use:
 
 ## TODO
 
+* `explain` for extracting the database subset needed to reproduce a query's results
+  * with each result, run an instrumented query to record supporting facts
+  * there may be redundancy (one result could be computed in multiple ways)
+
 * only register `c:table` with the subset of variables that are indexable
 * factor out table choosing
 
@@ -24,9 +28,9 @@ Typical use:
       maintain arc consistency
     * instead of MRV heuristic, a better heuristic considers how variables
       constrain relations
-      * rank relation constraints by the ratio of rows `remaining/total`
-        * a constraint's remaining rows are those whose first column value
-          falls within the constraint's corresponding variable's bounds
+      * ~~rank relation constraints by the ratio of rows `remaining/total`~~
+        * ~~a constraint's remaining rows are those whose first column value
+          falls within the constraint's corresponding variable's bounds~~
         * smallest ratio wins, choose that constraint's first column variable
       * it may also make sense to consider all the ratios a variable
         participates in, and rank variables by some function on these ratios
@@ -59,10 +63,10 @@ Typical use:
       * may store intermediate results per subquery for faster integration
 
 * redesign states, strategies to support adaptive analysis and optimization
-  * hypothetical states for analyzing and transforming disjunction components
+  * ~~hypothetical states for analyzing and transforming disjunction components~~
     * should also use this approach for transforming arbitrary formulas
-    * process a disjunct's constraints in the usual way, but retain simplified
-      residual constraints
+    * ~~process a disjunct's constraints in the usual way, but retain simplified
+      residual constraints~~
       * optionally expand user-defined relations
     * may detect more opportunities for subsumption by reordering
     * may drop constraints for eliminated disjunct-local variables
@@ -84,7 +88,6 @@ Typical use:
 * thread-safe table retrieval
 * tee/piping output logs to file
 * background worker threads/places for materialization
-* metadata.scm protocol versioning for automatic update/migration
 * documentation and examples
   * small tsv data example for testing materialization
 * support an interactive stepping/user-choice "strategy"
@@ -136,7 +139,7 @@ Typical use:
     * prefix: `(ID . end)`
     * suffix: `(ID . start)`
     * slice:  `#(ID start end)`
-  * binary/bytevector serialization format for compact storage and fast loading
+  * ~~binary/bytevector serialization format for compact storage and fast loading~~
     * more efficient numbers: polymorphic, int, rat
       * consider exponent-based representations when they would be more compact
   * string (and suffix) full-text search via bytes rather than chars?
@@ -229,9 +232,10 @@ Typical use:
     * fixed-width: logical position (ID) = file-position / width
       * text suffix: `(ID . start-pos)`
   * metadata
-    * integrity/consistency checking
-      * source files (csvs or otherwise) with their size/modification-time
-        * element type/transformations, maybe statistics about their content
+    * ~~integrity/consistency checking~~
+      * ~~source files (csvs or otherwise) with their size/modification-time~~
+        * ~~element type/transformations~~
+        * maybe statistics about their content
     * files/types and table dependencies
       * text suffix:
         * suffix file
@@ -243,26 +247,16 @@ Typical use:
 ### Relational language for rules and queries
 
 * functional term sublanguage
-  * atoms and constructors can be appear freely
-  * other computation appears under `:==`
-    * should be referentially transparent
-    * e.g., subqueries used for aggregation, implicitly grouped by outer query
+  * ~~atoms and constructors can be appear freely~~
+  * ~~other computation appears under `:==`~~
+    * ~~should be referentially transparent~~
+    * ~~e.g., subqueries used for aggregation, implicitly grouped by outer query~~
   * maybe indicate monotonicity for efficient incremental update
     * by default, `:==` will stratify based on dependencies
 
 * relations
-  * `(define-relation (name param ...) formula ...) => (define name (relation (param ...) formula ...))`
-  * `(define-relation/data (name param ...) data-description)`
-  * `(relation (param-name ...) formula ...)`
-  * `(:== term (var-name ...) term-computation ...)`
-    * computed term that indicates its logic variable dependencies
-    * force vars to be grounded so that embedded Racket computation succeeds
-    * result is equated with left-hand term (first argument to `:==`)
   * local relation definitions to share work (cached results) during aggregation
     * `(let-relations (((name param ...) formula ...) ...) formula ...)`
-  * usual mk formula constructors:
-    * `fresh`, `conde`, and constraints such as `==`, `=/=`, `symbolo`, etc.
-    * `(r arg+ ...)` where `r` is a relation and `arg+ ...` are terms
   * if `r` is a relation:
     * `(r arg+ ...)` relates `arg+ ...` by `r`
     * `(relations-ref r)` accesses a metaprogramming control structure
@@ -288,12 +282,6 @@ Typical use:
   * relation extension?
 
 * evaluation
-  * relational computation is performed in the context of a logic environment
-    * logic environments are introduced by query and relation
-    * logic environments are extended by fresh
-  * query and other term computation is performed in the context of Racket
-    * Racket environments are embedded in logic environments by `:==`
-    * can only occur during forward/bottom-up computation (ground variables)
   * query evaluation
     * precompute relevant persistent/cached safe relations via forward-chaining
     * safe/finite results loop (mostly backward-chaining)
@@ -306,14 +294,14 @@ Typical use:
           * track call history to measure this
           * recursive calls of exactly the same size are considered failures
         * keep results of branching relation calls independent until join phase
-      * maintain constraint satisfiability
-        * constraint propagation loop: `state-enforce-local-consistency`
-          * cheap first-pass via domain consistency, then arc consistency
+      * ~~maintain constraint satisfiability
+        * ~~constraint propagation loop: `state-enforce-local-consistency`~~
+          * ~~cheap first-pass via domain consistency, then arc consistency~~
           * backjump and learn clauses when conflict is detected
-        * then global satisfiability via search
-          * choose candidate for the most-constrained variable
-            * maybe the variable participating in largest number of constraints
-          * interleave search candidate choice with cheap first-pass methods
+        * ~~then global satisfiability via search~~
+          * ~~choose candidate for the most-constrained variable~~
+            * ~~maybe the variable participating in largest number of constraints~~
+          * ~~interleave search candidate choice with cheap first-pass methods~~
       * perform the (possibly multi-way) join with lowest estimated cost
       * repeat until either all results computed or only unsafe calls remain
     * perform unsafe interleaving until finished or safe calls reappear

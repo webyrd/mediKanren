@@ -1,7 +1,7 @@
 #lang racket/base
 (provide s-next s-force s-split s-take s-drop s-each s-foldr s-foldl s-scan
          s-append/interleaving s-append*/interleaving
-         s-append s-append* s-map/append s-map s-filter s-group s-memo
+         s-append s-append* s-map/append s-map s-filter s-group s-memo s-lazy
          s-length s-enumerate s-dedup s-limit)
 (require racket/function racket/match)
 
@@ -99,6 +99,15 @@
                                  v)))
         ((null? s)      '())
         (else           (cons (car s) (s-memo (cdr s))))))
+
+(define (s-lazy s)
+  (define (return s)
+    (cond ((null? s) '())
+          (else      (cons (car s) (s-lazy (cdr s))))))
+  (thunk (cond ((procedure? s) (let retry ((s (s)))
+                                 (cond ((procedure? s) (thunk (retry (s))))
+                                       (else           (return s)))))
+               (else           (return s)))))
 
 (define (s-enumerate i s)
   (cond ((null? s) '())

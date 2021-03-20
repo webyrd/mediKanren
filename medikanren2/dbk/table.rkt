@@ -522,6 +522,15 @@
         (else            default)))
 (define (alist-remove alist key)
   (filter (lambda (kv) (not (equal? (car kv) key))) alist))
+(define (alist-update alist key v->v (default (void)))
+  (let loop ((kvs alist) (prev '()))
+    (cond ((null?        kvs     )
+           (when (void? default) (error "missing key in association list:" key alist))
+           (cons (cons key (v->v default)) alist))
+          ((equal? (caar kvs) key) (foldl cons (cons (cons key (v->v (cdar kvs))) (cdr kvs)) prev))
+          (else                    (loop (cdr kvs) (cons (car kvs) prev))))))
+(define (alist-set alist key value)
+  (alist-update alist key (lambda (_) value) #f))
 
 (define (list-arranger input-names output-names)
   (define ss.in    (generate-temporaries input-names))
@@ -599,14 +608,13 @@
   (unless (valid-key-type? (hash-ref name=>type key #f))
     (error "invalid key type:" (hash-ref name=>type key #f) key))
   (make-directory* path.dir)
-  (define metadata-fname
+  (define path.metadata
     (path->string (build-path path.dir metadata-file-name)))
   (define primary-fprefix "primary")
   (define primary-fname (path->string (build-path path.dir primary-fprefix)))
   (define index-fprefixes
     (map (lambda (i) (string-append "index." (number->string i)))
          (range (length index-tds))))
-  (define metadata-out (open-output-file metadata-fname))
   (define primary-t (tabulator path.dir primary-fprefix
                                primary-column-names primary-column-types key))
   (method-lambda
@@ -622,28 +630,98 @@
                  (map (lambda (fprefix td) `((file-prefix . ,fprefix)
                                              (column-names . ,td)))
                       index-fprefixes index-tds)))
-             (pretty-write `((attribute-names . ,attribute-names)
-                             (attribute-types . ,attribute-types)
-                             (primary-table   . ,primary-info)
-                             (index-tables    . ,index-infos)
-                             (source-info     . ,source-info))
-                           metadata-out)
-             (close-output-port metadata-out))))
+             (write-metadata path.metadata attribute-names attribute-types
+                             primary-info index-infos source-info))))
+
+(define (write-metadata path attribute-names attribute-types primary-info index-infos source-info)
+  (let/files () ((out.metadata path))
+    (pretty-write `((metadata-format-version . ,metadata-format-version.latest)
+                    (attribute-names         . ,attribute-names)
+                    (attribute-types         . ,attribute-types)
+                    (primary-table           . ,primary-info)
+                    (index-tables            . ,index-infos)
+                    (source-info             . ,source-info))
+                  out.metadata)))
+
+(define (metadata/2020-12-19.0 info)
+  (define source-info (make-immutable-hash (hash-ref info 'source-info)))
+  (define source-info.new
+    (foldl (lambda (k v source-info) (hash-set source-info k v))
+           (hash-remove source-info 'transform)
+           '(map/append map filter)
+           (list (hash-ref source-info 'map/append #f)
+                 (hash-ref source-info 'map        (hash-ref source-info 'transform #f))
+                 (hash-ref source-info 'filter     #f))))
+  (foldl (lambda (k v info) (hash-set info k v))
+         info
+         '(metadata-format-version source-info)
+         `(2021-03-18.0
+           ,(if (hash-has-key? source-info.new 'path)
+              (map (lambda (k) (cons k (hash-ref source-info.new k)))
+                   '(path format header stats map/append map filter))
+              (map (lambda (k) (cons k (hash-ref source-info.new k)))
+                   '(stream map/append map filter))))))
+
+(define (metadata/2021-03-18.0 info)
+  ;; TODO: define an appropriate transformtion once this is no longer the latest version
+  info)
+
+;; TODO: when new metadata formats are introduced, update the old handlers to
+;; have them transform an instance of the old format into an instance of the
+;; newest format.  This can be done by composing handlers.
+
+;; TODO: register new metadata-format-version handlers here
+(define metadata-format-version.latest '2021-03-18.0)
+(define metadata/format-version
+  (hash '2021-03-18.0 metadata/2021-03-18.0
+        '2020-12-19.0 metadata/2020-12-19.0))
 
 (define (read-metadata path)
-  (define info (let/files ((in path)) () (read in)))
-  (when (eof-object? info) (error "corrupt relation metadata:" path))
+  (define info.0 (let/files ((in path)) () (read in)))
+  (when (eof-object? info.0) (error "corrupt relation metadata:" path))
+  (define info.1 (make-immutable-hash info.0))
+  (define info ((hash-ref metadata/format-version
+                          (hash-ref info.1 'metadata-format-version '2020-12-19.0))
+                info.1))
+  (define diff
+    (foldl (lambda (k diff)
+             (cond ((not (hash-has-key? info   k)) (cons `(,k old: ,(hash-ref info.1 k)) diff))
+                   ((not (hash-has-key? info.1 k)) (cons `(,k new: ,(hash-ref info   k)) diff))
+                   (else (define v.new (hash-ref info   k))
+                         (define v.old (hash-ref info.1 k))
+                         (if (equal? v.new v.old) diff
+                           (cons `(,k old: ,v.old new: ,v.new) diff)))))
+           '()
+           (set->list (set-union (list->set (hash-keys info))
+                                 (list->set (hash-keys info.1))))))
+  (define should-update?
+    (and (not (null? diff))
+         (policy-allow?
+           (current-config-ref 'update-policy)
+           (lambda ()
+             (printf "Current ~s is written in an old format:\n" path)
+             (for-each pretty-write diff))
+           "Update ~s to the latest format?" (list path))))
+  (when should-update?
+    (define path.backup (string-append path ".backup"))
+    (when (file-exists? path.backup)
+      (error "backup path already exists:" path.backup))
+    (rename-file-or-directory path path.backup)
+    (apply write-metadata path
+           (map (lambda (k) (hash-ref info k))
+                '(attribute-names attribute-types primary-table index-tables source-info)))
+    (delete-file path.backup))
   info)
 
 (define (update-materialization! path.dir info tables.added tables.removed)
   (define path.metadata        (path->string
                                  (build-path path.dir metadata-file-name)))
   (define path.metadata.backup (string-append path.metadata ".backup"))
-  (define attribute-names      (alist-ref info 'attribute-names))
-  (define attribute-types      (alist-ref info 'attribute-types))
-  (define source-info          (alist-ref info 'source-info))
-  (define primary-info         (alist-ref info 'primary-table))
-  (define index-infos          (alist-ref info 'index-tables))
+  (define attribute-names      (hash-ref info 'attribute-names))
+  (define attribute-types      (hash-ref info 'attribute-types))
+  (define source-info          (hash-ref info 'source-info))
+  (define primary-info         (hash-ref info 'primary-table))
+  (define index-infos          (hash-ref info 'index-tables))
   (define primary-key-name     (alist-ref primary-info 'key-name))
   (define primary-column-names (alist-ref primary-info 'column-names))
   (define source-fprefix
@@ -657,7 +735,7 @@
   (define cols=>info
     (make-immutable-hash
       (map (lambda (info.it) (cons (alist-ref info.it 'column-names) info.it))
-           (alist-ref info 'index-tables))))
+           (hash-ref info 'index-tables))))
   (define index-infos.current
     (hash-values (foldl (lambda (cols c=>i) (hash-remove c=>i cols))
                         cols=>info tables.removed)))
@@ -688,14 +766,9 @@
   (define index-infos.new
     (materialize-index-tables! path.dir source-fprefix name->type
                                source-names index-descriptions.added))
-  (let/files () ((metadata-out path.metadata))
-    (pretty-write `((attribute-names . ,attribute-names)
-                    (attribute-types . ,attribute-types)
-                    (primary-table   . ,primary-info)
-                    (index-tables    . ,(append index-infos.current
-                                                index-infos.new))
-                    (source-info     . ,source-info))
-                  metadata-out))
+  (write-metadata path.metadata attribute-names attribute-types
+                  primary-info (append index-infos.current index-infos.new)
+                  source-info)
   (delete-file path.metadata.backup))
 
 (define (materialization/vector vector.in kwargs)
@@ -761,7 +834,7 @@
     (error "materialized relation directory does not exist:" path.dir))
   (define path.metadata  (path->string
                            (build-path path.dir metadata-file-name)))
-  (define info           (make-immutable-hash (read-metadata path.metadata)))
+  (define info           (read-metadata path.metadata))
   (define attribute-names    (hash-ref info 'attribute-names))
   (define attribute-types    (hash-ref info 'attribute-types))
   (define primary-info-alist (hash-ref info 'primary-table))
@@ -885,10 +958,10 @@
     (let* ((path.metadata       (path->string
                                   (build-path path.dir metadata-file-name)))
            (info                (read-metadata path.metadata))
-           (source-info.old     (alist-ref info 'source-info #f))
-           (attribute-names.old (alist-ref info 'attribute-names))
-           (attribute-types.old (alist-ref info 'attribute-types))
-           (primary-table.old   (alist-ref info 'primary-table))
+           (source-info.old     (hash-ref info 'source-info #f))
+           (attribute-names.old (hash-ref info 'attribute-names))
+           (attribute-types.old (hash-ref info 'attribute-types))
+           (primary-table.old   (hash-ref info 'primary-table))
            (key-name.old        (alist-ref primary-table.old 'key-name))
            (primary-columns.old (alist-ref primary-table.old 'column-names))
            (primary-columns.new (car table-descriptions)))
@@ -942,7 +1015,7 @@
             (else
               (define colss.current
                 (map (lambda (info.it) (alist-ref info.it 'column-names))
-                     (alist-ref info 'index-tables)))
+                     (hash-ref info 'index-tables)))
               (define colss.new (cdr table-descriptions))
               (define (cols-current? cols) (member cols colss.current))
               (define (cols-new?     cols) (member cols colss.new))
