@@ -78,13 +78,13 @@
   (define d (current-date))
   (define stamp (list (date-month d) (date-day d)
                       (date-hour d) (date-minute d) (date-second d)))
-  (apply printf msg (date-year d) (append (map pad2 stamp) args)))
+  (apply eprintf msg (date-year d) (append (map pad2 stamp) args)))
 
 (define (logf message . args)
   (define msg (string-append "[~a:~a:~a] " message))
   (define d (current-date))
   (define stamp (list (date-hour d) (date-minute d) (date-second d)))
-  (apply printf msg (append (map pad2 stamp) args)))
+  (apply eprintf msg (append (map pad2 stamp) args)))
 
 ;; TODO: job system
 ;; single worker thread

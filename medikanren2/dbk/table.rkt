@@ -286,8 +286,9 @@
                     (loop end)))))))
 
 (define (file-stats path)
-  `((size . ,(file-size path))
-    (time . ,(file-or-directory-modify-seconds path))))
+  (and (file-exists? path)
+       `((size . ,(file-size path))
+         (time . ,(file-or-directory-modify-seconds path)))))
 
 (define (table/metadata retrieval-type directory-path info-alist)
   (define info         (make-immutable-hash info-alist))
@@ -608,8 +609,7 @@
   (unless (valid-key-type? (hash-ref name=>type key #f))
     (error "invalid key type:" (hash-ref name=>type key #f) key))
   (make-directory* path.dir)
-  (define path.metadata
-    (path->string (build-path path.dir metadata-file-name)))
+  (define path.metadata (path->string (build-path path.dir metadata-file-name)))
   (define primary-fprefix "primary")
   (define primary-fname (path->string (build-path path.dir primary-fprefix)))
   (define index-fprefixes
@@ -897,6 +897,9 @@
                       (map (lambda (s) (if (symbol? s) (symbol->string s) s))
                            header.in)
                       header.in))
+  (define path.metadata (path->string (build-path path.dir metadata-file-name)))
+  (define info          (and (directory-exists? path.dir) (read-metadata path.metadata)))
+
   (define (code->info code)
     (cond ((procedure? code)    #t)
           ((value+syntax? code) (syntax->datum (value+syntax-syntax code)))
@@ -913,7 +916,9 @@
     (cond (path.in   `((path       . ,fn.in)
                        (format     . ,format)
                        (header     . ,header)
-                       (stats      . ,(file-stats path.in))
+                       (stats      . ,(or (file-stats path.in)
+                                          (and info (alist-ref (hash-ref info 'source-info '())
+                                                               'stats #f))))
                        (map/append . ,(code->info map/append-code))
                        (map        . ,(code->info map-code))
                        (filter     . ,(code->info filter-code))))
@@ -954,11 +959,8 @@
       (begin (logf/date "Materializing relation ~s from stream\n" path)
              (materialize-stream source-info (code->value stream.in)))))
 
-  (if (directory-exists? path.dir)
-    (let* ((path.metadata       (path->string
-                                  (build-path path.dir metadata-file-name)))
-           (info                (read-metadata path.metadata))
-           (source-info.old     (hash-ref info 'source-info #f))
+  (if info
+    (let* ((source-info.old     (hash-ref info 'source-info #f))
            (attribute-names.old (hash-ref info 'attribute-names))
            (attribute-types.old (hash-ref info 'attribute-types))
            (primary-table.old   (hash-ref info 'primary-table))
