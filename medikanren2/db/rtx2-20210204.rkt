@@ -1,0 +1,51 @@
+#lang racket/base
+(provide concept cprop edge eprop)
+(require "../common.rkt" (except-in racket/match ==))
+
+;; TODO: this might be useful later
+;(define-relation/table concept
+  ;'path               "rtx2/20210204/concept"
+  ;'source-file-path   "rtx2/20210204/rtx_kg2.node.tsv"
+  ;'source-file-header '(":ID")
+  ;'attribute-names    '(curie)
+  ;'attribute-types    '(string))
+(define-relation (concept curie)
+  (fresh (k v)
+    (cprop curie k v)))
+
+(define-relation/table cprop
+  'path               "rtx2/20210204/cprop"
+  'source-file-path   "rtx2/20210204/rtx_kg2.nodeprop.tsv"
+  'source-file-header '(:ID propname value)
+  'attribute-names    '(curie key value)
+  'attribute-types    '(string string string)
+  'tables             '((curie key value))
+  'indexes            '((key value)))
+
+(define-relation/table edge
+  'path               "rtx2/20210204/edge"
+  'source-file-path   "rtx2/20210204/rtx_kg2.edge.tsv"
+  'source-file-header '(":ID" ":START" ":END")
+  'map                (value/syntax
+                        (let ((count 0))
+                          (lambda (row)
+                            (set! count (+ count 1))
+                            (when (null? row) (error "empty row:" count))
+                          (match-define (list id subject object) row)
+                          (list (string->number id) subject object))))
+  'attribute-names    '(id subject object)
+  'attribute-types    '(nat string string)
+  'indexes            '((subject object)
+                        (object subject)))
+
+(define-relation/table eprop
+  'path               "rtx2/20210204/eprop"
+  'source-file-path   "rtx2/20210204/rtx_kg2.edgeprop.tsv"
+  'source-file-header '(":ID" "propname" "value")
+  'map                (value/syntax
+                        (lambda (row)
+                          (match-define (list id key value) row)
+                          (list (string->number id) key value)))
+  'attribute-names    '(id key value)
+  'attribute-types    '(nat string string)
+  'indexes            '((key value)))
