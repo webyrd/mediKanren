@@ -22,14 +22,14 @@
       (append (list (cons 'relation-root-path  path.data)
                     (cons 'temporary-root-path (path/data "temporary")))
               (with-input-from-file path read))))
-  (when verbose? (printf "loading configuration defaults: ~a\n"
+  (when verbose? (eprintf "loading configuration defaults: ~a\n"
                          path.config.defaults))
   (current-config (config/file path.config.defaults))
   (define path (or (and path.config (file-exists? path.config) path.config)
                    (and (file-exists? path.config.override)
                         path.config.override)))
   (when path
-    (when verbose? (printf "loading configuration overrides: ~a\n" path))
+    (when verbose? (eprintf "loading configuration overrides: ~a\n" path))
     (current-config (config/file path))))
 
 (load-config)
