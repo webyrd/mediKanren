@@ -1,7 +1,7 @@
 #lang racket/base
 (provide concept cprop edge eprop
          subclass-of subclass-of+ subclass-of*)
-(require "../common.rkt" (except-in racket/match ==))
+(require "../base.rkt" (except-in racket/match ==))
 
 ;; TODO: this might be useful later
 ;(define-relation/table concept

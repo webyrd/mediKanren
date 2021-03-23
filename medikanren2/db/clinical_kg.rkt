@@ -1,7 +1,7 @@
 #lang racket/base
 ;; provide will load the materialized relation defined below
 (provide patient-clinical-data)
-(require "../common.rkt" (except-in racket/match ==))
+(require "../base.rkt" (except-in racket/match ==))
 
 (define path-clinical-data )
 
