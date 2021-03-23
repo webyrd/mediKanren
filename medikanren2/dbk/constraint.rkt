@@ -553,9 +553,10 @@
 
 ;; TODO: this should be renamed to relation/table
 (define (relation/table . pargs)
-  ;; TODO: should we need primary-key-name?
-  (match-define (list name attribute-names primary-key-name ixs)
-    (apply materialization pargs))
+  (match-define (list info ixs) (apply materialization pargs))
+  (define name             (hash-ref info 'relation-name))
+  (define attribute-names  (hash-ref info 'attribute-names))
+  (define primary-key-name (hash-ref info 'key-name))
   ;; TODO: this is a workaround to make sure key column is tracked for update.
   (define attrs
     (if (member primary-key-name attribute-names)
@@ -606,6 +607,7 @@
                  t))))))
       (c-apply st #f (c:table tc))))
   (define r (make-relation name attribute-names))
+  (relations-set! r 'definition-info info)
   (if t.0
     (relations-set! r 'apply  app)
     (relations-set! r 'expand (lambda args (== (cons name args) 'nothing))))

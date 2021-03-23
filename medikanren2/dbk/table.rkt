@@ -826,7 +826,10 @@
              (table/vector #f column-names column-types
                            (vector-dedup index-src)))
            (cdr table-descriptions))))
-  (list name attribute-names key (cons primary-t index-ts)))
+  (list (foldl (lambda (k v info) (hash-set info k v)) info
+               '(key-name attribute-types table-descriptions missing-data?)
+               (list key attribute-types table-descriptions (not (hash-ref info 'source-vector #f))))
+        (cons primary-t index-ts)))
 
 (define (materialization/path directory-path kwargs)
   (define name           (alist-ref kwargs 'relation-name))
@@ -847,7 +850,10 @@
   (define index-ts
     (map (lambda (info) (table/metadata retrieval-type path.dir info))
          (hash-ref info 'index-tables '())))
-  (list name attribute-names primary-key-name (cons primary-t index-ts)))
+  (list (foldl (lambda (k v info) (hash-set info k v)) info
+               '(relation-name key-name retrieval-type)
+               (list name primary-key-name retrieval-type))
+        (cons primary-t index-ts)))
 
 (define (materialization . pargs)
   (define kwargs        (plist->alist pargs))
