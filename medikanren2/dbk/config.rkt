@@ -12,9 +12,12 @@
       (temporary-root-path        . #f) ;; root path for temporary caches
       (buffer-size                . 100000)
       (progress-logging-threshold . 100000) ;; number of rows per log message
+      ;; interactive, always, never
       (update-policy              . interactive) ;; rebuild stale tables
       (cleanup-policy             . interactive) ;; remove unspecified indexes
       (migrate-policy             . interactive) ;; migrate to new data format
+      (allow-missing-data-policy  . interactive) ;; ignore missing data
+      ;; biased-interleaving (default), depth-first
       (search-strategy            . #f))))
 
 (define (valid-config?! cfg)
