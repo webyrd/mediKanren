@@ -1,7 +1,6 @@
 #lang racket/base
 (provide concept cprop edge eprop
-         subclass-of
-         subclass-of+)
+         subclass-of subclass-of+ subclass-of*)
 (require "../common.rkt" (except-in racket/match ==))
 
 ;; TODO: this might be useful later
@@ -59,3 +58,7 @@
          ((fresh (mid)
             (subclass-of mid b)
             (subclass-of+ a mid)))))
+
+(define-relation (subclass-of* a b)
+  (conde ((== a b))
+         ((subclass-of+ a b))))
