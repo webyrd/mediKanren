@@ -643,6 +643,16 @@
                     (source-info             . ,source-info))
                   out.metadata)))
 
+(define (update-metadata path info)
+  (define path.backup (string-append path ".backup"))
+  (when (file-exists? path.backup)
+    (error "backup path already exists:" path.backup))
+  (rename-file-or-directory path path.backup)
+  (apply write-metadata path
+         (map (lambda (k) (hash-ref info k))
+              '(attribute-names attribute-types primary-table index-tables source-info)))
+  (delete-file path.backup))
+
 (define (metadata/2020-12-19.0 info)
   (define source-info (make-immutable-hash (hash-ref info 'source-info)))
   (define source-info.new
@@ -702,15 +712,7 @@
              (printf "Current ~s is written in an old format:\n" path)
              (for-each pretty-write diff))
            "Update ~s to the latest format?" (list path))))
-  (when should-update?
-    (define path.backup (string-append path ".backup"))
-    (when (file-exists? path.backup)
-      (error "backup path already exists:" path.backup))
-    (rename-file-or-directory path path.backup)
-    (apply write-metadata path
-           (map (lambda (k) (hash-ref info k))
-                '(attribute-names attribute-types primary-table index-tables source-info)))
-    (delete-file path.backup))
+  (when should-update? (update-metadata path info))
   info)
 
 (define (update-materialization! path.dir info tables.added tables.removed)
@@ -970,7 +972,7 @@
       (unless (equal? attribute-names attribute-names.old)
         (error "new relation attributes are incompatible with old:" path
                'new: attribute-names 'old: attribute-names.old))
-      (define stale-fields
+      (define stale-fields.0
         (map (lambda (desc)
                (match-define (list key new old) desc)
                `(,key new: ,new old: ,old))
@@ -985,6 +987,19 @@
                                   ,primary-columns.old)))))
       (define update-policy  (current-config-ref 'update-policy))
       (define cleanup-policy (current-config-ref 'cleanup-policy))
+      (define stale-fields
+        (if (and (equal? '(source-info) (map car stale-fields.0))
+                 (policy-allow?
+                   update-policy
+                   (lambda ()
+                     (printf "Existing source-info for relation ~s is stale:\n" path)
+                     (for-each pretty-write stale-fields.0))
+                   "Update ~s metadata with new source-info without rematerializing?" (list path)))
+          (begin (printf "Updating ~s" path.metadata)
+                 (update-metadata path.metadata (hash-set info 'source-info source-info))
+                 (printf "Update of ~s finished" path.metadata)
+                 '())
+          stale-fields.0))
       (define allow-update?
         (or (null? stale-fields)
             (policy-allow?
