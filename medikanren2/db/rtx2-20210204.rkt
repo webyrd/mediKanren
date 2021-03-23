@@ -1,5 +1,7 @@
 #lang racket/base
-(provide concept cprop edge eprop)
+(provide concept cprop edge eprop
+         subclass-of
+         subclass-of+)
 (require "../common.rkt" (except-in racket/match ==))
 
 ;; TODO: this might be useful later
@@ -46,3 +48,14 @@
   'attribute-names    '(id key value)
   'attribute-types    '(nat string string)
   'indexes            '((key value)))
+
+(define-relation (subclass-of a b)
+  (fresh (eid)
+    (eprop eid "predicate" "biolink:subclass_of")
+    (edge eid a b)))
+
+(define-relation (subclass-of+ a b)
+  (conde ((subclass-of a b))
+         ((fresh (mid)
+            (subclass-of mid b)
+            (subclass-of+ a mid)))))
