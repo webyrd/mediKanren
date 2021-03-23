@@ -27,12 +27,9 @@
   'source-file-path   "rtx2/20210204/rtx_kg2.edge.tsv"
   'source-file-header '(":ID" ":START" ":END")
   'map                (value/syntax
-                        (let ((count 0))
-                          (lambda (row)
-                            (set! count (+ count 1))
-                            (when (null? row) (error "empty row:" count))
+                        (lambda (row)
                           (match-define (list id subject object) row)
-                          (list (string->number id) subject object))))
+                          (list (string->number id) subject object)))
   'attribute-names    '(id subject object)
   'attribute-types    '(nat string string)
   'indexes            '((subject object)
