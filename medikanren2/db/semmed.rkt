@@ -1,5 +1,5 @@
 #lang racket/base
-(provide concept cprop edge eprop)
+(provide tabled-relations concept cprop edge eprop)
 (require "../base.rkt" (except-in racket/match ==))
 
 ;; TODO: this might be useful later
@@ -53,3 +53,5 @@
   'attribute-types    '(nat string string)
   'indexes            '((key value)
                         (value)))
+
+(define tabled-relations (list cprop edge eprop))
