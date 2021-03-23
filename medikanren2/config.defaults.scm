@@ -7,7 +7,7 @@
  (update-policy              . interactive)
  (cleanup-policy             . interactive)
  (migrate-policy             . interactive)
- (allow-missing-data-policy  . interactive)
+ (allow-missing-data-policy  . always)
  ;; biased-interleaving (default), depth-first
  (search-strategy            . #f)
 
