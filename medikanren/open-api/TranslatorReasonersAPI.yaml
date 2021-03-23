@@ -17,7 +17,7 @@ info:
     - "Unsecret Agent"
 externalDocs:
   description: >-
-    Documentation for the NCATS Biomedical Translator Reasoners web services
+    Documentation for the NCATS Biomedical Translator Reasoners web services.
   url: https://github.com/NCATS-Tangerine/NCATS-ReasonerStdAPI
 tags:
   - name: predicates
