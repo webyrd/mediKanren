@@ -1,5 +1,6 @@
 #lang racket/base
-(provide (all-from-out "dbk/dbk.rkt") load-config)
+(provide (all-from-out "dbk/dbk.rkt") load-config
+         relation-name relation-definition-info relation-missing-data?)
 (require
   "dbk/dbk.rkt"
   racket/runtime-path)
@@ -33,3 +34,7 @@
     (current-config (config/file path))))
 
 (load-config)
+
+(define (relation-name            r) (hash-ref (relations-ref r)            'name))
+(define (relation-definition-info r) (hash-ref (relations-ref r)            'definition-info))
+(define (relation-missing-data?   r) (hash-ref (relation-definition-info r) 'missing-data? #f))

@@ -20,10 +20,8 @@
            (list dbname
                  (filter-not
                    not
-                   (map (lambda (r)
-                          (and (hash-ref (hash-ref (relations-ref r) 'definition-info)
-                                         'missing-data? #f)
-                               (hash-ref (relations-ref r) 'name)))
+                   (map (lambda (r) (and (relation-missing-data? r)
+                                         (relation-name r)))
                         (hash-ref dbname=>tabled-relations dbname)))))
          (hash-ref (current-config) 'databases))))
 
