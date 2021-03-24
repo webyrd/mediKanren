@@ -46,3 +46,19 @@
 (define-relation (eprop eid k v)
   (conde ((fresh (id) (== eid `(semmed        . ,id)) (semmed:eprop id k v)))
          ((fresh (id) (== eid `(rtx2-20210204 . ,id)) (rtx:eprop    id k v)))))
+
+;; Semantic-web flavored relations
+
+(define-relation (triple s p o)
+  (fresh (eid)
+    (eprop eid "predicate" p)
+    (edge eid s o)))
+
+(define-relation (is-a s c)
+  (cprop s "category" c))
+
+(define-relation (triple-property s p o k v)
+  (fresh (eid)
+    (edge eid s o)
+    (eprop eid "predicate" p)
+    (eprop eid k v)))
