@@ -1,7 +1,8 @@
 #lang racket/base
 (provide (all-from-out "base.rkt"
                        "db/semmed.rkt"
-                       "db/rtx2-20210204.rkt"))
+                       "db/rtx2-20210204.rkt")
+         cprop edge eprop)
 (require "base.rkt"
          (prefix-in semmed: "db/semmed.rkt")
          (prefix-in rtx:    "db/rtx2-20210204.rkt")
@@ -33,3 +34,15 @@
          (map car missing)))
 
 ;; TODO: define higher-level relations over the db-specific relations
+
+(define (cprop c k v)
+  (conde ((semmed:cprop c k v))
+         ((rtx:cprop    c k v))))
+
+(define (edge eid s o)
+  (conde ((fresh (id) (== eid `(semmed        . ,id)) (semmed:edge id s o)))
+         ((fresh (id) (== eid `(rtx2-20210204 . ,id)) (rtx:edge    id s o)))))
+
+(define (eprop eid k v)
+  (conde ((fresh (id) (== eid `(semmed        . ,id)) (semmed:eprop id k v)))
+         ((fresh (id) (== eid `(rtx2-20210204 . ,id)) (rtx:eprop    id k v)))))
