@@ -140,7 +140,8 @@
             (close-input-port in-concept-cui-index)
             (lambda (cui*) (string:corpus-find*      cui-corpus   cui-index            cui*)))
           (else
-            (lambda (cui*) (string:corpus-find*/disk cid->concept in-concept-cui-index cui*)))))
+            (define (lookup cui) (string:corpus-find/disk cid->concept in-concept-cui-index cui))
+            (lambda (cui*) (string:corpus-find*/disk cid->concept lookup cui*)))))
 
   (define ~name*->cid*
     (cond (in-memory-names?
