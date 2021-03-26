@@ -38,6 +38,7 @@
 (require
   "repr.rkt"
   "string-search.rkt"
+  "lru.rkt"
   racket/file
   racket/stream
   racket/string
@@ -139,6 +140,13 @@
             (define cui-index (port->string-keys in-concept-cui-index))
             (close-input-port in-concept-cui-index)
             (lambda (cui*) (string:corpus-find*      cui-corpus   cui-index            cui*)))
+          (num-cached-cuis
+            (define lru
+              (make-lru
+                (lambda (cui) (string:corpus-find/disk cid->concept in-concept-cui-index cui))
+                #:num-entries-max num-cached-cuis))
+            (define (lookup cui) (lru-ref lru cui))
+            (lambda (cui*) (string:corpus-find*/disk cid->concept lookup cui*)))
           (else
             (define (lookup cui) (string:corpus-find/disk cid->concept in-concept-cui-index cui))
             (lambda (cui*) (string:corpus-find*/disk cid->concept lookup cui*)))))
