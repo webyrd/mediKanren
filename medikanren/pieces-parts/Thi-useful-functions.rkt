@@ -1,6 +1,6 @@
 #lang racket
 (provide (all-defined-out))
-(require "../../../medikanren/pieces-parts/query.rkt")
+(require "query.rkt")
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;USEFUL FUNCTIONS;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
