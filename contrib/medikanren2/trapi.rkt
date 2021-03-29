@@ -97,6 +97,7 @@ EOS
   (define nodes  (hash->list (olift (hash-ref qgraph 'nodes hash-empty))))
   (define edges  (hash->list (olift (hash-ref qgraph 'edges hash-empty))))
 
+  ;; TRAPI knowledge_graph (in progress)
   (define kgraph (hash-ref msg 'knowledge_graph #f))
   (define knodes (and kgraph
                       (alist-of-hashes->lists
@@ -111,20 +112,12 @@ EOS
       (:== category-sym (category) (string->symbol category))))
   (define-relation (k-triple eid s p o)
     (fresh (props)
-      ;; (:== eid (eid/raw) (string->number (symbol->string eid/raw))) 
-      ;; (:== #t (eid) (printf "\nEID:~s ~s ~s\n" eid (symbol? eid) kedges) #t)
       (membero `(,eid . ,props) kedges)
       (membero `(subject . ,s) props)
       (membero `(predicate . ,p) props)
       (membero `(object . ,o) props)))
 
-  (fresh (node-bindings edge-bindings)
-    (== bindings `((node_bindings . ,node-bindings) 
-                   (edge_bindings . ,edge-bindings)))
-    (trapi-nodes nodes node-bindings k-is-a)
-    (trapi-edges edges node-bindings edge-bindings k-triple)))
-
-(define-relation (trapi-nodes nodes bindings k-is-a)
+(define-relation (trapi-nodes nodes bindings)
   (let loop ((nodes nodes)
              (bindings bindings))
     (if (null? nodes)
@@ -147,7 +140,7 @@ EOS
                           ((k-is-a var category)))
                    (loop (cdr nodes) bindings-rest))))))))
 
-(define-relation (trapi-edges edges node-bindings edge-bindings k-triple)
+(define-relation (trapi-edges edges node-bindings edge-bindings)
   (let loop ((edges edges) (bindings edge-bindings))
     (if (null? edges)
         (== bindings '())
@@ -170,6 +163,14 @@ EOS
                     ))
             (== bindings `((,id . ,db+eid) . ,bindings-rest))
             (loop (cdr edges) bindings-rest))))))
+
+  (fresh (node-bindings edge-bindings)
+    (== bindings `((node_bindings . ,node-bindings) 
+                   (edge_bindings . ,edge-bindings)))
+    (trapi-nodes nodes node-bindings)
+    (trapi-edges edges node-bindings edge-bindings)))
+
+
 
 (define (trapi-response msg)
   (define results (run 1 bindings (trapi-query msg bindings)))
