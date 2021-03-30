@@ -1,7 +1,7 @@
 #lang racket/base
 (provide trapi-response)
 (require
-  "../../medikanren2/common.rkt"
+  "common.rkt"
   racket/file racket/function racket/list racket/hash
   (except-in racket/match ==)
   racket/port
@@ -10,9 +10,6 @@
   racket/string
   json
   )
-
-;; work in progress, trapi-to-dbk interpreter for use in server?
-
 
 ;; (define q (with-input-from-file "trapi-parsing-test.json" read-json))
 
@@ -183,7 +180,8 @@ EOS
 (define (trapi-response-results results)
   (map (lambda (bindings)
          (hash 'node_bindings 
-               (map (lambda (binding) (hash (car binding) (cdr binding)))
+               (map (lambda (binding) (hash (car binding)
+                                            (list (hash 'id (cdr binding)))))
                     (alist-ref bindings 'node_bindings '()))               
                
                'edge_bindings
@@ -191,7 +189,7 @@ EOS
                       (let* ((db+eid (cdr ebinding))
                              (db     (car db+eid))
                              (eid    (strlift (cdr db+eid))))
-                        (hash (car ebinding) eid)))
+                        (hash (car ebinding) (list (hash 'id eid)))))
                     (alist-ref bindings 'edge_bindings '()))))
        results))
 
