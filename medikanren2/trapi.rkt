@@ -140,7 +140,7 @@ EOS
 (define-relation (trapi-edges edges node-bindings edge-bindings)
   (let loop ((edges edges) (bindings edge-bindings))
     (if (null? edges)
-        (== bindings '())
+        (== bindings '()) 
         (let* ((id+e      (car edges))
                (id        (car id+e))
                (e         (cdr id+e))
@@ -170,7 +170,7 @@ EOS
 
 
 (define (trapi-response msg)
-  (define results (run 1 bindings (trapi-query msg bindings)))
+  (define results (run* bindings (trapi-query msg bindings)))
   (hash 'message
         (hash 'results (trapi-response-results results)
               'knowledge_graph
@@ -179,18 +179,20 @@ EOS
 
 (define (trapi-response-results results)
   (map (lambda (bindings)
-         (hash 'node_bindings 
-               (map (lambda (binding) (hash (car binding)
-                                            (list (hash 'id (cdr binding)))))
-                    (alist-ref bindings 'node_bindings '()))               
+         (hash 'node_bindings
+               (make-hash
+                (map (lambda (binding) 
+                       `(,(car binding) ,(hash 'id (cdr binding))))
+                     (alist-ref bindings 'node_bindings '())))
                
                'edge_bindings
-               (map (lambda (ebinding)
-                      (let* ((db+eid (cdr ebinding))
-                             (db     (car db+eid))
-                             (eid    (strlift (cdr db+eid))))
-                        (hash (car ebinding) (list (hash 'id eid)))))
-                    (alist-ref bindings 'edge_bindings '()))))
+               (make-hash
+                (map (lambda (ebinding)
+                       (let* ((db+eid (cdr ebinding))
+                              (db     (car db+eid))
+                              (eid    (strlift (cdr db+eid))))
+                         `(,(car ebinding) ,(hash 'id eid))))
+                     (alist-ref bindings 'edge_bindings '())))) )
        results))
 
 (define (unique-bindings-values results key)
@@ -250,4 +252,6 @@ EOS
 
 (define r2 (trapi-response m2))
 (display (jsexpr->string r2))
+
+
 
