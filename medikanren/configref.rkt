@@ -24,6 +24,15 @@
   (define kv (assoc key dict-config))
   (unless kv (error "missing configuration key:" key))
   (cdr kv))
+(define (validate-config config)
+  (unless (and (list? config) (andmap pair? config))
+    (error "invalid configuration overrides:" config))
+)
+(define (config-combine config.user config.defaults)
+  (define user-keys (map car config.user))
+  (define (user-defined? kv) (member (car kv) user-keys))
+  (append config.user (filter-not user-defined? config.defaults))
+)
 (define (load-config verbose? path:config)
   (define path:config.user     (or path:config (path/root "config.scm")))
   (define path:config.defaults (path/root "config.defaults.scm"))
@@ -35,12 +44,8 @@
                             (read/file path:config.user)
                             '()))
   (define config.defaults (read/file path:config.defaults))
-  (unless (and (list? config.user) (andmap pair? config.user))
-    (error "invalid configuration overrides:" config.user))
-  (define user-keys (map car config.user))
-  (define (user-defined? kv) (member (car kv) user-keys))
-  (set-box! box:config
-            (append config.user (filter-not user-defined? config.defaults))))
+  (validate-config config.user)
+  (set-box! box:config (config-combine config.user config.defaults)))
 
 (module+ test
   ; has required package:
@@ -60,4 +65,17 @@
   (chk
       #:x (config-ref "foo" #:testing-dict '(("bar" . 1))) "missing configuration key")
 
+  ; test validate-config
+  (chk #:x (validate-config (vector)) "invalid configuration overrides")
+  (chk #:x (validate-config '(())) "invalid configuration overrides")
+
+  ; test config-combine
+  (chk #:=
+    (config-ref 'foo #:testing-dict
+      (config-combine '((foo . 1)) '((foo . 2)) ))
+    1)
+  (chk #:=
+    (config-ref 'foo #:testing-dict
+      (config-combine '() '((foo . 2)) ))
+    2)
 )
