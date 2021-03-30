@@ -28,7 +28,7 @@
   (and (pair? kv) (symbol? (car kv))))
 (define (validate-config config)
   (unless (and (list? config) (andmap valid-entry? config))
-    (error "invalid configuration overrides:" config))
+    (error "invalid configuration:" config))
 )
 (define (config-combine config.user config.defaults)
   (define user-keys (map car config.user))
@@ -68,9 +68,9 @@
       #:x (config-ref 'foo #:testing-dict '((bar . 1))) "missing configuration key")
 
   ; test validate-config
-  (chk #:x (validate-config (vector)) "invalid configuration overrides")
-  (chk #:x (validate-config '(())) "invalid configuration overrides")
-  (chk #:x (validate-config '(("foo" . 1))) "invalid configuration overrides")
+  (chk #:x (validate-config (vector)) "invalid configuration")
+  (chk #:x (validate-config '(())) "invalid configuration")
+  (chk #:x (validate-config '(("foo" . 1))) "invalid configuration")
   (chk
       #:do (validate-config '((foo . 1)))
       #:t #t)
