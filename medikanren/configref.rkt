@@ -35,17 +35,17 @@
   (define (user-defined? kv) (member (car kv) user-keys))
   (append config.user (filter-not user-defined? config.defaults))
 )
+(define (path:config.user path:config) (or path:config (path/root "config.scm")))
+(define (path:config.defaults) (path/root "config.defaults.scm"))
 (define (load-config verbose? path:config)
-  (define path:config.user     (or path:config (path/root "config.scm")))
-  (define path:config.defaults (path/root "config.defaults.scm"))
   (when verbose? (printf "loading configuration defaults: ~a\n"
-                         (path-simple path:config.defaults)))
+                         (path-simple (path:config.defaults))))
   (when verbose? (printf "loading configuration overrides: ~a\n"
-                         (path-simple path:config.user)))
-  (define config.user     (if (file-exists? path:config.user)
-                            (read/file path:config.user)
+                         (path-simple (path:config.user path:config))))
+  (define config.user     (if (file-exists? (path:config.user path:config))
+                            (read/file (path:config.user path:config))
                             '()))
-  (define config.defaults (read/file path:config.defaults))
+  (define config.defaults (read/file (path:config.defaults)))
   (validate-config config.user)
   (set-box! box:config (config-combine config.user config.defaults)))
 
@@ -74,6 +74,10 @@
   (chk
       #:do (validate-config '((foo . 1)))
       #:t #t)
+  (chk
+      #:do (validate-config (read/file (path:config.defaults)))
+      #:t #t)
+
 
   ; test config-combine
   (chk #:=
