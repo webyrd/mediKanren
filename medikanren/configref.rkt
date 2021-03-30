@@ -41,3 +41,35 @@
   (define (user-defined? kv) (member (car kv) user-keys))
   (set-box! box:config
             (append config.user (filter-not user-defined? config.defaults))))
+
+(module+ test
+  ; has required package:
+  ;   raco pkg install chk
+  ;
+  ; how to run tests:
+  ;   (cd medikanren && raco test configref.rkt)
+
+  (require chk)
+
+  (define (does-throw thunk)
+      (with-handlers ([exn:fail?
+                    (λ (e) #t)])
+      (thunk)
+      #f)
+  )
+
+  ; test the does-throw function
+  (chk
+      #:t (not (does-throw (lambda () 1))))
+  (chk
+      #:t (does-throw (lambda () (error "an error"))))
+
+  ; test config-ref
+  (chk
+      #:= (config-ref "foo" #:testing-dict '(("foo" . 1))) 1)
+  (chk
+      #:t (not (does-throw (lambda () (config-ref "foo" #:testing-dict '(("foo" . 1)))))))
+  (chk
+      #:t (does-throw (lambda () (config-ref "foo" #:testing-dict '(("bar" . 1))))))
+
+)
