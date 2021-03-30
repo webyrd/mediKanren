@@ -24,8 +24,10 @@
   (define kv (assoc key dict-config))
   (unless kv (error "missing configuration key:" key))
   (cdr kv))
+(define (valid-entry? kv)
+  (and (pair? kv) (symbol? (car kv))))
 (define (validate-config config)
-  (unless (and (list? config) (andmap pair? config))
+  (unless (and (list? config) (andmap valid-entry? config))
     (error "invalid configuration overrides:" config))
 )
 (define (config-combine config.user config.defaults)
@@ -58,16 +60,20 @@
 
   ; test config-ref
   (chk
-      #:= (config-ref "foo" #:testing-dict '(("foo" . 1))) 1)
+      #:= (config-ref 'foo #:testing-dict '((foo . 1))) 1)
   (chk
-      #:do (config-ref "foo" #:testing-dict '(("foo" . 1)))
+      #:do (config-ref 'foo #:testing-dict '((foo . 1)))
       #:t #t)
   (chk
-      #:x (config-ref "foo" #:testing-dict '(("bar" . 1))) "missing configuration key")
+      #:x (config-ref 'foo #:testing-dict '((bar . 1))) "missing configuration key")
 
   ; test validate-config
   (chk #:x (validate-config (vector)) "invalid configuration overrides")
   (chk #:x (validate-config '(())) "invalid configuration overrides")
+  (chk #:x (validate-config '(("foo" . 1))) "invalid configuration overrides")
+  (chk
+      #:do (validate-config '((foo . 1)))
+      #:t #t)
 
   ; test config-combine
   (chk #:=
