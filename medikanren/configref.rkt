@@ -30,10 +30,21 @@
   (unless (and (list? config) (andmap valid-entry? config))
     (error "invalid configuration:" config))
 )
-(define (config-combine config.user config.defaults)
-  (define user-keys (map car config.user))
-  (define (user-defined? kv) (member (car kv) user-keys))
-  (append config.user (filter-not user-defined? config.defaults))
+;;; config-combine
+;; Default configs go last, and must contain a superset of all config keys.
+;; Could be faster, but intended to only be run once at startup.
+(define (config-combine . configs)
+  (define (find k configs)
+    (when (empty? configs)
+      (error "config defaults must contain a superset of all other config keys"))
+    (define kv (assoc k (car configs)))
+    (if kv
+      (cdr kv)
+      (find k (cdr configs))))
+  (define ks (map car (last configs)))
+  (map (lambda (k)
+    (cons k (find k configs)))
+    ks)
 )
 (define (path:config.user path:config) (or path:config (path/root "config.scm")))
 (define (path:config.defaults) (path/root "config.defaults.scm"))
@@ -86,6 +97,14 @@
     1)
   (chk #:=
     (config-ref 'foo #:testing-dict
+      (config-combine '((foo . 1)) '((foo . 2)) '((foo . 3)) ))
+    1)
+  (chk #:=
+    (config-ref 'foo #:testing-dict
       (config-combine '() '((foo . 2)) ))
     2)
+  (chk #:=
+    (config-ref 'foo #:testing-dict
+      (config-combine '((foo . 1)) '((foo . 2) (bar . 1)) ))
+    1)
 )
