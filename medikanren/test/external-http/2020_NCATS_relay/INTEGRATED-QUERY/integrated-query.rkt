@@ -1,6 +1,6 @@
 #lang racket
 (provide (all-defined-out))
-(require "../../pieces-parts/query.rkt"
+(require "../../../../pieces-parts/query.rkt"
          "../../open-api/api-query.rkt"
          ;"../molepro-api-query.rkt"
          racket/engine)
