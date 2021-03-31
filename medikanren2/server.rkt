@@ -366,7 +366,8 @@ query_result_clear.addEventListener('click', function(){
   (printf "broad result size: ~s\n" (js-count broad-results))
   ;; (printf "\nbroad results: ~s\n" broad-results)
   
-  (define local-results (trapi-response msg))
+
+  (define local-results (time (trapi-response msg)))
   (printf "Local results size: ~s\n" (length (hash-ref  local-results 'results '())))
 
   (merge-results
