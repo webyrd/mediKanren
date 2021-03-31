@@ -11,68 +11,18 @@
   json
   )
 
-;; (define q (with-input-from-file "trapi-parsing-test.json" read-json))
+;; QUESTION
+;; Do we return all attributes, or only specified ones?
 
-(define q (string->jsexpr #<<EOS
-{
-    "message": {
-        "query_graph": {
-            "edges": {
-                "e00": {
-                    "subject": "n00",
-                    "object": "n01",
-                    "predicate": "biolink:gene_associated_with_condition"
-                }
-            },
-            "nodes": {
-                "n00": {
-                    "id" : "UniProtKB:P51587",
-                    "category": "biolink:biological_entity"
-                },
-                "n01": {
-                    "category": "biolink:Disease"
-                }
-            }
-        }
-    }
-}
-EOS
-))
+(define trapi-response-node-properties '("category" "name"))
+(define trapi-response-node-attributes '(("umls_type_label" . "miscellaneous")
+                                         ("umls_type" . "miscellaneous")
+                                         ("xrefs" . "miscellaneous")))
+(define trapi-response-edge-properties '("predicate" "relation" "subject" "object"))
+(define trapi-response-edge-attributes '(("negated" . "miscellaneous")
+                                         ("provided_by" . "miscellaneous")
+                                         ("publications" . "miscellaneous")))
 
-;; example using knowledge_graph
-(define q2 (string->jsexpr #<<EOS
-{
-    "message": {
-        "query_graph": {
-            "edges": {
-                "e00": {
-                    "subject": "n00",
-                    "object": "n01",
-                    "predicate" : "biolink:treats"
-                }
-            },
-            "nodes": {
-                "n00": {
-                    "id" : "CHEBI:6801XXX"
-                },
-                "n01": {
-                    "category": "biolink:Disease"
-                }
-            }
-        },
-       "knowledge_graph" : {
-           "nodes": {
-               "MONDO:0005148": {"name": "type-2 diabetes", "category":"biolink:Disease"},
-               "CHEBI:6801XXX": {"name": "metformin", "category": "drug"}
-            },
-           "edges": {
-              "df87ff82": {"subject": "CHEBI:6801XXX", "predicate": "biolink:treats", "object": "MONDO:0005148"}
-            }
-         }
-    }
-}
-EOS
-))
 (define (alist-ref alist key default)
   (define kv (assoc key alist))
   (if kv (cdr kv) default))
@@ -168,14 +118,18 @@ EOS
                    (== bindings `((,id . ,db+eid) . ,bindings-rest))
                    (loop (cdr edges) bindings-rest)))))))
 
-
 (define (trapi-response msg)
   (define results (run* bindings (trapi-query msg bindings)))
-  (hash 'message
-        (hash 'results (trapi-response-results results)
-              'knowledge_graph
-              (hash 'nodes (trapi-response-knodes results)
-                    'edges (trapi-response-kedges results)))))
+  (hash 'results (trapi-response-results results)
+        'knowledge_graph
+        (hash 'nodes (trapi-response-knodes results)
+              'edges (trapi-response-kedges results))))
+
+(define (edge-id/reported db+eid)
+  (let ((db     (car db+eid))
+        (eid    (cdr db+eid)))
+    (if (eq? db 'kg) (strlift eid) 
+        (string-append (strlift db) "." (strlift eid)))))
 
 (define (trapi-response-results results)
   (map (lambda (bindings)
@@ -187,10 +141,8 @@ EOS
                'edge_bindings
                (make-hash
                 (map (lambda (ebinding)
-                       (let* ((db+eid (cdr ebinding))
-                              (db     (car db+eid))
-                              (eid    (strlift (cdr db+eid))))
-                         `(,(car ebinding) ,(hash 'id eid))))
+                       (let ((db+id (cdr ebinding)))
+                         `(,(car ebinding) ,(hash 'id (edge-id/reported db+id)))))
                      (alist-ref bindings 'edge_bindings '())))) )
        results))
 
@@ -202,14 +154,23 @@ EOS
            results))))
 
 (define (props-kv k+v) (cons (string->symbol (car k+v)) (cdr k+v)))
-(define trapi-response-node-properties '("category" "name"))
+(define (attributes-kv keys)
+  (lambda (k+v)
+    (let ((k (car k+v)) (v (cdr k+v)))
+      (make-hash
+       `((type . ,(alist-ref keys k "miscellaneous"))
+         (name . ,(strlift k))
+         (value . ,(strlift v)))))))
 
-(define (trapi-response-knodes/edges results key new-key query)
+(define (trapi-response-knodes/edges results key new-key query attributes-query attributes-keys)
   (make-hash
    (map (lambda (node)
           `(,(new-key node)
             . ,(make-hash
-                (map props-kv (query node)))))
+                (append (let ((attributes (attributes-query node)))
+                          (if (pair? attributes)
+                              `((attributes . ,(map (attributes-kv attributes-keys) attributes))) '()))
+                        (map props-kv (query node))))))
         (unique-bindings-values results key))))
 
 (define (trapi-response-knodes results)
@@ -220,7 +181,14 @@ EOS
        (fresh (k v)
          (membero k trapi-response-node-properties)
          (== `(,k . ,v) prop)
-         (cprop node k v))))))
+         (cprop node k v))))
+   (lambda (node)
+     (run* attribute
+      (fresh (k v)
+        (membero k (map car trapi-response-node-attributes))
+        (== `(,k . ,v) attribute)
+        (cprop node k v))))
+   trapi-response-node-attributes))
 
 (define (symlift v) 
   (cond ((number? v) (string->symbol (number->string v)))
@@ -236,21 +204,92 @@ EOS
 
 (define (trapi-response-kedges results)
   (trapi-response-knodes/edges 
-   results 'edge_bindings (compose symlift cdr)
+   results 'edge_bindings (compose symlift edge-id/reported)
    (lambda (node) 
      (run* prop
        (fresh (k v)
+         (membero k trapi-response-edge-properties)
          (== `(,k . ,v) prop)
-         (eprop node k v))))))
+         (eprop node k v))))
+   (lambda (node)
+     (run* attribute
+      (fresh (k v)
+        (membero k (map car trapi-response-edge-attributes))
+        (== `(,k . ,v) attribute)
+        (eprop node k v))))
+   trapi-response-edge-attributes))
 
-(define m1    (hash-ref q 'message))
-(define m2    (hash-ref q2 'message))
+;; some tests
 
-(define r (trapi-response m1))
-(display (jsexpr->string r))
+(define q (string->jsexpr #<<EOS
+{
+    "message": {
+        "query_graph": {
+            "edges": {
+                "e00": {
+                    "subject": "n00",
+                    "object": "n01",
+                    "predicate": "biolink:gene_associated_with_condition"
+                }
+            },
+            "nodes": {
+                "n00": {
+                    "id" : "UniProtKB:P51587",
+                    "category": "biolink:biological_entity"
+                },
+                "n01": {
+                    "category": "biolink:Disease"
+                }
+            }
+        }
+    }
+}
+EOS
+))
 
-(define r2 (trapi-response m2))
-(display (jsexpr->string r2))
+;; example using knowledge_graph
+(define q2 (string->jsexpr #<<EOS
+{
+    "message": {
+        "query_graph": {
+            "edges": {
+                "e00": {
+                    "subject": "n00",
+                    "object": "n01",
+                    "predicate" : "biolink:treats"
+                }
+            },
+            "nodes": {
+                "n00": {
+                    "id" : "CHEBI:6801XXX"
+                },
+                "n01": {
+                    "category": "biolink:Disease"
+                }
+            }
+        },
+       "knowledge_graph" : {
+           "nodes": {
+               "MONDO:0005148": {"name": "type-2 diabetes", "category":"biolink:Disease"},
+               "CHEBI:6801XXX": {"name": "metformin", "category": "drug"}
+            },
+           "edges": {
+              "df87ff82": {"subject": "CHEBI:6801XXX", "predicate": "biolink:treats", "object": "MONDO:0005148"}
+            }
+         }
+    }
+}
+EOS
+))
+
+;; (define m1    (hash-ref q 'message))
+;; (define m2    (hash-ref q2 'message))
+
+;; (define r (trapi-response m1))
+;; (display (jsexpr->string r))
+;; (printf "\n=====\n")
+;; (define r2 (trapi-response m2))
+;; (display (jsexpr->string r2))
 
 
 

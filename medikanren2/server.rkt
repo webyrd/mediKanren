@@ -364,31 +364,15 @@ query_result_clear.addEventListener('click', function(){
   (printf "broad response:\n~s\n" (hash-ref broad-response 'status))
   (pretty-print (hash-ref broad-response 'headers))
   (printf "broad result size: ~s\n" (js-count broad-results))
-  ;; NOTE: ignore 'results and 'knowledge_graph until we find a use for them.
-
-   (define local-results (trapi-response msg))
-
-  (hash 'results local-results)
+  ;; (printf "\nbroad results: ~s\n" broad-results)
+  
+  (define local-results (trapi-response msg))
+  (printf "Local results size: ~s\n" (length (hash-ref  local-results 'results '())))
 
   (merge-results
     (list (hash-ref (olift broad-results) 'message hash-empty)
-          local-results))
-
-          ;; (hash 'results local-results
-          ;;       'knowledge_graph
-          ;;       (hash 'nodes (apply hash-union (hash)
-          ;;                           (map (lambda (knode) (hash (car knode) (cdr knode)))
-          ;;                                knodes)
-          ;;                           #:combine
-          ;;                           (lambda (c.0 c.1)
-          ;;                             (hash-update
-          ;;                               c.0 'attributes
-          ;;                               (lambda (attrs)
-          ;;                                 (append (alist->attributes
-          ;;                                           (list (cons "extra-result" c.1)))
-          ;;                                         attrs)))))
-          ;;             'edges (make-immutable-hash kedges)))))
-  )
+          local-results
+          )))
 
 (define (merge-results rs)
   (let loop ((rs rs) (results '()) (nodes '()) (edges '()))
