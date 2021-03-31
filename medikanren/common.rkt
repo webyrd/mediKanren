@@ -71,6 +71,7 @@
   config
   config-ref
   load-config
+  override-config
 
   keep
   read/file

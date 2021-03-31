@@ -6,6 +6,7 @@
     config
     config-ref
     load-config
+    override-config
 )
 
 (define (read/file path)  (with-input-from-file  path (lambda () (read))))
@@ -14,12 +15,21 @@
 (define (path/root relative-path) (build-path path:root relative-path))
 (define (path-simple path)        (path->string (simplify-path path)))
 
+(define box:config-override (box '()))
 (define box:config (box #f))
 (define (config)
   (define cfg (unbox box:config))
   (cond (cfg cfg)
         (else (load-config #t #f)
               (unbox box:config))))
+;;; override-config
+;; Set a set of config keys with higher precidence than "user config" config.scm
+;; or "config.defaults.scm".  Primarily for use in the repl, secondarily for use
+;; in automated tests.  Use discouraged in applications.
+(define (override-config config)
+  (validate-config config)
+  (set-box! box:config-override config)
+  (set-box! box:config #f))
 (define (config-ref key #:testing-dict (dict-config (config)))
   (define kv (assoc key dict-config))
   (unless kv (error "missing configuration key:" key))
@@ -49,16 +59,16 @@
 (define (path:config.user path:config) (or path:config (path/root "config.scm")))
 (define (path:config.defaults) (path/root "config.defaults.scm"))
 (define (load-config verbose? path:config)
-  (when verbose? (printf "loading configuration defaults: ~a\n"
+  (when verbose? (printf "loading default configuration: ~a\n"
                          (path-simple (path:config.defaults))))
-  (when verbose? (printf "loading configuration overrides: ~a\n"
+  (when verbose? (printf "loading user configuration: ~a\n"
                          (path-simple (path:config.user path:config))))
   (define config.user     (if (file-exists? (path:config.user path:config))
                             (read/file (path:config.user path:config))
                             '()))
   (define config.defaults (read/file (path:config.defaults)))
   (validate-config config.user)
-  (set-box! box:config (config-combine config.user config.defaults)))
+  (set-box! box:config (config-combine (unbox box:config-override) config.user config.defaults)))
 
 (module+ test
   ; has required package:
@@ -107,4 +117,17 @@
     (config-ref 'foo #:testing-dict
       (config-combine '((foo . 1)) '((foo . 2) (bar . 1)) ))
     1)
+
+  ; test override-config
+  (chk
+    #:= (config-ref 'query-results.file-name-human) "last.txt"
+    )
+  (chk
+    #:do (override-config '())
+    #:= (config-ref 'query-results.file-name-human) "last.txt"
+    )
+  (chk
+    #:do (override-config '((query-results.file-name-human . "bob")))
+    #:= (config-ref 'query-results.file-name-human) "bob"
+    )
 )
