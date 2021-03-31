@@ -1,15 +1,14 @@
 #lang racket/base
 (require
-  "tsv.rkt"
-  "repr.rkt"
+  "../tsv.rkt"
+  "../repr.rkt"
   json
   racket/match
   )
 
 (define (json-simplify json)
   (if (and (string? json) (< 0 (string-length json))
-           (eqv? #\" (string-ref json 0))
-           (eqv? #\" (string-ref json (- (string-length json) 1))))
+           (eqv? #\" (string-ref json 0)))
     (string->jsexpr json)
     json))
 
@@ -144,16 +143,24 @@
               (else (hash-ref predicate=>id predicate))))
       (lambda (subject-cui object-cui props)
         (match-define (cons subject subject-category)
-                      (hash-ref cui=>id&cat subject-cui))
+                      (hash-ref cui=>id&cat subject-cui (cons #f #f)))
         (match-define (cons object object-category)
-                      (hash-ref cui=>id&cat object-cui))
+                      (hash-ref cui=>id&cat object-cui (cons #f #f)))
+	(if (not (and subject object))
+	    (begin
+	      (printf "skipping edge\n")
+	      (unless subject
+		(printf "missing subject ~a\n" subject-cui))
+	      (unless object
+		(printf "missing object ~a\n" object-cui))
+	      )
+	    (let ()
         (define (required-prop props key)
           (define kv (assoc key props))
           (and kv (cdr kv)))
         (define type (or (required-prop props "edge_label")
                          (required-prop props "type")
-                         (required-prop props "predicate")
-                         (error "missing required property:" id props)))
+                         (error "missing required property:" id key)))
         (define pid (add-predicate type))
         (define (other-key? kv)
           (not (ormap (lambda (k) (equal? k (car kv))) '("type" "edge_label"))))
@@ -170,7 +177,7 @@
                           (hash-ref object=>edges object '()))))
         (detail-write out-edges out-offset-edges
                       (vector subject pid object (filter other-key? props)))
-        (set! id (+ id 1)))))
+        (set! id (+ id 1)))))))
 
   (define edges (tsv-records in-edge))
   (define edgeprops (tsv-records in-edgeprop))

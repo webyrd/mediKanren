@@ -1,7 +1,7 @@
 #lang racket/base
 (require
-  "common.rkt"
-  "repr.rkt"
+  "../common.rkt"
+  "../repr.rkt"
   (except-in racket/match ==)
   racket/stream)
 

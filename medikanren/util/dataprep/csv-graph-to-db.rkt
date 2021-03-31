@@ -1,7 +1,7 @@
 #lang racket/base
 (require
-  "csv.rkt"
-  "repr.rkt"
+  "../csv.rkt"
+  "../repr.rkt"
   json
   racket/match
   )
