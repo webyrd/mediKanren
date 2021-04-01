@@ -2,7 +2,7 @@
 (provide (all-from-out "base.rkt"
                        "db/semmed.rkt"
                        "db/rtx2-20210204.rkt")
-         cprop edge eprop)
+         cprop edge eprop triple is-a triple-property)
 (require "base.rkt"
          (prefix-in semmed: "db/semmed.rkt")
          (prefix-in rtx:    "db/rtx2-20210204.rkt")
@@ -62,3 +62,8 @@
     (edge eid s o)
     (eprop eid "predicate" p)
     (eprop eid k v)))
+
+(define-relation (triple/eid eid s p o)
+  (edge eid s o)
+  (eprop eid "predicate" p))
+ 
