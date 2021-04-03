@@ -12,8 +12,23 @@
   )
 
 ;; QUESTION
-;; Do we return all attributes, or only specified ones?
+;; - Do we return all attributes, or only specified ones?
+;; - How is knowledge_graph used in queries?
 
+;; TODO (trapi.rkt and server.rkt)
+;; - fields: status - logs - description
+;; - QNode is_set:
+;;       Boolean that if set to true, indicates that this QNode MAY
+;;       have multiple KnowledgeGraph Nodes bound to it wi;; thin each
+;;       Result. The nodes in a set should be considered as a set of
+;;       independent nodes, rather than a set of dependent nodes,
+;;       i.e., the answer would still be valid if the nodes in the set
+;;       were instead returned individually. Multiple QNodes may have
+;;       is_set=True. If a QNode (n1) with is_set=True is connected to
+;;       a QNode (n2) with is_set=False, each n1 must be connected to
+;;       n2. If a QNode (n1) with is_set=True is connected to a QNode
+;;       (n2) with is_set=True, each n1 must be connected to at least
+;;       one n2.
 (define trapi-response-node-properties '("category" "name"))
 (define trapi-response-node-attributes '(("umls_type_label" . "miscellaneous")
                                          ("umls_type" . "miscellaneous")
@@ -79,19 +94,31 @@
                  (id    (car id+n))
                  (n     (cdr id+n))
                  (curie (hash-ref n 'id #f))
-                 (category (hash-ref n 'category #f)))
-            (cond (curie
-                   (fresh (k+val bindings-rest)
-                          (== k+val `(,id . ,curie))
-                          (== bindings `(,k+val . ,bindings-rest))
-                          (loop (cdr nodes) bindings-rest)))
-                  (category
-                   (fresh (var k+var bindings-rest)
-                          (== k+var `(,id . ,var))
-                          (== bindings `(,k+var . ,bindings-rest))
-                          (conde ((is-a var category))
-                                 ((k-is-a var category)))
-                          (loop (cdr nodes) bindings-rest)))))))))
+                 (category (hash-ref n 'category #f))
+                 (is-set (hash-ref n 'is_set #f)))
+            (if curie
+                (fresh (k+val bindings-rest)
+                  (cond ((string? curie)
+                         (== k+val `(,id . ,curie)))
+                        ((pair? curie)
+                         (fresh (cur)
+                           (membero cur curie)
+                           (== k+val `(,id . ,cur))))
+                        (else (error "Field: 'id' must be CURIE string or array of CURIEs.")))
+                  (== bindings `(,k+val . ,bindings-rest))
+                  (loop (cdr nodes) bindings-rest))
+                (fresh (var k+var bindings-rest)
+                  (== k+var `(,id . ,var))
+                  (== bindings `(,k+var . ,bindings-rest))
+                  (cond ((string? category)
+                         (conde ((is-a var category))
+                                ((k-is-a var category))))
+                        ((pair? category) (fresh (cat)
+                                            (membero cat category)
+                                            (conde ((is-a var cat))
+                                                   ((k-is-a var cat)))))
+                        (else (== #t #t))) ; valid TRAPI?
+                  (loop (cdr nodes) bindings-rest))))))))
        
 (define (trapi-edges edges k-triple)
   (relation trapi-edges-o (node-bindings edge-bindings)
@@ -110,7 +137,11 @@
                    (membero `(,object . ,o) node-bindings)
                    (conde ((== predicate #f)) 
                           ((stringo predicate) (== p predicate)))
-                   (conde ((edge db+eid s o) (eprop db+eid "predicate" p))
+                   (conde ((edge db+eid s o) 
+                           (eprop db+eid "predicate" p)
+                           (conde ((== relation #f))
+                                  ((stringo relation) 
+                                   (eprop db+eid "relation" relation))))
                           ((fresh (eid)
                              (k-triple eid s p o)
                              (== db+eid `(kg . ,eid)))

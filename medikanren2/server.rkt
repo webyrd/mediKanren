@@ -364,7 +364,7 @@ query_result_clear.addEventListener('click', function(){
   (printf "broad response:\n~s\n" (hash-ref broad-response 'status))
   (pretty-print (hash-ref broad-response 'headers))
   (printf "broad result size: ~s\n" (js-count broad-results))
-  ;; (printf "\nbroad results: ~s\n" broad-results)
+  (printf "\nbroad results: ~s\n" broad-results)
   
 
   (define local-results (time (trapi-response msg)))
@@ -534,6 +534,9 @@ query_result_clear.addEventListener('click', function(){
                                              (job-failure message))))
                             (work)))
              (loop)))))
+(define (/test req)
+  (printf "Running a test")
+  "GREAT")
 
 (define (start)
   (define-values (dispatch _)
@@ -552,6 +555,7 @@ query_result_clear.addEventListener('click', function(){
       ;; (("v2" "find-categories") #:method "post" /v2/find-categories)
       ;; (("v2" "find-predicates") #:method "post" /v2/find-predicates)
       (("v2" "query")           #:method "post" /v2/query)
+      (("test")                  #:method "get" /test)
       (else                                     not-found)))
   (serve/servlet dispatch
                  ;; none-manager for better performance:
@@ -559,7 +563,7 @@ query_result_clear.addEventListener('click', function(){
                  #:manager (create-none-manager #f)
                  #:servlet-regexp #rx""
                  #:listen-ip #f  ;; comment this to disable external connection
-                 #:port 8080
+                 #:port 8384
                  #:launch-browser? #f))
 
 (module+ main (start))
