@@ -32,4 +32,29 @@
 ;  'indexes            '((name value))
   )
 
-(define tabled-relations (list nodes))
+(define columns-of-edges
+'(id subject edge_label object relation
+  provided_by assertion_confidence_score comment created_on description
+  frequency_of_phenotype has_evidence has_measurement_value has_quantifier has_sex_specificity
+  onset source type xref
+))
+(define stcolumns-of-edges (map symbol->string columns-of-edges))
+
+(define-relation/table edges
+  'path               "sri-reference/0.3.0/edges"
+  'source-file-path   "sri-reference/0.3.0/sri-reference-kg-0.3.0_edges_nocr.tsv"
+  'source-file-header columns-of-edges
+  'attribute-names    '(id subject object)
+  'attribute-types    '(string string string)
+  'map/append          (value/syntax
+                        (lambda (row)
+                          (define id (car row))
+                          (map
+                            (lambda (k v) (list id k v))
+                            (cdr stcolumns-of-edges)
+                            (cdr row))))
+;  'tables             '((curie name value))
+;  'indexes            '((name value))
+  )
+
+(define tabled-relations (list nodes edges))
