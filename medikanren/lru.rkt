@@ -7,9 +7,8 @@
 
 
 (define (assert k st)
-  (if (not k)
-      (raise (format "assertion failure: ~a" st))
-      #f))
+  (when (not k)
+      (raise (format "assertion failure: ~a" st))))
 
 (struct payload (k v))
 
@@ -45,14 +44,12 @@
     ; connect lrun fields
     ; lrun0.older is already connected
     (set-lrun-older! lrun0 lrun1) 
-    (if lrun1
-        (set-lrun-newer! lrun1 lrun0)
-        #f)
+    (when lrun1
+        (set-lrun-newer! lrun1 lrun0))
     ; connect lru fields
     (set-lru-lrun-newest! ths lrun0)
-    (if (not (lru-lrun-oldest ths)) ; are we brand new?
-        (set-lru-lrun-oldest! ths lrun0)
-        #f)
+    (when (not (lru-lrun-oldest ths)) ; are we brand new?
+        (set-lru-lrun-oldest! ths lrun0))
     (set-lru-num-entries! ths (+ (lru-num-entries ths) 1))
     (hash-set! (lru-hash ths) k lrun0)))
 
@@ -81,10 +78,9 @@
 
 ;;; If the lru is full, remove the oldest entry.
 (define (lru-evict ths)
-  (if (> (lru-num-entries ths) (lru-num-entries-max ths))
+  (when (> (lru-num-entries ths) (lru-num-entries-max ths))
       (let* ((lrun1 (lru-lrun-oldest ths)))
-        (lru-remove ths lrun1))
-      #f))
+        (lru-remove ths lrun1))))
 
 ;;; Make the entry with key k the newest entry.
 (define (lru-freshen ths k)
@@ -105,9 +101,8 @@
        (lru-evict ths)
        v))
     (lrun
-     (if (>= (lru-num-entries ths) 2) ; freshen 1 entry is noop
-         (lru-freshen ths k)
-         #f)
+     (when (>= (lru-num-entries ths) 2) ; freshen 1 entry is noop
+         (lru-freshen ths k))
      (payload-v (lrun-payload lrun)))))
 
 
