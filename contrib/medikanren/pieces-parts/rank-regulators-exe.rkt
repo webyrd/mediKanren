@@ -1,6 +1,6 @@
 #lang racket
-(require "../../../medikanren/pieces-parts/rank-regulators.rkt"
-         "../../../medikanren/pieces-parts/rank-regulators-gene-lists.rkt")
+(require "rank-regulators.rkt"
+         "rank-regulators-gene-lists.rkt")
 #|
 Purpose: The purpose of this program is to find genes that have the most influence over a user inputted
          list of genes of interest.

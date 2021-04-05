@@ -1,9 +1,9 @@
 #lang racket
-(require "query.rkt"
+(require "../../../medikanren/pieces-parts/query.rkt"
          "rank-regulators-gene-lists.rkt"
          racket/hash)
 (provide (all-defined-out)
-         (all-from-out "query.rkt"
+         (all-from-out "../../../medikanren/pieces-parts/query.rkt"
                        "rank-regulators-gene-lists.rkt"
                        racket/hash))
 

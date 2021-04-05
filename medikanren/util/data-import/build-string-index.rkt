@@ -1,7 +1,7 @@
 #lang racket/base
 (require
-  "repr.rkt"
-  "string-search.rkt"
+  "../repr.rkt"
+  "../string-search.rkt"
   racket/list
   racket/set
   racket/stream

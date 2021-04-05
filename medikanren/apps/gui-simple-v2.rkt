@@ -1,7 +1,7 @@
 #lang racket
 
 (require
-  "common.rkt"
+  "../common.rkt"
   racket/sandbox
   racket/gui/base
   framework
@@ -9,7 +9,7 @@
   racket/date
   racket/string
   net/sendurl
-  "db.rkt"
+  "../db.rkt"
   (except-in racket/match ==)
   (only-in srfi/1 iota))
 
