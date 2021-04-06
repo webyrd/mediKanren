@@ -12,6 +12,11 @@ Typical use:
 
 ## TODO
 
+* check local satisfiability before branching
+  * to allow transitive closures to terminate on acyclic data
+
+* implement checkpointing to avoid losing work with a long materialization process
+
 * `explain` for extracting the database subset needed to reproduce a query's results
   * with each result, run an instrumented query to record supporting facts
   * there may be redundancy (one result could be computed in multiple ways)
@@ -81,7 +86,7 @@ Typical use:
     * safety analysis of relations referenced during query/materialization
   * randomized variants of interleaving or depth-first search
 
-* support small tables, particularly for finite domains
+* use small tables for finite domains
 * fixed point computation
 
 * place-based concurrency/parallelism?

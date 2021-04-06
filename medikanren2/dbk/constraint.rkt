@@ -551,9 +551,8 @@
 (define (table-vars               tc) (tc 'variables))
 (define (table-statistics st      tc) (tc 'variable-statistics st))
 
-;; TODO: this should be renamed to relation/table
 (define (relation/table . pargs)
-  (match-define (list info ixs) (apply materialization pargs))
+  (match-define (list info t.0) (apply materialization pargs))
   (define name             (hash-ref info 'relation-name))
   (define attribute-names  (hash-ref info 'attribute-names))
   (define primary-key-name (hash-ref info 'key-name))
@@ -562,7 +561,6 @@
     (if (member primary-key-name attribute-names)
       attribute-names
       (cons #t attribute-names)))
-  (define t.0 (table ixs))
   (define (app st args.0.0)
     ;; TODO: this introduces a phantom variable for the key column update workaround.
     ;; Is there a better solution?
