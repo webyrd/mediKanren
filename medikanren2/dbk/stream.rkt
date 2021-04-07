@@ -1,9 +1,11 @@
 #lang racket/base
-(provide s-next s-force s-split s-take s-drop s-each s-foldr s-foldl s-scan
+(provide s-next s-force s-split s-drop
+         s-take/set/steps s-take/set s-take/steps s-take
+         s-each s-foldr s-foldl s-scan
          s-append/interleaving s-append*/interleaving
          s-append s-append* s-map/append s-map s-filter s-group s-memo s-lazy
          s-length s-enumerate s-dedup s-limit)
-(require racket/function racket/match)
+(require racket/function racket/match racket/set)
 
 (define (s-next  s) (if (procedure? s)          (s)  s))
 (define (s-force s) (if (procedure? s) (s-force (s)) s))
@@ -17,12 +19,31 @@
   (match-define (cons rxs s.remaining) (s-foldl n cons '() s))
   (cons (reverse rxs) s.remaining))
 
-(define (s-take n s)
-  (if (and n (= n 0)) '()
-    (let ((s (s-force s)))
-      (if (null? s) '() (cons (car s) (s-take (and n (- n 1)) (cdr s)))))))
+(define (s-take/set/steps steps n s)
+  (if (and n (= n 0)) (set)
+    (let loop ((steps steps) (s s) (acc (set)))
+      (match s
+        ((? procedure? s) (if (and steps (= steps 0))
+                            acc
+                            (loop (and steps (- steps 1)) (s) acc)))
+        ('()              acc)
+        ((cons x s)       (define xs (set-add acc x))
+                          (if (and n (= n (set-count xs)))
+                            xs
+                            (loop steps s xs)))))))
 
-(define (s-drop n s) (cdr (s-foldl n (lambda (_ acc) #t) #t s)))
+(define (s-take/steps steps n s)
+  (if (and n (= n 0)) '()
+    (match s
+      ((? procedure? s) (if (and steps (= steps 0))
+                          '()
+                          (s-take/steps (and steps (- steps 1)) n (s))))
+      ('()              '())
+      ((cons x s)       (cons x (s-take/steps steps (and n (- n 1)) s))))))
+
+(define (s-take/set n s) (s-take/set/steps #f n s))
+(define (s-take     n s) (s-take/steps #f n s))
+(define (s-drop     n s) (cdr (s-foldl n (lambda (_ acc) #t) #t s)))
 
 ;; TODO: generalize to multiple streams
 (define (s-foldr f acc s)

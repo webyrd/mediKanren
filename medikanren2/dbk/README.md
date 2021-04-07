@@ -12,9 +12,6 @@ Typical use:
 
 ## TODO
 
-* check local satisfiability before branching
-  * to allow transitive closures to terminate on acyclic data
-
 * implement checkpointing to avoid losing work with a long materialization process
 
 * `explain` for extracting the database subset needed to reproduce a query's results

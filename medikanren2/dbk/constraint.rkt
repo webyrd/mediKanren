@@ -247,8 +247,18 @@
       st
       (state-enforce-local-consistency st))))
 
+(define (state-enforce-global-consistency st k.fail k.succeed)
+  ;; TODO: preserve progress made while finding first satisfying state (see factoring TODO below)
+  (let loop ((s (state->satisfied-states st)))
+    (match (s-next s)
+      ((? procedure? s) (thunk (loop s)))
+      ('()              (k.fail))
+      ((cons _ _)       (k.succeed st)))))
+
 ;; TODO: factor out table constraint satisfaction to support pre-branch global satisfiability checking
 ;;       in cases where we want to split a disjunction before committing to all table constraints
+;;       (taking the first result from a state->satisfied-states stream is not sufficient: we want to
+;;        preserve any state simplification progress made while searching for that first satisfier)
 (define (state->satisfied-states st)
   (define (d<? d.0 d.1)
     ;; TODO: figure out a better ordering heuristic for most-constrainedness
@@ -313,7 +323,7 @@
           ('() (match (map (lambda (uid&c) (cons (car uid&c) (c:disj-cs (cdr uid&c))))
                            (filter (lambda (uid&c) (c:disj? (cdr uid&c))) cxs))
                  ;; If there are no more disjunctions either, we should be done
-                 ('() (state-uses-empty?! st) (list st))
+                 ('() (list st))
                  (ds  (define d.min (foldl (lambda (d d.min) (if (d<? d d.min) d d.min))
                                            (car ds) (cdr ds)))
                       (choose-branch st (car d.min) (cdr d.min)))))
@@ -741,14 +751,17 @@
                                               (bounds-ub b)))))
                               xs (map car b&uids))))
               (match-define (cons t c) (pretty (cons term (append bs cxs))))
-              `#s(cx ,t (constraints: . ,(sort c term<?))))))
+              `#s(cx (term: ,t) (constraints: . ,(sort c term<?))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Top-level search strategies
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (enumerate-and-reify st)
-  (s-map (lambda (st) (reify st)) (state->satisfied-states st)))
+  (s-map (lambda (st)
+           (state-uses-empty?! st)
+           (reify st))
+         (state->satisfied-states st)))
 
 (define (bis:query->stream q)
   (match-define `#s(query ,t ,f) q)
@@ -765,7 +778,11 @@
     (`#s(conj ,f1 ,f2) (let ((k1 (bis:goal f1)) (k2 (bis:goal f2)))
                          (lambda (st) (bis:bind (k1 st) k2))))
     (`#s(disj ,f1 ,f2) (let ((k1 (bis:goal f1)) (k2 (bis:goal f2)))
-                         (lambda (st) (s-append/interleaving (k1 st) (thunk (k2 st))))))
+                         (lambda (st)
+                           (state-enforce-global-consistency
+                             st
+                             (lambda ()   '())
+                             (lambda (st) (s-append/interleaving (k1 st) (thunk (k2 st))))))))
     (`#s(constrain ,(? procedure? proc) ,args)
       (define r (relations-ref proc))
       (define apply/bis    (hash-ref r 'apply/bis    #f))  ; strategy-specific application
@@ -782,7 +799,11 @@
 (define (dfs:query->stream q)
   ((dfs:goal (query-formula q) enumerate-and-reify)
    (state:new (query-term q))))
-(define ((dfs:mplus k1 k2) st) (s-append (k1 st) (thunk (k2 st))))
+(define ((dfs:mplus k1 k2) st)
+  (state-enforce-global-consistency
+    st
+    (lambda ()   '())
+    (lambda (st) (s-append (k1 st) (thunk (k2 st))))))
 (define ((dfs:expand ex args k) st) ((dfs:goal (apply ex args) k) st))
 (define (dfs:goal f k)
   (define loop dfs:goal)
@@ -808,5 +829,10 @@
 
 (define-syntax define-relation/table
   (syntax-rules ()
+    ((_ (name attr ...) pargs ...)
+     (define name (relation/table 'relation-name   'name
+                                  'attribute-names '(attr ...)
+                                  pargs ...)))
     ((_ name pargs ...)
-     (define name (relation/table 'relation-name 'name pargs ...)))))
+     (define name (relation/table 'relation-name 'name
+                                  pargs ...)))))
