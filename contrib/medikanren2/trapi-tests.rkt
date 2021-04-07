@@ -21,16 +21,16 @@
                 "e00": {
                     "subject": "n00",
                     "object": "n01",
-                    "predicate": "biolink:gene_associated_with_condition"
+                    "predicates": ["biolink:gene_associated_with_condition"]
                 }
             },
             "nodes": {
                 "n00": {
-                    "id" : "UniProtKB:P51587",
-                    "category": "biolink:biological_entity"
+                    "ids" : ["UniProtKB:P51587"],
+                    "categories": ["biolink:biological_entity"]
                 },
                 "n01": {
-                    "category": "biolink:Disease"
+                    "categories": ["biolink:Disease"]
                 }
             }
         }
@@ -49,15 +49,15 @@ EOS
                 "e00": {
                     "subject": "n00",
                     "object": "n01",
-                    "predicate" : "biolink:treats"
+                    "predicates" : ["biolink:treats"]
                 }
             },
             "nodes": {
                 "n00": {
-                    "id" : "CHEBI:6801XXX"
+                    "ids" : ["CHEBI:6801XXX"]
                 },
                 "n01": {
-                    "category": "biolink:Disease"
+                    "categories": ["biolink:Disease"]
                 }
             }
         },
@@ -75,8 +75,35 @@ EOS
 EOS
 ))
 
+(define q3 (string->jsexpr #<<EOS
+{
+  "message": {
+    "query_graph": {
+      "edges": {
+        "e01": {
+          "object": "n0",
+          "subject": "n1",
+          "predicates":["biolink:has_phenotype"]
+        }
+      },
+      "nodes": {
+        "n0": {
+          "ids": ["MONDO:0007114"],
+          "categories":["biolink:Disease"]
+        },
+        "n1": {
+          "categories": ["biolink:PhenotypicFeature"]
+        }
+      }
+    }
+  }
+ }
+EOS
+))
+
 (define m1    (hash-ref q 'message))
 (define m2    (hash-ref q2 'message))
+(define m3 (hash-ref q3 'message))
 
 (define r (time (trapi-response m1)))
 (display (jsexpr->string r))
@@ -84,5 +111,5 @@ EOS
 (define r2 (time (trapi-response m2)))
 (display (jsexpr->string r2))
 
-
+(define r3 (time (trapi-response m3)))
 
