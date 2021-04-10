@@ -36,16 +36,16 @@
 ;; TODO: define higher-level relations over the db-specific relations
 
 (define-relation (cprop c k v)
-  (conde ((semmed:cprop c k v))
-         ((rtx:cprop    c k v))))
+  (conde ((rtx:cprop    c k v))
+         ((semmed:cprop c k v))))
 
 (define-relation (edge eid s o)
-  (conde ((fresh (id) (== eid `(semmed        . ,id)) (semmed:edge id s o)))
-         ((fresh (id) (== eid `(rtx2-20210204 . ,id)) (rtx:edge    id s o)))))
+  (conde ((fresh (id) (== eid `(rtx2-20210204 . ,id)) (rtx:edge    id s o)))
+         ((fresh (id) (== eid `(semmed        . ,id)) (semmed:edge id s o)))))
 
 (define-relation (eprop eid k v)
-  (conde ((fresh (id) (== eid `(semmed        . ,id)) (semmed:eprop id k v)))
-         ((fresh (id) (== eid `(rtx2-20210204 . ,id)) (rtx:eprop    id k v)))))
+  (conde ((fresh (id) (== eid `(rtx2-20210204 . ,id)) (rtx:eprop    id k v)))
+         ((fresh (id) (== eid `(semmed        . ,id)) (semmed:eprop id k v)))))
 
 ;; Semantic-web flavored relations
 
