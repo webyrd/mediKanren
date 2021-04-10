@@ -2,6 +2,7 @@
 (require
   "common.rkt"
   "trapi.rkt"
+  "lw-reasoning.rkt"
   "open-api/api-query.rkt"
   ;; "open-api/api-query.rkt"
   ;; "pieces-parts/synonymize.rkt"
@@ -36,17 +37,17 @@
 (define-runtime-path path:root ".")
 (define (path/root relative-path) (build-path path:root relative-path))
 
-;; (define schema.json.txt
-;;   (file->string (path/root "open-api/TranslatorReasonersAPI.json")))
-;; (define schema.yaml.txt
-;;   (file->string (path/root "open-api/TranslatorReasonersAPI.yaml")))
-;; (define schema.html
-;;   (file->string (path/root "open-api/html/index.html")))
-;; (define schema.html2
-;;   (file->string (path/root "open-api/html2/index.html")))
-;; (define schema.json
-;;   (call-with-input-file (path/root "open-api/TranslatorReasonersAPI.json")
-;;                         read-json))
+(define schema.json.txt
+  (file->string (path/root "open-api/TranslatorReasonersAPI.json")))
+(define schema.yaml.txt
+  (file->string (path/root "open-api/TranslatorReasonersAPI.yaml")))
+(define schema.html
+  (file->string (path/root "open-api/html/index.html")))
+(define schema.html2
+  (file->string (path/root "open-api/html2/index.html")))
+(define schema.json
+  (call-with-input-file (path/root "open-api/TranslatorReasonersAPI.json")
+                        read-json))
 
 ;; (pretty-print (list 'openapi:      (hash-ref schema.json 'openapi)))
 ;; (pretty-print (list 'info:         (hash-ref schema.json 'info)))
@@ -240,72 +241,81 @@ query_result_clear.addEventListener('click', function(){
                (div (button ((id "query-result-clear")) "Clear Result"))
                (div (pre ((id "query-result")) "Result will appear here.")))))
 
-;; (define v2:index.html
-;;   `(html (head (title "mediKanren Reasoner API")
-;;                (script ((src "/v2/index.js"))))
-;;          (body (h1 "mediKanren Reasoner API")
-;;                (p (a ((href "https://github.com/NCATS-Tangerine/NCATS-ReasonerStdAPI"))
-;;                      "NCATS Biomedical Translator Reasoners Standard API"))
-;;                (ul (li (a ((href "/schema.html")) "schema.html"))
-;;                    (li (a ((href "/schema.html2")) "schema.html2"))
-;;                    (li (a ((href "/schema.yaml")) "schema.yaml"))
-;;                    (li (a ((href "/schema.json")) "schema.json")))
-;;                (form ((method "post") (id "find-concepts-form"))
-;;                      (div (input ((type "text")
-;;                                   (id "find-concepts-text")
-;;                                   (value "UMLS:C0935989"))))
-;;                      (div (button ((type "submit") (id "find-concepts-submit"))
-;;                                   "Find concepts")))
-;;                (div (button ((id "find-concepts-result-clear")) "Clear"))
-;;                (div (pre ((id "find-concepts-result")) "Concepts will appear here."))
-;;                (form ((method "post") (id "find-categories-form"))
-;;                      (div (input ((type "text")
-;;                                   (id "find-categories-text")
-;;                                   (value "gene"))))
-;;                      (div (button ((type "submit") (id "find-categories-submit"))
-;;                                   "Find categories")))
-;;                (div (button ((id "find-categories-result-clear")) "Clear"))
-;;                (div (pre ((id "find-categories-result")) "Categories will appear here."))
-;;                (form ((method "post") (id "find-predicates-form"))
-;;                      (div (input ((type "text")
-;;                                   (id "find-predicates-text")
-;;                                   (value "negatively_regulates"))))
-;;                      (div (button ((type "submit") (id "find-predicates-submit"))
-;;                                   "Find predicates")))
-;;                (div (button ((id "find-predicates-result-clear")) "Clear"))
-;;                (div (pre ((id "find-predicates-result")) "Predicates will appear here."))
-;;                (p (a ((href "/predicates")) "GET /predicates"))
-;;                (form ((method "post") (action "/v2/query") (id "query-form"))
-;;                      (div (textarea
-;;                             ((id "query-text"))
-;;                             "{
-;;   \"message\": {
-;;     \"query_graph\": {
-;;       \"nodes\": {
-;;         \"n0\": { \"id\": \"UMLS:C0935989\" },
-;;         \"n1\": { \"category\": \"gene\" },
-;;         \"n2\": { \"id\": \"UMLS:C0004096\" }
-;;       },
-;;       \"edges\": {
-;;         \"e0\": {
-;;           \"predicate\": \"negatively_regulates\",
-;;           \"subject\": \"n0\",
-;;           \"object\": \"n1\"
-;;         },
-;;         \"e1\": {
-;;           \"predicate\": \"gene_associated_with_condition\",
-;;           \"subject\": \"n1\",
-;;           \"object\": \"n2\"
-;;         }
-;;       }
-;;     }
-;;   }
-;; }"
-;;                             ))
-;;                      (div (button ((type "submit") (id "query-submit"))
-;;                                   "POST /v2/query")))
-;;                (div (button ((id "query-result-clear")) "Clear Result"))
-;;                (div (pre ((id "query-result")) "Result will appear here.")))))
+(define v2:index.html
+  `(html (head (title "mediKanren Reasoner API")
+               (script ((src "/v2/index.js"))))
+         (body (h1 "mediKanren Reasoner API")
+               (p (a ((href "https://github.com/NCATS-Tangerine/NCATS-ReasonerStdAPI"))
+                     "NCATS Biomedical Translator Reasoners Standard API"))
+               (ul (li (a ((href "/schema.html")) "schema.html"))
+                   (li (a ((href "/schema.html2")) "schema.html2"))
+                   (li (a ((href "/schema.yaml")) "schema.yaml"))
+                   (li (a ((href "/schema.json")) "schema.json")))
+               (form ((method "post") (id "find-concepts-form"))
+                    (div (input ((type "text")
+                                  (id "find-concepts-text")
+                                  (value "UMLS:C0935989"))))
+                     (div (button ((type "submit") (id "find-concepts-submit"))
+                                  "Find concepts")))
+               (div (button ((id "find-concepts-result-clear")) "Clear"))
+              (div (pre ((id "find-concepts-result")) "Concepts will appear here."))
+              (form ((method "post") (id "find-categories-form"))
+                     (div (input ((type "text")
+                                  (id "find-categories-text")
+                                  (value "gene"))))
+                     (div (button ((type "submit") (id "find-categories-submit"))
+                                  "Find categories")))
+               (div (button ((id "find-categories-result-clear")) "Clear"))
+               (div (pre ((id "find-categories-result")) "Categories will appear here."))
+               (form ((method "post") (id "find-predicates-form"))
+                     (div (input ((type "text")
+                                  (id "find-predicates-text")
+                                  (value "negatively_regulates"))))
+                     (div (button ((type "submit") (id "find-predicates-submit"))
+                                  "Find predicates")))
+               (div (button ((id "find-predicates-result-clear")) "Clear"))
+               (div (pre ((id "find-predicates-result")) "Predicates will appear here."))
+               (p (a ((href "/predicates")) "GET /predicates"))
+               (form ((method "post") (action "/v2/query") (id "query-form"))
+                     (div (textarea
+                            ((id "query-text")(rows "40") (cols "60"))
+                            #<<EOS
+{
+  "use_reasoning" : false,
+  "message": {
+    "query_graph": {
+      "nodes": {
+        "n0": {
+          "ids": ["UMLS:C0935989"]
+        },
+        "n1": {
+          "categories": ["biolink:Gene"]
+        },
+        "n2": {
+          "ids": ["UMLS:C0006353"]
+        }
+      },
+      "edges": {
+        "e0": {
+          "predicates": ["biolink:negatively_regulates,_entity_to_entity"],
+          "subject": "n0",
+          "object": "n1"
+        },
+        "e1": {
+          "predicates": ["biolink:physically_interacts_with"],
+          "subject": "n1",
+          "object": "n2"
+        }
+      }
+    }
+  }
+}
+EOS
+         ))
+                     (div (button ((type "submit") (id "query-submit"))
+                                  "POST /v2/query")))
+               (div (button ((id "query-result-clear")) "Clear Result"))
+               (div (pre ((id "query-result")) "Result will appear here.")))))
 
 (define hash-empty (hash))
 (define (str   v) (if (string? v) v (error "invalid string:" v)))
@@ -366,6 +376,8 @@ query_result_clear.addEventListener('click', function(){
   (printf "broad result size: ~s\n" (js-count broad-results))
   (printf "\nbroad results: ~s\n" broad-results)
   
+  ;; (with-handlers ((exn:fail? (lambda (exn) 
+  ;;                              (hash 'error (exn-message exn)))))
 
   (define local-results (time (trapi-response msg)))
   (printf "Local results size: ~s\n" (length (hash-ref  local-results 'results '())))
@@ -417,9 +429,11 @@ query_result_clear.addEventListener('click', function(){
 
 (define (query jsdata)
   (cond ((or (eof-object? jsdata) (not (hash? jsdata))) 'null)
-        (else (hash 'message
-                    (message->response (olift (hash-ref (olift jsdata) 'message
-                                                        hash-empty)))))))
+        (else (let ((data (olift jsdata)))
+                ;; might need more fine-grained control
+                (parameterize ((lw-reasoning? (hash-ref data 'use_reasoning #f)))
+                  (hash 'message
+                        (message->response (olift (hash-ref data 'message hash-empty)))))))))
 (define (accepts-gzip? req)
   (member "gzip" (map string-trim
                       (string-split (alist-ref (request-headers req)
@@ -453,14 +467,14 @@ query_result_clear.addEventListener('click', function(){
 ;; (define (/index req)
 ;;   (pretty-print `(request-headers: ,(request-headers req)))
 ;;   (OK req '() mime:html (xexpr->html-string index.html)))
-;; (define (/v2/index req)
-;;   (pretty-print `(request-headers: ,(request-headers req)))
-;;   (OK req '() mime:html (xexpr->html-string v2:index.html)))
-;; (define (/index.js     req) (OK req '() mime:js   index.js))
-;; (define (/schema.json  req) (OK req '() mime:text schema.json.txt))
-;; (define (/schema.yaml  req) (OK req '() mime:text schema.yaml.txt))
-;; (define (/schema.html  req) (OK req '() mime:html schema.html))
-;; (define (/schema.html2 req) (OK req '() mime:html schema.html2))
+(define (/v2/index req)
+  (pretty-print `(request-headers: ,(request-headers req)))
+   (OK req '() mime:html (xexpr->html-string v2:index.html)))
+(define (/index.js     req) (OK req '() mime:js   index.js))
+(define (/schema.json  req) (OK req '() mime:text schema.json.txt))
+(define (/schema.yaml  req) (OK req '() mime:text schema.yaml.txt))
+(define (/schema.html  req) (OK req '() mime:html schema.html))
+(define (/schema.html2 req) (OK req '() mime:html schema.html2))
 ;; (define (/predicates   req) (if (accepts-gzip? req)
 ;;                               (OK req '() mime:json predicates-cached-gzip #t)
 ;;                               (OK req '() mime:json predicates-cached #f)))
@@ -501,7 +515,7 @@ query_result_clear.addEventListener('click', function(){
 ;; (define ((find/db-id find) data)
 ;;   (group-by-db (map (lambda (x) (cons (car x) (cddr x))) (find (list data)))))
 
-;; (define (/v2/index.js        req) (OK req '() mime:js v2:index.js))
+(define (/v2/index.js        req) (OK req '() mime:js v2:index.js))
 (define (/v2/query req)           (OK/jsexpr query                        req))
 ;; (define (/v2/find-concepts   req) (OK/jsexpr find-concepts/any            req))
 ;; (define (/v2/find-categories req) (OK/jsexpr (find/db-id find-categories) req))
@@ -534,29 +548,25 @@ query_result_clear.addEventListener('click', function(){
                                              (job-failure message))))
                             (work)))
              (loop)))))
-(define (/test req)
-  (printf "Running a test")
-  "GREAT")
 
 (define (start)
   (define-values (dispatch _)
     (dispatch-rules
-      ;; (("")                     #:method "get"  /index)
-      ;; (("index.js")             #:method "get"  /index.js)
-      ;; (("schema.json")          #:method "get"  /schema.json)
-      ;; (("schema.yaml")          #:method "get"  /schema.yaml)
-      ;; (("schema.html")          #:method "get"  /schema.html)
-      ;; (("schema.html2")         #:method "get"  /schema.html2)
-      ;; (("predicates")           #:method "get"  /predicates)
-      ;; (("query")                #:method "post" /query)
-      ;; (("v2")                   #:method "get"  /v2/index)
-      ;; (("v2" "index.js")        #:method "get"  /v2/index.js)
-      ;; (("v2" "find-concepts")   #:method "post" /v2/find-concepts)
-      ;; (("v2" "find-categories") #:method "post" /v2/find-categories)
-      ;; (("v2" "find-predicates") #:method "post" /v2/find-predicates)
-      (("v2" "query")           #:method "post" /v2/query)
-      (("test")                  #:method "get" /test)
-      (else                                     not-found)))
+     ;; (("")                     #:method "get"  /index)
+     ;; (("index.js")             #:method "get"  /index.js)
+     (("schema.json")          #:method "get"  /schema.json)
+     (("schema.yaml")          #:method "get"  /schema.yaml)
+     (("schema.html")          #:method "get"  /schema.html)
+     (("schema.html2")         #:method "get"  /schema.html2)
+     ;; (("predicates")           #:method "get"  /predicates)
+     ;; (("query")                #:method "post" /query)
+     (("v2")                   #:method "get"  /v2/index)
+     (("v2" "index.js")        #:method "get"  /v2/index.js)
+     ;; (("v2" "find-concepts")   #:method "post" /v2/find-concepts)
+     ;; (("v2" "find-categories") #:method "post" /v2/find-categories)
+     ;; (("v2" "find-predicates") #:method "post" /v2/find-predicates)
+     (("v2" "query")           #:method "post" /v2/query)
+     (else                                     not-found)))
   (serve/servlet dispatch
                  ;; none-manager for better performance:
                  ;; only possible because we're not using web continuations.

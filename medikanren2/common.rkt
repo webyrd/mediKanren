@@ -63,7 +63,5 @@
     (eprop eid "predicate" p)
     (eprop eid k v)))
 
-(define-relation (triple/eid eid s p o)
-  (edge eid s o)
+(define-relation (edge-predicate eid p)
   (eprop eid "predicate" p))
- 

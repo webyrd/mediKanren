@@ -1,7 +1,7 @@
 #lang racket/base
 (provide trapi-response)
 (require
-  "common.rkt"
+  "common.rkt" "lw-reasoning.rkt"
   racket/file racket/function racket/list racket/hash
   (except-in racket/match ==)
   racket/port
@@ -18,7 +18,7 @@
 ;; TODO (trapi.rkt and server.rkt)
 ;; - status - logs - description
 ;; - Understand Attribute types
-;; - constraints
+;; - QEdge constraints
 ;; - QNode is_set:
 ;;       Boolean that if set to true, indicates that this QNode MAY
 ;;       have multiple KnowledgeGraph Nodes bound to it wi;; thin each
@@ -31,6 +31,9 @@
 ;;       n2. If a QNode (n1) with is_set=True is connected to a QNode
 ;;       (n2) with is_set=True, each n1 must be connected to at least
 ;;       one n2.
+
+(define use-reasoning? (make-parameter #f))
+
 (define trapi-response-node-properties '("category" "name"))
 (define trapi-response-node-attributes '(("umls_type_label" . "miscellaneous")
                                          ("umls_type" . "miscellaneous")
@@ -98,26 +101,27 @@
                  (curies (hash-ref n 'ids #f))
                  (categories (hash-ref n 'categories #f))
                  (constraints (hash-ref n 'constraints '()))
-                 (is-set (hash-ref n 'is_set #f)))
+                 (is-set? (hash-ref n 'is_set #f)))
             (if curies
                 (if (pair? curies)
                     (fresh (cur k+val bindings-rest)
                       (== bindings `(,k+val . ,bindings-rest))
                       (== k+val `(,id . ,cur))
                       (membero cur curies)
+                      ((trapi-constraints constraints) cur)
                       (loop (cdr nodes) bindings-rest))
                     (error "Field: 'ids' must be array of CURIEs (TRAPI 1.1)."))
                   (if (pair? categories)
                       (fresh (cat var k+var bindings-rest)
-                        (== k+var `(,id . ,var))
+                        (== k+var `(,id . ,var));)
+                        ((trapi-constraints constraints) var)
                         (== bindings `(,k+var . ,bindings-rest))
                         (membero cat categories)
                         (conde ((is-a var cat))
                                ((k-is-a var cat)))
                         (loop (cdr nodes) bindings-rest))
                       (error "Field: 'QNode/categories' must be array of CURIESs (TRAPI 1.1)."))))))))
-                  
-       
+                    
 (define (trapi-edges edges k-triple)
   (relation trapi-edges-o (node-bindings edge-bindings)
     (let loop ((edges edges) (bindings edge-bindings))
@@ -132,23 +136,49 @@
                  (object    (string->symbol (hash-ref e 'object #f)))
                  (constraints (hash-ref e 'constraints '())))
             (if (and predicates (not (pair? predicates)))
-                (error "Field: 'QEdge/predicates' must be an array of CURIEs (TRAPI1.1).")
+                (error "Field: 'QEdge/predicates' must be an array of CURIEs (TRAPI 1.1).")
                 (fresh (db+eid s p o bindings-rest)
                   (membero `(,subject . ,s) node-bindings)
                   (membero `(,object . ,o) node-bindings)
                   (conde ((== predicates #f)) 
                          ((membero p predicates)))
-                  (conde ((edge db+eid s o) 
-                          (eprop db+eid "predicate" p)
+                  (conde ((edge db+eid s o)
+                          (edge-predicate/lwr db+eid p)
                           (conde ((== relation #f))
                                  ((stringo relation) 
                                   (eprop db+eid "relation" relation))))
                          ((fresh (eid)
                             (k-triple eid s p o)
-                            (== db+eid `(kg . ,eid)))
-                          ))
+                            (== db+eid `(kg . ,eid)))))
                   (== bindings `((,id . ,db+eid) . ,bindings-rest))
                   (loop (cdr edges) bindings-rest))))))))
+
+(define (trapi-constraints constraints)
+  (relation trapi-node-constraints-o (node)
+    (let loop ((constraints constraints))
+      (if (null? constraints)
+          (== #t #t)
+          (let* ((constraint (car constraints))
+                 (id        (hash-ref constraint 'id #f))
+                 (not?      (hash-ref constraint 'not #f))
+                 (operator  (hash-ref constraint 'operator #f))
+                 (enum      (hash-ref constraint 'enum #f))
+                 (value     (hash-ref constraint 'value #f))
+                 (unit-id   (hash-ref constraint 'unit_id #f))) ;?
+            (fresh (val)
+              (triple node id val)
+              (case operator
+                ((">")  (if not?
+                          (<=o val value)
+                          (<o value val)))
+                (("<")  (if not?
+                          (<=o val value)
+                          (<o val value)))
+                (("matches") (:== #t (val) (regexp-match value val)))
+                (else (if not?
+                          (=/= val value)
+                          (== val value))))
+              (loop (cdr constraints))))))))
 
 (define (trapi-response msg)
   (define results (run* bindings (trapi-query msg bindings)))
