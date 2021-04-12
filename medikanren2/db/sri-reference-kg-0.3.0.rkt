@@ -1,6 +1,6 @@
 #lang racket/base
 (provide
-  tabled-relations nodes
+  tabled-relations nodes edges
 )
 (require "../base.rkt" (except-in racket/match ==))
 
