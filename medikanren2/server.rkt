@@ -281,30 +281,28 @@ query_result_clear.addEventListener('click', function(){
                             ((id "query-text")(rows "40") (cols "60"))
                             #<<EOS
 {
-  "use_reasoning" : false,
+  "use_reasoning": true,
   "message": {
     "query_graph": {
       "nodes": {
         "n0": {
-          "ids": ["UMLS:C0935989"]
+          "ids": [
+            "NCBIGene:7422"
+          ]
         },
         "n1": {
-          "categories": ["biolink:Gene"]
-        },
-        "n2": {
-          "ids": ["UMLS:C0006353"]
+          "categories": [
+            "biolink:AnatomicalEntity"
+          ]
         }
       },
       "edges": {
         "e0": {
-          "predicates": ["biolink:negatively_regulates,_entity_to_entity"],
+          "predicates": [
+            "biolink:regulates"
+          ],
           "subject": "n0",
           "object": "n1"
-        },
-        "e1": {
-          "predicates": ["biolink:physically_interacts_with"],
-          "subject": "n1",
-          "object": "n2"
         }
       }
     }

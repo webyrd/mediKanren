@@ -49,6 +49,12 @@
 
 ;; Semantic-web flavored relations
 
+(define-relation (quad graph s p o)
+  (fresh (id eid)
+    (== eid `(,graph . ,id))
+    (eprop eid "predicate" p)
+    (edge eid s o)))
+
 (define-relation (triple s p o)
   (fresh (eid)
     (eprop eid "predicate" p)
