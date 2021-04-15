@@ -186,6 +186,7 @@ function query_clear_result() { query_result.textContent = ''; }
 query_text.textContent = pretty_json(query_text.textContent);
 query_form.addEventListener('submit', function(event){
   event.preventDefault();
+  query_result.textContent = 'Querying...';
   query(query_text.value);
 }, false);
 query_result_clear.addEventListener('click', function(){
@@ -281,7 +282,6 @@ query_result_clear.addEventListener('click', function(){
                             ((id "query-text")(rows "40") (cols "60"))
                             #<<EOS
 {
-  "use_reasoning": true,
   "message": {
     "query_graph": {
       "nodes": {
@@ -302,7 +302,8 @@ query_result_clear.addEventListener('click', function(){
             "biolink:regulates"
           ],
           "subject": "n0",
-          "object": "n1"
+          "object": "n1",
+          "use_reasoning": true
         }
       }
     }
