@@ -429,10 +429,8 @@ EOS
 (define (query jsdata)
   (cond ((or (eof-object? jsdata) (not (hash? jsdata))) 'null)
         (else (let ((data (olift jsdata)))
-                ;; might need more fine-grained control
-                (parameterize ((lw-reasoning? (hash-ref data 'use_reasoning #f)))
-                  (hash 'message
-                        (message->response (olift (hash-ref data 'message hash-empty)))))))))
+                (hash 'message
+                      (message->response (olift (hash-ref data 'message hash-empty))))))))
 (define (accepts-gzip? req)
   (member "gzip" (map string-trim
                       (string-split (alist-ref (request-headers req)
@@ -573,6 +571,8 @@ EOS
                  #:servlet-regexp #rx""
                  #:listen-ip #f  ;; comment this to disable external connection
                  #:port 8384
-                 #:launch-browser? #f))
+                 #:launch-browser? #f
+                 ;; #:request-read-timeout 300
+                 ))
 
 (module+ main (start))
