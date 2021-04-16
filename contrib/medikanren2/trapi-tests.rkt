@@ -2,6 +2,7 @@
 (provide trapi-response)
 (require
   "../../medikanren2/trapi.rkt"
+  "../../medikanren2/lw-reasoning.rkt"
   racket/file racket/function racket/list racket/hash
   (except-in racket/match ==)
   racket/port
@@ -30,7 +31,8 @@
                     "categories": ["biolink:biological_entity"]
                 },
                 "n01": {
-                    "categories": ["biolink:Disease"]
+                    "categories": ["biolink:Disease"],
+                    "is_set" : true
                 }
             }
         }
@@ -101,15 +103,58 @@ EOS
 EOS
 ))
 
-(define m1    (hash-ref q 'message))
-(define m2    (hash-ref q2 'message))
-(define m3 (hash-ref q3 'message))
 
-(define r (time (trapi-response m1)))
-(display (jsexpr->string r))
-(printf "\n=====\n")
-(define r2 (time (trapi-response m2)))
-(display (jsexpr->string r2))
+(define q4 (string->jsexpr #<<EOS
+{
+    "message": {
+        "query_graph": {
+            "edges": {
+                "e00": {
+                    "subject": "n00",
+                    "object": "n01",
+                    "predicates": ["biolink:regulates"]
+                }
+            },
+            "nodes": {
+                "n00": {
+                    "ids" : ["GO:0002862"]
+                },
+                "n01": {
+                    "categories": ["biolink:BiologicalProcess"]
+                }
+            }
+        }
+    }
+}
+EOS
+))
 
-(define r3 (time (trapi-response m3)))
+;; (lw-reasoning? #t)
+;; (define m1    (hash-ref q 'message))
+;; (define m2    (hash-ref q2 'message))
+;; (define m3 (hash-ref q3 'message))
+
+
+;; (define r (time (trapi-response m1)))
+;; (display (jsexpr->string r))
+;; (printf "\nSize:~s\n" (length  (hash-ref r 'results '())))
+;; (printf "\n=====\n")
+;; (define r2 (time (trapi-response m2)))
+;; (display (jsexpr->string r2))
+;; (printf "\nSize:~s\n" (length (hash-ref r2 'results '())))
+;; (printf "\n=====\n")
+;; (define r3 (time (trapi-response m3)))
+;; (display (jsexpr->string r3))
+;; (printf "\nSize:~s\n" (length (hash-ref r3 'results '())))
+
+(define m4 (hash-ref q4 'message))
+(parameterize ((lw-reasoning? #f))
+  (let ((results (time (trapi-response m4))))
+    (display  (jsexpr->string results))
+    (printf "\nSize:~s\n" (length (hash-ref results 'results '())))))
+
+(parameterize ((lw-reasoning? #t))
+  (let ((results (time (trapi-response m4))))
+    (display  (jsexpr->string results))
+    (printf "\nSize:~s\n" (length (hash-ref results 'results '())))))
 
