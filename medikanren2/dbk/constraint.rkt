@@ -423,9 +423,8 @@
           ((vector? t1) (and (vector? t2) (= (vector-length t1)
                                              (vector-length t2))
                              (unify st (vector->list t1) (vector->list t2))))
-          ((string? t1) (and (string? t2) (string=? t1 t2) st))
-          ((bytes?  t1) (and (bytes?  t2) (bytes=?  t1 t2) st))
-          (else         #f))))
+          ((equal? t1 t2) st)
+          (else           #f))))
 
 (define (disunify st uid? t1 t2)
   (let ((t1 (walk st t1)) (t2 (walk st t2)))
@@ -440,7 +439,8 @@
                               (else (disjoin st #f (map c:=/=
                                                         (vector->list t1)
                                                         (vector->list t2))))))
-          (else         st))))
+          ((equal? t1 t2) #f)
+          (else           st))))
 
 (define (ltunify st uid? t1 t2)
   (let ((t1 (walk st t1)) (t2 (walk st t2)))
