@@ -112,12 +112,14 @@ EOS
                 "e00": {
                     "subject": "n00",
                     "object": "n01",
-                    "predicates": ["biolink:regulates"]
+                    "predicates": ["biolink:regulates"],
+                    "use_reasoning" : true
                 }
             },
             "nodes": {
                 "n00": {
-                    "ids" : ["GO:0002862"]
+                    "ids" : ["GO:0002862"],
+                    "use_reasoning" : true
                 },
                 "n01": {
                     "categories": ["biolink:BiologicalProcess"]
@@ -128,6 +130,11 @@ EOS
 }
 EOS
 ))
+(define m4 (hash-ref q4 'message))
+(let ((results (time (trapi-response m4))))
+  (display  (jsexpr->string results))
+  (printf "\nSize:~s\n" (length (hash-ref results 'results '()))))
+
 
 ;; (lw-reasoning? #t)
 ;; (define m1    (hash-ref q 'message))
@@ -147,14 +154,7 @@ EOS
 ;; (display (jsexpr->string r3))
 ;; (printf "\nSize:~s\n" (length (hash-ref r3 'results '())))
 
-(define m4 (hash-ref q4 'message))
-(parameterize ((lw-reasoning? #f))
-  (let ((results (time (trapi-response m4))))
-    (display  (jsexpr->string results))
-    (printf "\nSize:~s\n" (length (hash-ref results 'results '())))))
 
-(parameterize ((lw-reasoning? #t))
-  (let ((results (time (trapi-response m4))))
-    (display  (jsexpr->string results))
-    (printf "\nSize:~s\n" (length (hash-ref results 'results '())))))
+
+
 
