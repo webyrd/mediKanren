@@ -52,6 +52,14 @@
                ((~transitive-closure/down child mid))))))
   ~transitive-closure/down)
 
+;; (define (transitive-closure/down^ base-relation)
+;;   (define-relation (~transitive-closure/down^ child parent)
+;;     (conde ((base-relation child parent))
+;;            ((fresh (mid)
+;;             (base-relation mid parent)
+;;             (~transitive-closure/down^ child mid)))))
+;;   ~transitive-closure/down^)
+
 (define (transitive-closure/up base-relation)
   (define-relation (~transitive-closure/up child parent)
     (fresh (mids)
@@ -147,6 +155,17 @@
                          "biolink:close_match"
                          "biolink:has_gene_product"))
 
+(define synonyms-exact-preds '("biolink:same_as"))
+
+(define drug-categories '("biolink:ChemicalSubstance"
+                          "biolink:ClinicalIntervention"
+                          "biolink:ClinicalModifier"
+                          "biolink:Drug"
+                          "biolink:Treatment"))
+(define disease-categories '("biolink:Disease"
+                             "biolink:DiseaseOrPhenotypicFeature"
+                             "biolink:PhenotypicFeature"))
+
 (define-relation (direct-synonym a b)
   (fresh (id sp)
     (edge id a b)
@@ -168,16 +187,28 @@
          ((direct-synonym+ a b))
          ((direct-synonym+ b a))))
 
-(define (synonyms/step term (n 200))
-  (set->list (run*/set/steps n s (synonym s term))))
+(define (synonyms/step term (n 200) (categories '()))
+  (if (pair? categories)
+      (set->list
+       (run*/set/steps n s
+         (synonym s term)
+         (fresh (cat)
+           (cprop s "category" cat)
+           (membero cat categories))))
+      (set->list (run*/set/steps n s (synonym s term)))))
 
-(define (synonyms/breadth term (n 2))
+(define (synonyms/breadth term (n 2) (categories '()))
   (let loop ((n (- n 1)) (synonyms (set term)) (terms (list term)) )
     (let ((new-synonyms
            (run*/set s (fresh (term)
                          (conde ((direct-synonym s term))
                                 ((direct-synonym term s)))
                          (membero term terms)
+                         (if (pair? categories)
+                             (fresh (cat)
+                               (cprop s "category" cat)
+                               (membero cat categories))
+                             (== #t #t))
                          (:== #f (s) (set-member? synonyms s))
                          ;; (not-membero s (set->list synonyms))     ; purer but slower
                          ))))
@@ -196,7 +227,7 @@
 (define (synonym-of/breadth term (n 2))
   (relation synonym-of/breadth^ (s)
     (fresh (synonyms)
-      (:== synonyms (term) (synonyms/breadth term n))
+      (:== synonyms (term) (set->list (synonyms/breadth term n)))
       (membero s synonyms))))
 
  (define (subclasses/set curies)
@@ -210,33 +241,38 @@
             (membero curie curies)
             ((synonym-of/step curie) s))))
 
-(define-relation (subclass/synonym-of a b scs)
-  (conde ((== a b) (== scs '()))
-         ((direct-synonym a b) (== scs '(synonym)))
-         ((direct-synonym b a) (== scs '(synonym)))
-         ((subclass-of a b) (== scs '(subclass)))
-         ((fresh (mid scs-rest)
-            (conde ((subclass-of mid b)
-                    (== scs `((subclass: ,mid) . ,scs-rest))
-                    (subclass/synonym-of a mid scs-rest))
-                   ((direct-synonym mid b)
-                    (== scs `((synonym: ,mid) . ,scs-rest))
-                    (subclass/synonym-of a mid scs-rest))
-                   ((direct-synonym b mid)
-                    (== scs `((synonym: ,mid) . ,scs-rest))
-                    (subclass/synonym-of a mid scs-rest)))))))
+(define-relation (subclass-or-synonym a b)
+  (conde ((direct-synonym a b))
+         ((direct-synonym b a))
+         ((subclass-of a b))))
 
-;; todo: do a breadth-first version of this
-;; todo: try to make a version that terminates
-;; > (time (set-count (run*/set/steps 10000 (s path) (subclass/synonym-of s anxiety path))))
-;; cpu time: 21026 real time: 21032 gc time: 122
-;; 55
-;; >  (time (set-count (run*/set/steps 15000 (s path) (subclass/synonym-of s anxiety path))))
-;; cpu time: 32172 real time: 32184 gc time: 205
-;; 71
-;; >  (time (set-count (run*/set/steps 20000 (s path) (subclass/synonym-of s anxiety path))))
-;; cpu time: 45528 real time: 45947 gc time: 378
-;; 71
+(define-relation (subclass-or-synonym/mid a b)
+  (conde ((subclass-or-synonym a b))
+         ((fresh (mid)
+            (subclass-or-synonym a mid)
+            (subclass-or-synonym mid b)))
+         ((fresh (mid1 mid2)
+            (subclass-or-synonym a mid1)
+            (subclass-or-synonym mid2 b)
+            (subclass-or-synonym/mid mid1 mid2)))))
+
+(define-relation (subclass-or-synonym/down a b)
+  (conde ((subclass-or-synonym a b))
+         ((fresh (mid)
+            (subclass-or-synonym mid b)
+            (subclass-or-synonym/down a mid)))))
+
+(define-relation (subclass-or-synonym/up a b)
+  (conde ((subclass-or-synonym a b))
+         ((fresh (mid)
+            (subclass-or-synonym a mid)
+            (conde ((subclass-or-synonym mid b))
+                   ((subclass-or-synonym/up mid b)))))))
+         
+
+       
+
+
 
 
          
@@ -256,3 +292,16 @@
 ;; (run-test 200)
 ;; (run-test 1000)
 ;; (run-test 10000)
+
+
+
+;; todo: try to make a version that terminates
+;; > (time (set-count (run*/set/steps 10000 (s path) (subclass/synonym-of s anxiety path))))
+;; cpu time: 21026 real time: 21032 gc time: 122
+;; 55
+;; >  (time (set-count (run*/set/steps 15000 (s path) (subclass/synonym-of s anxiety path))))
+;; cpu time: 32172 real time: 32184 gc time: 205
+;; 71
+;; >  (time (set-count (run*/set/steps 20000 (s path) (subclass/synonym-of s anxiety path))))
+;; cpu time: 45528 real time: 45947 gc time: 378
+;; 71
