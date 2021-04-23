@@ -65,18 +65,18 @@ for level in range(0,level_max+1):
     cFw=0
     cRev=0
     if level < level_max:
-        for nodeid in list(nodes.keys()):
-            for edge in edges_fw[nodeid] if nodeid in edges_fw else []:
-                nodeid = edge[0]
-                if not (nodeid in nodes):
-                    nodes[nodeid] = level
+        for nodeid1 in list(nodes.keys()):
+            for edge in edges_fw[nodeid1] if nodeid1 in edges_fw else []:
+                nodeid2 = edge[0]
+                if not (nodeid2 in nodes):
+                    nodes[nodeid2] = level
                     cFw += 1
                     # if (cFw % 1024) == 0:
                     #     print("cFw={} rel={}".format(cFw, edge[1]))
-            for edge in edges_rev[nodeid] if nodeid in edges_rev else []:
-                nodeid = edge[0]
-                if not (nodeid in nodes):
-                    nodes[nodeid] = level
+            for edge in edges_rev[nodeid1] if nodeid1 in edges_rev else []:
+                nodeid2 = edge[0]
+                if not (nodeid2 in nodes):
+                    nodes[nodeid2] = level
                     cRev += 1
                     # if (cRev % 1024) == 0:
                     #     print("cRev={} rel={}".format(cRev, edge[1]))
