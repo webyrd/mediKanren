@@ -105,3 +105,45 @@
 
 (define-relation (edge-predicate eid p)
   (eprop eid "predicate" p))
+
+
+(define synonyms-preds '("biolink:same_as"  ; rtx
+                        ;"biolink:close_match" ; rtx
+                         "biolink:has_gene_product" ;rtx
+                         ))
+
+(define-relation (direct-synonym a b)
+  (fresh (id sp)
+    (edge id a b)
+    (eprop id "predicate" sp)
+    (membero sp synonyms-preds)))
+
+(define-relation (close-match-syn a b)
+  (fresh (id)
+    (any<=o "HGNC:" a)
+    (any<=o a "HGND")
+    (any<=o "UMLS:" b)
+    (any<=o b "UMLT")
+    (edge id a b)
+    (:== #t (a) (not (null? (run 1 () (eprop id "predicate" "biolink:close_match")))))
+    (:== #t (a) (string-prefix? a "HGNC:"))
+    (:== #t (b) (string-prefix? b "UMLS:"))))
+
+(define-relation (synonym a b)
+  (conde ((== a b))
+         ((close-match-syn a b))
+         ((close-match-syn b a))
+         ((direct-synonym a b))
+         ((direct-synonym b a))
+         ((fresh (mid)
+            (close-match-syn a mid)
+            (synonym mid b)))
+         ((fresh (mid)
+            (close-match-syn b mid)
+            (synonym mid a)))         
+         ((fresh (mid)
+            (direct-synonym a mid)
+            (synonym mid b)))
+         ((fresh (mid)
+            (direct-synonym b mid)
+            (synonym mid a)))))
