@@ -1,4 +1,4 @@
-#lang racket/base
+#lang racket
 (provide
   tabled-relations nodes edges
 )
@@ -24,10 +24,13 @@
   'map/append          (value/syntax
                         (lambda (row)
                           (define id (car row))
-                          (map
-                            (lambda (k v) (list id k v))
-                            (cdr stcolumns-of-nodes)
-                            (cdr row))))
+                          (append-map
+                           (lambda (k v)
+                             (if (equal? v "")
+                                 '()
+                                 (list (list id k v))))
+                           (cdr stcolumns-of-nodes)
+                           (cdr row))))
 ;  'tables             '((curie name value))
 ;  'indexes            '((name value))
   )
@@ -49,10 +52,13 @@
   'map/append          (value/syntax
                         (lambda (row)
                           (define id (car row))
-                          (map
-                            (lambda (k v) (list id k v))
-                            (cdr stcolumns-of-edges)
-                            (cdr row))))
+                          (append-map
+                           (lambda (k v)
+                             (if (equal? v "")
+                                 '()
+                                 (list (list id k v))))
+                           (cdr stcolumns-of-edges)
+                           (cdr row))))
 ;  'tables             '((curie name value))
 ;  'indexes            '((name value))
   )
