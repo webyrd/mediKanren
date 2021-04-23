@@ -2,6 +2,16 @@
 (provide
   tabled-relations nodes edges
 )
+
+#|
+  Extract from source data and rebuild with:
+
+    time python medikanren2/util/storage-size-workaround/s-cerevisiae-kg-ref-ll.py && \
+    rm -rf medikanren2/data/yeast-sri-reference && \
+    time racket -l errortrace -u medikanren2/db/yeast-sri-reference-kg-0.3.0.rkt
+|#
+
+
 (require "../base.rkt" (except-in racket/match ==))
 
 (define columns-of-nodes 
