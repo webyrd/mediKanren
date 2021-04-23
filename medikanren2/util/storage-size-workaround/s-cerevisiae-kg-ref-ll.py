@@ -5,7 +5,7 @@ rfile_nodes = "medikanren2/data/sri-reference/0.3.0-input/sri-reference-kg-0.3.0
 rfile_edges = "medikanren2/data/sri-reference/0.3.0-input/sri-reference-kg-0.3.0_edges_nocr.tsv"
 # When used as configured, requires ~9GB RAM ("RES = Resident Size" in top)
 
-level_max = 2
+level_max = 5
 rel_blacklist={
     "biolink:related_to":1,
     "biolink:actively_involved_in":1,
