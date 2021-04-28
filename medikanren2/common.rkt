@@ -3,12 +3,14 @@
                        "db/semmed.rkt"
                        "db/rtx2-20210204.rkt")
          cprop edge eprop
-         triple quad triple/eid is-a is-a/quad triple-property)
+         triple quad triple/eid is-a is-a/quad triple-property
+         synonym
+         write-list-to-tsv)
 
 (require "base.rkt"
          (prefix-in semmed: "db/semmed.rkt")
          (prefix-in rtx:    "db/rtx2-20210204.rkt")
-         racket/list racket/string (except-in racket/match ==) racket/pretty)
+         racket/list racket/set racket/string (except-in racket/match ==) racket/pretty)
 
 (define dbname=>tabled-relations
   (hash 'semmed        semmed:tabled-relations
@@ -147,3 +149,44 @@
          ((fresh (mid)
             (direct-synonym b mid)
             (synonym mid a)))))
+
+; define a get-synonyms function based on the synonym relation
+; ideally we wanted to start with HGNC prefixes right now because if we start with other curie prefixes
+; such as UMLS, we need to increase the steps
+(define (get-synonyms a-curie)
+  (set->list (run*/set/steps 500 s (synonym a-curie s))))
+
+; get-synonyms-ls function takes a list of curies and return a list of all normalized curies
+(define (get-synonyms-ls curie-ls)
+  (define (unwrap lst)
+    (cond
+      [(null? lst) '()]
+      [(pair? lst)
+       (append (unwrap (car lst)) (unwrap (cdr lst)))]
+      [else (list lst)]))
+  (time (unwrap (map (lambda (x) (get-synonyms x)) curie-ls))))
+
+
+
+
+(define write-list-to-tsv
+  (lambda (header-ls lol path)
+    (with-output-to-file path
+      ;; thunk -- procedure that takes no arguments
+      (lambda ()
+        (for-each
+          (lambda (l)
+            (let loop ([l l])
+              (cond
+                ((null? l)
+                 (error 'output-to-tsv "where's the data!?"))
+                ((null? (cdr l)) ;; l contains exactly 1 element
+                 (display (car l))
+                 (display #\newline))
+                (else
+                 (display (car l))
+                 (display #\tab)
+                 (loop (cdr l))))))
+          (cons header-ls lol)))
+      #:mode 'text
+      #:exists 'replace)))
