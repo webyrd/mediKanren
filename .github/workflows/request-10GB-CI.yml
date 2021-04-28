@@ -5,7 +5,7 @@ on:
   pull_request:
 
 jobs:
-  10GB-CI:
+  request-10GB-CI:
     runs-on: ubuntu-latest
     steps:
       - name: Request 10GB-CI
