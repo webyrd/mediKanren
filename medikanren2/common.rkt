@@ -8,7 +8,7 @@
 (require "base.rkt"
          (prefix-in semmed: "db/semmed.rkt")
          (prefix-in rtx:    "db/rtx2-20210204.rkt")
-         racket/list (except-in racket/match ==) racket/pretty)
+         racket/list racket/string (except-in racket/match ==) racket/pretty)
 
 (define dbname=>tabled-relations
   (hash 'semmed        semmed:tabled-relations
