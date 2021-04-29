@@ -34,15 +34,15 @@
 (define-runtime-path path:root ".")
 (define (path/root relative-path) (build-path path:root relative-path))
 (define schema.json.txt
-  (file->string (path/root "open-api/TranslatorReasonersAPI.json")))
+  (file->string (path/root "../open-api/TranslatorReasonersAPI.json")))
 (define schema.yaml.txt
-  (file->string (path/root "open-api/TranslatorReasonersAPI.yaml")))
+  (file->string (path/root "../open-api/TranslatorReasonersAPI.yaml")))
 (define schema.html
-  (file->string (path/root "open-api/html/index.html")))
+  (file->string (path/root "../open-api/html/index.html")))
 (define schema.html2
-  (file->string (path/root "open-api/html2/index.html")))
+  (file->string (path/root "../open-api/html2/index.html")))
 (define schema.json
-  (call-with-input-file (path/root "open-api/TranslatorReasonersAPI.json")
+  (call-with-input-file (path/root "../open-api/TranslatorReasonersAPI.json")
                         read-json))
 (pretty-print (list 'openapi:      (hash-ref schema.json 'openapi)))
 (pretty-print (list 'info:         (hash-ref schema.json 'info)))
