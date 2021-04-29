@@ -6,10 +6,6 @@
 
 (define uri-scn4a "ENSEMBL:ENSBTAG00000004770")
 
-(run 1 (id p o)
-     (== id curie-scn4a)
-     (nodes id p o))
-
 (chk
  (#:= (run* (p o)
             (fresh (id)
