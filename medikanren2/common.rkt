@@ -169,7 +169,30 @@
       [else (list lst)]))
   (time (unwrap (map (lambda (x) (get-synonyms x)) curie-ls))))
 
+; get-names-ls function takes a list of curies and return the curies with their coresponding names
+(define (get-names-ls curie-ls)
+  (run* (curie name)
+    (cprop curie "name" name)
+    (membero curie curie-ls)))
 
+
+; The 2nd-approach to find synonyms is to use the cached synonyms from the KGX-syn KG
+(define (syn a b)
+  (fresh (predicate id source_database)
+    (conde
+      [(KGX-syn a b predicate id source_database)]
+      [(KGX-syn b a predicate id source_database)])))
+
+(define (syn* a b)
+  (conde
+    [(== a b)]
+    [(syn a b)]
+    [(fresh (mid)
+       (syn a mid)
+       (syn* mid b))]))
+
+;; usage:
+;(run*/set/steps 500 x (syn* "HGNC:5993" x))
 
 
 (define write-list-to-tsv
