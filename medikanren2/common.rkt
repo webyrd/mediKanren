@@ -1,15 +1,18 @@
 #lang racket/base
 (provide (all-from-out "base.rkt"
                        "db/semmed.rkt"
-                       "db/rtx2-20210204.rkt")
+                       "db/rtx2-20210204.rkt"
+                       "db/KGX_synonym.rkt")
          cprop edge eprop
          triple quad triple/eid is-a is-a/quad triple-property
          synonym
+         get-synonyms get-synonyms-ls
          write-list-to-tsv)
 
 (require "base.rkt"
          (prefix-in semmed: "db/semmed.rkt")
          (prefix-in rtx:    "db/rtx2-20210204.rkt")
+         "db/KGX_synonym.rkt"
          racket/list racket/set racket/string (except-in racket/match ==) racket/pretty)
 
 (define dbname=>tabled-relations
