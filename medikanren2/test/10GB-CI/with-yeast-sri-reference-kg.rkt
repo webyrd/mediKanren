@@ -1,5 +1,4 @@
 #lang racket
-(require racket)
 (require chk)
 (require "../../db/yeast-sri-reference-kg-0.3.0.rkt")
 (require "../../dbk/mk.rkt")
