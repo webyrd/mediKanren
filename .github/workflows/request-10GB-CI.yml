@@ -14,7 +14,7 @@ jobs:
           curl -X POST https://api.github.com/repos/webyrd/mediKanren-ops/dispatches \
           -H 'Accept: application/vnd.github.everest-preview+json' \
           -u ${{ secrets.GH_ACCESS_TOKEN }} \
-          --data '{"event_type": "ping", "client_payload": {
+          --data '{"event_type": "request-10GB-CI", "client_payload": {
               "repository": "'"$GITHUB_REPOSITORY"'",
               "github_sha1": "'$GITHUB_SHA1'",
               "github_ref": "'$GITHUB_REF'",
