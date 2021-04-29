@@ -7,7 +7,7 @@ adirArtifacts="$adirRepo/ci_artifacts"
 # discovers them.  The purpose of the current way only to show that
 # tests can be run in Github Actions against real data.
 
-if raco test "$adirMk/test/10GB-CI/with-yeast-sri-reference-kg.rkt" 2>&1 | tee "$adirRepo/ci_artifacts/raco_test.log"
+if raco test "$adirMk/test/10GB-CI/with-yeast-sri-reference-kg.rkt"
 then
     echo medikanren_run_ci > "$adirArtifacts/status/pass/medikanren2_run_ci"
 else
