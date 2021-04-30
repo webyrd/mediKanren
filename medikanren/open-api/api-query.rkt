@@ -1,6 +1,7 @@
 #lang racket
 (provide (all-defined-out))
 (require "../mk.rkt" json net/url)
+(require "../common.rkt")
 
 (define (js-count js)
   (cond ((pair? js) (foldl + 0 (map js-count js)))
@@ -325,6 +326,8 @@ query = {
 |#
 
 ;; addition provenance/evidence for drug indication query
+(unless (config-ref 'trapi-disable-external-requests?)
+  (begin
 (pretty-print
  (time
   (api-query
@@ -384,5 +387,6 @@ query = {
                                         'type  "gene")
                                   (hash 'id    "n01"
                                         'type  "gene"))))))
+))
 
 )
