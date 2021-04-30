@@ -1,6 +1,6 @@
 #lang racket/base
 (require
-  "common.rkt"
+ (except-in "common.rkt" synonym)  
   "trapi.rkt"
   "lw-reasoning.rkt"
   "open-api/api-query.rkt"
@@ -379,12 +379,17 @@ EOS
   ;;                              (hash 'error (exn-message exn)))))
 
   (define local-results (time (trapi-response msg)))
-  (printf "Local results size: ~s\n" (length (hash-ref  local-results 'results '())))
+  (let ((length-local (length (hash-ref  local-results 'results '()))))
+    (printf "Local results size: ~s\n" length-local)
 
-  (merge-results
+  (hash-set*
+   (merge-results
     (list (hash-ref (olift broad-results) 'message hash-empty)
-          local-results
-          )))
+          local-results))
+    'status "Success"
+    'description (format "Success. ~s result~s." length-local (if (= length-local 1) "" "s"))
+    'logs '()))
+    )
 
 (define (merge-results rs)
   (let loop ((rs rs) (results '()) (nodes '()) (edges '()))

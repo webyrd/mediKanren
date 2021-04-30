@@ -1,7 +1,8 @@
 #lang racket/base
 (provide trapi-response)
 (require
-  "common.rkt" "lw-reasoning.rkt"
+ (except-in "common.rkt" synonym)
+ "lw-reasoning.rkt"
   racket/file racket/function racket/list racket/hash
   (except-in racket/match ==)
   racket/port
@@ -83,13 +84,12 @@
       (membero `(predicate . ,p) props)
       (membero `(object . ,o) props)))
 
-  (parameterize ((use-reasoning? (hash-ref qgraph 'use_reasoning #f)))
     (let ((full-reasoning? (hash-ref qgraph 'use_reasoning #f)))
-    (fresh (node-bindings edge-bindings)
+      (fresh (node-bindings edge-bindings)
       (== bindings `((node_bindings . ,node-bindings) 
                      (edge_bindings . ,edge-bindings)))
       ((trapi-nodes nodes k-is-a full-reasoning?) node-bindings)
-      ((trapi-edges edges k-triple full-reasoning?) node-bindings edge-bindings)))))
+      ((trapi-edges edges k-triple full-reasoning?) node-bindings edge-bindings))))
 
 (define (trapi-nodes nodes k-is-a full-reasoning?)
   (relation trapi-nodes-o (bindings)
@@ -100,8 +100,10 @@
           (let* ((id+n        (car nodes))
                  (id          (car id+n))
                  (n           (cdr id+n))
-                 (curies      (hash-ref n 'ids #f))
-                 (categories  (hash-ref n 'categories #f))
+                 (curie       (hash-ref n 'id #f)) ; deprecated, v1.1
+                 (curies      (hash-ref n 'ids (and curie (list curie))))
+                 (category   (hash-ref n 'categorie #f))
+                 (categories  (hash-ref n 'categories (and category (list category))))
                  (constraints (hash-ref n 'constraints '()))
                  (is-set?     (hash-ref n 'is_set #f))
                  (reasoning?  (hash-ref n 'use_reasoning #f)))
@@ -109,7 +111,7 @@
                 (if (pair? curies)
                     (let ((curies
                            (if (or reasoning? full-reasoning?)
-                               (synonyms/set
+                               (syns/set
                                 (subclasses/set curies))
                                curies)))
                       (fresh (curie k+v bindings-rest)
@@ -118,7 +120,7 @@
                         (membero curie curies)
                         ((trapi-constraints constraints) curie)
                         (loop (cdr nodes) bindings-rest)))
-                    (error "Field: 'ids' must be array of CURIEs (TRAPI 1.1)."))
+                    (error "Field: 'QNode/ids' must be array of CURIEs (TRAPI 1.1)."))
                 (if (pair? categories)
                     (let ((categories (if (or reasoning? full-reasoning?)
                                           (subclasses/set categories) 
@@ -138,13 +140,14 @@
     (let loop ((edges edges) (bindings edge-bindings))
       (if (null? edges)
           (== bindings '()) 
-          (let* ((id+e      (car edges))
-                 (id        (car id+e))
-                 (e         (cdr id+e))
-                 (predicates (hash-ref e 'predicates #f))
-                 (subject   (string->symbol (hash-ref e 'subject #f)))
-                 (relation  (hash-ref e 'relation #f))
-                 (object    (string->symbol (hash-ref e 'object #f)))
+          (let* ((id+e        (car edges))
+                 (id          (car id+e))
+                 (e           (cdr id+e))
+                 (predicate   (hash-ref e 'predicate #f)) ; deprecated v1.1
+                 (predicates  (hash-ref e 'predicates (and predicate (list predicate))))
+                 (subject     (string->symbol (hash-ref e 'subject #f)))
+                 (relation    (hash-ref e 'relation #f))
+                 (object      (string->symbol (hash-ref e 'object #f)))
                  (constraints (hash-ref e 'constraints '()))
                  (reasoning?  (hash-ref e 'use_reasoning #f)))
             (if (and predicates (not (pair? predicates)))
@@ -154,7 +157,8 @@
                   (fresh (db+id s p o bindings-rest)
                     (membero `(,subject . ,s) node-bindings)
                     (membero `(,object . ,o) node-bindings)
-                    (conde ((== predicates #f)) 
+                    (conde ((== predicates #f))
+                           ((== predicates '()))
                            ((membero p predicates)))
                     (conde ((triple/eid db+id s p o)
                             (conde ((== relation #f))
