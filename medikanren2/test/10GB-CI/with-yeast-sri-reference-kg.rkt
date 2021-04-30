@@ -12,7 +12,7 @@
                    (== id uri-scn4a)
                    (membero p '("in_taxon" "description"))
                    (nodes id p o)))
-  '(("in_taxon" "NCBITaxon:9913|NCBITaxon:9913")
+  '(("in_taxon" "NCBITaxon:9913|NCBITaxon:99131")
     ("description" "Sodium channel protein"))))
 
 
