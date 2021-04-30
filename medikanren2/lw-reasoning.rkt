@@ -4,11 +4,12 @@
          subclass-of subclass-of* subclass-of+
          is-a/subclass+ is-a/subclass*
          is-a/lwr triple/lwr triple/inverse
+         triple/subclass triple/subclass+
          direct-synonym direct-synonym* direct-synonym+ synonym
          synonym-of/step synonym-of/breadth
-         synonyms/set subclasses/set)
+         syns/set synonyms/set subclasses/set)
 (require
-  "common.rkt"
+ (except-in "common.rkt" synonym)
   racket/file racket/function racket/list racket/hash
   (except-in racket/match ==)
   racket/port
@@ -149,7 +150,16 @@
                 (eprop eid "predicate" p^))))
       (eprop eid "predicate" p)))
 
-;; Synonymization
+;; Synonymization 1: Cached synonyms
+
+(define (syns/set curies)
+  (append curies
+          (run* s (fresh (curie)
+                    (membero curie curies)
+                    (syn curie s)))))
+
+
+;; Synonymization 2: queried synonyms
 
 (define synonyms-preds '("biolink:same_as"
                          "biolink:close_match"
@@ -157,19 +167,43 @@
 
 (define synonyms-exact-preds '("biolink:same_as"))
 
-(define drug-categories '("biolink:ChemicalSubstance"
-                          "biolink:ClinicalIntervention"
-                          "biolink:ClinicalModifier"
-                          "biolink:Drug"
-                          "biolink:Treatment"))
+(define rtx2-drug-categories '("biolink:ChemicalSubstance"
+                               "biolink:ClinicalIntervention"
+                               "biolink:ClinicalModifier"
+                               "biolink:Drug"
+                               "biolink:Treatment"))
+
+(define semmed-drug-categories '("chemical_substance"))
+
+(define drug-categories (append rtx2-drug-categories semmed-drug-categories))
+
 (define disease-categories '("biolink:Disease"
                              "biolink:DiseaseOrPhenotypicFeature"
                              "biolink:PhenotypicFeature"))
 
+(define inhibit-preds '("biolink:decreases_activity_of"
+                        "biolink:decreases_expression_of"
+                        "biolink:disrupts"
+                        "biolink:negatively_regulates"
+                        "biolink:negatively_regulates,_entity_to_entity"
+                        "biolink:negatively_regulates,_process_to_process"
+                        "biolink:treats"
+                        "negatively_regulates" ; semmed
+                        "treats" ; semmed
+                        )) 
+
+(define gene-or-protein '("biolink:Gene"
+                          "biolink:GeneFamily"
+                          "biolink:GeneProduct"
+                          "biolink:GenomicEntity"
+                          "biolink:MacromolecularComplex"
+                          "biolink:MolecularEntity"
+                          "biolink:Protein"))
+
 (define-relation (direct-synonym a b)
   (fresh (id sp)
-    (edge id a b)
-    (eprop id "predicate" sp)
+    (rtx:edge id a b)
+    (rtx:eprop id "predicate" sp)
     (membero sp synonyms-preds)))
 
 (define-relation (direct-synonym* a b)

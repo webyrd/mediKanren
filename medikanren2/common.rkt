@@ -5,7 +5,7 @@
                        "db/KGX_synonym.rkt")
          cprop edge eprop
          triple quad triple/eid is-a is-a/quad triple-property
-         synonym
+         synonym syn
          get-synonyms get-synonyms-ls
          write-list-to-tsv)
 
