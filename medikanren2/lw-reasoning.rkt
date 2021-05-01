@@ -18,6 +18,7 @@
   racket/string
   racket/set
   json
+  memoize
   )
 
 ;; Generalized transitive closure
@@ -264,16 +265,39 @@
       (:== synonyms (term) (set->list (synonyms/breadth term n)))
       (membero s synonyms))))
 
- (define (subclasses/set curies)
+;; (define (synonyms/set2 curies)
+;;   (run* s (fresh (curie)
+;;             (membero curie curies)
+;;             ((synonym-of/breadth curie 1) s))))
+
+(define gene-or-protein/set (set "biolink:Gene"
+                             "biolink:GeneFamily"
+                             "biolink:GeneProduct"
+                             "biolink:GenomicEntity"
+                             "biolink:MacromolecularComplex"
+                             "biolink:MolecularEntity"
+                             "biolink:Protein"))
+
+(define/memo* (synonyms/set curies)
+  (remove-duplicates
+   (apply append
+          (map (lambda (curie)
+                 (let ((cats (run*/set c (cprop curie "category" c))))
+                   (if (set-empty? (set-intersect gene-or-protein/set cats))
+                       (run* s (syn curie s))
+                       (run* s ((synonym-of/breadth curie 1) s)))))
+               curies))))
+
+(define/memo* (subclasses/set-of curie)
+  (run* cc (subclass-of* cc curie)))
+
+(define/memo* (subclasses/set curies)
   (run* c (fresh (cs c^)
             (membero c^ curies)
-            (:== cs (c^) (run* cc (subclass-of* cc c^)))
+            (:== cs (c^) (subclasses/set-of c^))
             (membero c cs))))
 
-(define (synonyms/set curies)
-  (run* s (fresh (curie)
-            (membero curie curies)
-            ((synonym-of/step curie) s))))
+;; Attempt to do both at once 
 
 (define-relation (subclass-or-synonym a b)
   (conde ((direct-synonym a b))

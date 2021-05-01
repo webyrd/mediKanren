@@ -10,6 +10,8 @@
   racket/runtime-path
   racket/string
   json
+  memoize
+  racket/format
   )
 
 ;; QUESTION
@@ -60,7 +62,17 @@
          (cons (car pair) (hash->list (olift (cdr pair)))))
        v))
 
-(define (trapi-query msg bindings)
+(define (trapi-response msg log-key)
+  (define max-results (hash-ref msg 'max_results #f))
+  (define results (if max-results
+                      (run max-results bindings (trapi-query msg bindings log-key))
+                      (run* bindings (trapi-query msg bindings log-key))))
+  (hash 'results (trapi-response-results results)
+        'knowledge_graph
+        (hash 'nodes (trapi-response-knodes results)
+              'edges (trapi-response-kedges results))))
+
+(define (trapi-query msg bindings log-key)
   (define qgraph (hash-ref msg 'query_graph))
   (define nodes  (hash->list (olift (hash-ref qgraph 'nodes hash-empty))))
   (define edges  (hash->list (olift (hash-ref qgraph 'edges hash-empty))))
@@ -83,15 +95,17 @@
       (membero `(subject . ,s) props)
       (membero `(predicate . ,p) props)
       (membero `(object . ,o) props)))
-
-    (let ((full-reasoning? (hash-ref qgraph 'use_reasoning #f)))
-      (fresh (node-bindings edge-bindings)
+  (define/memo* (log-once label key value)
+    (printf "== Info (~s)   |   ~a of ~a: ~s\n" log-key label key value)
+    value)
+  (let ((full-reasoning? (hash-ref qgraph 'use_reasoning #t)))
+    (fresh (node-bindings edge-bindings)
       (== bindings `((node_bindings . ,node-bindings) 
                      (edge_bindings . ,edge-bindings)))
-      ((trapi-nodes nodes k-is-a full-reasoning?) node-bindings)
-      ((trapi-edges edges k-triple full-reasoning?) node-bindings edge-bindings))))
+      ((trapi-nodes nodes k-is-a full-reasoning? log-once) node-bindings)
+      ((trapi-edges edges k-triple full-reasoning? log-once) node-bindings edge-bindings))))
 
-(define (trapi-nodes nodes k-is-a full-reasoning?)
+(define (trapi-nodes nodes k-is-a full-reasoning? log-once)
   (relation trapi-nodes-o (bindings)
     (let loop ((nodes nodes)
                (bindings bindings))
@@ -100,10 +114,14 @@
           (let* ((id+n        (car nodes))
                  (id          (car id+n))
                  (n           (cdr id+n))
-                 (curie       (hash-ref n 'id #f)) ; deprecated, v1.1
-                 (curies      (hash-ref n 'ids (and curie (list curie))))
-                 (category   (hash-ref n 'categorie #f))
-                 (categories  (hash-ref n 'categories (and category (list category))))
+                 (curie       (hash-ref n 'id #f)) ; deprecated v1.1
+                 (curies      (hash-ref n 'ids (and curie 
+                                                    (if (pair? curie) curie
+                                                        (list curie)))))
+                 (category   (hash-ref n 'category #f)) ; deprecated v1.1
+                 (categories  (hash-ref n 'categories (and category 
+                                                           (if (pair? category) category
+                                                               (list category)))))
                  (constraints (hash-ref n 'constraints '()))
                  (is-set?     (hash-ref n 'is_set #f))
                  (reasoning?  (hash-ref n 'use_reasoning #f)))
@@ -111,8 +129,12 @@
                 (if (pair? curies)
                     (let ((curies
                            (if (or reasoning? full-reasoning?)
-                               (syns/set
-                                (subclasses/set curies))
+                               (log-once
+                                "Subclasses/synonyms" curies
+                                 (synonyms/set
+                                (subclasses/set 
+
+                                  curies)))
                                curies)))
                       (fresh (curie k+v bindings-rest)
                         (== bindings `(,k+v . ,bindings-rest))
@@ -123,7 +145,7 @@
                     (error "Field: 'QNode/ids' must be array of CURIEs (TRAPI 1.1)."))
                 (if (pair? categories)
                     (let ((categories (if (or reasoning? full-reasoning?)
-                                          (subclasses/set categories) 
+                                          (log-once "Subclasses" categories (subclasses/set categories) )
                                           categories)))
                       (fresh (cat curie k+v bindings-rest)
                         (== k+v `(,id . ,curie))
@@ -135,7 +157,7 @@
                         (loop (cdr nodes) bindings-rest)))
                     (error "Field: 'QNode/categories' must be array of CURIESs (TRAPI 1.1)."))))))))
 
-(define (trapi-edges edges k-triple full-reasoning?)
+(define (trapi-edges edges k-triple full-reasoning? log-once)
   (relation trapi-edges-o (node-bindings edge-bindings)
     (let loop ((edges edges) (bindings edge-bindings))
       (if (null? edges)
@@ -144,7 +166,9 @@
                  (id          (car id+e))
                  (e           (cdr id+e))
                  (predicate   (hash-ref e 'predicate #f)) ; deprecated v1.1
-                 (predicates  (hash-ref e 'predicates (and predicate (list predicate))))
+                 (predicates  (hash-ref e 'predicates (and predicate
+                                                           (if (pair? predicate) predicate
+                                                               (list predicate)))))
                  (subject     (string->symbol (hash-ref e 'subject #f)))
                  (relation    (hash-ref e 'relation #f))
                  (object      (string->symbol (hash-ref e 'object #f)))
@@ -153,7 +177,9 @@
             (if (and predicates (not (pair? predicates)))
                 (error "Field: 'QEdge/predicates' must be an array of CURIEs (TRAPI 1.1).")
                 (let ((predicates (if (or reasoning? full-reasoning?)
-                                      (subclasses/set predicates) predicates)))
+                                      (log-once "Subclasses" predicates
+                                                (subclasses/set predicates))
+                                      predicates)))
                   (fresh (db+id s p o bindings-rest)
                     (membero `(,subject . ,s) node-bindings)
                     (membero `(,object . ,o) node-bindings)
@@ -196,13 +222,6 @@
                           (=/= val value)
                           (== val value))))
               (loop (cdr constraints))))))))
-
-(define (trapi-response msg)
-  (define results (run* bindings (trapi-query msg bindings)))
-  (hash 'results (trapi-response-results results)
-        'knowledge_graph
-        (hash 'nodes (trapi-response-knodes results)
-              'edges (trapi-response-kedges results))))
 
 (define (edge-id/reported db+eid)
   (let ((db     (car db+eid))
