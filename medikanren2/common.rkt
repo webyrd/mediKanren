@@ -2,17 +2,19 @@
 (provide (all-from-out "base.rkt"
                        "db/semmed.rkt"
                        "db/rtx2-20210204.rkt"
-                       "db/KGX_synonym.rkt")
+                       ;"db/KGX_synonym.rkt"
+                       )
          cprop edge eprop
          triple quad triple/eid is-a is-a/quad triple-property
-         synonym syn
+         synonym
+         ; syn
          get-synonyms get-synonyms-ls
          write-list-to-tsv)
 
 (require "base.rkt"
          (prefix-in semmed: "db/semmed.rkt")
          (prefix-in rtx:    "db/rtx2-20210204.rkt")
-         "db/KGX_synonym.rkt"
+         ;"db/KGX_synonym.rkt"
          racket/list racket/set racket/string (except-in racket/match ==) racket/pretty)
 
 (define dbname=>tabled-relations
@@ -175,7 +177,7 @@
     (cprop curie "name" name)
     (membero curie curie-ls)))
 
-
+#|
 ; The 2nd-approach to find synonyms is to use the cached synonyms from the KGX-syn KG
 (define (syn a b)
   (fresh (predicate id source_database)
@@ -193,7 +195,7 @@
 
 ;; usage:
 ;(run*/set/steps 500 x (syn* "HGNC:5993" x))
-
+|#
 
 (define write-list-to-tsv
   (lambda (header-ls lol path)
