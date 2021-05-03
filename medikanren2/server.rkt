@@ -1,6 +1,6 @@
 #lang racket/base
 (require
-  "common.rkt"
+ (except-in "common.rkt" synonym)  
   "trapi.rkt"
   "lw-reasoning.rkt"
   "open-api/api-query.rkt"
@@ -111,7 +111,6 @@ var find_predicates_submit       = document.getElementById('find-predicates-subm
 var find_predicates_result       = document.getElementById('find-predicates-result');
 var find_predicates_result_clear = document.getElementById('find-predicates-result-clear');
 var query_result       = document.getElementById('query-result');
-var query_result_clear = document.getElementById('query-result-clear');
 var query_form         = document.getElementById('query-form');
 var query_text         = document.getElementById('query-text');
 var query_submit       = document.getElementById('query-submit');
@@ -252,31 +251,32 @@ query_result_clear.addEventListener('click', function(){
                    (li (a ((href "/schema.html2")) "schema.html2"))
                    (li (a ((href "/schema.yaml")) "schema.yaml"))
                    (li (a ((href "/schema.json")) "schema.json")))
-               (form ((method "post") (id "find-concepts-form"))
-                    (div (input ((type "text")
-                                  (id "find-concepts-text")
-                                  (value "UMLS:C0935989"))))
-                     (div (button ((type "submit") (id "find-concepts-submit"))
-                                  "Find concepts")))
-               (div (button ((id "find-concepts-result-clear")) "Clear"))
-              (div (pre ((id "find-concepts-result")) "Concepts will appear here."))
-              (form ((method "post") (id "find-categories-form"))
-                     (div (input ((type "text")
-                                  (id "find-categories-text")
-                                  (value "gene"))))
-                     (div (button ((type "submit") (id "find-categories-submit"))
-                                  "Find categories")))
-               (div (button ((id "find-categories-result-clear")) "Clear"))
-               (div (pre ((id "find-categories-result")) "Categories will appear here."))
-               (form ((method "post") (id "find-predicates-form"))
-                     (div (input ((type "text")
-                                  (id "find-predicates-text")
-                                  (value "negatively_regulates"))))
-                     (div (button ((type "submit") (id "find-predicates-submit"))
-                                  "Find predicates")))
-               (div (button ((id "find-predicates-result-clear")) "Clear"))
-               (div (pre ((id "find-predicates-result")) "Predicates will appear here."))
-               (p (a ((href "/predicates")) "GET /predicates"))
+               (div ((style "display:none"))
+                    (form ((method "post") (id "find-concepts-form"))
+                          (div (input ((type "text")
+                                       (id "find-concepts-text")
+                                       (value "UMLS:C0935989"))))
+                          (div (button ((type "submit") (id "find-concepts-submit"))
+                                       "Find concepts")))
+                    (div (button ((id "find-concepts-result-clear")) "Clear"))
+                    (div (pre ((id "find-concepts-result")) "Concepts will appear here."))
+                    (form ((method "post") (id "find-categories-form"))
+                          (div (input ((type "text")
+                                       (id "find-categories-text")
+                                       (value "gene"))))
+                          (div (button ((type "submit") (id "find-categories-submit"))
+                                       "Find categories")))
+                    (div (button ((id "find-categories-result-clear")) "Clear"))
+                    (div (pre ((id "find-categories-result")) "Categories will appear here."))
+                    (form ((method "post") (id "find-predicates-form"))
+                          (div (input ((type "text")
+                                       (id "find-predicates-text")
+                                       (value "negatively_regulates"))))
+                          (div (button ((type "submit") (id "find-predicates-submit"))
+                                       "Find predicates")))
+                    (div (button ((id "find-predicates-result-clear")) "Clear"))
+                    (div (pre ((id "find-predicates-result")) "Predicates will appear here."))
+                    (p (a ((href "/predicates")) "GET /predicates")))
                (form ((method "post") (action "/v2/query") (id "query-form"))
                      (div (textarea
                             ((id "query-text")(rows "40") (cols "60"))
@@ -313,7 +313,6 @@ EOS
          ))
                      (div (button ((type "submit") (id "query-submit"))
                                   "POST /v2/query")))
-               (div (button ((id "query-result-clear")) "Clear Result"))
                (div (pre ((id "query-result")) "Result will appear here.")))))
 
 (define hash-empty (hash))
@@ -378,13 +377,21 @@ EOS
   ;; (with-handlers ((exn:fail? (lambda (exn) 
   ;;                              (hash 'error (exn-message exn)))))
 
-  (define local-results (time (trapi-response msg)))
-  (printf "Local results size: ~s\n" (length (hash-ref  local-results 'results '())))
+  (define log-key (current-seconds))
+  (printf "== Info (~s)   |   Query received: ~s\n" log-key (hash-ref msg 'query_graph))
+  (define local-results (time (trapi-response msg log-key)))
+  (let ((length-local (length (hash-ref  local-results 'results '()))))
+    (printf "== Info (~s)   |   Local results size: ~s\n" log-key length-local)
 
-  (merge-results
+  (hash-set*
+   (merge-results
     (list (hash-ref (olift broad-results) 'message hash-empty)
-          local-results
-          )))
+          local-results))
+   'query_graph (hash-ref msg 'query_graph)
+    'status "Success"
+    'description (format "Success. ~s result~a." length-local (if (= length-local 1) "" "s"))
+    'logs '()))
+    )
 
 (define (merge-results rs)
   (let loop ((rs rs) (results '()) (nodes '()) (edges '()))
@@ -572,6 +579,7 @@ EOS
                  #:listen-ip #f  ;; comment this to disable external connection
                  #:port 8384
                  #:launch-browser? #f
+                 #:max-waiting 6000
                  ;; #:request-read-timeout 300
                  ))
 

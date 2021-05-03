@@ -4,11 +4,12 @@
          subclass-of subclass-of* subclass-of+
          is-a/subclass+ is-a/subclass*
          is-a/lwr triple/lwr triple/inverse
+         triple/subclass triple/subclass+
          direct-synonym direct-synonym* direct-synonym+ synonym
          synonym-of/step synonym-of/breadth
-         synonyms/set subclasses/set)
+         syns/set synonyms/set subclasses/set)
 (require
-  "common.rkt"
+ (except-in "common.rkt" synonym)
   racket/file racket/function racket/list racket/hash
   (except-in racket/match ==)
   racket/port
@@ -17,6 +18,7 @@
   racket/string
   racket/set
   json
+  memoize
   )
 
 ;; Generalized transitive closure
@@ -149,7 +151,16 @@
                 (eprop eid "predicate" p^))))
       (eprop eid "predicate" p)))
 
-;; Synonymization
+;; Synonymization 1: Cached synonyms
+
+(define (syns/set curies)
+  (append curies
+          (run* s (fresh (curie)
+                    (membero curie curies)
+                    (syn curie s)))))
+
+
+;; Synonymization 2: queried synonyms
 
 (define synonyms-preds '("biolink:same_as"
                          "biolink:close_match"
@@ -157,19 +168,43 @@
 
 (define synonyms-exact-preds '("biolink:same_as"))
 
-(define drug-categories '("biolink:ChemicalSubstance"
-                          "biolink:ClinicalIntervention"
-                          "biolink:ClinicalModifier"
-                          "biolink:Drug"
-                          "biolink:Treatment"))
+(define rtx2-drug-categories '("biolink:ChemicalSubstance"
+                               "biolink:ClinicalIntervention"
+                               "biolink:ClinicalModifier"
+                               "biolink:Drug"
+                               "biolink:Treatment"))
+
+(define semmed-drug-categories '("chemical_substance"))
+
+(define drug-categories (append rtx2-drug-categories semmed-drug-categories))
+
 (define disease-categories '("biolink:Disease"
                              "biolink:DiseaseOrPhenotypicFeature"
                              "biolink:PhenotypicFeature"))
 
+(define inhibit-preds '("biolink:decreases_activity_of"
+                        "biolink:decreases_expression_of"
+                        "biolink:disrupts"
+                        "biolink:negatively_regulates"
+                        "biolink:negatively_regulates,_entity_to_entity"
+                        "biolink:negatively_regulates,_process_to_process"
+                        "biolink:treats"
+                        "negatively_regulates" ; semmed
+                        "treats" ; semmed
+                        )) 
+
+(define gene-or-protein '("biolink:Gene"
+                          "biolink:GeneFamily"
+                          "biolink:GeneProduct"
+                          "biolink:GenomicEntity"
+                          "biolink:MacromolecularComplex"
+                          "biolink:MolecularEntity"
+                          "biolink:Protein"))
+
 (define-relation (direct-synonym a b)
   (fresh (id sp)
-    (edge id a b)
-    (eprop id "predicate" sp)
+    (rtx:edge id a b)
+    (rtx:eprop id "predicate" sp)
     (membero sp synonyms-preds)))
 
 (define-relation (direct-synonym* a b)
@@ -230,16 +265,39 @@
       (:== synonyms (term) (set->list (synonyms/breadth term n)))
       (membero s synonyms))))
 
- (define (subclasses/set curies)
+;; (define (synonyms/set2 curies)
+;;   (run* s (fresh (curie)
+;;             (membero curie curies)
+;;             ((synonym-of/breadth curie 1) s))))
+
+(define gene-or-protein/set (set "biolink:Gene"
+                             "biolink:GeneFamily"
+                             "biolink:GeneProduct"
+                             "biolink:GenomicEntity"
+                             "biolink:MacromolecularComplex"
+                             "biolink:MolecularEntity"
+                             "biolink:Protein"))
+
+(define/memo* (synonyms/set curies)
+  (remove-duplicates
+   (apply append
+          (map (lambda (curie)
+                 (let ((cats (run*/set c (cprop curie "category" c))))
+                   (if (set-empty? (set-intersect gene-or-protein/set cats))
+                       (run* s (syn curie s))
+                       (run* s ((synonym-of/breadth curie 1) s)))))
+               curies))))
+
+(define/memo* (subclasses/set-of curie)
+  (run* cc (subclass-of* cc curie)))
+
+(define/memo* (subclasses/set curies)
   (run* c (fresh (cs c^)
             (membero c^ curies)
-            (:== cs (c^) (run* cc (subclass-of* cc c^)))
+            (:== cs (c^) (subclasses/set-of c^))
             (membero c cs))))
 
-(define (synonyms/set curies)
-  (run* s (fresh (curie)
-            (membero curie curies)
-            ((synonym-of/step curie) s))))
+;; Attempt to do both at once 
 
 (define-relation (subclass-or-synonym a b)
   (conde ((direct-synonym a b))
