@@ -6,9 +6,8 @@
 
 (define edge-keys '(subject object predicate id source_database))
 
-(define in-edge (open-input-file "/Users/kimthi1011/Documents/medikanren2/medikanren2/data/KGX_NN_data_2021-03-11_edges.jsonl"))
+;(define in-edge (open-input-file "../data/KGX_NN_data_2021-03-11_edges.jsonl"))
 
-; need to convert hash format to list for medikanren
 
 (define-relation/table KGX-syn
   'path "KGX-syn"
@@ -18,7 +17,7 @@
   'source-stream (value/syntax
                   (let loop ()
                     (lambda ()
-                      (define line (read-line in-edge))
+                      (define line (read-line (open-input-file "../data/KGX_NN_data_2021-03-11_edges.jsonl")))
                       (cond ((eof-object? line) '())
                             (else
                              (define row-edge (string->jsexpr line))
