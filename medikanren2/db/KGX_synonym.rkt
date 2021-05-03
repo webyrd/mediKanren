@@ -14,7 +14,7 @@
   'attribute-names edge-keys
   'attribute-types '(string string string string string)
   'indexes '((object subject))
-  'source-stream (value/syntax
+  #|'source-stream (value/syntax
                   (let loop ()
                     (lambda ()
                       (define line (read-line (open-input-file "../data/KGX_NN_data_2021-03-11_edges.jsonl")))
@@ -22,4 +22,5 @@
                             (else
                              (define row-edge (string->jsexpr line))
                              (cons (map (lambda (k) (hash-ref row-edge k)) edge-keys)
-                                   (loop))))))))
+                                   (loop)))))))|#
+  )
