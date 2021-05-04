@@ -129,12 +129,13 @@
                 (if (pair? curies)
                     (let ((curies
                            (if (or reasoning? full-reasoning?)
-                               (log-once
-                                "Subclasses/synonyms" curies
-                                 (synonyms/set
-                                (subclasses/set 
+                              ;  (log-once
+                              ;   "Subclasses/synonyms" curies
+                              ;    (synonyms/set
+                              ;   (subclasses/set 
 
-                                  curies)))
+                              ;     curies)))
+                               curies
                                curies)))
                       (fresh (curie k+v bindings-rest)
                         (== bindings `(,k+v . ,bindings-rest))
@@ -145,7 +146,8 @@
                     (error "Field: 'QNode/ids' must be array of CURIEs (TRAPI 1.1)."))
                 (if (pair? categories)
                     (let ((categories (if (or reasoning? full-reasoning?)
-                                          (log-once "Subclasses" categories (subclasses/set categories) )
+                                          ;(log-once "Subclasses" categories (subclasses/set categories) )
+                                          categories
                                           categories)))
                       (fresh (cat curie k+v bindings-rest)
                         (== k+v `(,id . ,curie))
@@ -177,8 +179,9 @@
             (if (and predicates (not (pair? predicates)))
                 (error "Field: 'QEdge/predicates' must be an array of CURIEs (TRAPI 1.1).")
                 (let ((predicates (if (or reasoning? full-reasoning?)
-                                      (log-once "Subclasses" predicates
-                                                (subclasses/set predicates))
+                                      ; (log-once "Subclasses" predicates
+                                      ;           (subclasses/set predicates))
+                                      predicates
                                       predicates)))
                   (fresh (db+id s p o bindings-rest)
                     (membero `(,subject . ,s) node-bindings)
