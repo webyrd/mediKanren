@@ -5,7 +5,7 @@ adirArtifacts="$adirRepo/ci_artifacts"
 
 
 stepname=medikanren2_compile_trapi
-if raco make "$adirMk/trapi.rkt"
+if raco make "$adirMk/server.rkt"
 then
     echo "$stepname" > "$adirArtifacts/status/pass/$stepname"
 else
