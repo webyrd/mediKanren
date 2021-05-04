@@ -1,6 +1,6 @@
 #!/bin/bash
 
-raco pkg install --auto --batch --fail-fast \
+/usr/bin/raco pkg install --auto --batch --fail-fast \
     chk \
     shell-pipeline \
     yaml \

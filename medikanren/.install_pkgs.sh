@@ -5,7 +5,7 @@
 
 # Current workaround is to only install it once, from the medikanren2 directory.
 
-# raco pkg install --auto --batch --fail-fast \
+# /usr/bin/raco pkg install --auto --batch --fail-fast \
 #     chk \
 #     shell-pipeline \
 #     yaml \
