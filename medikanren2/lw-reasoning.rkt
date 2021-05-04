@@ -5,9 +5,10 @@
          is-a/subclass+ is-a/subclass*
          is-a/lwr triple/lwr triple/inverse
          triple/subclass triple/subclass+
-         direct-synonym direct-synonym* direct-synonym+ synonym
-         synonym-of/step synonym-of/breadth
-         syns/set synonyms/set subclasses/set)
+        ;  direct-synonym direct-synonym* direct-synonym+ synonym
+        ;  synonym-of/step synonym-of/breadth
+        ;  syns/set synonyms/set subclasses/set
+         )
 (require
  (except-in "common.rkt" synonym)
   racket/file racket/function racket/list racket/hash
@@ -151,6 +152,8 @@
                 (eprop eid "predicate" p^))))
       (eprop eid "predicate" p)))
 
+#|
+
 ;; Synonymization 1: Cached synonyms
 
 (define (syns/set curies)
@@ -158,7 +161,6 @@
           (run* s (fresh (curie)
                     (membero curie curies)
                     (syn curie s)))))
-
 
 ;; Synonymization 2: queried synonyms
 
@@ -327,6 +329,7 @@
             (conde ((subclass-or-synonym mid b))
                    ((subclass-or-synonym/up mid b)))))))
          
+|#
 
        
 
