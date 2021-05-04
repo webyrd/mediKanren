@@ -6,15 +6,11 @@
                        )
          cprop edge eprop
          triple quad triple/eid is-a is-a/quad triple-property
-         synonym
-         ; syn
-         get-synonyms get-synonyms-ls
          write-list-to-tsv)
 
 (require "base.rkt"
          (prefix-in semmed: "db/semmed.rkt")
          (prefix-in rtx:    "db/rtx2-20210204.rkt")
-         ;"db/KGX_synonym.rkt"
          racket/list racket/set racket/string (except-in racket/match ==) racket/pretty)
 
 (define dbname=>tabled-relations
@@ -113,89 +109,8 @@
 (define-relation (edge-predicate eid p)
   (eprop eid "predicate" p))
 
-
-(define synonyms-preds '("biolink:same_as"  ; rtx
-                        ;"biolink:close_match" ; rtx
-                         "biolink:has_gene_product" ;rtx
-                         ))
-
-(define-relation (direct-synonym a b)
-  (fresh (id sp)
-    (edge id a b)
-    (eprop id "predicate" sp)
-    (membero sp synonyms-preds)))
-
-(define-relation (close-match-syn a b)
-  (fresh (id)
-    (any<=o "HGNC:" a)
-    (any<=o a "HGND")
-    (any<=o "UMLS:" b)
-    (any<=o b "UMLT")
-    (edge id a b)
-    (:== #t (a) (not (null? (run 1 () (eprop id "predicate" "biolink:close_match")))))
-    (:== #t (a) (string-prefix? a "HGNC:"))
-    (:== #t (b) (string-prefix? b "UMLS:"))))
-
-(define-relation (synonym a b)
-  (conde ((== a b))
-         ((close-match-syn a b))
-         ((close-match-syn b a))
-         ((direct-synonym a b))
-         ((direct-synonym b a))
-         ((fresh (mid)
-            (close-match-syn a mid)
-            (synonym mid b)))
-         ((fresh (mid)
-            (close-match-syn b mid)
-            (synonym mid a)))         
-         ((fresh (mid)
-            (direct-synonym a mid)
-            (synonym mid b)))
-         ((fresh (mid)
-            (direct-synonym b mid)
-            (synonym mid a)))))
-
-; define a get-synonyms function based on the synonym relation
-; ideally we wanted to start with HGNC prefixes right now because if we start with other curie prefixes
-; such as UMLS, we need to increase the steps
-(define (get-synonyms a-curie)
-  (set->list (run*/set/steps 500 s (synonym a-curie s))))
-
-; get-synonyms-ls function takes a list of curies and return a list of all normalized curies
-(define (get-synonyms-ls curie-ls)
-  (define (unwrap lst)
-    (cond
-      [(null? lst) '()]
-      [(pair? lst)
-       (append (unwrap (car lst)) (unwrap (cdr lst)))]
-      [else (list lst)]))
-  (time (unwrap (map (lambda (x) (get-synonyms x)) curie-ls))))
-
-; get-names-ls function takes a list of curies and return the curies with their coresponding names
-(define (get-names-ls curie-ls)
-  (run* (curie name)
-    (cprop curie "name" name)
-    (membero curie curie-ls)))
-
-#|
-; The 2nd-approach to find synonyms is to use the cached synonyms from the KGX-syn KG
-(define (syn a b)
-  (fresh (predicate id source_database)
-    (conde
-      [(KGX-syn a b predicate id source_database)]
-      [(KGX-syn b a predicate id source_database)])))
-
-(define (syn* a b)
-  (conde
-    [(== a b)]
-    [(syn a b)]
-    [(fresh (mid)
-       (syn a mid)
-       (syn* mid b))]))
-
 ;; usage:
 ;(run*/set/steps 500 x (syn* "HGNC:5993" x))
-|#
 
 (define write-list-to-tsv
   (lambda (header-ls lol path)

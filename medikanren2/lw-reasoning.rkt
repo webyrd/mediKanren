@@ -1,16 +1,16 @@
 #lang racket/base
-(provide lw-reasoning?
+(provide (all-from-out "synonyms.rkt")
+         lw-reasoning?
          inverse-of triple/inverse edge-predicate/lwr
          subclass-of subclass-of* subclass-of+
          is-a/subclass+ is-a/subclass*
          is-a/lwr triple/lwr triple/inverse
          triple/subclass triple/subclass+
-        ;  direct-synonym direct-synonym* direct-synonym+ synonym
-        ;  synonym-of/step synonym-of/breadth
-        ;  syns/set synonyms/set subclasses/set
+         subclasses/set
          )
 (require
- (except-in "common.rkt" synonym)
+ "common.rkt"
+ "synonyms.rkt"
   racket/file racket/function racket/list racket/hash
   (except-in racket/match ==)
   racket/port
@@ -152,143 +152,8 @@
                 (eprop eid "predicate" p^))))
       (eprop eid "predicate" p)))
 
-#|
 
-;; Synonymization 1: Cached synonyms
-
-(define (syns/set curies)
-  (append curies
-          (run* s (fresh (curie)
-                    (membero curie curies)
-                    (syn curie s)))))
-
-;; Synonymization 2: queried synonyms
-
-(define synonyms-preds '("biolink:same_as"
-                         "biolink:close_match"
-                         "biolink:has_gene_product"))
-
-(define synonyms-exact-preds '("biolink:same_as"))
-
-(define rtx2-drug-categories '("biolink:ChemicalSubstance"
-                               "biolink:ClinicalIntervention"
-                               "biolink:ClinicalModifier"
-                               "biolink:Drug"
-                               "biolink:Treatment"))
-
-(define semmed-drug-categories '("chemical_substance"))
-
-(define drug-categories (append rtx2-drug-categories semmed-drug-categories))
-
-(define disease-categories '("biolink:Disease"
-                             "biolink:DiseaseOrPhenotypicFeature"
-                             "biolink:PhenotypicFeature"))
-
-(define inhibit-preds '("biolink:decreases_activity_of"
-                        "biolink:decreases_expression_of"
-                        "biolink:disrupts"
-                        "biolink:negatively_regulates"
-                        "biolink:negatively_regulates,_entity_to_entity"
-                        "biolink:negatively_regulates,_process_to_process"
-                        "biolink:treats"
-                        "negatively_regulates" ; semmed
-                        "treats" ; semmed
-                        )) 
-
-(define gene-or-protein '("biolink:Gene"
-                          "biolink:GeneFamily"
-                          "biolink:GeneProduct"
-                          "biolink:GenomicEntity"
-                          "biolink:MacromolecularComplex"
-                          "biolink:MolecularEntity"
-                          "biolink:Protein"))
-
-(define-relation (direct-synonym a b)
-  (fresh (id sp)
-    (rtx:edge id a b)
-    (rtx:eprop id "predicate" sp)
-    (membero sp synonyms-preds)))
-
-(define-relation (direct-synonym* a b)
-  (conde ((== a b))
-         ((direct-synonym+ a b))))
-
-(define-relation (direct-synonym+ a b)
-  (conde ((direct-synonym a b))
-         ((fresh (mid)
-            (direct-synonym a mid)
-            (direct-synonym+ mid b)))))
-
-(define-relation (synonym a b)
-  (conde ((== a b))
-         ((direct-synonym+ a b))
-         ((direct-synonym+ b a))))
-
-(define (synonyms/step term (n 200) (categories '()))
-  (if (pair? categories)
-      (set->list
-       (run*/set/steps n s
-         (synonym s term)
-         (fresh (cat)
-           (cprop s "category" cat)
-           (membero cat categories))))
-      (set->list (run*/set/steps n s (synonym s term)))))
-
-(define (synonyms/breadth term (n 2) (categories '()))
-  (let loop ((n (- n 1)) (synonyms (set term)) (terms (list term)) )
-    (let ((new-synonyms
-           (run*/set s (fresh (term)
-                         (conde ((direct-synonym s term))
-                                ((direct-synonym term s)))
-                         (membero term terms)
-                         (if (pair? categories)
-                             (fresh (cat)
-                               (cprop s "category" cat)
-                               (membero cat categories))
-                             (== #t #t))
-                         (:== #f (s) (set-member? synonyms s))
-                         ;; (not-membero s (set->list synonyms))     ; purer but slower
-                         ))))
-      (cond ((set-empty? new-synonyms) synonyms)
-            ((= n 0) (set-union new-synonyms synonyms))
-            (else
-             (loop (- n 1) (set-union new-synonyms synonyms) 
-                   (set->list new-synonyms)))))))
-          
-(define (synonym-of/step term (n 200))
-  (relation synonym-of/step^ (s)
-    (fresh (synonyms)
-      (:== synonyms (term) (synonyms/step term n))
-      (membero s synonyms))))
-
-(define (synonym-of/breadth term (n 2))
-  (relation synonym-of/breadth^ (s)
-    (fresh (synonyms)
-      (:== synonyms (term) (set->list (synonyms/breadth term n)))
-      (membero s synonyms))))
-
-;; (define (synonyms/set2 curies)
-;;   (run* s (fresh (curie)
-;;             (membero curie curies)
-;;             ((synonym-of/breadth curie 1) s))))
-
-(define gene-or-protein/set (set "biolink:Gene"
-                             "biolink:GeneFamily"
-                             "biolink:GeneProduct"
-                             "biolink:GenomicEntity"
-                             "biolink:MacromolecularComplex"
-                             "biolink:MolecularEntity"
-                             "biolink:Protein"))
-
-(define/memo* (synonyms/set curies)
-  (remove-duplicates
-   (apply append
-          (map (lambda (curie)
-                 (let ((cats (run*/set c (cprop curie "category" c))))
-                   (if (set-empty? (set-intersect gene-or-protein/set cats))
-                       (run* s (syn curie s))
-                       (run* s ((synonym-of/breadth curie 1) s)))))
-               curies))))
+       
 
 (define/memo* (subclasses/set-of curie)
   (run* cc (subclass-of* cc curie)))
@@ -329,11 +194,6 @@
             (conde ((subclass-or-synonym mid b))
                    ((subclass-or-synonym/up mid b)))))))
          
-|#
-
-       
-
-
 
 
          

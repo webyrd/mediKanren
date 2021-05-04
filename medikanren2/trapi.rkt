@@ -1,7 +1,7 @@
 #lang racket/base
 (provide trapi-response)
 (require
- (except-in "common.rkt" synonym)
+ "common.rkt" 
  "lw-reasoning.rkt"
   racket/file racket/function racket/list racket/hash
   (except-in racket/match ==)
@@ -62,7 +62,8 @@
          (cons (car pair) (hash->list (olift (cdr pair)))))
        v))
 
-(define (trapi-response msg log-key)
+(define (trapi-response msg (log-key "?"))
+  (printf "== Info (~s)   |   Interpreting query:~s\n" log-key msg)
   (define max-results (hash-ref msg 'max_results #f))
   (define results (if max-results
                       (run max-results bindings (trapi-query msg bindings log-key))
@@ -129,14 +130,12 @@
                 (if (pair? curies)
                     (let ((curies
                            (if (or reasoning? full-reasoning?)
-                              ;  (log-once
-                              ;   "Subclasses/synonyms" curies
-                              ;    (synonyms/set
-                              ;   (subclasses/set 
-
-                              ;     curies)))
-                               curies
-                               curies)))
+                               (log-once
+                                "Subclasses/synonyms" curies
+                                 (synonyms/set
+                                  (subclasses/set 
+                                   curies)))
+                                 curies)))
                       (fresh (curie k+v bindings-rest)
                         (== bindings `(,k+v . ,bindings-rest))
                         (== k+v `(,id . ,curie))
@@ -179,9 +178,8 @@
             (if (and predicates (not (pair? predicates)))
                 (error "Field: 'QEdge/predicates' must be an array of CURIEs (TRAPI 1.1).")
                 (let ((predicates (if (or reasoning? full-reasoning?)
-                                      ; (log-once "Subclasses" predicates
-                                      ;           (subclasses/set predicates))
-                                      predicates
+                                      (log-once "Subclasses" predicates
+                                                (subclasses/set predicates))
                                       predicates)))
                   (fresh (db+id s p o bindings-rest)
                     (membero `(,subject . ,s) node-bindings)

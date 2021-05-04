@@ -1,6 +1,6 @@
 #lang racket/base
 (require
- (except-in "common.rkt" synonym)  
+ "common.rkt"   
   "trapi.rkt"
   "lw-reasoning.rkt"
   "open-api/api-query.rkt"
