@@ -3,6 +3,16 @@ adirRepo="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd .. && pwd )"
 adirMk="$adirRepo/medikanren2"
 adirArtifacts="$adirRepo/ci_artifacts"
 
+
+stepname=medikanren2_compile_trapi
+if raco make "$adirMk/trapi.rkt"
+then
+    echo "$stepname" > "$adirArtifacts/status/pass/$stepname"
+else
+    echo "$stepname" > "$adirArtifacts/status/fail/$stepname"
+fi
+
+
 # TODO: Replace this way to run tests with a way that actually
 # discovers them.  The purpose of the current way only to show that
 # tests can be run in Github Actions against real data.
