@@ -10,7 +10,7 @@
 
 
 (define-relation/table synonym
-  'path "kgx-synonym"
+  'path "kgx-synonym/010"
   'attribute-names edge-keys
   'attribute-types '(string string string string string)
   'indexes '((object subject))
