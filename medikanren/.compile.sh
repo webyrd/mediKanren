@@ -1,6 +1,6 @@
 #!/bin/bash
 adirRepo="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd .. && pwd )"
-adirMk="$adirRepo/medikanren2"
+adirMk="$adirRepo/medikanren"
 adirArtifacts="$adirRepo/ci_artifacts"
 
 
