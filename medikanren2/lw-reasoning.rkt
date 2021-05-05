@@ -152,9 +152,6 @@
                 (eprop eid "predicate" p^))))
       (eprop eid "predicate" p)))
 
-
-       
-
 (define/memo* (subclasses/set-of curie)
   (run* cc (subclass-of* cc curie)))
 
@@ -164,7 +161,7 @@
             (:== cs (c^) (subclasses/set-of c^))
             (membero c cs))))
 
-;; Attempt to do both at once 
+;; Attempt to do synonymization and subclasses at once 
 
 (define-relation (subclass-or-synonym a b)
   (conde ((direct-synonym a b))

@@ -4,8 +4,6 @@
   "trapi.rkt"
   "lw-reasoning.rkt"
   "open-api/api-query.rkt"
-  ;; "open-api/api-query.rkt"
-  ;; "pieces-parts/synonymize.rkt"
   racket/file racket/function racket/list racket/hash
   (except-in racket/match ==)
   racket/port

@@ -2,8 +2,9 @@
 (provide (all-from-out "base.rkt"
                        "db/semmed.rkt"
                        "db/rtx2-20210204.rkt"
-                       ;"db/KGX_synonym.rkt"
-                       )
+                       "db/kgx-synonym.rkt") ; workaround:
+                                             ; so long as KGX_synonym isn't specified in config.scm
+                                             ; this won't signal an error even if KGX isn't present
          cprop edge eprop
          triple quad triple/eid is-a is-a/quad triple-property
          write-list-to-tsv)
@@ -11,11 +12,13 @@
 (require "base.rkt"
          (prefix-in semmed: "db/semmed.rkt")
          (prefix-in rtx:    "db/rtx2-20210204.rkt")
+         (prefix-in kgx:    "db/kgx-synonym.rkt")
          racket/list racket/set racket/string (except-in racket/match ==) racket/pretty)
 
 (define dbname=>tabled-relations
   (hash 'semmed        semmed:tabled-relations
-        'rtx2-20210204 rtx:tabled-relations))
+        'rtx2-20210204 rtx:tabled-relations
+        'KGX_syn       kgx:tabled-relations))
 
 (define missing
   (filter-not
