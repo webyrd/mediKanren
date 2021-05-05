@@ -19,4 +19,8 @@ run_ci: prepare_ci
 	-bash $(adirRepo)/medikanren/.run_ci.sh
 	-bash $(adirRepo)/medikanren2/.run_ci.sh
 
+install_pkgs:
+	-bash $(adirRepo)/medikanren/.install_pkgs.sh
+	-bash $(adirRepo)/medikanren2/.install_pkgs.sh
+
 
