@@ -60,38 +60,8 @@
 (define mime:html (string->bytes/utf-8 "text/html; charset=utf-8"))
 (define mime:js   (string->bytes/utf-8 "text/javascript;charset=utf-8"))
 (define mime:json (string->bytes/utf-8 "application/json; charset=utf-8"))
-(define index.js "
-window.addEventListener('load', function(){
-var query_result       = document.getElementById('query-result');
-var query_result_clear = document.getElementById('query-result-clear');
-var query_form         = document.getElementById('query-form');
-var query_text         = document.getElementById('query-text');
-var query_submit       = document.getElementById('query-submit');
-function pretty_json(json_text) {
-  try { return JSON.stringify(JSON.parse(json_text), null, 2); }
-  catch (_) { return json_text; }
-}
-function query(data) {
-  var xhr = new XMLHttpRequest();
-  xhr.addEventListener('load',  function(event){ show(xhr.responseText); });
-  xhr.addEventListener('error', function(event){ show('POST error'); });
-  xhr.open('POST', '/query');
-  xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
-  xhr.send(data);
-}
-function show(result)   { query_result.textContent = pretty_json(result); }
-function clear_result() { query_result.textContent = ''; }
 
-query_text.textContent = pretty_json(query_text.textContent);
-query_form.addEventListener('submit', function(event){
-  event.preventDefault();
-  query(query_text.value);
-}, false);
-query_result_clear.addEventListener('click', function(){
-  clear_result();
-}, false);
-});")
-(define v2:index.js "
+(define index.js "
 window.addEventListener('load', function(){
 var find_concepts_form           = document.getElementById('find-concepts-form');
 var find_concepts_text           = document.getElementById('find-concepts-text');
@@ -128,7 +98,7 @@ function find_concepts(data) {
   var xhr = new XMLHttpRequest();
   xhr.addEventListener('load',  function(event){ find_concepts_show(xhr.responseText); });
   xhr.addEventListener('error', function(event){ find_concepts_show('POST error'); });
-  xhr.open('POST', '/v2/find-concepts');
+  xhr.open('POST', '/find-concepts');
   xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
   xhr.send(data);
 }
@@ -136,7 +106,7 @@ function find_categories(data) {
   var xhr = new XMLHttpRequest();
   xhr.addEventListener('load',  function(event){ find_categories_show(xhr.responseText); });
   xhr.addEventListener('error', function(event){ find_categories_show('POST error'); });
-  xhr.open('POST', '/v2/find-categories');
+  xhr.open('POST', '/find-categories');
   xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
   xhr.send(data);
 }
@@ -144,7 +114,7 @@ function find_predicates(data) {
   var xhr = new XMLHttpRequest();
   xhr.addEventListener('load',  function(event){ find_predicates_show(xhr.responseText); });
   xhr.addEventListener('error', function(event){ find_predicates_show('POST error'); });
-  xhr.open('POST', '/v2/find-predicates');
+  xhr.open('POST', '/find-predicates');
   xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
   xhr.send(data);
 }
@@ -174,7 +144,7 @@ function query(data) {
   var xhr = new XMLHttpRequest();
   xhr.addEventListener('load',  function(event){ query_show(xhr.responseText); });
   xhr.addEventListener('error', function(event){ query_show('POST error'); });
-  xhr.open('POST', '/v2/query');
+  xhr.open('POST', '/pmi/v1/query');
   xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
   xhr.send(data);
 }
@@ -199,49 +169,6 @@ query_result_clear.addEventListener('click', function(){
 (define index.html
   `(html (head (title "mediKanren Reasoner API")
                (script ((src "/index.js"))))
-         (body (h1 "mediKanren Reasoner API")
-               (p (a ((href "https://github.com/NCATS-Tangerine/NCATS-ReasonerStdAPI"))
-                     "NCATS Biomedical Translator Reasoners Standard API"))
-               (ul (li (a ((href "/schema.html")) "schema.html"))
-                   (li (a ((href "/schema.html2")) "schema.html2"))
-                   (li (a ((href "/schema.yaml")) "schema.yaml"))
-                   (li (a ((href "/schema.json")) "schema.json")))
-               (p (a ((href "/predicates")) "GET /predicates"))
-               (form ((method "post") (action "/query") (id "query-form"))
-                     (div (textarea
-                            ((id "query-text"))
-                            "{
-  \"message\": {
-    \"query_graph\": {
-      \"nodes\": {
-        \"n0\": { \"id\": \"UMLS:C0935989\" },
-        \"n1\": { \"category\": \"gene\" },
-        \"n2\": { \"id\": \"UMLS:C0004096\" }
-      },
-      \"edges\": {
-        \"e0\": {
-          \"predicate\": \"negatively_regulates\",
-          \"subject\": \"n0\",
-          \"object\": \"n1\"
-        },
-        \"e1\": {
-          \"predicate\": \"gene_associated_with_condition\",
-          \"subject\": \"n1\",
-          \"object\": \"n2\"
-        }
-      }
-    }
-  }
-}"
-                            ))
-                     (div (button ((type "submit") (id "query-submit"))
-                                  "POST /query")))
-               (div (button ((id "query-result-clear")) "Clear Result"))
-               (div (pre ((id "query-result")) "Result will appear here.")))))
-
-(define v2:index.html
-  `(html (head (title "mediKanren Reasoner API")
-               (script ((src "/v2/index.js"))))
          (body (h1 "mediKanren Reasoner API")
                (p (a ((href "https://github.com/NCATS-Tangerine/NCATS-ReasonerStdAPI"))
                      "NCATS Biomedical Translator Reasoners Standard API"))
@@ -275,7 +202,7 @@ query_result_clear.addEventListener('click', function(){
                     (div (button ((id "find-predicates-result-clear")) "Clear"))
                     (div (pre ((id "find-predicates-result")) "Predicates will appear here."))
                     (p (a ((href "/predicates")) "GET /predicates")))
-               (form ((method "post") (action "/v2/query") (id "query-form"))
+               (form ((method "post") (action "/pmi/v1/query") (id "query-form"))
                      (div (textarea
                             ((id "query-text")(rows "40") (cols "60"))
                             #<<EOS
@@ -310,7 +237,7 @@ query_result_clear.addEventListener('click', function(){
 EOS
          ))
                      (div (button ((type "submit") (id "query-submit"))
-                                  "POST /v2/query")))
+                                  "POST /pmi/v1/query")))
                (div (pre ((id "query-result")) "Result will appear here.")))))
 
 (define hash-empty (hash))
@@ -466,13 +393,10 @@ EOS
              (string->bytes/utf-8 (job-failure-message result)))
     (OK req '() mime:json (jsexpr->string result))))
 
-;; (define (/index req)
-;;   (pretty-print `(request-headers: ,(request-headers req)))
-;;   (OK req '() mime:html (xexpr->html-string index.html)))
-(define (/v2/index req)
+(define (/index req)
   (pretty-print `(request-headers: ,(request-headers req)))
-   (OK req '() mime:html (xexpr->html-string v2:index.html)))
-(define (/index.js     req) (OK req '() mime:js   index.js))
+   (OK req '() mime:html (xexpr->html-string index.html)))
+
 (define (/schema.json  req) (OK req '() mime:text schema.json.txt))
 (define (/schema.yaml  req) (OK req '() mime:text schema.yaml.txt))
 (define (/schema.html  req) (OK req '() mime:html schema.html))
@@ -481,7 +405,7 @@ EOS
 ;;                               (OK req '() mime:json predicates-cached-gzip #t)
 ;;                               (OK req '() mime:json predicates-cached #f)))
 
-(define (/query        req) (OK/jsexpr query req))
+;; (define (/query        req) (OK/jsexpr query req))
 
 (define (group-by-db xs)
   (foldl (lambda (x db=>id)
@@ -517,8 +441,8 @@ EOS
 ;; (define ((find/db-id find) data)
 ;;   (group-by-db (map (lambda (x) (cons (car x) (cddr x))) (find (list data)))))
 
-(define (/v2/index.js        req) (OK req '() mime:js v2:index.js))
-(define (/v2/query req)           (OK/jsexpr query                        req))
+(define (/index.js        req) (OK req '() mime:js index.js))
+(define (/query req)           (OK/jsexpr query                        req))
 ;; (define (/v2/find-concepts   req) (OK/jsexpr find-concepts/any            req))
 ;; (define (/v2/find-categories req) (OK/jsexpr (find/db-id find-categories) req))
 ;; (define (/v2/find-predicates req) (OK/jsexpr (find/db-id find-predicates) req))
@@ -554,20 +478,19 @@ EOS
 (define (start)
   (define-values (dispatch _)
     (dispatch-rules
-     ;; (("")                     #:method "get"  /index)
-     ;; (("index.js")             #:method "get"  /index.js)
+     (("")                     #:method "get"  /index)
+     (("index.js")             #:method "get"  /index.js)
      (("schema.json")          #:method "get"  /schema.json)
      (("schema.yaml")          #:method "get"  /schema.yaml)
      (("schema.html")          #:method "get"  /schema.html)
      (("schema.html2")         #:method "get"  /schema.html2)
      ;; (("predicates")           #:method "get"  /predicates)
-     ;; (("query")                #:method "post" /query)
-     (("v2")                   #:method "get"  /v2/index)
-     (("v2" "index.js")        #:method "get"  /v2/index.js)
+     (("query")                #:method "post" /query)
+     (("pmi" "v1" "query")           #:method "post" /query)
      ;; (("v2" "find-concepts")   #:method "post" /v2/find-concepts)
      ;; (("v2" "find-categories") #:method "post" /v2/find-categories)
      ;; (("v2" "find-predicates") #:method "post" /v2/find-predicates)
-     (("v2" "query")           #:method "post" /v2/query)
+
      (else                                     not-found)))
   (serve/servlet dispatch
                  ;; none-manager for better performance:
