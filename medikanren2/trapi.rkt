@@ -145,8 +145,7 @@
                     (error "Field: 'QNode/ids' must be array of CURIEs (TRAPI 1.1)."))
                 (if (pair? categories)
                     (let ((categories (if (or reasoning? full-reasoning?)
-                                          ;(log-once "Subclasses" categories (subclasses/set categories) )
-                                          categories
+                                          (log-once "Subclasses" categories (subclasses/set categories) )
                                           categories)))
                       (fresh (cat curie k+v bindings-rest)
                         (== k+v `(,id . ,curie))
