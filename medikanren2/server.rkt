@@ -2,6 +2,7 @@
 (require
  "common.rkt"   
   "trapi.rkt"
+  "logging.rkt"
   "lw-reasoning.rkt"
   "open-api/api-query.rkt"
   racket/file racket/function racket/list racket/hash
@@ -207,32 +208,25 @@ query_result_clear.addEventListener('click', function(){
                             ((id "query-text")(rows "40") (cols "60"))
                             #<<EOS
 {
-  "message": {
-    "query_graph": {
-      "nodes": {
-        "n0": {
-          "ids": [
-            "NCBIGene:7422"
-          ]
-        },
-        "n1": {
-          "categories": [
-            "biolink:AnatomicalEntity"
-          ]
-        }
-      },
-      "edges": {
-        "e0": {
-          "predicates": [
-            "biolink:regulates"
-          ],
-          "subject": "n0",
-          "object": "n1",
-          "use_reasoning": true
-        }
+   "message":{
+      "query_graph":{
+         "nodes":{
+            "n0":{
+               "id":"UMLS:C0221347",
+               "category":"biolink:PhenotypicFeature"
+            },
+            "n1":{
+               "category":"biolink:NamedThing"
+            }
+         },
+         "edges":{
+            "e01":{
+               "subject":"n0",
+               "object":"n1"
+            }
+         }
       }
-    }
-  }
+   }
 }
 EOS
          ))
@@ -303,20 +297,22 @@ EOS
   ;;                              (hash 'error (exn-message exn)))))
 
   (define log-key (current-seconds))
-  (printf "== Info (~s)   |   Query received: ~s\n" log-key (hash-ref msg 'query_graph))
-  (define local-results (time (trapi-response msg log-key)))
-  (let ((length-local (length (hash-ref  local-results 'results '()))))
-    (printf "== Info (~s)   |   Local results size: ~s\n" log-key length-local)
+  (log-info log-key (format "Query received: ~a" (jsexpr->string msg )))
+  
+  (define local-results
+    (log-time log-length log-key "Local results size"
+              (trapi-response msg log-key)))
 
-  (hash-set*
-   (merge-results
-    (list (hash-ref (olift broad-results) 'message hash-empty)
-          local-results))
-   'query_graph (hash-ref msg 'query_graph)
-    'status "Success"
-    'description (format "Success. ~s result~a." length-local (if (= length-local 1) "" "s"))
-    'logs '()))
-    )
+  (let ((length-local (length (hash-ref  local-results 'results '()))))
+    (hash-set*
+     (merge-results
+      (list (hash-ref (olift broad-results) 'message hash-empty)
+            local-results))
+     'query_graph (hash-ref msg 'query_graph)
+     'status "Success"
+     'description (format "Success. ~s result~a." length-local (if (= length-local 1) "" "s"))
+     'logs '())))
+    
 
 (define (merge-results rs)
   (let loop ((rs rs) (results '()) (nodes '()) (edges '()))

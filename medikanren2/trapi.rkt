@@ -3,6 +3,7 @@
 (require
  "common.rkt" 
  "lw-reasoning.rkt"
+ "logging.rkt"
   racket/file racket/function racket/list racket/hash
   (except-in racket/match ==)
   racket/port
@@ -12,10 +13,8 @@
   json
   memoize
   racket/format
-  racket/date
   )
 
-(date-display-format 'iso-8601)
 
 ;; QUESTION
 ;; - Do we return all attributes, or only specified ones?
@@ -66,8 +65,6 @@
        v))
 
 (define (trapi-response msg (log-key "[query]"))
-  (log-info log-key (format "Interpreting query: ~s" (jsexpr->string msg)))
-
   (define max-results (hash-ref msg 'max_results #f))
   (define results (if max-results
                       (run max-results bindings (trapi-query msg bindings log-key))
@@ -76,23 +73,6 @@
         'knowledge_graph
         (hash 'nodes (trapi-response-knodes results)
               'edges (trapi-response-kedges results))))
-
-(define-syntax log-time
-  (syntax-rules ()
-    ((_ log-proc log-key label body)
-     (let-values (((result cpu real gc) (time-apply (lambda () body) '())))
-       (log-proc log-key label cpu (car result))
-       (car result)))))
-
-(define (log-info key message)
-  (printf "~a    ~s    ~a       ~a\n"
-          (date->string (seconds->date (current-seconds)) #t)
-          key
-          "INFO"
-          message))
-
-(define/memo* (log-once key label cpu result)
-  (log-info key (format "~a (~s ms): ~s" label cpu result)))
 
 (define (trapi-query msg bindings log-key)
   (define qgraph (hash-ref msg 'query_graph))
