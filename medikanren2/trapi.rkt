@@ -257,13 +257,36 @@
            (lambda (nb) (map cdr (alist-ref nb key #f)))
            results))))
 
-(define (props-kv k+v) (cons (string->symbol (car k+v)) (cdr k+v)))
+(define (snake->camel str (capitalize? #f)) 
+  (if (non-empty-string? str)
+      (let ((first-letter (substring str 0 1))
+            (rest-str (substring str 1 (string-length str))))
+        (printf "L: ~s ~s\n" first-letter (equal? first-letter "_"))
+        (if (equal? first-letter "_")
+            (snake->camel rest-str #t)
+            (string-append (if capitalize?
+                               (string-upcase first-letter) 
+                               first-letter)
+                           (snake->camel rest-str))))
+      ""))
+
+;; horrible horrible hack for RTX2!!
+(define (biolinkify/category curie)
+  (if (string-prefix? curie "biolink:") curie
+      (string-append "biolink:" 
+                     (string-replace (snake->camel curie #t) "_" ""))))
+
+(define (props-kv k+v)
+  (let ((k (car k+v)) (v (cdr k+v)))
+    (if (eq? k "category")
+        `(categories ,(biolinkify/category v)) 
+        (cons (string->symbol k) v))))
 (define (attributes-kv keys)
   (lambda (k+v)
     (let ((k (car k+v)) (v (cdr k+v)))
       (make-hash
        `((attribute_type_id . ,(alist-ref keys k "miscellaneous"))
-         (value_type_type . ,(alist-ref keys k "miscellaneous"))
+         (value_type_id . ,(alist-ref keys k "miscellaneous"))
          (original_attribute_name . ,(strlift k))
          (value . ,(strlift v)))))))
 
@@ -311,16 +334,24 @@
   (trapi-response-knodes/edges 
    results 'edge_bindings (compose symlift edge-id/reported)
    (lambda (node) 
-     (run* prop
-       (fresh (k v)
-         (membero k trapi-response-edge-properties)
-         (== `(,k . ,v) prop)
-         (eprop node k v))))
+     (let ((properties
+            (run* prop
+              (fresh (k v)
+                (membero k trapi-response-edge-properties)
+                (== `(,k . ,v) prop)
+                (eprop node k v)))))
+       (if (and (memf (lambda (k+v) (eq? (car k+v) "subject")) properties)
+                (memf (lambda (k+v) (eq? (car k+v) "object")) properties))
+           properties
+           (let ((s+p (car (run 1 (s o) (edge node s o)))))
+             `(("subject" . ,(car s+p))
+               ("object" . ,(cadr s+p))
+               . ,properties)))))
    (lambda (node)
      (run* attribute
-      (fresh (k v)
-        (membero k (map car trapi-response-edge-attributes))
-        (== `(,k . ,v) attribute)
-        (eprop node k v))))
+       (fresh (k v)
+         (membero k (map car trapi-response-edge-attributes))
+         (== `(,k . ,v) attribute)
+         (eprop node k v))))
    trapi-response-edge-attributes))
 

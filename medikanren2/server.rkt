@@ -309,10 +309,7 @@ EOS
      (merge-results
       (list (hash-ref (olift broad-results) 'message hash-empty)
             local-results))
-     'query_graph (hash-ref msg 'query_graph)
-     'status "Success"
-     'description (format "Success. ~s result~a." length-local (if (= length-local 1) "" "s"))
-     'logs '())))
+     )))
     
 
 (define (merge-results rs)
@@ -357,9 +354,15 @@ EOS
 
 (define (query jsdata)
   (cond ((or (eof-object? jsdata) (not (hash? jsdata))) 'null)
-        (else (let ((data (olift jsdata)))
-                (hash 'message
-                      (message->response (olift (hash-ref data 'message hash-empty))))))))
+        (else (let* ((data (olift jsdata))
+                     (request-msg (olift (hash-ref data 'message hash-empty)))
+                     (message (message->response request-msg))
+                     (length-local (length (hash-ref message 'results))))
+                (hash 'message message
+                      'query_graph (hash-ref request-msg 'query_graph)
+                      'status "Success"
+                      'description (format "Success. ~s result~a." length-local (if (= length-local 1) "" "s"))
+                      'logs '())))))
 (define (accepts-gzip? req)
   (member "gzip" (map string-trim
                       (string-split (alist-ref (request-headers req)
