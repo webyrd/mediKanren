@@ -24,8 +24,8 @@ install_pkgs:
 	-bash $(adirRepo)/medikanren2/.install_pkgs.sh
 
 docker_build:
-	rm -rf $(adirRepo)/docker/medikanren-trapi/target
 	mkdir -p $(adirRepo)/docker/medikanren-trapi/target
-	(cd $(adirRepo) && find medikanren2 -not -path medikanren2/data/\* -type f | cpio -p --make-directories docker/medikanren-trapi/target/)
+	rm -rf $(adirRepo)/docker/medikanren-trapi/target/*
+	(cd $(adirRepo) && find medikanren2 -not -path medikanren2/data/\* -type f | cpio -p --make-directories --preserve-modification-time docker/medikanren-trapi/target/)
 	cd $(adirRepo)/docker/medikanren-trapi && \
 		docker build -t medikanren-trapi .
