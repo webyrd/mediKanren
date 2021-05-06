@@ -12,7 +12,10 @@
   json
   memoize
   racket/format
+  racket/date
   )
+
+(date-display-format 'iso-8601)
 
 ;; QUESTION
 ;; - Do we return all attributes, or only specified ones?
@@ -62,8 +65,9 @@
          (cons (car pair) (hash->list (olift (cdr pair)))))
        v))
 
-(define (trapi-response msg (log-key "?"))
-  (printf "== Info (~s)   |   Interpreting query:~s\n" log-key msg)
+(define (trapi-response msg (log-key "[query]"))
+  (log-info log-key (format "Interpreting query: ~s" (jsexpr->string msg)))
+
   (define max-results (hash-ref msg 'max_results #f))
   (define results (if max-results
                       (run max-results bindings (trapi-query msg bindings log-key))
@@ -72,6 +76,23 @@
         'knowledge_graph
         (hash 'nodes (trapi-response-knodes results)
               'edges (trapi-response-kedges results))))
+
+(define-syntax log-time
+  (syntax-rules ()
+    ((_ log-proc log-key label body)
+     (let-values (((result cpu real gc) (time-apply (lambda () body) '())))
+       (log-proc log-key label cpu (car result))
+       (car result)))))
+
+(define (log-info key message)
+  (printf "~a    ~s    ~a       ~a\n"
+          (date->string (seconds->date (current-seconds)) #t)
+          key
+          "INFO"
+          message))
+
+(define/memo* (log-once key label cpu result)
+  (log-info key (format "~a (~s ms): ~s" label cpu result)))
 
 (define (trapi-query msg bindings log-key)
   (define qgraph (hash-ref msg 'query_graph))
@@ -96,17 +117,15 @@
       (membero `(subject . ,s) props)
       (membero `(predicate . ,p) props)
       (membero `(object . ,o) props)))
-  (define/memo* (log-once label key value)
-    (printf "== Info (~s)   |   ~a of ~a: ~s\n" log-key label key value)
-    value)
-  (let ((full-reasoning? (hash-ref qgraph 'use_reasoning #t)))
+
+    (let ((full-reasoning? (hash-ref qgraph 'use_reasoning #t)))
     (fresh (node-bindings edge-bindings)
       (== bindings `((node_bindings . ,node-bindings) 
                      (edge_bindings . ,edge-bindings)))
-      ((trapi-nodes nodes k-is-a full-reasoning? log-once) node-bindings)
-      ((trapi-edges edges k-triple full-reasoning? log-once) node-bindings edge-bindings))))
+      ((trapi-nodes nodes k-is-a full-reasoning? log-key) node-bindings)
+      ((trapi-edges edges k-triple full-reasoning? log-key) node-bindings edge-bindings))))
 
-(define (trapi-nodes nodes k-is-a full-reasoning? log-once)
+(define (trapi-nodes nodes k-is-a full-reasoning? log-key)
   (relation trapi-nodes-o (bindings)
     (let loop ((nodes nodes)
                (bindings bindings))
@@ -130,12 +149,16 @@
                 (if (pair? curies)
                     (let ((curies
                            (if (or reasoning? full-reasoning?)
-                               (log-once
-                                "Subclasses/synonyms" curies
-                                 (synonyms/set
-                                  (subclasses/set 
-                                   curies)))
-                                 curies)))
+                               ;; (let-values (((result cpu real gc) (time-apply
+                               ;;                                     (lambda ()
+                               ;;                                       (synonyms/set
+                               ;;                                        (subclasses/set 
+                               ;;                                         curies))) '())))
+                               ;;   (log-once log-key (format "Subclasses/synonyms of ~s" curies) cpu result)
+                               (log-time log-once log-key 
+                                         (format "Subclasses/synonyms of ~s" curies)
+                                         (synonyms/set (subclasses/set curies)))
+                               curies)))
                       (fresh (curie k+v bindings-rest)
                         (== bindings `(,k+v . ,bindings-rest))
                         (== k+v `(,id . ,curie))
@@ -145,7 +168,9 @@
                     (error "Field: 'QNode/ids' must be array of CURIEs (TRAPI 1.1)."))
                 (if (pair? categories)
                     (let ((categories (if (or reasoning? full-reasoning?)
-                                          (log-once "Subclasses" categories (subclasses/set categories) )
+                                          (log-time log-once log-key 
+                                                    (format "Subclasses of ~s" categories)
+                                                    (subclasses/set categories))
                                           categories)))
                       (fresh (cat curie k+v bindings-rest)
                         (== k+v `(,id . ,curie))
@@ -157,7 +182,7 @@
                         (loop (cdr nodes) bindings-rest)))
                     (error "Field: 'QNode/categories' must be array of CURIESs (TRAPI 1.1)."))))))))
 
-(define (trapi-edges edges k-triple full-reasoning? log-once)
+(define (trapi-edges edges k-triple full-reasoning? log-key)
   (relation trapi-edges-o (node-bindings edge-bindings)
     (let loop ((edges edges) (bindings edge-bindings))
       (if (null? edges)
@@ -177,7 +202,8 @@
             (if (and predicates (not (pair? predicates)))
                 (error "Field: 'QEdge/predicates' must be an array of CURIEs (TRAPI 1.1).")
                 (let ((predicates (if (or reasoning? full-reasoning?)
-                                      (log-once "Subclasses" predicates
+                                      (log-time log-once log-key 
+                                                (format "Subclasses of ~s" predicates)
                                                 (subclasses/set predicates))
                                       predicates)))
                   (fresh (db+id s p o bindings-rest)
