@@ -13,12 +13,13 @@
 
 (provide direct-synonym direct-synonym* direct-synonym+ synonym
          synonym-of/step synonym-of/breadth
-         synonyms/set 
+         synonyms/set synonyms/breadth
          synonym kgx-synonym
-         get-synonyms get-synonyms-ls)
+         get-synonyms get-synonyms-ls
+         synonym-of)
 
 (define synonyms-preds '("biolink:same_as"
-                         "biolink:close_match"
+                         ;; "biolink:close_match"
                          "biolink:has_gene_product"))
 
 (define synonyms-exact-preds '("biolink:same_as"))
@@ -72,6 +73,37 @@
     (eprop id "predicate" sp)
     (membero sp synonyms-preds)))
 
+;; More constrained approach
+;; (define-relation (close-match-syn a b)
+;;   (fresh (id)
+;;     (any<=o "HGNC:" a)
+;;     (any<=o a "HGND")
+;;     (any<=o "UMLS:" b)
+;;     (any<=o b "UMLT")
+;;     (edge id a b)
+;;     (:== #t (a) (not (null? (run 1 () (eprop id "predicate" "biolink:close_match")))))
+;;     (:== #t (a) (string-prefix? a "HGNC:"))
+;;     (:== #t (b) (string-prefix? b "UMLS:"))))
+
+
+
+(define/memo* (get-cat curie) (car (run 1 cat (cprop curie "category" cat))))
+(define-relation (close-match-synonym a b)
+  (fresh (id )
+    (edge id a b)
+    (eprop id "predicate" "biolink:close_match")
+    (conde ((:== #t (a) (pair? (member (get-cat a) disease-categories) ))
+            (:== #t (b) (pair? (member (get-cat b) disease-categories) )))
+           ((:== #t (a) (pair? (member (get-cat a) drug-categories) ))
+            (:== #t (b) (pair? (member (get-cat b) drug-categories) )))
+           ((:== #t (a) (pair? (member (get-cat a) gene-or-protein) ))
+            (:== #t (b) (pair? (member (get-cat b) gene-or-protein) ))
+            (conde ((:== #t (a) (string-prefix? a "HGNC:")))
+                   ((:== #t (a) (string-prefix? a "NCBI:")))
+                   ((:== #t (a) (string-prefix? a "UniProtKB:")))
+                   ((:== #t (a) (string-prefix? a "ENSEMBL:"))))))
+    ))
+
 (define-relation (direct-synonym* a b)
   (conde ((== a b))
          ((direct-synonym+ a b))))
@@ -82,41 +114,29 @@
             (direct-synonym a mid)
             (direct-synonym+ mid b)))))
 
-(define-relation (synonym a b)
+(define-relation (exact-synonym a b)
   (conde ((== a b))
          ((direct-synonym+ a b))
          ((direct-synonym+ b a))))
 
-;; More constrained approach
-(define-relation (close-match-syn a b)
-  (fresh (id)
-    (any<=o "HGNC:" a)
-    (any<=o a "HGND")
-    (any<=o "UMLS:" b)
-    (any<=o b "UMLT")
-    (edge id a b)
-    (:== #t (a) (not (null? (run 1 () (eprop id "predicate" "biolink:close_match")))))
-    (:== #t (a) (string-prefix? a "HGNC:"))
-    (:== #t (b) (string-prefix? b "UMLS:"))))
-
-;; (define-relation (synonym a b)
-;;   (conde ((== a b))
-;;          ((close-match-syn a b))
-;;          ((close-match-syn b a))
-;;          ((direct-synonym a b))
-;;          ((direct-synonym b a))
-;;          ((fresh (mid)
-;;             (close-match-syn a mid)
-;;             (synonym mid b)))
-;;          ((fresh (mid)
-;;             (close-match-syn b mid)
-;;             (synonym mid a)))         
-;;          ((fresh (mid)
-;;             (direct-synonym a mid)
-;;             (synonym mid b)))
-;;          ((fresh (mid)
-;;             (direct-synonym b mid)
-;;             (synonym mid a)))))
+(define-relation (synonym a b)
+  (conde ((== a b))
+         ((close-match-synonym a b))
+         ((close-match-synonym b a))
+         ((direct-synonym a b))
+         ((direct-synonym b a))
+         ((fresh (mid)
+            (close-match-synonym a mid)
+            (synonym mid b)))
+         ((fresh (mid)
+            (close-match-synonym b mid)
+            (synonym mid a)))         
+         ((fresh (mid)
+            (direct-synonym a mid)
+            (synonym mid b)))
+         ((fresh (mid)
+            (direct-synonym b mid)
+            (synonym mid a)))))
 
 ;; Different ways of actually getting synonyms in a reasonable amount of time
 
@@ -134,9 +154,11 @@
   (let loop ((n (- n 1)) (synonyms (set term)) (terms (list term)) )
     (let ((new-synonyms
            (run*/set s (fresh (term)
-                         (conde ((direct-synonym s term))
-                                ((direct-synonym term s)))
                          (membero term terms)
+                         (conde ((direct-synonym s term))
+                                ((direct-synonym term s))
+                                ((close-match-synonym s term))
+                                ((close-match-synonym term s)))
                          (if (pair? categories)
                              (fresh (cat)
                                (cprop s "category" cat)
@@ -169,9 +191,9 @@
            (apply append
                   (map (lambda (curie)
                          (let ((cats (run*/set c (cprop curie "category" c))))
-                           (if (set-empty? (set-intersect gene-or-protein/set cats))
-                               (run* s (kgx-synonym curie s))
-                               (run* s ((synonym-of/breadth curie 1) s)))))
+                           (if (not (set-empty? (set-intersect gene-or-protein/set cats)))
+                               (set->list (synonyms/breadth curie 1))
+                               (run* s (kgx-synonym curie s)))))
                        curies)))))
 
 ; define a get-synonyms function based on the synonym relation
@@ -195,3 +217,14 @@
   (run* (curie name)
     (cprop curie "name" name)
     (membero curie curie-ls)))
+
+
+(define/memo* (get-synonyms/breadth curie)
+  (set->list (synonyms/breadth curie 1)))
+(define (synonym-of curie)
+  (relation ~synonym-of (s)
+    (let* ((cats (run*/set c (cprop curie "category" c)))
+           (synonyms (if (not (set-empty? (set-intersect gene-or-protein/set cats)))
+                         (get-synonyms/breadth curie)
+                         (run* s (kgx-synonym curie s)))))
+      (membero s synonyms))))

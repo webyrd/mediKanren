@@ -3,6 +3,7 @@
 (require
  "common.rkt" 
  "lw-reasoning.rkt"
+ "logging.rkt"
   racket/file racket/function racket/list racket/hash
   (except-in racket/match ==)
   racket/port
@@ -13,6 +14,7 @@
   memoize
   racket/format
   )
+
 
 ;; QUESTION
 ;; - Do we return all attributes, or only specified ones?
@@ -62,8 +64,7 @@
          (cons (car pair) (hash->list (olift (cdr pair)))))
        v))
 
-(define (trapi-response msg (log-key "?"))
-  (printf "== Info (~s)   |   Interpreting query:~s\n" log-key msg)
+(define (trapi-response msg (log-key "[query]"))
   (define max-results (hash-ref msg 'max_results #f))
   (define results (if max-results
                       (run max-results bindings (trapi-query msg bindings log-key))
@@ -96,17 +97,15 @@
       (membero `(subject . ,s) props)
       (membero `(predicate . ,p) props)
       (membero `(object . ,o) props)))
-  (define/memo* (log-once label key value)
-    (printf "== Info (~s)   |   ~a of ~a: ~s\n" log-key label key value)
-    value)
-  (let ((full-reasoning? (hash-ref qgraph 'use_reasoning #t)))
+
+    (let ((full-reasoning? (hash-ref qgraph 'use_reasoning #t)))
     (fresh (node-bindings edge-bindings)
       (== bindings `((node_bindings . ,node-bindings) 
                      (edge_bindings . ,edge-bindings)))
-      ((trapi-nodes nodes k-is-a full-reasoning? log-once) node-bindings)
-      ((trapi-edges edges k-triple full-reasoning? log-once) node-bindings edge-bindings))))
+      ((trapi-nodes nodes k-is-a full-reasoning? log-key) node-bindings)
+      ((trapi-edges edges k-triple full-reasoning? log-key) node-bindings edge-bindings))))
 
-(define (trapi-nodes nodes k-is-a full-reasoning? log-once)
+(define (trapi-nodes nodes k-is-a full-reasoning? log-key)
   (relation trapi-nodes-o (bindings)
     (let loop ((nodes nodes)
                (bindings bindings))
@@ -130,12 +129,16 @@
                 (if (pair? curies)
                     (let ((curies
                            (if (or reasoning? full-reasoning?)
-                               (log-once
-                                "Subclasses/synonyms" curies
-                                 (synonyms/set
-                                  (subclasses/set 
-                                   curies)))
-                                 curies)))
+                               ;; (let-values (((result cpu real gc) (time-apply
+                               ;;                                     (lambda ()
+                               ;;                                       (synonyms/set
+                               ;;                                        (subclasses/set 
+                               ;;                                         curies))) '())))
+                               ;;   (log-once log-key (format "Subclasses/synonyms of ~s" curies) cpu result)
+                               (log-time log-once log-key 
+                                         (format "Subclasses/synonyms of ~s" curies)
+                                         (synonyms/set (subclasses/set curies)))
+                               curies)))
                       (fresh (curie k+v bindings-rest)
                         (== bindings `(,k+v . ,bindings-rest))
                         (== k+v `(,id . ,curie))
@@ -145,7 +148,9 @@
                     (error "Field: 'QNode/ids' must be array of CURIEs (TRAPI 1.1)."))
                 (if (pair? categories)
                     (let ((categories (if (or reasoning? full-reasoning?)
-                                          (log-once "Subclasses" categories (subclasses/set categories) )
+                                          (log-time log-once log-key 
+                                                    (format "Subclasses of ~s" categories)
+                                                    (subclasses/set categories))
                                           categories)))
                       (fresh (cat curie k+v bindings-rest)
                         (== k+v `(,id . ,curie))
@@ -157,7 +162,7 @@
                         (loop (cdr nodes) bindings-rest)))
                     (error "Field: 'QNode/categories' must be array of CURIESs (TRAPI 1.1)."))))))))
 
-(define (trapi-edges edges k-triple full-reasoning? log-once)
+(define (trapi-edges edges k-triple full-reasoning? log-key)
   (relation trapi-edges-o (node-bindings edge-bindings)
     (let loop ((edges edges) (bindings edge-bindings))
       (if (null? edges)
@@ -177,7 +182,8 @@
             (if (and predicates (not (pair? predicates)))
                 (error "Field: 'QEdge/predicates' must be an array of CURIEs (TRAPI 1.1).")
                 (let ((predicates (if (or reasoning? full-reasoning?)
-                                      (log-once "Subclasses" predicates
+                                      (log-time log-once log-key 
+                                                (format "Subclasses of ~s" predicates)
                                                 (subclasses/set predicates))
                                       predicates)))
                   (fresh (db+id s p o bindings-rest)
@@ -251,13 +257,36 @@
            (lambda (nb) (map cdr (alist-ref nb key #f)))
            results))))
 
-(define (props-kv k+v) (cons (string->symbol (car k+v)) (cdr k+v)))
+(define (snake->camel str (capitalize? #f)) 
+  (if (non-empty-string? str)
+      (let ((first-letter (substring str 0 1))
+            (rest-str (substring str 1 (string-length str))))
+        (printf "L: ~s ~s\n" first-letter (equal? first-letter "_"))
+        (if (equal? first-letter "_")
+            (snake->camel rest-str #t)
+            (string-append (if capitalize?
+                               (string-upcase first-letter) 
+                               first-letter)
+                           (snake->camel rest-str))))
+      ""))
+
+;; horrible horrible hack for RTX2!!
+(define (biolinkify/category curie)
+  (if (string-prefix? curie "biolink:") curie
+      (string-append "biolink:" 
+                     (string-replace (snake->camel curie #t) "_" ""))))
+
+(define (props-kv k+v)
+  (let ((k (car k+v)) (v (cdr k+v)))
+    (if (eq? k "category")
+        `(categories ,(biolinkify/category v)) 
+        (cons (string->symbol k) v))))
 (define (attributes-kv keys)
   (lambda (k+v)
     (let ((k (car k+v)) (v (cdr k+v)))
       (make-hash
        `((attribute_type_id . ,(alist-ref keys k "miscellaneous"))
-         (value_type_type . ,(alist-ref keys k "miscellaneous"))
+         (value_type_id . ,(alist-ref keys k "miscellaneous"))
          (original_attribute_name . ,(strlift k))
          (value . ,(strlift v)))))))
 
@@ -305,16 +334,24 @@
   (trapi-response-knodes/edges 
    results 'edge_bindings (compose symlift edge-id/reported)
    (lambda (node) 
-     (run* prop
-       (fresh (k v)
-         (membero k trapi-response-edge-properties)
-         (== `(,k . ,v) prop)
-         (eprop node k v))))
+     (let ((properties
+            (run* prop
+              (fresh (k v)
+                (membero k trapi-response-edge-properties)
+                (== `(,k . ,v) prop)
+                (eprop node k v)))))
+       (if (and (memf (lambda (k+v) (eq? (car k+v) "subject")) properties)
+                (memf (lambda (k+v) (eq? (car k+v) "object")) properties))
+           properties
+           (let ((s+p (car (run 1 (s o) (edge node s o)))))
+             `(("subject" . ,(car s+p))
+               ("object" . ,(cadr s+p))
+               . ,properties)))))
    (lambda (node)
      (run* attribute
-      (fresh (k v)
-        (membero k (map car trapi-response-edge-attributes))
-        (== `(,k . ,v) attribute)
-        (eprop node k v))))
+       (fresh (k v)
+         (membero k (map car trapi-response-edge-attributes))
+         (== `(,k . ,v) attribute)
+         (eprop node k v))))
    trapi-response-edge-attributes))
 
