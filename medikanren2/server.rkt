@@ -17,6 +17,7 @@
   web-server/managers/none
   web-server/private/gzip
   xml
+ web-server/safety-limits
   )
 
 (define (alist-ref alist key default)
@@ -212,11 +213,11 @@ query_result_clear.addEventListener('click', function(){
       "query_graph":{
          "nodes":{
             "n0":{
-               "id":"UMLS:C0221347",
-               "category":"biolink:PhenotypicFeature"
+               "ids":["UMLS:C0221347"],
+               "categories":["biolink:PhenotypicFeature"]
             },
             "n1":{
-               "category":"biolink:NamedThing"
+               "categories":["biolink:NamedThing"]
             }
          },
          "edges":{
@@ -496,8 +497,8 @@ EOS
                  #:listen-ip #f  ;; comment this to disable external connection
                  #:port 8384
                  #:launch-browser? #f
-                 #:max-waiting 6000
-                 ;; #:request-read-timeout 300
+                 #:safety-limits (make-safety-limits #:response-send-timeout 360
+                                                     #:response-timeout 36000)
                  ))
 
 (module+ main (start))
