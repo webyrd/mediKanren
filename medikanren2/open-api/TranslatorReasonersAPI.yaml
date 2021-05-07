@@ -15,10 +15,28 @@ info:
     component: ARA
     team:
     - "Unsecret Agent"
+    biolink-version: INSERT-BIOLINK-MODEL-VERSION-HERE
+    externalDocs:
+      description: >-
+        The values for component and team are restricted according to this
+        external JSON schema. See schema and examples at url
+      url: https://github.com/NCATSTranslator/translator_extensions/blob/\
+        production/x-translator/
+  x-trapi:
+    version: 1.1.0
+    externalDocs:
+      description: >-
+        The values for version are restricted according to the regex in
+        this external JSON schema. See schema and examples at url
+      url: https://github.com/NCATSTranslator/translator_extensions/blob/\
+        production/x-trapi/
+servers:
+  - url: INSERT-URL-HERE
+    description: INSERT-SERVER-DESCRIPTION-HERE
 externalDocs:
   description: >-
-    Documentation for the NCATS Biomedical Translator Reasoners web services.
-  url: https://github.com/NCATS-Tangerine/NCATS-ReasonerStdAPI
+    Documentation for the NCATS Biomedical Translator Reasoners web services
+  url: https://github.com/NCATSTranslator/ReasonerAPI
 tags:
   - name: predicates
     description: Get supported relationships by source and target
@@ -31,10 +49,13 @@ tags:
       description: Documentation for the reasoner query function
       url: http://unsecret.ncats.io/overview.html#query
   - name: translator
-  - name: reasoner
+    description: Required for SmartAPI validation of x-translator
+  - name: trapi
+    description: Required for SmartAPI validation of x-trapi
 paths:
   /predicates:
     get:
+      deprecated: true
       tags:
         - predicates
       summary: Get supported relationships by source and target
@@ -59,13 +80,26 @@ paths:
                     'biolink:Gene':
                       - biolink:directly_interacts_with
                       - biolink:decreases_activity_of
+  /meta_knowledge_graph:
+    get:
+      tags:
+        - meta_knowledge_graph
+      summary: Meta knowledge graph representation of this TRAPI web service.
+      responses:
+        '200':
+          description: >-
+            Returns meta knowledge graph representation of this TRAPI web
+            service.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetaKnowledgeGraph'
   /query:
     post:
       tags:
         - query
       summary: Query reasoner via one of several inputs
       description: ''
-      operationId: query
       requestBody:
         description: Query information to be submitted
         required: true
@@ -105,7 +139,6 @@ paths:
             application/json:
               schema:
                 type: string
-      x-swagger-router-controller: swagger_server.controllers.query_controller
 components:
   schemas:
     Query:
@@ -128,6 +161,11 @@ components:
             example, the fill operation requires a non-empty query_graph field
             as part of the Message, whereas other operations, e.g. overlay,
             require non-empty results and knowledge_graph fields.
+        log_level:
+          description: The least critical level of logs to return
+          allOf:
+            - $ref: '#/components/schemas/LogLevel'
+          nullable: true
       additionalProperties: true
       required:
         - message
@@ -188,18 +226,18 @@ components:
             $ref: '#/components/schemas/Result'
           nullable: true
         query_graph:
-          type: object
           description: >-
             QueryGraph object that contains a serialization of a query in the
             form of a graph
-          $ref: '#/components/schemas/QueryGraph'
+          allOf:
+            - $ref: '#/components/schemas/QueryGraph'
           nullable: true
         knowledge_graph:
-          type: object
           description: >-
             KnowledgeGraph object that contains lists of nodes and edges
             in the thought graph corresponding to the message
-          $ref: '#/components/schemas/KnowledgeGraph'
+          allOf:
+            - $ref: '#/components/schemas/KnowledgeGraph'
           nullable: true
       additionalProperties: false
     LogEntry:
@@ -222,13 +260,8 @@ components:
           example: '2020-09-03T18:13:49+00:00'
           nullable: true
         level:
-          type: string
-          description: Logging level
-          enum:
-            - ERROR
-            - WARNING
-            - INFO
-            - DEBUG
+          allOf:
+            - $ref: '#/components/schemas/LogLevel'
           nullable: true
         code:
           type: string
@@ -241,6 +274,14 @@ components:
           description: A human-readable log message
           nullable: true
       additionalProperties: true
+    LogLevel:
+      type: string
+      description: Logging level
+      enum:
+        - ERROR
+        - WARNING
+        - INFO
+        - DEBUG
     Result:
       type: object
       description: >-
@@ -370,21 +411,19 @@ components:
         query. If a CURIE is not specified, any nodes matching the category
         of the QNode will be returned in the Results.
       properties:
-        id:
-          oneOf:
-            - $ref: '#/components/schemas/CURIE'
-            - type: array
-              items:
-                $ref: '#/components/schemas/CURIE'
-          example: OMIM:603903
+        ids:
+          type: array
+          items:
+            $ref: '#/components/schemas/CURIE'
+          minItems: 1
+          example: [OMIM:603903]
           description: CURIE identifier for this node
           nullable: true
-        category:
-          oneOf:
-            - $ref: '#/components/schemas/BiolinkEntity'
-            - type: array
-              items:
-                $ref: '#/components/schemas/BiolinkEntity'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/BiolinkEntity'
+          minItems: 1
           nullable: true
         is_set:
           type: boolean
@@ -400,6 +439,15 @@ components:
             with is_set=True is connected to a QNode (n2) with is_set=True,
             each n1 must be connected to at least one n2.
           default: false
+        constraints:
+          type: array
+          description: >-
+            A list of contraints applied to a query node.
+            If there are multiple items, they must all be true (equivalent
+            to AND)
+          items:
+            $ref: '#/components/schemas/QueryConstraint'
+          nullable: true
       additionalProperties: true
     QEdge:
       type: object
@@ -412,12 +460,11 @@ components:
         an exact match to the given QEdge predicate or relation term ('class'),
         or to a term which is a subclass of the QEdge specified term.
       properties:
-        predicate:
-          oneOf:
-            - $ref: '#/components/schemas/BiolinkPredicate'
-            - type: array
-              items:
-                $ref: '#/components/schemas/BiolinkPredicate'
+        predicates:
+          type: array
+          items:
+            $ref: '#/components/schemas/BiolinkPredicate'
+          minItems: 1
           nullable: true
         relation:
           type: string
@@ -443,6 +490,15 @@ components:
             Corresponds to the map key identifier of the
             object concept node anchoring the query filter
             pattern for the query relationship edge.
+        constraints:
+          type: array
+          description: >-
+            A list of contraints applied to a query edge.
+            If there are multiple items, they must all be true (equivalent
+            to AND)
+          items:
+            $ref: '#/components/schemas/QueryConstraint'
+          nullable: true
       additionalProperties: true
       required:
         - subject
@@ -459,12 +515,10 @@ components:
           example: Haptoglobin
           description: Formal name of the entity
           nullable: true
-        category:
-          oneOf:
-            - $ref: '#/components/schemas/BiolinkEntity'
-            - type: array
-              items:
-                $ref: '#/components/schemas/BiolinkEntity'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/BiolinkEntity'
           nullable: true
         attributes:
           type: array
@@ -476,46 +530,75 @@ components:
     Attribute:
       type: object
       description: >-
-        Generic attribute for a node or an edge that expands key-value pair
-        concept by including a type of this attribute from a suitable ontology,
-        a source of this attribute, and (optionally) a url with additional
-        information about this attribute.
+        Generic attribute for a node or an edge that expands the key-value
+        pair concept by including fields for additional metadata. These fields
+        can be used to describe the source of the statement made in key-value
+        pair of the attribute object, or describe the attribute's value itself
+        including its semantic type, or a url providing additional information
+        about it.
       properties:
-        name:
-          type: string
-          description: >-
-            Human-readable name or label for the attribute. If appropriate,
-            should be the name of the semantic type term.
-          example: PubMed Identifier
-          nullable: true
-        value:
-          example: 32529952
-          description: >-
-            Value of the attribute. May be any data type, including a list.
-        type:
+        attribute_type_id:
           $ref: '#/components/schemas/CURIE'
           description: >-
-            CURIE of the semantic type of the attribute. For properties
-            defined by the Biolink model this should be a biolink CURIE,
-            otherwise, if possible, from the EDAM ontology. If a suitable
-            identifier does not exist, enter a descriptive phrase here and
-            submit the new type for consideration by the appropriate
-            authority.
-          example: EDAM:data_1187
-        url:
+            The 'key' of the attribute object, holding a CURIE of an ontology
+            property defining the attribute (preferably the CURIE of a
+            Biolink association slot). This property captures the relationship
+            asserted to hold between the value of the attribute, and the node
+            or edge from  which it hangs. For example, that a value of
+            '0.000153' represents a p-value supporting an edge, or that
+            a value of 'ChEMBL' represents the original source of the knowledge
+            expressed in the edge.
+          example: Biolink:has_p-value_evidence, Biolink:has_original_source
+        original_attribute_name:
           type: string
           description: >-
-            Human-consumable URL to link out and provide additional information
-            about the attribute (not the node or the edge).
-          example: https://pubmed.ncbi.nlm.nih.gov/32529952
+            The term used by the original source of an attribute to describe
+            the meaning or significance of the value it captures. This may be
+            a column name in a source tsv file, or a key in a source json
+            document for the field in the data that held the attribute's
+            value. Capturing this information  where possible lets us preserve
+            what the original source said. Note that the data type is string'
+            but the contents of the field could also be a CURIE of a third
+            party ontology term.
+          example: p-value
           nullable: true
-        source:
+        value:
+          description: >-
+            Value of the attribute. May be any data type, including a list.
+          example: 0.000153
+        value_type_id:
+          $ref: '#/components/schemas/CURIE'
+          description: >-
+            CURIE describing the semantic type of an  attribute's value. Use
+            a Biolink class if possible, otherwise a term from an external
+            ontology. If a suitable CURIE/identifier does not exist, enter a
+            descriptive phrase here and submit the new type for consideration
+            by the appropriate authority.
+          example: EDAM:data_1187
+        attribute_source:
           type: string
-          description: Source of the attribute, preferably as a CURIE prefix.
+          description: >-
+            The source of the core assertion made by the key-value pair of an
+            attribute object. Use a CURIE or namespace designator for this
+            resource where possible.
           example: UniProtKB
           nullable: true
+        value_url:
+          type: string
+          description: >-
+            Human-consumable URL linking to a web document that provides
+            additional information about an  attribute's value (not the node
+            or the edge fom which it hangs).
+          example: https://pubmed.ncbi.nlm.nih.gov/32529952
+          nullable: true
+        description:
+          type: string
+          description: >-
+            Human-readable description for the attribute and its value.
+          example: Assertion Authored By Dr. Trans L. Ator
+          nullable: true
       required:
-        - type
+        - attribute_type_id
         - value
       additionalProperties: false
     Edge:
@@ -592,3 +675,152 @@ components:
         URI.
       externalDocs:
         url: https://www.w3.org/TR/2010/NOTE-curie-20101216/
+    MetaKnowledgeGraph:
+      type: object
+      description: >-
+        Knowledge-map representation of this TRAPI web service.
+      properties:
+        nodes:
+          type: object
+          description: >-
+            Collection of node categories provided by this TRAPI web service,
+            indexed by Biolink class CURIEs.
+          additionalProperties:
+            $ref: '#/components/schemas/MetaNode'
+        edges:
+          type: array
+          description: >-
+            List of edges/predicates provided by this TRAPI web service.
+          items:
+            $ref: '#/components/schemas/MetaEdge'
+          minItems: 1
+    MetaNode:
+      type: object
+      description: >-
+        Description of a node category provided by this TRAPI web service.
+      properties:
+        id_prefixes:
+          type: array
+          description: >-
+            List of CURIE prefixes for the node category that this TRAPI web
+            service understands and accepts on the input.
+          items:
+            type: string
+          minItems: 1
+          example: [CHEMBL.COMPOUND, INCHIKEY]
+      required:
+        - id_prefixes
+      additionalProperties: false
+    MetaEdge:
+      type: object
+      description: >-
+        Edge in a meta knowledge map describing relationship between a subject
+        Biolink class and an object Biolink class.
+      properties:
+        subject:
+          $ref: '#/components/schemas/BiolinkEntity'
+          description: >-
+            Subject node category of this relationship edge.
+          example: biolink:ChemicalSubstance
+        predicate:
+          $ref: '#/components/schemas/BiolinkPredicate'
+          description: >-
+            Biolink relationship between the subject and object categories.
+          example: biolink:affects
+        object:
+          $ref: '#/components/schemas/BiolinkEntity'
+          description: >-
+            Object node category of this relationship edge.
+          example: biolink:Protein
+        relations:
+          type: array
+          description: >-
+            Low-level relations from the underlying source.
+          items:
+            type: string
+          example: [inhibits, activates]
+      required:
+        - subject
+        - predicate
+        - object
+      additionalProperties: false
+    QueryConstraint:
+      type: object
+      description: >-
+        Generic query constraint for a query node or query edge
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/CURIE'
+          description: >-
+            CURIE of the concept being constrained. For properties
+            defined by the Biolink model this SHOULD be a biolink CURIE.
+            otherwise, if possible, from the EDAM ontology. If a suitable
+            CURIE does not exist, enter a descriptive phrase here and
+            submit the new type for consideration by the appropriate
+            authority.
+          example: EDAM:data_0844
+          nullable: false
+        name:
+          type: string
+          description: >-
+            Human-readable name or label for the constraint concept.
+            If appropriate, it SHOULD be the term name of the CURIE used
+            as the 'id'. This is redundant but required for human
+            readability.
+          example: molecular mass
+          nullable: false
+        not:
+          type: boolean
+          default: false
+        operator:
+          type: string
+          description: >-
+            Relationship between the database value and the constraint value
+            for the specified id. The operators ==, >, and < mean
+            is exactly equal to, is greater than, and is less than,
+            respectively. The 'matches' operator indicates that the value
+            is a regular expression to be evaluated. If value is a list type,
+            then at least one evaluation must be true (equivalent to OR).
+            This means that the == operator with a list acts like a SQL 'IN'
+            clause. The 'not' property negates the operator such that not
+            and == means 'not equal to' (or 'not in' for a list), and not >
+            means <=, and not < means >=, and not matches means does not
+            match. The '==' operator SHOULD NOT be used in a manner that
+            describes an "is a" subclass relationship for the parent QNode.
+          enum:
+            - ==
+            - '>'
+            - <
+            - matches
+        value:
+          example: 57.0
+          description: >-
+            Value of the attribute. May be any data type, including a list.
+            If the value is a list and there are multiple items, at least one
+            comparison must be true (equivalent to OR). If 'value' is of data
+            type 'object', the keys of the object MAY be treated as a list.
+            A 'list' data type paired with the '>' or '<' operators will
+            encode extraneous comparisons, but this is permitted as it is in
+            SQL and other languages.
+        unit_id:
+          example: UO:0000222
+          description: >-
+            CURIE of the units of the value or list of values in the 'value'
+            property. The Units of Measurement Ontology (UO) should be used
+            if possible. The unit_id MUST be provided for (lists of)
+            numerical values that correspond to a quantity that has units.
+        unit_name:
+          example: kilodalton
+          description: >-
+            Term name that is associated with the CURIE of the units
+            of the value or list of values in the 'value'
+            property. The Units of Measurement Ontology (UO) SHOULD be used
+            if possible. This property SHOULD be provided if a unit_id is
+            provided. This is redundant but recommended for human readability.
+      required:
+        - name
+        - id
+        - operator
+        - value
+      additionalProperties: false
