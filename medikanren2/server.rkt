@@ -500,8 +500,8 @@ EOS
                  #:listen-ip #f  ;; comment this to disable external connection
                  #:port 8384
                  #:launch-browser? #f
-                 #:safety-limits (make-safety-limits #:response-send-timeout 360
-                                                     #:response-timeout 36000)
+                 #:safety-limits (make-safety-limits #:response-send-timeout 600
+                                                     #:response-timeout 600)
                  ))
 
 (module+ main (start))
