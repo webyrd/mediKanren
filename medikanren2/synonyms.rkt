@@ -16,7 +16,8 @@
          synonyms/set synonyms/breadth
          synonym kgx-synonym
          get-synonyms get-synonyms-ls
-         synonym-of)
+         synonym-of
+         get-names-ls get-names-set)
 
 (define synonyms-preds '("biolink:same_as"
                          ;; "biolink:close_match"
@@ -218,6 +219,8 @@
     (cprop curie "name" name)
     (membero curie curie-ls)))
 
+(define (get-names-set curie-set)
+  (get-names-ls (set->list curie-set)))
 
 (define/memo* (get-synonyms/breadth curie)
   (set->list (synonyms/breadth curie 1)))

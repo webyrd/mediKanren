@@ -261,7 +261,6 @@
   (if (non-empty-string? str)
       (let ((first-letter (substring str 0 1))
             (rest-str (substring str 1 (string-length str))))
-        (printf "L: ~s ~s\n" first-letter (equal? first-letter "_"))
         (if (equal? first-letter "_")
             (snake->camel rest-str #t)
             (string-append (if capitalize?
