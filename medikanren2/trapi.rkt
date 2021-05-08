@@ -63,6 +63,17 @@
   (map (lambda (pair)
          (cons (car pair) (hash->list (olift (cdr pair)))))
        v))
+(define (symlift v) 
+  (cond ((number? v) (string->symbol (number->string v)))
+        ((string? v) (string->symbol v))
+        ((symbol? v) v)
+        (else (error "Must be a numebr, string or symbol: ~s." v))))
+
+(define (strlift v)
+  (cond ((number? v) (number->string v))
+        ((string? v) v)
+        ((symbol? v) (symbol->string v))
+        (error "Must be a number, string or symbol: ~s" v)))
 
 (define (trapi-response msg (log-key "[query]"))
   (define max-results (hash-ref msg 'max_results #f))
@@ -79,6 +90,7 @@
   (define nodes  (hash->list (olift (hash-ref qgraph 'nodes hash-empty))))
   (define edges  (hash->list (olift (hash-ref qgraph 'edges hash-empty))))
 
+  ;; Interpret included KnowledgeGraph element
   (define kgraph (hash-ref msg 'knowledge_graph #f))
   (define knodes (and kgraph
                       (alist-of-hashes->lists
@@ -129,12 +141,6 @@
                 (if (pair? curies)
                     (let ((curies
                            (if (or reasoning? full-reasoning?)
-                               ;; (let-values (((result cpu real gc) (time-apply
-                               ;;                                     (lambda ()
-                               ;;                                       (synonyms/set
-                               ;;                                        (subclasses/set 
-                               ;;                                         curies))) '())))
-                               ;;   (log-once log-key (format "Subclasses/synonyms of ~s" curies) cpu result)
                                (log-time log-once log-key 
                                          (format "Subclasses/synonyms of ~s" curies)
                                          (synonyms/set (subclasses/set curies)))
@@ -269,7 +275,7 @@
                            (snake->camel rest-str))))
       ""))
 
-;; horrible horrible hack for RTX2!!
+;; horrible horrible hack for RTX2 20210204!!
 (define (biolinkify/category curie)
   (if (string-prefix? curie "biolink:") curie
       (string-append "biolink:" 
@@ -316,18 +322,6 @@
         (== `(,k . ,v) attribute)
         (cprop node k v))))
    trapi-response-node-attributes))
-
-(define (symlift v) 
-  (cond ((number? v) (string->symbol (number->string v)))
-        ((string? v) (string->symbol v))
-        ((symbol? v) v)
-        (else (error "Must be a numebr, string or symbol: ~s." v))))
-
-(define (strlift v)
-  (cond ((number? v) (number->string v))
-        ((string? v) v)
-        ((symbol? v) (symbol->string v))
-        (error "Must be a number, string or symbol: ~s" v)))
 
 (define (trapi-response-kedges results)
   (trapi-response-knodes/edges 
