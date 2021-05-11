@@ -1,5 +1,5 @@
 #lang racket/base
-(provide log-time log-info log-once log-length)
+(provide log-time log-info log-error log-once log-length)
 (require
   racket/file racket/function racket/list racket/hash
   (except-in racket/match ==)
@@ -27,6 +27,13 @@
           (date->string (seconds->date (current-seconds)) #t)
           key
           "INFO"
+          message))
+
+(define (log-error key message)
+  (printf "~a    ~s    ~a       ~a\n"
+          (date->string (seconds->date (current-seconds)) #t)
+          key
+          "ERROR"
           message))
 
 (define/memo* (log-once key label cpu real result)

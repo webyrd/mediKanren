@@ -17,8 +17,11 @@
   web-server/managers/none
   web-server/private/gzip
   xml
- web-server/safety-limits
+  web-server/safety-limits
+  racket/sandbox
   )
+
+(define query-time-limit (make-parameter 600))
 
 (define (alist-ref alist key default)
   (define kv (assoc key alist))
@@ -299,10 +302,16 @@ EOS
 
   (define log-key (current-seconds))
   (log-info log-key (format "Query received: ~a" (jsexpr->string msg )))
-  
+
   (define local-results
-    (log-time log-length log-key "Local results size"
-              (trapi-response msg log-key)))
+    (with-handlers ((exn:fail:resource?
+                     (lambda (exn) 
+                       (log-error log-key (format "Error: ~a" exn))
+                       (error "Max query time exceded"))))
+    (call-with-limits (query-time-limit) #f
+      (lambda ()
+        (log-time log-length log-key "Local results size"
+                  (trapi-response msg log-key))))))
 
   (let ((length-local (length (hash-ref  local-results 'results '()))))
     (hash-set*
@@ -500,8 +509,8 @@ EOS
                  #:listen-ip #f  ;; comment this to disable external connection
                  #:port 8384
                  #:launch-browser? #f
-                 #:safety-limits (make-safety-limits #:response-send-timeout 600
-                                                     #:response-timeout 600)
+                 #:safety-limits (make-safety-limits #:response-send-timeout 6000
+                                                     #:response-timeout 6000)
                  ))
 
 (module+ main (start))

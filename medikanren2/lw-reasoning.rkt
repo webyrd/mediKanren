@@ -156,10 +156,11 @@
   (run* cc (subclass-of* cc curie)))
 
 (define/memo* (subclasses/set curies)
-  (run* c (fresh (cs c^)
-            (membero c^ curies)
-            (:== cs (c^) (subclasses/set-of c^))
-            (membero c cs))))
+  (set->list
+   (run*/set c (fresh (cs c^)
+                 (membero c^ curies)
+                 (:== cs (c^) (subclasses/set-of c^))
+                 (membero c cs)))))
 
 ;; Attempt to do synonymization and subclasses at once 
 
