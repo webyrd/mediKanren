@@ -449,9 +449,22 @@ EOS
 
 ;; (define ((find/db-id find) data)
 ;;   (group-by-db (map (lambda (x) (cons (car x) (cddr x))) (find (list data)))))
+(define (/health req)
+  (let-values (((result cpu real gc) (time-apply (lambda () (run 1 () (triple "NCIT:C18585" "biolink:actively_involved_in" "NCIT:C45399"))) '())))
+    (let ((response
+           (if (null? result)
+               (hash 'status "corrupt"
+                     'reason "no data"
+                     'real_time real
+                     'cpu_time cpu)
+               (hash 'status "online"
+                     'real_time real
+                     'cpu_time cpu))))
+   (OK req '() mime:json (jsexpr->string response)))))
 
-(define (/index.js        req) (OK req '() mime:js index.js))
-(define (/query req)           (OK/jsexpr query                        req))
+(define (/index.js req)  (OK req '() mime:js index.js))
+;; (define (/health req)    (OK health                        req))
+(define (/query req)     (OK/jsexpr query                        req))
 ;; (define (/v2/find-concepts   req) (OK/jsexpr find-concepts/any            req))
 ;; (define (/v2/find-categories req) (OK/jsexpr (find/db-id find-categories) req))
 ;; (define (/v2/find-predicates req) (OK/jsexpr (find/db-id find-predicates) req))
@@ -495,7 +508,8 @@ EOS
      (("schema.html2")         #:method "get"  /schema.html2)
      ;; (("predicates")           #:method "get"  /predicates)
      (("query")                #:method "post" /query)
-     (("pmi" "v1" "query")           #:method "post" /query)
+     (("pmi" "v1" "query")     #:method "post" /query)
+     (("health")               #:method "get" /health)
      ;; (("v2" "find-concepts")   #:method "post" /v2/find-concepts)
      ;; (("v2" "find-categories") #:method "post" /v2/find-categories)
      ;; (("v2" "find-predicates") #:method "post" /v2/find-predicates)
