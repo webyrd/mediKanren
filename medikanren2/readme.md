@@ -47,8 +47,7 @@ racket server.rkt
 
 exposes the following endpoints on port `8384`:
 
-**/pmi/v1/query**
-**/query**
+**/pmi/v1/query**, duplicated on **/query**
 
 Main TRAPI endpoint, accepts [TRAPI 1.1](https://github.com/NCATSTranslator/ReasonerAPI) requests. Requests are run one at a time, on a first-received basis, and are limited to 10 minutes query time.
 
