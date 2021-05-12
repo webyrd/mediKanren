@@ -187,7 +187,7 @@
                  (reasoning?  (hash-ref e 'use_reasoning #f)))
             (if (and predicates (not (pair? predicates)))
                 (error "Field: 'QEdge/predicates' must be an array of CURIEs (TRAPI 1.1).")
-                (let ((predicates (if (or reasoning? full-reasoning?)
+                (let ((predicates (if (and (or reasoning? full-reasoning?) predicates)
                                       (log-time log-once log-key 
                                                 (format "Subclasses of ~s" predicates)
                                                 (subclasses/set predicates))

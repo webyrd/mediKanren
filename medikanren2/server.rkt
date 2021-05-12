@@ -288,39 +288,38 @@ EOS
 
 
 (define (message->response msg)
-
+  (define log-key (current-seconds))
   (define broad-response (time (api-query (string-append url.broad path.query)
                                           (hash 'message msg))))
   (define broad-results (hash-ref broad-response 'response))
-  (printf "broad response:\n~s\n" (hash-ref broad-response 'status))
-  (pretty-print (hash-ref broad-response 'headers))
-  (printf "broad result size: ~s\n" (js-count broad-results))
-  (printf "\nbroad results: ~s\n" broad-results)
+  (log-info log-key (format "Broad response:\n~s\n" (hash-ref broad-response 'status)))
+  (log-info log-key (format "Headers: ~s\n" (hash-ref broad-response 'headers)))
+  (log-info log-key (format "Broad result size: ~s\n" (js-count broad-results)))
+  (log-info log-key (format "Broad results: ~s" broad-results))
   
   ;; (with-handlers ((exn:fail? (lambda (exn) 
   ;;                              (hash 'error (exn-message exn)))))
 
-  (define log-key (current-seconds))
   (log-info log-key (format "Query received: ~a" (jsexpr->string msg )))
 
-  (define local-results
-    (with-handlers ((exn:fail:resource?
-                     (lambda (exn) 
-                       (log-error log-key (format "Error: ~a" exn))
-                       (error "Max query time exceded"))))
+  (with-handlers ((exn:fail:resource?
+                   (lambda (exn) 
+                     (log-error log-key (format "Error: ~a" exn))
+                     (error "Max query time exceded"))))
     (call-with-limits (query-time-limit) #f
       (lambda ()
-        (log-time log-length log-key "Local results size"
-                  (trapi-response msg log-key))))))
-
-  (let ((length-local (length (hash-ref  local-results 'results '()))))
-    (hash-set*
-     (merge-results
-      (list (hash-ref (olift broad-results) 'message hash-empty)
-            local-results))
-     )))
+        (let-values (((result cpu real gc) (time-apply (lambda () (trapi-response msg log-key)) '())))
+          (let* ((local-results (car result))
+                 (length-local (length (hash-ref  local-results 'results '()))))
+            (log-info log-key (format "Query time [cpu time: ~s real time: ~s]" cpu real))
+            (log-info log-key (format "Local results size: ~s" length-local))
+            (values (hash-set*
+                     (merge-results
+                      (list (hash-ref (olift broad-results) 'message hash-empty)
+                            local-results)))
+                    (list (hash 'level "INFO"
+                                'message (format "Query time: ~ams" cpu))))))))))
     
-
 (define (merge-results rs)
   (let loop ((rs rs) (results '()) (nodes '()) (edges '()))
     (cond ((null? rs) (hash 'results         results
@@ -364,14 +363,14 @@ EOS
 (define (query jsdata)
   (cond ((or (eof-object? jsdata) (not (hash? jsdata))) 'null)
         (else (let* ((data (olift jsdata))
-                     (request-msg (olift (hash-ref data 'message hash-empty)))
-                     (message (message->response request-msg))
-                     (length-local (length (hash-ref message 'results))))
-                (hash 'message message
-                      'query_graph (hash-ref request-msg 'query_graph)
-                      'status "Success"
-                      'description (format "Success. ~s result~a." length-local (if (= length-local 1) "" "s"))
-                      'logs '())))))
+                     (request-msg (olift (hash-ref data 'message hash-empty))))
+                (let-values (((message logs) (message->response request-msg)))
+                  (let ((length-local (length (hash-ref message 'results))))
+                    (hash 'message message
+                          'query_graph (hash-ref request-msg 'query_graph)
+                          'status "Success"
+                          'description (format "Success. ~s result~a." length-local (if (= length-local 1) "" "s"))
+                          'logs logs)))))))
 (define (accepts-gzip? req)
   (member "gzip" (map string-trim
                       (string-split (alist-ref (request-headers req)
