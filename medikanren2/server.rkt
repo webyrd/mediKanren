@@ -506,14 +506,21 @@ EOS
      (("schema.html")          #:method "get"  /schema.html)
      (("schema.html2")         #:method "get"  /schema.html2)
      ;; (("predicates")           #:method "get"  /predicates)
+
+     ;; Legacy endpoint - unversioned - TRAPI 1.0 - TODO: Delete
      (("query")                #:method "post" /query)
+
      ;; Current (versioned) endpoint for NCATS - TRAPI 1.1
      (("v2" "query")     #:method "post" /query)
+
+     ;; Endpoint for Andy's webapp
      (("pmi" "v2" "query")     #:method "post" /query)
+     ;; TODO: restore text search
+     ;; (("pmi" "v2" "query" "find-concepts")   #:method "post" /v2/find-concepts)
+     ;; (("pmi" "v2" "query" "find-categories") #:method "post" /v2/find-categories)
+     ;; (("pmi" "v2" "query" "find-predicates") #:method "post" /v2/find-predicates)
+
      (("health")               #:method "get" /health)
-     ;; (("v2" "find-concepts")   #:method "post" /v2/find-concepts)
-     ;; (("v2" "find-categories") #:method "post" /v2/find-categories)
-     ;; (("v2" "find-predicates") #:method "post" /v2/find-predicates)
 
      (else                                     not-found)))
   (serve/servlet dispatch
