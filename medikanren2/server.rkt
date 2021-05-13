@@ -507,7 +507,9 @@ EOS
      (("schema.html2")         #:method "get"  /schema.html2)
      ;; (("predicates")           #:method "get"  /predicates)
      (("query")                #:method "post" /query)
-     (("pmi" "v1" "query")     #:method "post" /query)
+     ;; Current (versioned) endpoint for NCATS - TRAPI 1.1
+     (("v2" "query")     #:method "post" /query)
+     (("pmi" "v2" "query")     #:method "post" /query)
      (("health")               #:method "get" /health)
      ;; (("v2" "find-concepts")   #:method "post" /v2/find-concepts)
      ;; (("v2" "find-categories") #:method "post" /v2/find-categories)
