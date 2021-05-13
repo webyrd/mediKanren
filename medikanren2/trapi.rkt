@@ -136,11 +136,11 @@
                                                                (list category)))))
                  (constraints (hash-ref n 'constraints '()))
                  (is-set?     (hash-ref n 'is_set #f))
-                 (reasoning?  (hash-ref n 'use_reasoning #f)))
+                 (reasoning?  (hash-ref n 'use_reasoning full-reasoning?)))
             (if curies
                 (if (pair? curies)
                     (let ((curies
-                           (if (or reasoning? full-reasoning?)
+                           (if reasoning?
                                (log-time log-once log-key 
                                          (format "Subclasses/synonyms of ~s" curies)
                                          (synonyms/set (subclasses/set curies)))
@@ -153,7 +153,7 @@
                         (loop (cdr nodes) bindings-rest)))
                     (error "Field: 'QNode/ids' must be array of CURIEs (TRAPI 1.1)."))
                 (if (pair? categories)
-                    (let ((categories (if (or reasoning? full-reasoning?)
+                    (let ((categories (if reasoning?
                                           (log-time log-once log-key 
                                                     (format "Subclasses of ~s" categories)
                                                     (subclasses/set categories))
@@ -170,7 +170,7 @@
 
 (define (trapi-edges edges k-triple full-reasoning? log-key)
   (relation trapi-edges-o (node-bindings edge-bindings)
-    (let loop ((edges edges) (bindings edge-bindings))
+    (let loop ((edges edges) (bindings edge-bindings) (visited-nodes '()))
       (if (null? edges)
           (== bindings '()) 
           (let* ((id+e        (car edges))
@@ -184,17 +184,27 @@
                  (relation    (hash-ref e 'relation #f))
                  (object      (string->symbol (hash-ref e 'object #f)))
                  (constraints (hash-ref e 'constraints '()))
-                 (reasoning?  (hash-ref e 'use_reasoning #f)))
+                 (reasoning?  (hash-ref e 'use_reasoning full-reasoning?)))
             (if (and predicates (not (pair? predicates)))
                 (error "Field: 'QEdge/predicates' must be an array of CURIEs (TRAPI 1.1).")
-                (let ((predicates (if (and (or reasoning? full-reasoning?) predicates)
+                (let ((predicates (if (and reasoning? predicates)
                                       (log-time log-once log-key 
                                                 (format "Subclasses of ~s" predicates)
                                                 (subclasses/set predicates))
                                       predicates)))
                   (fresh (db+id s p o bindings-rest)
-                    (membero `(,subject . ,s) node-bindings)
-                    (membero `(,object . ,o) node-bindings)
+                    (if (and reasoning?
+                             (member subject visited-nodes))
+                        (fresh (s^)
+                          (membero `(,subject . ,s^) node-bindings)
+                          (kgx-synonym* s^ s))
+                        (membero `(,subject . ,s) node-bindings))
+                    (if (and reasoning?
+                             (member object visited-nodes))
+                        (fresh (o^)
+                          (membero `(,object . ,o^) node-bindings)
+                          (kgx-synonym* o^ o))
+                        (membero `(,object . ,o) node-bindings))
                     (conde ((== predicates #f))
                            ((== predicates '()))
                            ((membero p predicates)))
@@ -206,7 +216,8 @@
                               (k-triple id s p o)
                               (== db+id `(kg . ,id)))))
                     (== bindings `((,id . ,db+id) . ,bindings-rest))
-                    (loop (cdr edges) bindings-rest)))))))))
+                    (loop (cdr edges) bindings-rest
+                          (remove-duplicates (append `(,subject ,object) visited-nodes)))))))))))
 
 (define (trapi-constraints constraints)
   (relation trapi-node-constraints-o (node)

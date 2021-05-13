@@ -14,9 +14,9 @@
 (provide direct-synonym direct-synonym* direct-synonym+ synonym
          synonym-of/step synonym-of/breadth
          synonyms/set synonyms/breadth
-         synonym kgx-synonym
+         synonym kgx-synonym kgx-synonym*
          get-synonyms get-synonyms-ls
-         synonym-of
+         synonym-of has-synonym
          get-names-ls get-names-set)
 
 (define synonyms-preds '("biolink:same_as"
@@ -61,11 +61,15 @@
 (define gene-or-protein/set (list->set gene-or-protein))
 
 ; Cached synonyms from the kgx-synonym knowledge graph
-(define (kgx-synonym a b)
+(define-relation (kgx-synonym a b)
   (fresh (predicate id source_database)
     (conde
       [(kgx:synonym a b predicate id source_database)]
       [(kgx:synonym b a predicate id source_database)])))
+
+(define (kgx-synonym* a b)
+  (conde ((== a b))
+         ((kgx-synonym a b))))
 
 ;; Query synonyms from loaded graphs
 (define-relation (direct-synonym a b)
@@ -196,6 +200,18 @@
                                (set->list (synonyms/breadth curie 1))
                                (run* s (kgx-synonym curie s)))))
                        curies)))))
+
+(define-relation (has-synonym a b)
+  (conde ((== a b))
+         ((fresh (cat)
+            (is-a a cat)
+            (conde ((membero cat gene-or-protein) 
+                    (conde ((direct-synonym a b))
+                           ((direct-synonym b a))
+                           ((close-match-synonym a b))
+                           ((close-match-synonym b a))))
+                   ((not-membero cat gene-or-protein)
+                    (kgx-synonym a b)))))))
 
 ; define a get-synonyms function based on the synonym relation
 ; ideally we wanted to start with HGNC prefixes right now because if we start with other curie prefixes

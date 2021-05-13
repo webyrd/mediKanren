@@ -131,7 +131,50 @@ EOS
 EOS
 ))
 (define m4 (hash-ref q4 'message))
-(let ((results (time (trapi-response m4))))
+;; (let ((results (time (trapi-response m4))))
+;;   (display  (jsexpr->string results))
+;;   (printf "\nSize:~s\n" (length (hash-ref results 'results '()))))
+
+(define q5 (string->jsexpr #<<EOS
+{
+  "message": {
+    "query_graph": 
+{
+  "nodes": {
+    "n0": {
+      "id": "UniProtKB:O00470",
+      "category": ["biolink:Gene"]
+    },
+    "n1": {
+      "category": [
+        "biolink:Gene"
+      ]
+    },
+    "n2": {
+        "id":"NCBIGene:4654",
+      "category": [
+        "biolink:Gene"
+      ]
+    }
+  },
+  "edges": {
+    "e0": {
+      "subject": "n0",
+      "object": "n1"
+    },
+  "e1": {
+      "use_reasoning":true,
+      "subject": "n1",
+      "object": "n2"
+    }
+  }
+}
+}
+}
+EOS
+))
+(define m5 (hash-ref q5 'message))
+(let ((results (time (trapi-response m5))))
   (display  (jsexpr->string results))
   (printf "\nSize:~s\n" (length (hash-ref results 'results '()))))
 
