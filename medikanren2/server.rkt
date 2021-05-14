@@ -44,10 +44,6 @@
   (file->string (path/root "open-api/TranslatorReasonersAPI.json")))
 (define schema.yaml.txt
   (file->string (path/root "open-api/TranslatorReasonersAPI.yaml")))
-(define schema.html
-  (file->string (path/root "open-api/html/index.html")))
-(define schema.html2
-  (file->string (path/root "open-api/html2/index.html")))
 (define schema.json
   (call-with-input-file (path/root "open-api/TranslatorReasonersAPI.json")
                         read-json))
@@ -149,7 +145,7 @@ function query(data) {
   var xhr = new XMLHttpRequest();
   xhr.addEventListener('load',  function(event){ query_show(xhr.responseText); });
   xhr.addEventListener('error', function(event){ query_show('POST error'); });
-  xhr.open('POST', '/pmi/v1/query');
+  xhr.open('POST', '/pmi/v2/query');
   xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
   xhr.send(data);
 }
@@ -177,9 +173,7 @@ query_result_clear.addEventListener('click', function(){
          (body (h1 "mediKanren Reasoner API")
                (p (a ((href "https://github.com/NCATS-Tangerine/NCATS-ReasonerStdAPI"))
                      "NCATS Biomedical Translator Reasoners Standard API"))
-               (ul (li (a ((href "/schema.html")) "schema.html"))
-                   (li (a ((href "/schema.html2")) "schema.html2"))
-                   (li (a ((href "/schema.yaml")) "schema.yaml"))
+               (ul (li (a ((href "/schema.yaml")) "schema.yaml"))
                    (li (a ((href "/schema.json")) "schema.json")))
                (div ((style "display:none"))
                     (form ((method "post") (id "find-concepts-form"))
@@ -207,7 +201,7 @@ query_result_clear.addEventListener('click', function(){
                     (div (button ((id "find-predicates-result-clear")) "Clear"))
                     (div (pre ((id "find-predicates-result")) "Predicates will appear here."))
                     (p (a ((href "/predicates")) "GET /predicates")))
-               (form ((method "post") (action "/pmi/v1/query") (id "query-form"))
+               (form ((method "post") (action "/pmi/v2/query") (id "query-form"))
                      (div (textarea
                             ((id "query-text")(rows "40") (cols "60"))
                             #<<EOS
@@ -235,7 +229,7 @@ query_result_clear.addEventListener('click', function(){
 EOS
          ))
                      (div (button ((type "submit") (id "query-submit"))
-                                  "POST /pmi/v1/query")))
+                                  "POST /pmi/v2/query")))
                (div (pre ((id "query-result")) "Result will appear here.")))))
 
 (define hash-empty (hash))
@@ -407,8 +401,6 @@ EOS
 
 (define (/schema.json  req) (OK req '() mime:text schema.json.txt))
 (define (/schema.yaml  req) (OK req '() mime:text schema.yaml.txt))
-(define (/schema.html  req) (OK req '() mime:html schema.html))
-(define (/schema.html2 req) (OK req '() mime:html schema.html2))
 ;; (define (/predicates   req) (if (accepts-gzip? req)
 ;;                               (OK req '() mime:json predicates-cached-gzip #t)
 ;;                               (OK req '() mime:json predicates-cached #f)))
@@ -503,8 +495,6 @@ EOS
      (("index.js")             #:method "get"  /index.js)
      (("schema.json")          #:method "get"  /schema.json)
      (("schema.yaml")          #:method "get"  /schema.yaml)
-     (("schema.html")          #:method "get"  /schema.html)
-     (("schema.html2")         #:method "get"  /schema.html2)
      ;; (("predicates")           #:method "get"  /predicates)
 
      ;; Legacy endpoint - unversioned - TRAPI 1.0 - TODO: Delete
