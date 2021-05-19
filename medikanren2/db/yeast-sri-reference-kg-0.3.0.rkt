@@ -67,9 +67,10 @@
                                  (list (list id k v))))
                            (cdr stcolumns-of-edges)
                            (cdr row))))
-;  'tables             '((curie name value))
-;  'indexes            '((name value))
-  )
+  'indexes            '(                  ; default index is: id subject object
+                        (subject object)  ; implicit: lookup ending in id
+                        (object subject)) ; implicit: lookup ending in id
+)
 
 (database-extend-relations!
   'yeast-sri-reference-kg-0.3.0
