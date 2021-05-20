@@ -1,5 +1,6 @@
 #lang racket/base
 (provide
+ (all-defined-out)
   string/searchable
   suffix:corpus->index
   suffix:corpus-find*
@@ -8,12 +9,65 @@
   string:corpus-find*
   string:corpus-find*/disk)
 (require
-  "repr.rkt"
   racket/list
   racket/match
   racket/string
   racket/unsafe/ops
   racket/vector)
+
+;; adapted from medikanren/repr.rkt
+(define (concept-cui c)      (list-ref c 0))
+(define (concept-name c)     (list-ref c 1))
+
+;; BEGIN: excerpted from medikanren/repr.rkt
+(define (byte-at offset n) (bitwise-and 255 (arithmetic-shift n offset)))
+;; ...
+(define string-key-byte-size 4)
+(define (string-key->bytes cid)
+  (bytes (byte-at -24 cid) (byte-at -16 cid) (byte-at -8 cid) (byte-at 0 cid)))
+(define (bytes->string-key bs)
+  (define (bref-to pos offset) (arithmetic-shift (bytes-ref bs pos) offset))
+  (+ (bref-to 0 24) (bref-to 1 16) (bref-to 2 8) (bref-to 3 0)))
+(define (read-string-key-bytes in) (read-bytes string-key-byte-size in))
+(define (write-string-keys out v)
+  (for ((s (in-vector v))) (write-bytes (string-key->bytes s) out)))
+(define (port->string-keys in)
+  (define end (begin (file-position in eof) (file-position in)))
+  (file-position in 0)
+  (for/vector ((_ (in-range (/ end string-key-byte-size))))
+              (bytes->string-key (read-string-key-bytes in))))
+(define (string-index->string-key in si)
+  (file-position in (* string-key-byte-size si))
+  (bytes->string-key (read-string-key-bytes in)))
+(define (string-key-count in)
+  (file-position in eof)
+  (/ (file-position in) string-key-byte-size))
+
+(define suffix-key-byte-size (+ 4 2))
+(define (suffix-key-count bs) (/ (bytes-length bs) suffix-key-byte-size))
+(define (suffix-key-count/port in)
+  (file-position in eof)
+  (/ (file-position in) suffix-key-byte-size))
+(define (suffix-key-ref index i) (bytes->suffix-key index i))
+(define (suffix-key->bytes s)
+  (define cid (car s))
+  (define pos (cdr s))
+  (bytes (byte-at -24 cid) (byte-at -16 cid) (byte-at -8 cid) (byte-at 0 cid)
+         (byte-at -8 pos) (byte-at 0 pos)))
+(define (bytes->suffix-key bs start)
+  (define i (* start suffix-key-byte-size))
+  (define (bref-to j offset) (arithmetic-shift (bytes-ref bs (+ i j)) offset))
+  (cons (+ (bref-to 0 24) (bref-to 1 16) (bref-to 2 8) (bref-to 3 0))
+        (+ (bref-to 4 8) (bref-to 5 0))))
+(define (read-suffix-key-bytes in) (read-bytes suffix-key-byte-size in))
+(define (write-suffix-keys out v)
+  (for ((s (in-vector v))) (write-bytes (suffix-key->bytes s) out)))
+(define (suffix-index->suffix-key in si)
+  (file-position in (* suffix-key-byte-size si))
+  (bytes->suffix-key (read-suffix-key-bytes in) 0))
+;; ...
+(define (write-scm out scm) (fprintf out "~s\n" scm))
+;; END:excerpted from medikanren/repr.rkt
 
 (define (msd-radix-sort vs len dref v<?)
   (define vvs (list->vector vs))
