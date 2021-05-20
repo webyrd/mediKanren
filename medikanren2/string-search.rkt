@@ -7,3 +7,6 @@
   (query (id name)
          (rel id "name" name)))
 
+(define (query-names-from-id-rel id rel)
+  (query (name)
+         (rel id "name" name)))
