@@ -145,7 +145,7 @@
                            (if (or reasoning? full-reasoning?)
                                (log-time log-once log-key 
                                          (format "Subclasses/synonyms of ~s" curies)
-                                         (synonyms/set (subclasses/set curies)))
+                                         (get-synonyms-ls (subclasses/set curies)))
                                curies)))
                       (fresh (curie k+v bindings-rest)
                         (== bindings `(,k+v . ,bindings-rest))
@@ -247,7 +247,6 @@
   (let-values (((is-set-nodes singleton-nodes)
                 (partition (lambda (node) (hash-ref (cdr node) 'is_set #f)) 
                            (hash->list (hash-ref qgraph 'nodes)))))
-    (printf "** Group? ~s\n" (null? is-set-nodes))
     (if (null? is-set-nodes) 
         (transform-trapi-results results)
         (transform-trapi-results (group-sets results (map car singleton-nodes))))))
@@ -294,7 +293,12 @@
                            (snake->camel rest-str))))
       ""))
 
-;; horrible horrible hack for RTX2 20210204!!
+(define (biolinkify/predicate curie)
+  (let ((curie (string-replace curie "," "")))
+    (if (string-prefix? curie "biolink:") curie
+        (string-append "biolink:" curie))))
+
+;; horrible horrible hack for RTX2 20210204 and especially semmeddb!!
 (define (biolinkify/category curie)
   (if (string-prefix? curie "biolink:") curie
       (string-append "biolink:" 
@@ -302,9 +306,13 @@
 
 (define (props-kv k+v)
   (let ((k (car k+v)) (v (cdr k+v)))
-    (if (eq? k "category")
-        `(categories ,(biolinkify/category v)) 
-        (cons (string->symbol k) v))))
+    (cond ((eq? k "category")           ; horrible hack!
+           `(categories ,(biolinkify/category v)) )
+          ((eq? k "predicate")          ; horrible hack! 
+           `(predicate . ,(biolinkify/predicate v)))
+          (else
+           (cons (string->symbol k) v)))))
+
 (define (attributes-kv keys)
   (lambda (k+v)
     (let ((k (car k+v)) (v (cdr k+v)))
