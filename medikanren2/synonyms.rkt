@@ -13,7 +13,7 @@
 
 (provide direct-synonym direct-synonym* direct-synonym+ synonym
          synonym-of/step synonym-of/breadth
-         synonyms/set synonyms/breadth
+         synonyms/step synonyms/set synonyms/breadth
          synonym kgx-synonym
          get-synonyms get-synonyms-ls
          synonym-of

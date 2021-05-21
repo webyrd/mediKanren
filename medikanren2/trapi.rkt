@@ -13,6 +13,7 @@
   json
   memoize
   racket/format
+  racket/dict
   )
 
 
@@ -77,21 +78,22 @@
 
 (define (trapi-response msg (log-key "[query]"))
   (define max-results (hash-ref msg 'max_results #f))
+  (define qgraph (hash-ref msg 'query_graph))
+  (define kgraph (hash-ref msg 'knowledge_graph #f))
+
   (define results (if max-results
-                      (run max-results bindings (trapi-query msg bindings log-key))
-                      (run* bindings (trapi-query msg bindings log-key))))
-  (hash 'results (trapi-response-results results)
+                      (run max-results bindings (trapi-query qgraph kgraph bindings log-key))
+                      (run* bindings (trapi-query qgraph kgraph bindings log-key))))
+  (hash 'results (trapi-response-results results qgraph)
         'knowledge_graph
         (hash 'nodes (trapi-response-knodes results)
               'edges (trapi-response-kedges results))))
 
-(define (trapi-query msg bindings log-key)
-  (define qgraph (hash-ref msg 'query_graph))
+(define (trapi-query qgraph kgraph bindings log-key)
   (define nodes  (hash->list (olift (hash-ref qgraph 'nodes hash-empty))))
   (define edges  (hash->list (olift (hash-ref qgraph 'edges hash-empty))))
 
   ;; Interpret included KnowledgeGraph element
-  (define kgraph (hash-ref msg 'knowledge_graph #f))
   (define knodes (and kgraph
                       (alist-of-hashes->lists
                        (hash->list (olift (hash-ref kgraph 'nodes hash-empty))))))
@@ -241,18 +243,35 @@
     (if (eq? db 'kg) (strlift eid) 
         (string-append (strlift db) "." (strlift eid)))))
 
-(define (trapi-response-results results)
+(define (trapi-response-results results qgraph)
+  (let-values (((is-set-nodes singleton-nodes)
+                (partition (lambda (node) (hash-ref (cdr node) 'is_set #f)) 
+                           (hash->list (hash-ref qgraph 'nodes)))))
+    (printf "** Group? ~s\n" (null? is-set-nodes))
+    (if (null? is-set-nodes) 
+        (transform-trapi-results results)
+        (transform-trapi-results (group-sets results (map car singleton-nodes))))))
+
+(define (transform-trapi-results results)
   (map (lambda (bindings)
          (hash 'node_bindings
                (make-hash
                 (map (lambda (binding) 
-                       `(,(car binding) ,(hash 'id (cdr binding))))
+                       (let ((node/s (cdr binding)))
+                       `(,(car binding)
+                         . ,(map (lambda (id) (hash 'id id))
+                                 (if (list? node/s) node/s
+                                     (list node/s))))))
                      (alist-ref bindings 'node_bindings '())))
                'edge_bindings
                (make-hash
                 (map (lambda (ebinding)
-                       (let ((db+id (cdr ebinding)))
-                         `(,(car ebinding) ,(hash 'id (edge-id/reported db+id)))))
+                       (let ((edge/s (cdr ebinding)))
+                         `(,(car ebinding)
+                           . ,(map (lambda (db+id)
+                                   (hash 'id (edge-id/reported db+id)))
+                                 (if (list? edge/s) edge/s
+                                     (list edge/s))))))
                      (alist-ref bindings 'edge_bindings '())))) )
        results))
 
@@ -347,4 +366,43 @@
          (== `(,k . ,v) attribute)
          (eprop node k v))))
    trapi-response-edge-attributes))
+
+(define results '(((node_bindings (n01 . "GO:0001802") (n00 . "GO:0001804")) (edge_bindings (e00 rtx2-20210204 . 4492310)))
+                  ((node_bindings (n01 . "GO:0001795") (n00 . "GO:0001800")) (edge_bindings (e00 rtx2-20210204 . 4489519)))
+                  ((node_bindings (n01 . "GO:0001806") (n00 . "GO:0001808")) (edge_bindings (e00 rtx2-20210204 . 4492337)))
+                  ((node_bindings (n01 . "GO:0002524") (n00 . "GO:0002884")) (edge_bindings (e00 rtx2-20210204 . 4411084)))
+                  ((node_bindings (n01 . "GO:0002445") (n00 . "GO:0002893")) (edge_bindings (e00 rtx2-20210204 . 4409735)))
+                  ((node_bindings (n01 . "GO:0002439") (n00 . "GO:0002875")) (edge_bindings (e00 rtx2-20210204 . 4409684)))
+                  ((node_bindings (n01 . "GO:0002439") (n00 . "GO:0002865")) (edge_bindings (e00 rtx2-20210204 . 4409686)))
+                  ((node_bindings (n01 . "GO:0002437") (n00 . "GO:0002862")) (edge_bindings (e00 rtx2-20210204 . 4409675)))
+                  ((node_bindings (n01 . "GO:0001788") (n00 . "GO:0001814")) (edge_bindings (e00 rtx2-20210204 . 4489256)))
+                  ((node_bindings (n01 . "GO:0016068") (n00 . "GO:0001811")) (edge_bindings (e00 rtx2-20210204 . 4475237)))
+                  ((node_bindings (n01 . "GO:0001794") (n00 . "GO:0001797")) (edge_bindings (e00 rtx2-20210204 . 4489514)))))
+
+(define (group-sets results singleton-nodes)
+  (define (get-nodes result)
+    (sort (filter (lambda (node)
+              (member (car node) singleton-nodes))
+                  (cdr (assoc 'node_bindings result)))
+          string<?
+          #:key (lambda (e) (symbol->string (car e)))))
+  (define (nodes-equal? a b)
+    (equal? (get-nodes a) (get-nodes b)))
+  (define (combine-bindings results key)
+    (foldl
+     (lambda (result rst) 
+       (dict-map result (lambda (id curie)
+                          (remove-duplicates
+                           (cons id (cons curie (alist-ref rst id '())))))))
+     '()
+     (map (lambda (result)
+            (cdr (assoc key result)))
+          results)))
+  (map (lambda (results)
+         `((node_bindings . ,(combine-bindings results 'node_bindings))
+           (edge_bindings . ,(combine-bindings results 'edge_bindings))))
+       (group-by values results nodes-equal?)))
+
+
+
 
