@@ -5,6 +5,7 @@
  (prefix-in rtx: "../db/rtx2-20210204.rkt")
  (prefix-in kgx: "../db/kgx-synonym.rkt")
  (prefix-in sri: "../db/sri-reference-kg-0.3.0.rkt")
+ "../synonyms.rkt"
  racket/pretty)
 
 #|
@@ -78,4 +79,12 @@ sri-reference-kg-0.3.0.rkt
      (c k v)
      (sri:edges c k v)
      )
+
+
+#|Using synonyms.rkt to get concept synonyms|#
+
+;;synonyms.rkt
+(run* s (direct-synonym s "MONDO:0005260"))
+
+;;(run* x (kgx:synonym x '("DOID:9351")))
 
