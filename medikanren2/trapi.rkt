@@ -294,13 +294,13 @@
                            (snake->camel rest-str))))
       ""))
 
-;; horrible hack for rtx2-20210204 and semmeddb!!
+;; hack to ensure Biolink compliance for rtx2-20210204 and semmeddb
 (define (biolinkify/predicate curie)
   (let ((curie (string-replace curie "," "")))
     (if (string-prefix? curie "biolink:") curie
         (string-append "biolink:" curie))))
 
-;; horrible hack for rtx2-20210204 and semmeddb!!
+;; hack to ensure Biolink compliance for rtx2-20210204 and semmeddb
 (define (biolinkify/category curie)
   (if (string-prefix? curie "biolink:") curie
       (string-append "biolink:" 
@@ -308,7 +308,7 @@
 
 (define (props-kv k+v)
   (let ((k (car k+v)) (v (cdr k+v)))
-    (cond ((eq? k "predicate")          ; horrible hack! 
+    (cond ((eq? k "predicate")
            `(predicate . ,(biolinkify/predicate v)))
           (else
            (cons (string->symbol k) v)))))
@@ -378,18 +378,6 @@
          (== `(,k . ,v) attribute)
          (eprop node k v))))
    trapi-response-edge-attributes))
-
-(define results '(((node_bindings (n01 . "GO:0001802") (n00 . "GO:0001804")) (edge_bindings (e00 rtx2-20210204 . 4492310)))
-                  ((node_bindings (n01 . "GO:0001795") (n00 . "GO:0001800")) (edge_bindings (e00 rtx2-20210204 . 4489519)))
-                  ((node_bindings (n01 . "GO:0001806") (n00 . "GO:0001808")) (edge_bindings (e00 rtx2-20210204 . 4492337)))
-                  ((node_bindings (n01 . "GO:0002524") (n00 . "GO:0002884")) (edge_bindings (e00 rtx2-20210204 . 4411084)))
-                  ((node_bindings (n01 . "GO:0002445") (n00 . "GO:0002893")) (edge_bindings (e00 rtx2-20210204 . 4409735)))
-                  ((node_bindings (n01 . "GO:0002439") (n00 . "GO:0002875")) (edge_bindings (e00 rtx2-20210204 . 4409684)))
-                  ((node_bindings (n01 . "GO:0002439") (n00 . "GO:0002865")) (edge_bindings (e00 rtx2-20210204 . 4409686)))
-                  ((node_bindings (n01 . "GO:0002437") (n00 . "GO:0002862")) (edge_bindings (e00 rtx2-20210204 . 4409675)))
-                  ((node_bindings (n01 . "GO:0001788") (n00 . "GO:0001814")) (edge_bindings (e00 rtx2-20210204 . 4489256)))
-                  ((node_bindings (n01 . "GO:0016068") (n00 . "GO:0001811")) (edge_bindings (e00 rtx2-20210204 . 4475237)))
-                  ((node_bindings (n01 . "GO:0001794") (n00 . "GO:0001797")) (edge_bindings (e00 rtx2-20210204 . 4489514)))))
 
 (define (group-sets results singleton-nodes)
   (define (get-nodes result)
