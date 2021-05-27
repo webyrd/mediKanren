@@ -284,7 +284,7 @@ EOS
 (define (message->response msg)
   (define log-key (current-seconds))
   (define broad-response (if (hash-ref msg 'disable_external_requests #f) 
-                             (hash 'response hash-empty 'status "none" 'headers '())
+                             (hash 'response hash-empty 'status "disabled" 'headers '())
                              (time (api-query (string-append url.broad path.query)
                                               (hash 'message msg)))))
   (define broad-results (hash-ref broad-response 'response))

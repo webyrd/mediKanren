@@ -14,6 +14,7 @@
   memoize
   racket/format
   racket/dict
+  racket/set
   )
 
 
@@ -293,12 +294,13 @@
                            (snake->camel rest-str))))
       ""))
 
+;; horrible hack for rtx2-20210204 and semmeddb!!
 (define (biolinkify/predicate curie)
   (let ((curie (string-replace curie "," "")))
     (if (string-prefix? curie "biolink:") curie
         (string-append "biolink:" curie))))
 
-;; horrible horrible hack for RTX2 20210204 and especially semmeddb!!
+;; horrible hack for rtx2-20210204 and semmeddb!!
 (define (biolinkify/category curie)
   (if (string-prefix? curie "biolink:") curie
       (string-append "biolink:" 
@@ -306,9 +308,7 @@
 
 (define (props-kv k+v)
   (let ((k (car k+v)) (v (cdr k+v)))
-    (cond ((eq? k "category")           ; horrible hack!
-           `(categories ,(biolinkify/category v)) )
-          ((eq? k "predicate")          ; horrible hack! 
+    (cond ((eq? k "predicate")          ; horrible hack! 
            `(predicate . ,(biolinkify/predicate v)))
           (else
            (cons (string->symbol k) v)))))
@@ -336,12 +336,16 @@
 (define (trapi-response-knodes results)
   (trapi-response-knodes/edges
    results 'node_bindings string->symbol
-   (lambda (node) 
-     (run* prop
-       (fresh (k v)
-         (membero k trapi-response-node-properties)
-         (== `(,k . ,v) prop)
-         (cprop node k v))))
+   ;; (lambda (node) 
+   ;;   (run* prop
+   ;;     (fresh (k v)
+   ;;       (membero k trapi-response-node-properties)
+   ;;       (== `(,k . ,v) prop)
+   ;;       (cprop node k v))))
+   (lambda (node)
+     `(("name" . ,(car (run 1 v (cprop node "name" v)))) ; hack: only gets 1!
+       ("categories" . ,(remove-duplicates
+                          (map biolinkify/category (run* v (cprop node "category" v)))))))
    (lambda (node)
      (run* attribute
       (fresh (k v)
