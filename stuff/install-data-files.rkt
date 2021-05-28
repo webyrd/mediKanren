@@ -251,8 +251,8 @@
           (lambda (ardb) (string-prefix? (ardb-versionOfMedikanren ardb) ver))
           (config-ardbs config)))
       (cfg `((databases ,@(append-map (lambda (ardb)
-          (map string->symbol (ardb-configkey ardb))
-        ardbs1))))))
+          (map string->symbol (ardb-configkey ardb)))
+        ardbs1)))))
     (writeln cfg fout1)
     (close-output-port fout1)))
 
