@@ -11,12 +11,10 @@
   json
   memoize)
 
-(provide direct-synonym direct-synonym* direct-synonym+ synonym
-         synonym-of/step synonym-of/breadth
+(provide direct-synonym direct-synonym* direct-synonym+ synonym close-match-synonym
          synonyms/step synonym-of/step synonyms/breadth synonym-of/breadth
-         get-synonyms-ls
-         synonym kgx-synonym
-         get-names-ls get-names-set)
+         synonym synonym-path kgx-synonym
+         get-synonyms-ls get-names-ls get-names-set)
 
 (define synonyms-preds '("biolink:same_as"
                          ;; "biolink:close_match"   ; too risky un-constrained
@@ -96,9 +94,9 @@
 (define-relation (close-match-synonym a b)
   (fresh (id cat-a cat-b)
     (edge id a b)
+    (eprop id "predicate" "biolink:close_match")
     (:== cat-a (a) (run*/set c (is-a a c)))
     (:== cat-b (b) (run*/set c (is-a b c)))
-    (eprop id "predicate" "biolink:close_match")
     (conde ((:== #t (cat-a) (non-empty-intersection cat-a disease-categories/set) )
             (:== #t (cat-b) (non-empty-intersection cat-b disease-categories/set)))
            ((:== #t (cat-a) (non-empty-intersection cat-a drug-categories/set) )
@@ -108,8 +106,7 @@
             (conde ((:== #t (a) (string-prefix? a "HGNC:")))
                    ((:== #t (a) (string-prefix? a "NCBI:")))
                    ((:== #t (a) (string-prefix? a "UniProtKB:")))
-                   ((:== #t (a) (string-prefix? a "ENSEMBL:"))))))
-    ))
+                   ((:== #t (a) (string-prefix? a "ENSEMBL:"))))))))
 
 (define-relation (direct-synonym* a b)
   (conde ((== a b))
@@ -133,17 +130,43 @@
          ((direct-synonym a b))
          ((direct-synonym b a))
          ((fresh (mid)
-            (close-match-synonym a mid)
+            (conde ((close-match-synonym a mid)) ((close-match-synonym mid a)))
             (synonym mid b)))
          ((fresh (mid)
-            (close-match-synonym b mid)
+            (conde ((close-match-synonym b mid)) ((close-match-synonym mid b)))
             (synonym mid a)))         
          ((fresh (mid)
-            (direct-synonym a mid)
+            (conde ((direct-synonym a mid)) ((direct-synonym mid a)))
             (synonym mid b)))
          ((fresh (mid)
-            (direct-synonym b mid)
+            (conde ((direct-synonym b mid)) ((direct-synonym mid b)))
             (synonym mid a)))))
+
+(define-relation (synonym-path a b path)
+  (conde
+    ((== a b) (== path `(,a)))
+    ((direct-synonym a b) (== path `(,a = ,b)))
+    ((direct-synonym b a) (== path `(,a = ,b)))
+    ((close-match-synonym a b) (== path `(,a ~ ,b)))
+    ((close-match-synonym b a) (== path `(,a ~ ,b)))
+    ((fresh (mid path-rest)
+       (conde      
+         ((conde ((direct-synonym a mid)) ((direct-synonym mid a)))
+          (synonym-path mid b path-rest)
+          (not-membero a path-rest)
+          (== path `(,a = . ,path-rest)))
+         ((conde ((direct-synonym b mid)) ((direct-synonym mid b)))
+          (synonym-path a mid path-rest)
+          (not-membero b path-rest)
+          (appendo path-rest (list '= b) path))
+         ((conde ((close-match-synonym a mid)) ((close-match-synonym mid a)))
+          (synonym-path mid b path-rest)
+          (not-membero a path-rest)
+          (== path `(,a ~ . ,path-rest)))
+         ((conde ((close-match-synonym b mid)) ((close-match-synonym mid b)))
+          (synonym-path mid a path-rest)
+          (not-membero b path-rest)
+          (appendo path-rest (list '~ b) path)))))))
 
 ;; Different ways of actually getting a useful amount of synonyms in a reasonable amount of time
 
@@ -218,3 +241,5 @@
 (define (get-names-set curie-set)
   (get-names-ls (set->list curie-set)))
 
+
+  
