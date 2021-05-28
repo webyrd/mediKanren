@@ -104,7 +104,7 @@
            ((:== #t (cat-a) (non-empty-intersection cat-a gene-or-protein/set))
             (:== #t (cat-b) (non-empty-intersection cat-b gene-or-protein/set))
             (conde ((:== #t (a) (string-prefix? a "HGNC:")))
-                   ((:== #t (a) (string-prefix? a "NCBI:")))
+                   ((:== #t (a) (string-prefix? a "NCBIGene:")))
                    ((:== #t (a) (string-prefix? a "UniProtKB:")))
                    ((:== #t (a) (string-prefix? a "ENSEMBL:"))))))))
 
@@ -164,7 +164,7 @@
           (not-membero a path-rest)
           (== path `(,a ~ . ,path-rest)))
          ((conde ((close-match-synonym b mid)) ((close-match-synonym mid b)))
-          (synonym-path mid a path-rest)
+          (synonym-path a mid path-rest)
           (not-membero b path-rest)
           (appendo path-rest (list '~ b) path)))))))
 
