@@ -61,7 +61,7 @@
 (define (suffix:corpus2->index-suffixes hashcorpus)
   (for*/vector (((foffs s-searchable) (in-hash hashcorpus))
               (soffs (range (string-length s-searchable))))
-    (cons foffs soffs)))
+    (suffix-key->bytes (cons foffs soffs))))
 
 (define (suffix:corpus2->index hashcorpus)
   (define (suffix<? a b)    (suffix<?/corpus2 hashcorpus a b))
@@ -156,7 +156,7 @@
     (expand-user-path (build-path absdOut fn-index))
     (lambda (fd-index adir-junk)
       (for* ((ni name-index))
-          (write-suffix-keys fd-index (vector ni))
+          (write-bytes ni fd-index)
           ))))
 
 (define (ensure-name-index-built absd-index fn-concept-name-index)

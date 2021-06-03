@@ -12,8 +12,8 @@
   (prefix-out test: suffix-index->suffix-key)
   (prefix-out test:  suffix-key-count/port)
   (prefix-out test:  suffix-index->suffix-key)
-  (prefix-out test: bytes->suffix-key)
-  (prefix-out test: suffix-key->bytes)
+  bytes->suffix-key
+  suffix-key->bytes
   (prefix-out test: bytes->string-key)
   (prefix-out test: string-key->bytes)
   param-fd-input-binary
@@ -237,8 +237,10 @@
 (define (suffix<?/corpus2a corpus a b)
   (string<? (substring (vector-sparse-find corpus (car a)) (cdr a))
             (substring (vector-sparse-find corpus (car b)) (cdr b))))
-(define (suffix<?/corpus2 hashcorpus a b)
-  (let* ((c (hash-ref hashcorpus (car a)))
+(define (suffix<?/corpus2 hashcorpus bin-a bin-b)
+  (let* ((a (bytes->suffix-key bin-a 0))
+         (b (bytes->suffix-key bin-b 0))
+         (c (hash-ref hashcorpus (car a)))
          (d (hash-ref hashcorpus (car b))))
     (string<?/suffixes c (cdr a) d (cdr b))))
 

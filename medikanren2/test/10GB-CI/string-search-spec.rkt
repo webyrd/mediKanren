@@ -91,7 +91,7 @@
   (#:do
     (for ((xp (range 0 46)))
       (let* ((foffs (arithmetic-shift 1 xp))
-              (foffs2 (car (test:bytes->suffix-key (test:suffix-key->bytes (cons foffs 7)) 0))))
+              (foffs2 (car (bytes->suffix-key (suffix-key->bytes (cons foffs 7)) 0))))
         (unless (== foffs foffs2)
           (error (format "could not round trip file offset ~a" foffs))))))
   (#:t #t))
@@ -109,7 +109,7 @@
   (#:do
     (for ((xp (range 0 14)))
       (let* ((soffs (arithmetic-shift 1 xp))
-              (soffs2 (car (test:bytes->suffix-key (test:suffix-key->bytes (cons 7 soffs)) 0))))
+              (soffs2 (car (bytes->suffix-key (suffix-key->bytes (cons 7 soffs)) 0))))
         (unless (== soffs soffs2)
           (error (format "could not round trip string offset ~a" soffs))))))
   (#:t #t))
@@ -234,28 +234,28 @@
 
 (chk
  (#:=
-  (list->set (vector->list (test:suffix:corpus2->index-suffixes
+  (list->set (map (lambda (b) (bytes->suffix-key b 0)) (vector->list (test:suffix:corpus2->index-suffixes
    (vector
     (cons "the" 7)
     (cons "the" 9)
-    ))))
+    )))))
   (list->set '((7 . 0) (7 . 1) (7 . 2) (9 . 0) (9 . 1) (9 . 2)))))
 
 (chk
  (#:=
-  (list->set (vector->list (test:suffix:corpus2->index-suffixes
+  (list->set (map (lambda (b) (bytes->suffix-key b 0)) (vector->list (test:suffix:corpus2->index-suffixes
    (vector
-    (cons "the" 7)))))
+    (cons "the" 7))))))
   (list->set '((7 . 2) (7 . 1) (7 . 0)))))
 
 
 (chk
  (#:=
-  (list->set (vector->list (test:suffix:corpus2->index-suffixes
+  (list->set (map (lambda (b) (bytes->suffix-key b 0)) (vector->list (test:suffix:corpus2->index-suffixes
    (vector
     (cons "the" 7)
     (cons "the" 9)
-    ))))
+    )))))
   (list->set '((7 . 2) (9 . 2) (7 . 1) (9 . 1) (7 . 0) (9 . 0)))
   ))
 
