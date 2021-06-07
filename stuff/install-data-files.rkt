@@ -384,7 +384,16 @@
 
     (chk
       (#:do
-          (define ardb (car (styaml->ardb "!ardb\nsha1sum: d56c1a0507b4e2c16f941214576af052f1279500\nformat: []\nversionOfMedikanren: v2.0\nfilename: rtx2_2021_02_04.tar.gz\nreldir: rtx2\n"))))
+          (define ardb (car (styaml->ardb
+            (string-join '(
+              "!ardb"
+              "sha1sum: d56c1a0507b4e2c16f941214576af052f1279500"
+              "format: []"
+              "versionOfMedikanren: v2.0"
+              "filename: rtx2_2021_02_04.tar.gz"
+              "reldir: rtx2")
+              "\n"
+            )))))
       (#:= (ardb-configkey ardb) '())
     )
 
