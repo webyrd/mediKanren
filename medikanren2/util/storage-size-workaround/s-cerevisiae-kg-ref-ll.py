@@ -15,10 +15,20 @@ configs = {
             "biolink:part_of":1
         },
         'prefix_output': 'small_'
+    },
+    'micro': {
+        'level_max': 0,
+        'rel_blacklist':{
+            "biolink:related_to":1,
+            "biolink:actively_involved_in":1,
+            "biolink:enables":1,
+            "biolink:part_of":1
+        },
+        'prefix_output': 'micro_'
     }
 }
 
-kconfig='small'
+kconfig='micro'
 do_write = True
 
 level_max = configs[kconfig]['level_max']
