@@ -5,14 +5,25 @@ rfile_nodes = "medikanren2/data/sri-reference/0.3.0-input/sri-reference-kg-0.3.0
 rfile_edges = "medikanren2/data/sri-reference/0.3.0-input/sri-reference-kg-0.3.0_edges_nocr.tsv"
 # When used as configured, requires ~9GB RAM ("RES = Resident Size" in top)
 
-level_max = 5
-rel_blacklist={
-    "biolink:related_to":1,
-    "biolink:actively_involved_in":1,
-    "biolink:enables":1,
-    "biolink:part_of":1
+configs = {
+    'small': {
+        'level_max': 5,
+        'rel_blacklist':{
+            "biolink:related_to":1,
+            "biolink:actively_involved_in":1,
+            "biolink:enables":1,
+            "biolink:part_of":1
+        },
+        'prefix_output': 'small_'
+    }
 }
+
+kconfig='small'
 do_write = True
+
+level_max = configs[kconfig]['level_max']
+rel_blacklist = configs[kconfig]['rel_blacklist']
+prefix_output = configs[kconfig]['prefix_output']
 
 def dictappend(d,k,v):
     if not k in d:
@@ -89,7 +100,7 @@ def path_prefix(prefix,rfile):
 
 if do_write:
     with open(rfile_nodes) as fin: 
-        with open(path_prefix("small_", rfile_nodes), "w") as fout:
+        with open(path_prefix(prefix_output, rfile_nodes), "w") as fout:
             fout.seek(0)
             fout.truncate()
             iline=0
@@ -105,7 +116,7 @@ if do_write:
                         fout.write(line)
 
     with open(rfile_edges) as fin: 
-        with open(path_prefix("small_", rfile_edges), "w") as fout:
+        with open(path_prefix(prefix_output, rfile_edges), "w") as fout:
             fout.seek(0)
             fout.truncate()
             iline=0
