@@ -101,7 +101,7 @@
 (define (construct-ardb node)
     (define mapping (construct-mapping node))
     (ardb-new
-      (hash-ref mapping "configkey" (lambda () '()))
+      (hash-ref mapping "configkey" (lambda () 'null))
       (hash-ref mapping "reldir")
       (hash-ref mapping "sha1sum")
       (hash-ref mapping "versionOfMedikanren")
@@ -240,19 +240,23 @@
 (define (cmds-rm-r absd)
   `((() () ("echo" "TODO" "rm" "-rf" ,absd))))
 
+(define (gen-config-scm ver ardbs)
+  (let* (
+      (ardbs1
+        (filter
+          (lambda (ardb) (string-prefix? (ardb-versionOfMedikanren ardb) ver))
+          ardbs)))
+    `((databases ,@(append-map (lambda (ardb)
+          (if (equal? (ardb-configkey ardb) 'null) '() (list (string->symbol (ardb-configkey ardb)))))
+        ardbs1)))))
+
 ;; *** commands to automatically populate config.scm ***
 (define (write-config-scm ver config)
   (let* (
       (absf (format "~a/~a/config.scm" (config-adir-install config) (path-ver-from-st ver)))
       (_ (make-parent-directory* absf))
       (fout1 (open-output-file absf #:exists 'replace))
-      (ardbs1
-        (filter
-          (lambda (ardb) (string-prefix? (ardb-versionOfMedikanren ardb) ver))
-          (config-ardbs config)))
-      (cfg `((databases ,@(append-map (lambda (ardb)
-          (map string->symbol (ardb-configkey ardb)))
-        ardbs1)))))
+      (cfg (gen-config-scm ver (config-ardbs config))))
     (writeln cfg fout1)
     (close-output-port fout1)))
 
@@ -394,7 +398,66 @@
               "reldir: rtx2")
               "\n"
             )))))
-      (#:= (ardb-configkey ardb) '())
+      (#:= (ardb-configkey ardb) 'null)
+    )
+
+    (chk
+      (#:do
+          (define configscm
+            (gen-config-scm "v2." (car (styaml->ardb
+              (string-join '(
+                "---"
+                "- !ardb"
+                "  versionOfMedikanren: v2."
+                "  configkey: yeast-sri-reference"
+                "  reldir: nonempty"
+                "  sha1sum: nonempty"
+                "  size: 0"
+                "  filename: nonempty"
+                "  format:")
+              "\n"
+              ))))))
+      (#:do (pretty-write configscm))
+      (#:= (length (dict-ref configscm 'databases)) 1)
+    )
+
+    (chk
+      (#:do
+          (define configscm
+            (gen-config-scm "v2." (car (styaml->ardb
+              (string-join '(
+                "---"
+                "- !ardb"
+                "  versionOfMedikanren: v2."
+                "  reldir: nonempty"
+                "  sha1sum: nonempty"
+                "  size: 0"
+                "  filename: nonempty"
+                "  format:")
+              "\n"
+              ))))))
+      (#:do (pretty-write configscm))
+      (#:= (length (dict-ref configscm 'databases)) 0)
+    )
+
+    (chk
+      (#:do
+          (define configscm
+            (gen-config-scm "v2." (car (styaml->ardb
+              (string-join '(
+                "---"
+                "- !ardb"
+                "  versionOfMedikanren: v2."
+                "  configkey:"
+                "  reldir: nonempty"
+                "  sha1sum: nonempty"
+                "  size: 0"
+                "  filename: nonempty"
+                "  format:")
+              "\n"
+              ))))))
+      (#:do (pretty-write configscm))
+      (#:= (length (dict-ref configscm 'databases)) 0)
     )
 
     (chk
