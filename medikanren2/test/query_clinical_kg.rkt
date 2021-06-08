@@ -1,6 +1,5 @@
 #lang racket/base
-(require "../base.rkt" "../db/clinical_kg.rkt" racket/pretty
-	 "../dbk/dsv.rkt" "../dbk/stream.rkt")
+(require "../base.rkt" "../db/clinical_kg.rkt" racket/pretty)
 (provide (all-from-out "../base.rkt") (all-defined-out))
 
 (define-syntax-rule (test name e expected)

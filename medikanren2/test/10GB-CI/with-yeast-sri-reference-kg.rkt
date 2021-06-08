@@ -1,7 +1,7 @@
 #lang racket
-(require chk)
-(require "../../db/yeast-sri-reference-kg-0.3.0.rkt")
-(require "../../dbk/mk.rkt")
+(require "../../base.rkt"
+         "../../db/yeast-sri-reference-kg-0.3.0.rkt"
+         chk)
 
 
 (define uri-scn4a "ENSEMBL:ENSBTAG00000004770")
@@ -26,5 +26,3 @@
                    (nodes id p o)))
   '(("iri" "http://purl.obolibrary.org/obo/GO_0034765")
     ("name" "regulation of ion transmembrane transport"))))
-
-
