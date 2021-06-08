@@ -1,9 +1,8 @@
 #lang racket/base
 (provide materialization value/syntax
          (struct-out statistics) statistics-intersect
-         vector-table? call/files let/files encoder s-encode s-decode)
-(require "codec.rkt" "config.rkt" "dsv.rkt" "method.rkt" "misc.rkt"
-         "order.rkt" "stream.rkt"
+         vector-table? encoder s-encode s-decode)
+(require "codec.rkt" "config.rkt" "dsv.rkt" "misc.rkt" "order.rkt" "stream.rkt"
          racket/file racket/function racket/hash racket/list racket/match
          racket/pretty racket/set racket/vector)
 
@@ -14,21 +13,6 @@
 
 (define (encoder out type) (method-lambda ((put! v) (encode out type v))
                                           ((close) (flush-output out))))
-
-(define (call/files fins fouts p)
-  (let loop ((fins fins) (ins '()))
-    (if (null? fins)
-      (let loop ((fouts fouts) (outs '()))
-        (if (null? fouts)
-          (apply p (append (reverse ins) (reverse outs)))
-          (call-with-output-file
-            (car fouts) (lambda (out) (loop (cdr fouts) (cons out outs))))))
-      (call-with-input-file
-        (car fins) (lambda (in) (loop (cdr fins) (cons in ins)))))))
-
-(define-syntax-rule (let/files ((in fin) ...) ((out fout) ...) body ...)
-  (call/files (list fin ...) (list fout ...)
-              (lambda (in ... out ...) body ...)))
 
 (struct statistics (ratio cardinality) #:prefab)
 (define (statistics-intersect a b)
@@ -88,6 +72,17 @@
                         ((not (ix.new 'full?)) (loop c=>b (cdr ixs.pending)              ixs.updated))
                         (else                  (table '() c=>b)))))))))))
 
+;; TODO: reorganize to implement dicts and sets
+;; - sets can be thought of as dicts with empty value
+;; - could use same representation both for relations and for terms of these types
+;; - in terms of btrees, tries
+;; - possibly also hash tables for small cardinalities
+;; - consider manipulating low-level memory buffers via FFI
+
+;; TODO: define a finite-map that is only referenceable by key and immediately provides a single instance
+;;       of all columns (because the other columns are not sorted/deduped without the key)
+
+;; TODO: this should be called trie:row-major
 (define (tabular-trie vref key-column nonkey-columns types row-count)
   (define (ref mask i)          (vector-ref (vref i) mask))
   (define ((make-i<  mask v) i) (any<?  (ref mask i) v))
@@ -452,23 +447,6 @@
         (cond ((? v pv) (vector-set! h i pv) (loop iparent))
               (else     (vector-set! h i v)))))))
 
-(define (alist-ref alist key (default (void)))
-  (define kv (assoc key alist))
-  (cond (kv              (cdr kv))
-        ((void? default) (error "missing key in association list:" key alist))
-        (else            default)))
-(define (alist-remove alist key)
-  (filter (lambda (kv) (not (equal? (car kv) key))) alist))
-(define (alist-update alist key v->v (default (void)))
-  (let loop ((kvs alist) (prev '()))
-    (cond ((null?        kvs     )
-           (when (void? default) (error "missing key in association list:" key alist))
-           (cons (cons key (v->v default)) alist))
-          ((equal? (caar kvs) key) (foldl cons (cons (cons key (v->v (cdar kvs))) (cdr kvs)) prev))
-          (else                    (loop (cdr kvs) (cons (car kvs) prev))))))
-(define (alist-set alist key value)
-  (alist-update alist key (lambda (_) value) #f))
-
 (define (list-arranger input-names output-names)
   (define ss.in    (generate-temporaries input-names))
   (define name=>ss (make-immutable-hash (map cons input-names ss.in)))
@@ -821,8 +799,8 @@
                "Allow ~s to be used as an empty relation for now?" (list path))
              (vector))))
   (define kwargs.1 (foldl (lambda (k v kvs) (hash-set kvs k v)) kwargs
-                          '(    key-name attribute-types table-layouts)
-                          (list key-name attribute-types table-layouts)))
+                          '(    path     key-name attribute-types table-layouts)
+                          (list path.dir key-name attribute-types table-layouts)))
   (cond (src:vector
           ;; TODO: currently only supported for vector sources
           (define sort?  (hash-ref kwargs 'sort?  (not src:vector)))
@@ -837,7 +815,7 @@
                                                              src:path src:format src:header kwargs.1))
                                     (materialization/path (hash-ref kwargs 'relation-name)
                                                           (hash-ref kwargs 'retrieval-type 'disk)
-                                                          path path.dir (get-metadata)))
+                                                          path path.dir (hash-set (get-metadata) 'path path.dir)))
         ((or src:path.0 src:stream) (materialization/stream src:path src:format src:header kwargs.1))
         (else                       (error "missing relation path or source:" kwargs))))
 
@@ -850,10 +828,6 @@
 (define (code->value code)
   (cond ((value+syntax? code) (value+syntax-value code))
         (else                 code)))
-
-(define (plist->alist kvs) (if (null? kvs) '()
-                             (cons (cons (car kvs) (cadr kvs))
-                                   (plist->alist (cddr kvs)))))
 
 (define (materialization/stream path.in format header kwargs)
   (define key-name        (hash-ref kwargs 'key-name))

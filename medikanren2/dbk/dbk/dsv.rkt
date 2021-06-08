@@ -39,7 +39,9 @@
              (cond ((eqv? ch #\")
                     (if (eqv? (peek-char in (+ i 1)) #\") (loop (+ i 2))
                       (let ((qs (bytes->string/utf-8 (read-bytes i in))))
-                        (read-char in) (read-char in)  ;; " and field-separator
+                        (read-char in)
+                        (when (eqv? (peek-char in) field-separator)
+                          (read-char in))
                         (string-replace qs "\"\"" "\""))))
                    (else (loop (+ i 1))))))
           (else (let loop ((i 1))

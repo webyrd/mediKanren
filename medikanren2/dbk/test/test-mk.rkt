@@ -1,6 +1,5 @@
 #lang racket/base
-(require "../mk.rkt" "../order.rkt" "../stream.rkt" "../table.rkt"
-         racket/function racket/list racket/pretty racket/set)
+(require "../dbk.rkt" racket/function racket/list racket/pretty racket/set)
 (print-as-expression #f)
 (pretty-print-abbreviate-read-macros #f)
 

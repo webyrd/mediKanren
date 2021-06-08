@@ -1,8 +1,8 @@
 #lang racket/base
 (provide bis:query->stream dfs:query->stream
          relation/table define-relation/table)
-(require "method.rkt" "misc.rkt" "order.rkt" "record.rkt" "stream.rkt"
-         "syntax.rkt" "table.rkt" (except-in racket/match ==)
+(require "misc.rkt" "order.rkt" "stream.rkt" "syntax.rkt" "table.rkt"
+         (except-in racket/match ==)
          racket/function racket/list racket/set racket/vector)
 
 #| ;; Definitions for performance diagnostics
@@ -337,14 +337,15 @@
 ;; Internal constraint algebra
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(struct c:conj  (cs)                      #:prefab)
-(struct c:disj  (cs)                      #:prefab)
-(struct c:==    (l r)                     #:prefab)
-(struct c:=/=   (l r)                     #:prefab)
-(struct c:<=    (l r)                     #:prefab)
-(struct c:use   (vars lhs args proc desc) #:prefab)
-(struct c:table (t)                       #:prefab)
-(struct c:proc  (proc args parents)       #:prefab)
+(define-variant constraint?
+  (c:conj  cs)
+  (c:disj  cs)
+  (c:==    l r)
+  (c:=/=   l r)
+  (c:<=    l r)
+  (c:use   vars lhs args proc desc)
+  (c:table t)
+  (c:proc  proc args parents))
 
 (define (c:bounds b t)
   (match b
