@@ -200,23 +200,20 @@
 
 (define (run-check-extract-link dir-archive config #:dry-run dry-run)
   (for ((ardb (config-ardbs config)))
-    (let (
-        (sha1-expected (ardb-sha1sum ardb))
-        (sha1
-          (if dry-run
-            (ardb-sha1sum ardb)
-            (string-trim #:left? #f
-              (dorash #:dry-run dry-run (cmds-to-sha1 ardb dir-archive config))))))
+    (let* (
+        (sha1-expected (ardb-sha1sum ardb)))
       (if dry-run
-        (begin
+        (let ((sha1 (ardb-sha1sum ardb)))
           (dorash #:dry-run dry-run (cmds-to-extract sha1-expected ardb dir-archive config))
           (dorash #:dry-run dry-run (cmds-to-symlink sha1-expected ardb config)))
-        (if (equal? sha1 sha1-expected)
-          (begin
-            (dorash #:dry-run dry-run (cmds-to-extract sha1 ardb dir-archive config))
-            (dorash #:dry-run dry-run (cmds-to-symlink sha1 ardb config)))
-          (error (format "sha1 ~a != expected ~a" sha1 sha1-expected))
-      )))))
+        (let ((sha1 (string-trim #:left? #f
+                      (dorash #:dry-run dry-run (cmds-to-sha1 ardb dir-archive config)))))
+          (if (equal? sha1 sha1-expected)
+            (begin
+              (dorash #:dry-run dry-run (cmds-to-extract sha1 ardb dir-archive config))
+              (dorash #:dry-run dry-run (cmds-to-symlink sha1 ardb config)))
+            (error (format "sha1 ~a != expected ~a" sha1 sha1-expected))
+      ))))))
 
 ;; *** commands for syncing from a remote source ***
 (define (include-for-sync ardb)
