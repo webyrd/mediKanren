@@ -178,12 +178,16 @@
       )))
 
 (define (cmds-to-extract sha1 ardb dir-archive config)
+  (let* ((adir-target (format "~a/~a" (config-adir-storage config) sha1))
+          (adir-target-temp (format "~a/~a-temp" (config-adir-storage config) sha1)))
   `((() ()
       ("mkdir" "-p" ,(format "~a/~a" (config-adir-storage config) sha1)))
     (() ()
       ,(cmd-to-cat ardb dir-archive config)
-      ("tar" "xzf" "-" "-C" ,(format "~a/~a" (config-adir-storage config) sha1))
-      )))
+      ("rm" "-rf" ,adir-target-temp)
+      ("tar" "xzf" "-" "-C" ,adir-target-temp)
+      ("mv" ,adir-target-temp ,adir-target)
+      ))))
 
 (define (cmds-to-symlink sha1 ardb config)
   (let* (
