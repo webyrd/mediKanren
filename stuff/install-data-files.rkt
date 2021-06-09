@@ -287,7 +287,7 @@
           (dorash #:dry-run dry-run (cmds-to-sync config))
           (run-check-extract-link (config-adir-temp config) config #:dry-run dry-run)))))
 
-(define (run-check-extract-link-only config)
+(define (run-from-local-archive config)
   (let* (
       (dry-run (config-dry-run config))
         )
@@ -305,7 +305,7 @@
       (set-config-ardbs! config (append-map (lambda (x) x) (dataconfig config)))
       (cond
         ((config-uri-remote-archive config) (setup-teardown-run-install config))
-        ((config-adir-local-archive config) (run-check-extract-link-only config))
+        ((config-adir-local-archive config) (run-from-local-archive config))
         (else (error "Nothing to do.  Pass --help for usage.")))
       (when (config-do-config-scm config)
         (write-configs-scm config))
