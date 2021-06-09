@@ -201,29 +201,47 @@
             ,(path->string (build-path (config-adir-storage config) sha1 (ardb-reldir ardb)))
             ,adirOwned)))))
 
+(define (ardb-already-installed? config ardb)
+  ;; cmds-to-extract owns adir-ardb-storage and writes atomically.  Manual
+  ;; manipulation of adir-storage is not supported.  Therefore,
+  ;; if we find that adir-ardb-storage already exists, it must have been
+  ;; the byproduct of a previous successful sha1 verification and install.
+  ;; Therefore, we may "short circuit" by not repeating the installation.
+  ;; Instead, we run an echo command to signal to the user.
+  (let* ((adir (path->string (build-path (config-adir-storage config) (ardb-sha1sum ardb)))))
+    (directory-exists? adir)))
+
+(define (cmds-echo-already-installed config ardb)
+  (let* ((adir (path->string (build-path (config-adir-storage config) (ardb-sha1sum ardb)))))
+    `((() () ("echo" ,adir " appears to be already installed, skipping")))))
+
 (define (run-check-extract-link dir-archive config #:dry-run dry-run)
   (for ((ardb (config-ardbs config)))
-    (let* (
-        (sha1-expected (ardb-sha1sum ardb)))
-      (if dry-run
-        (let ((sha1 (ardb-sha1sum ardb)))
-          (dorash #:dry-run dry-run (cmds-to-extract sha1-expected ardb dir-archive config))
+    (let* ((sha1-expected (ardb-sha1sum ardb)))
+      (if (ardb-already-installed? config ardb)
+        (begin
+          (dorash #:dry-run dry-run (cmds-echo-already-installed config ardb))
           (dorash #:dry-run dry-run (cmds-to-symlink sha1-expected ardb config)))
-        (let ((sha1 (string-trim #:left? #f
-                      (dorash #:dry-run dry-run (cmds-to-sha1 ardb dir-archive config)))))
-          (if (equal? sha1 sha1-expected)
-            (begin
-              (dorash #:dry-run dry-run (cmds-to-extract sha1 ardb dir-archive config))
-              (dorash #:dry-run dry-run (cmds-to-symlink sha1 ardb config)))
-            (error (format "sha1 ~a != expected ~a" sha1 sha1-expected))
-      ))))))
+        (if dry-run
+          (let ((sha1 (ardb-sha1sum ardb)))
+            (dorash #:dry-run dry-run (cmds-to-extract sha1-expected ardb dir-archive config))
+            (dorash #:dry-run dry-run (cmds-to-symlink sha1-expected ardb config)))
+          (let ((sha1 (string-trim #:left? #f
+                        (dorash #:dry-run dry-run (cmds-to-sha1 ardb dir-archive config)))))
+            (if (equal? sha1 sha1-expected)
+              (begin
+                (dorash #:dry-run dry-run (cmds-to-extract sha1 ardb dir-archive config))
+                (dorash #:dry-run dry-run (cmds-to-symlink sha1 ardb config)))
+              (error (format "sha1 ~a != expected ~a" sha1 sha1-expected)))))))))
 
 ;; *** commands for syncing from a remote source ***
-(define (include-for-sync ardb)
-  `("--include" ,(format "*~a/~a*" (path-ver ardb) (ardb-filename ardb))))
+(define (include-for-sync config ardb)
+  (if (ardb-already-installed? config ardb)
+    '()
+    `("--include" ,(format "*~a/~a*" (path-ver ardb) (ardb-filename ardb)))))
 
 (define (includes-for-sync config)
-  (append-map include-for-sync (config-ardbs config)))
+  (append-map (lambda (ardb) (include-for-sync config ardb)) (config-ardbs config)))
 
 (define (cmds-to-sync config)
   `((() () (
