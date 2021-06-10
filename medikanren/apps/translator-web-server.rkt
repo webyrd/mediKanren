@@ -353,8 +353,7 @@ query_result_clear.addEventListener('click', function(){
 
 (define (message->response msg)
   (define broad-results
-    (if (config-ref 'trapi-disable-external-requests?)
-      '()
+    (if (config-ref 'trapi-enable-external-requests?)
       (let* (
           (broad-response (time (api-query (string-append url.broad path.query)
                                               (hash 'message msg))))
@@ -362,6 +361,7 @@ query_result_clear.addEventListener('click', function(){
         (printf "broad response:\n~s\n" (hash-ref broad-response 'status))
         (pretty-print (hash-ref broad-response 'headers))
         broad-results)
+      '()
       ))
   (printf "broad result size: ~s\n" (js-count broad-results))
   ;; NOTE: ignore 'results and 'knowledge_graph until we find a use for them.

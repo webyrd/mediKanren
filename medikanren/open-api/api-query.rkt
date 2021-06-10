@@ -326,7 +326,7 @@ query = {
 |#
 
 ;; addition provenance/evidence for drug indication query
-(unless (config-ref 'trapi-disable-external-requests?)
+(when (config-ref 'trapi-enable-external-requests?)
   (begin
 (pretty-print
  (time
