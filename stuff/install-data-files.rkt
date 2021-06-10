@@ -17,13 +17,10 @@
 
 ;; TODO: see if dynamic-wind preserves crash stacktraces better than with-handlers.
 (define (with-finally thunk-cleanup thunk-run)
-  (with-handlers 
-      ((exn:fail? (lambda (ex)
-        (thunk-cleanup)
-        (raise ex))))
-    (let ((x (thunk-run)))
-      (thunk-cleanup)
-      x)))
+  (dynamic-wind
+    (lambda () #f)
+    thunk-run
+    thunk-cleanup))
 
 ;; shell/pipelines can represent a pipeline step without
 ;; running it, via pipeline-member-spec.  However, it seems to
