@@ -255,8 +255,12 @@
       ,(config-adir-temp config)
       ))))
 
+(define (path-remove-wildcards path)
+  (let* ((path1 (string-replace path "*" "" #:all? #t)))
+    (string-replace path1 "?" "" #:all? #t)))
+
 (define (cmds-rm-r absd)
-  `((() () ("echo" "TODO" "rm" "-rf" ,absd))))
+  `((() () ("rm" "-rf" ,(path-remove-wildcards absd)))))
 
 (define (gen-config-scm ver ardbs)
   (let* (
@@ -516,4 +520,8 @@
     (chk
       #:do (run-check-extract-link (config-adir-temp config-sample-1) config-sample-1 #:dry-run 'quiet)
       #:t #t)
+
+    (chk
+      #:= (path-remove-wildcards "/foo/*bar*") "/foo/bar"
+      #:= (path-remove-wildcards "/foo/?bar?") "/foo/bar")
 )
