@@ -218,21 +218,24 @@
 (define (run-check-extract-link dir-archive config #:dry-run dry-run)
   (for ((ardb (config-ardbs config)))
     (let* ((sha1-expected (ardb-sha1sum ardb)))
-      (if (ardb-already-installed? config ardb)
-        (begin
-          (dorash #:dry-run dry-run (cmds-echo-already-installed config ardb))
-          (dorash #:dry-run dry-run (cmds-to-symlink sha1-expected ardb config)))
-        (if dry-run
+      (cond 
+        ((ardb-already-installed? config ardb)
+         (begin
+           (dorash #:dry-run dry-run (cmds-echo-already-installed config ardb))
+           (dorash #:dry-run dry-run (cmds-to-symlink sha1-expected ardb config))))
+        (dry-run
           (let ((sha1 (ardb-sha1sum ardb)))
             (dorash #:dry-run dry-run (cmds-to-extract sha1-expected ardb dir-archive config))
-            (dorash #:dry-run dry-run (cmds-to-symlink sha1-expected ardb config)))
-          (let ((sha1 (string-trim #:left? #f
-                        (dorash #:dry-run dry-run (cmds-to-sha1 ardb dir-archive config)))))
-            (if (equal? sha1 sha1-expected)
-              (begin
-                (dorash #:dry-run dry-run (cmds-to-extract sha1 ardb dir-archive config))
-                (dorash #:dry-run dry-run (cmds-to-symlink sha1 ardb config)))
-              (error (format "sha1 ~a != expected ~a" sha1 sha1-expected)))))))))
+            (dorash #:dry-run dry-run (cmds-to-symlink sha1-expected ardb config))))
+        (else
+         (let ((sha1 (string-trim
+                      #:left? #f
+                      (dorash #:dry-run dry-run (cmds-to-sha1 ardb dir-archive config)))))
+           (if (equal? sha1 sha1-expected)
+               (begin
+                 (dorash #:dry-run dry-run (cmds-to-extract sha1 ardb dir-archive config))
+                 (dorash #:dry-run dry-run (cmds-to-symlink sha1 ardb config)))
+               (error (format "sha1 ~a != expected ~a" sha1 sha1-expected)))))))))
 
 ;; *** commands for syncing from a remote source ***
 (define (include-for-sync config ardb)
