@@ -1,9 +1,10 @@
 #lang racket/base
 (provide (all-from-out "dbk/dbk.rkt") load-config
-         relation-name relation-definition-info relation-missing-data?)
+         relation-name relation-definition-info relation-missing-data?
+         dynamic-relation relation-extensions database-extend-relations! database-load! database-unload!)
 (require
   "dbk/dbk.rkt"
-  racket/runtime-path)
+  racket/list (except-in racket/match ==) racket/runtime-path racket/set)
 
 (define-runtime-path path.root ".")
 (define (path-simple path) (path->string (simplify-path path)))
@@ -38,3 +39,68 @@
 (define (relation-name            r) (hash-ref (relations-ref r)            'name))
 (define (relation-definition-info r) (hash-ref (relations-ref r)            'definition-info))
 (define (relation-missing-data?   r) (hash-ref (relation-definition-info r) 'missing-data? #f))
+
+(define name.r=>tagged-relations   (hash))
+(define name.db=>name.r=>relations (hash))
+
+(define (database-extend-relations! name.db . extensions)
+  (define nr*s (plist->alist extensions))
+  (set! name.db=>name.r=>relations
+    (hash-update name.db=>name.r=>relations name.db
+                 (lambda (name=>relations)
+                   (foldl (lambda (name relation n=>rs)
+                            (hash-update n=>rs name
+                                         (lambda (rs) (cons relation rs))
+                                         '()))
+                          name=>relations (map car nr*s) (map cdr nr*s)))
+                 (hash))))
+
+(define (database-load! name.db)
+  (define name=>relations (hash-ref name.db=>name.r=>relations name.db
+                                    (lambda () (error "unknown database:" name.db))))
+  (define missing (filter-not not (append* (map (lambda (rs)
+                                                  (map (lambda (r)
+                                                         (and (relation-missing-data? r)
+                                                              (relation-name          r)))
+                                                       rs))
+                                                (hash-values name=>relations)))))
+  (unless (null? missing)
+    (error "loaded database has relations that are missing data:" name.db missing))
+  (define nr*s (hash->list name=>relations))
+  (set! name.r=>tagged-relations
+    (foldl (lambda (name relations n=>rs)
+             (define tagged-relations (list->set (map (lambda (r) (cons name.db r)) relations)))
+             (hash-update n=>rs name
+                          (lambda (rs) (set-union rs tagged-relations))
+                          (set)))
+           name.r=>tagged-relations (map car nr*s) (map cdr nr*s))))
+
+(define (database-unload! name.db)
+  (define name=>relations (hash-ref name.db=>name.r=>relations name.db
+                                    (lambda () (error "unknown database:" name.db))))
+  (define nr*s (hash->list name=>relations))
+  (set! name.r=>tagged-relations
+    (foldl (lambda (name relations n=>rs)
+             (define tagged-relations (list->set (map (lambda (r) (cons name.db r)) relations)))
+             (hash-update n=>rs name
+                          (lambda (rs) (set-subtract rs tagged-relations))
+                          (set)))
+           name.r=>tagged-relations (map car nr*s) (map cdr nr*s))))
+
+(define (relation-extensions name)
+  (set->list (hash-ref name.r=>tagged-relations name (set))))
+
+(define ((dynamic-relation name . tag-positions) . args)
+  (define extensions (relation-extensions name))
+  (foldl (lambda (name.db r.db g)
+           (conde ((let loop ((args args) (tag-positions tag-positions))
+                     (match tag-positions
+                       ('()                      (apply r.db args))
+                       ((cons pos tag-positions) (fresh (x)
+                                                   (== (list-ref args pos) (cons name.db x))
+                                                   (loop (list-set args pos x)
+                                                         tag-positions))))))
+                  (g)))
+         (== #f #t)
+         (map car extensions)
+         (map cdr extensions)))
