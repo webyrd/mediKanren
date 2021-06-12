@@ -1,5 +1,5 @@
 #lang racket/base
-(provide tabled-relations concept cprop edge eprop
+(provide concept cprop edge eprop
          subclass-of subclass-of+ subclass-of*)
 (require "../base.rkt" (except-in racket/match ==))
 
@@ -63,4 +63,8 @@
   (conde ((== a b))
          ((subclass-of+ a b))))
 
-(define tabled-relations (list cprop edge eprop))
+(database-extend-relations!
+  'rtx2-20210204
+  'cprop cprop
+  'eprop eprop
+  'edge  edge)
