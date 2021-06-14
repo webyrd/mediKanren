@@ -11,6 +11,11 @@
  ;; biased-interleaving (default), depth-first
  (search-strategy            . #f)
 
- (databases                  . (semmed rtx2-20210204))
- ;; Add configuration options as new association pairs.
+ ;; Specify installed databases as a list of symbols, e.g.:
+ ;;   (databases                  . (rtx2-20210204))
+ ;;
+ ;; Unless more specifically configured, we assume no databases have been installed:
+ (databases                  . ())
+
+ ;; Add new configuration options as new association pairs.
  )
