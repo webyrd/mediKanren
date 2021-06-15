@@ -12,6 +12,43 @@ Typical use:
 
 ## TODO
 
+* simplify/analyze/evaluate abstract syntax
+  * consolidate modules
+    * link with built-in definitions
+      * == =/= any<= any<
+      * cons car cdr + - * /
+      * etc.
+    * relation declaration property merging and consistency checking
+    * check concistency of definitions
+    * consolidate assertions as conjunction
+      * when checking assertions later, report errors per conjunct for better diagnostics
+  * start with inexpensive simplification and rewriting
+    * `(app (lambda _) _)` becomes `let`
+    * `(not (== x y))` might become `(=/= x y)` ?
+    * `(not (not (<= x y)))`  can we follow this simplification?
+      * `(not (and (=/= x y) (<= y x)))`
+      * `(or (not (=/= x y)) (not (<= y x)))`
+      * `(or (== x y) (and (=/= x y) (<= x y)))`  ;; also `(implies (=/= x y) (<= x y))`
+        * `(or (== x y) (< x y))` maybe this intermediate step
+        * `(<= x y)` leading to this
+      * `(and (or (=/= x y) (== x y)) (or (== x y) (<= x y)))`
+      * `(and #t (<= x y))`
+      * `(<= x y)`
+    * normalize/reorder conjuncts and disjuncts
+    * factor shared conjuncts out of disjunctions
+      * (OR (AND X Y) (AND X Z)) ==> (AND X (OR Y Z))
+    * constant propagation
+    * dead code elimination
+    * push quantifiers inward
+  * dependency/stratification analysis
+  * type inference/checking
+  * safety analysis
+  * mode analysis
+
+* bscm codec for sets and dicts
+
+* GOO join heuristic
+
 * implement checkpointing to avoid losing work with a long materialization process
 
 * `explain` for extracting the database subset needed to reproduce a query's results
@@ -83,8 +120,36 @@ Typical use:
     * safety analysis of relations referenced during query/materialization
   * randomized variants of interleaving or depth-first search
 
+* alternative variable ordering heuristic
+  * joined?, unique? (approximate w/ single-column-remaining?)
+    * or maybe specificity (via minimum relation cardinality?), cardinality
+    * not all non-joined variables will be reachable, but worry about this later
+
 * use small tables for finite domains
 * fixed point computation
+  * binding signatures with constraints
+    * share work by generalizing signatures
+
+* support hashes, sets, and procedures
+  * if not orderable, can't embed in tables, but that could be fine
+    * procedures probably aren't orderable, but sets and hashes could be
+    * set elements may not be logic variables?
+      * no, we can allow it
+    * hash keys may not be logic variables?
+      * no, we can allow it
+  * `set->list` and `hash->list` will sort elements for determinism
+    * implement them in terms of a numeric indexing operation
+      * map each `i` in `0 <= i < count` to the appropriate key in sorted order
+
+* improve bounds algebra by adding slightly-less and slightly-greater values for open interval endpoints
+  * define comparison operators, min, and max, over these values
+
+* simpler codec definition
+  * simplified extracting/inserting of fixed or variable-length bit vectors
+  * variable-length bit vectors may be encoded in a couple ways
+    * a prefix describing length
+      * if the prefix is itself fixed-size, this implies an upper bound on length
+    * a UTF-8 style encoding with no upper bound on length
 
 * place-based concurrency/parallelism?
 * thread-safe table retrieval
@@ -92,8 +157,21 @@ Typical use:
 * background worker threads/places for materialization
 * documentation and examples
   * small tsv data example for testing materialization
+  * LiveJournal, Orkut graph benchmark examples for
+    * https://github.com/frankmcsherry/blog/blob/master/posts/2019-09-06.md
+    * reachability
+    * connected components
+    * single-source shortest path
+    * http://yellowstone.cs.ucla.edu/papers/rasql.pdf
+    * http://pages.cs.wisc.edu/~aws/papers/vldb19.pdf
 * support an interactive stepping/user-choice "strategy"
   * both for debugging and devising new strategies
+  * `run/interactive`
+    * same as a `run^` with `current-config` `search-strategy` set to `interactive`
+    * non-stream, first-order representation of strategy-independent states
+      * also support embedding and combining sub-states (hypothetical along a disjunct)
+        * states are just fancy representations of conjunctions, and should be
+          combinable/disolvable
 
 * how do we express columns of suffix type?
   * it would have this representation type: `#(suffix count len)`
@@ -277,7 +355,6 @@ Typical use:
 
 * misc conveniences
   * `apply` to supply a single argument/variable to an n-ary relation
-  * underscore "don't care" logic variables
   * tuple-column/record-field keywords
     * optional keyword argument calling convention for relations
     * optional keyword projection of query results
@@ -407,3 +484,41 @@ x!   = x bang          ; x may cause important side effects, such as mutation
                        ; this convention
 x?!  = assert x        ; a predicate/guard that throws an error if false
 ```
+
+
+## References
+
+- [miniKanren: an embedded DSL for logic programming](http://minikanren.org)
+- [Bloom Programming Language](http://bloom-lang.net/)
+- [Dedalus: Datalog in Time and Space](http://www2.eecs.berkeley.edu/Pubs/TechRpts/2009/EECS-2009-173.pdf)
+- [Datafun Programming Language](http://www.rntz.net/datafun/)
+- [Flix Programming Language](https://flix.dev/)
+
+### Datalog and Bottom-up Evaluation Techniques
+
+- [What You Always Wanted to Know About Datalog (And Never Dared to Ask)](https://personal.utdallas.edu/~gupta/courses/acl/papers/datalog-paper.pdf)
+- [Integrating Datalog and Constraint Solving](https://biblio.ugent.be/publication/5646054/file/5646069.pdf)
+- [Compilation Of Bottom-Up Evaluation For a Pure Logic Programming Language](https://researchcommons.waikato.ac.nz/bitstream/handle/10289/12882/thesis.pdf)
+- [Bottom-Up Evaluation](http://users.informatik.uni-halle.de/~brass/lp07/c6_botup.pdf)
+- [Magic Sets](http://users.informatik.uni-halle.de/~brass/lp07/c7_magic.pdf)
+
+### Recursive Relations
+
+- [A Cost Estimation Technique for Recursive Relational Algebra](https://hal.inria.fr/hal-03004218/document)
+- [On the Optimization of Recursive Relational Queries: Application to Graph Queries](http://pierre.geneves.net/papers/mura-sigmod20.pdf)
+- [Cost-Based Optimization for Magic: Algebra and Implementation](https://dsf.berkeley.edu/papers/sigmod96-magic.pdf)
+
+### Query Plans
+
+- [How Good Are Query Optimizers, Really?](https://www.vldb.org/pvldb/vol9/p204-leis.pdf)
+- [Cardinality Estimation Done Right: Index-Based Join Sampling](http://cidrdb.org/cidr2017/papers/p9-leis-cidr17.pdf)
+- [A New Heuristic for Optimizing Large Queries](http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.31.737)
+- [Looking Ahead Makes Query Plans Robust](http://www.vldb.org/pvldb/vol10/p889-zhu.pdf)
+- [Worst-case Optimal Join Algorithms](http://pages.cs.wisc.edu/~chrisre/papers/paper49.Ngo.pdf)
+
+### Low-level Efficiency
+
+- [Sort vs. Hash joins](http://www.vldb.org/pvldb/vol7/p85-balkesen.pdf)
+- [Efficiently Compiling Efficient Query Plans for Modern Hardware](http://www.vldb.org/pvldb/vol4/p539-neumann.pdf)
+- [Push vs. Pull-Based Loop Fusion in Query Engines](https://arxiv.org/pdf/1610.09166.pdf)
+- [How to Architect a Query Compiler, Revisited](https://www.cs.purdue.edu/homes/rompf/papers/tahboub-sigmod18.pdf)

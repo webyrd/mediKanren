@@ -283,13 +283,18 @@ EOS
 
 (define (message->response msg)
   (define log-key (current-seconds))
-  (define broad-response (time (api-query (string-append url.broad path.query)
-                                          (hash 'message msg))))
+  (define broad-response (if (hash-ref msg 'disable_external_requests #f) 
+                             (hash 'response hash-empty 'status "disabled" 'headers '())
+                             (time (api-query (string-append url.broad path.query)
+                                              (hash 'message msg)))))
   (define broad-results (hash-ref broad-response 'response))
+  (define broad-results-count (length (hash-ref (hash-ref broad-results 'message hash-empty) 'results '())))
+  (define broad-error-message (hash-ref broad-results 'detail #f)) ; not sure if this is stable - it isn't TRAPI
   (log-info log-key (format "Broad response:\n~s\n" (hash-ref broad-response 'status)))
   (log-info log-key (format "Headers: ~s\n" (hash-ref broad-response 'headers)))
-  (log-info log-key (format "Broad result size: ~s\n" (js-count broad-results)))
-  (log-info log-key (format "Broad results: ~s" broad-results))
+  (log-info log-key (format "Broad result size: ~s\n" broad-results-count))
+
+  ;; (log-info log-key (format "Broad results: ~s" broad-results))
   
   ;; (with-handlers ((exn:fail? (lambda (exn) 
   ;;                              (hash 'error (exn-message exn)))))
@@ -312,7 +317,15 @@ EOS
                       (list (hash-ref (olift broad-results) 'message hash-empty)
                             local-results)))
                     (list (hash 'level "INFO"
-                                'message (format "Query time: ~ams" cpu))))))))))
+                                'message (format "Query time: ~ams" cpu))
+                          (if broad-error-message
+                              (hash 'level "WARNING"
+                                    'message (format "MolePro error: ~s" broad-error-message))
+                              (hash 'level "INFO"
+                                    'message (format "MolePro results: ~a" broad-results-count)))
+                          (hash 'level "INFO"
+                                'message (format "MolePro response status: ~s" (hash-ref broad-response 'status)))
+                          ))))))))
     
 (define (merge-results rs)
   (let loop ((rs rs) (results '()) (nodes '()) (edges '()))

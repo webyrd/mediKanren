@@ -12,48 +12,16 @@
 (require "base.rkt"
          (prefix-in semmed: "db/semmed.rkt")
          (prefix-in rtx:    "db/rtx2-20210204.rkt")
-         (prefix-in kgx:    "db/kgx-synonym.rkt")
-         racket/list racket/set racket/string (except-in racket/match ==) racket/pretty)
+         (prefix-in kgx:    "db/kgx-synonym.rkt"))
 
-(define dbname=>tabled-relations
-  (hash 'semmed        semmed:tabled-relations
-        'rtx2-20210204 rtx:tabled-relations
-        'KGX_syn       kgx:tabled-relations))
-
-(define missing
-  (filter-not
-    (lambda (dbname&missing)
-      (match-define (list dbname missing) dbname&missing)
-      (null? missing))
-    (map (lambda (dbname)
-           (list dbname
-                 (filter-not
-                   not
-                   (map (lambda (r) (and (relation-missing-data? r)
-                                         (relation-name r)))
-                        (hash-ref dbname=>tabled-relations dbname)))))
-         (hash-ref (current-config) 'databases))))
-
-(unless (null? missing)
-  (pretty-write `((configured-databases: . ,(hash-ref (current-config) 'databases))
-                  (databases-with-empty-relations: . ,missing))
-                (current-error-port))
-  (error "missing data detected in configured databases:"
-         (map car missing)))
+(for-each database-load! (hash-ref (current-config) 'databases))
 
 ;; TODO: define higher-level relations over the db-specific relations
 
-(define-relation (cprop c k v)
-  (conde ((rtx:cprop    c k v))
-         ((semmed:cprop c k v))))
-
-(define-relation (edge eid s o)
-  (conde ((fresh (id) (== eid `(rtx2-20210204 . ,id)) (rtx:edge    id s o)))
-         ((fresh (id) (== eid `(semmed        . ,id)) (semmed:edge id s o)))))
-
-(define-relation (eprop eid k v)
-  (conde ((fresh (id) (== eid `(rtx2-20210204 . ,id)) (rtx:eprop    id k v)))
-         ((fresh (id) (== eid `(semmed        . ,id)) (semmed:eprop id k v)))))
+(define cprop (dynamic-relation 'cprop))
+;; tag argument 0 (the edge id) with database name
+(define edge  (dynamic-relation 'edge  0))
+(define eprop (dynamic-relation 'eprop 0))
 
 ;; Semantic-web flavored relations
 

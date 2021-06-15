@@ -1,10 +1,8 @@
 #lang racket
-(provide
-  tabled-relations nodes edges
-)
+(provide nodes edges)
 (require "../base.rkt" (except-in racket/match ==))
 
-(define columns-of-nodes 
+(define columns-of-nodes
 '(
     id name category description xref ;0-4
     provided_by synonym anonymous clique_leader comment ;5-9
@@ -63,4 +61,7 @@
 ;  'indexes            '((name value))
   )
 
-(define tabled-relations (list nodes edges))
+(database-extend-relations!
+  'sri-reference-kg-0.3.0
+  '???nodes nodes
+  '???edges edges)

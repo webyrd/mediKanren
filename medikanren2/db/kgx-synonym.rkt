@@ -1,5 +1,5 @@
 #lang racket/base
-(provide synonym tabled-relations)
+(provide synonym)
 
 (require json "../base.rkt" (except-in racket/match ==))
 
@@ -25,4 +25,6 @@
                                    (loop)))))))|#
   )
 
-(define tabled-relations (list synonym))
+(database-extend-relations!
+  'kgx-synonym
+  '???synonym synonym)

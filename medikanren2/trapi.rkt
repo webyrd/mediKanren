@@ -13,6 +13,8 @@
   json
   memoize
   racket/format
+  racket/dict
+  racket/set
   )
 
 
@@ -77,21 +79,22 @@
 
 (define (trapi-response msg (log-key "[query]"))
   (define max-results (hash-ref msg 'max_results #f))
+  (define qgraph (hash-ref msg 'query_graph))
+  (define kgraph (hash-ref msg 'knowledge_graph #f))
+
   (define results (if max-results
-                      (run max-results bindings (trapi-query msg bindings log-key))
-                      (run* bindings (trapi-query msg bindings log-key))))
-  (hash 'results (trapi-response-results results)
+                      (run max-results bindings (trapi-query qgraph kgraph bindings log-key))
+                      (run* bindings (trapi-query qgraph kgraph bindings log-key))))
+  (hash 'results (trapi-response-results results qgraph)
         'knowledge_graph
         (hash 'nodes (trapi-response-knodes results)
               'edges (trapi-response-kedges results))))
 
-(define (trapi-query msg bindings log-key)
-  (define qgraph (hash-ref msg 'query_graph))
+(define (trapi-query qgraph kgraph bindings log-key)
   (define nodes  (hash->list (olift (hash-ref qgraph 'nodes hash-empty))))
   (define edges  (hash->list (olift (hash-ref qgraph 'edges hash-empty))))
 
   ;; Interpret included KnowledgeGraph element
-  (define kgraph (hash-ref msg 'knowledge_graph #f))
   (define knodes (and kgraph
                       (alist-of-hashes->lists
                        (hash->list (olift (hash-ref kgraph 'nodes hash-empty))))))
@@ -143,7 +146,7 @@
                            (if (or reasoning? full-reasoning?)
                                (log-time log-once log-key 
                                          (format "Subclasses/synonyms of ~s" curies)
-                                         (synonyms/set (subclasses/set curies)))
+                                         (get-synonyms-ls (subclasses/set curies)))
                                curies)))
                       (fresh (curie k+v bindings-rest)
                         (== bindings `(,k+v . ,bindings-rest))
@@ -241,18 +244,34 @@
     (if (eq? db 'kg) (strlift eid) 
         (string-append (strlift db) "." (strlift eid)))))
 
-(define (trapi-response-results results)
+(define (trapi-response-results results qgraph)
+  (let-values (((is-set-nodes singleton-nodes)
+                (partition (lambda (node) (hash-ref (cdr node) 'is_set #f)) 
+                           (hash->list (hash-ref qgraph 'nodes)))))
+    (if (null? is-set-nodes) 
+        (transform-trapi-results results)
+        (transform-trapi-results (group-sets results (map car singleton-nodes))))))
+
+(define (transform-trapi-results results)
   (map (lambda (bindings)
          (hash 'node_bindings
                (make-hash
                 (map (lambda (binding) 
-                       `(,(car binding) ,(hash 'id (cdr binding))))
+                       (let ((node/s (cdr binding)))
+                       `(,(car binding)
+                         . ,(map (lambda (id) (hash 'id id))
+                                 (if (list? node/s) node/s
+                                     (list node/s))))))
                      (alist-ref bindings 'node_bindings '())))
                'edge_bindings
                (make-hash
                 (map (lambda (ebinding)
-                       (let ((db+id (cdr ebinding)))
-                         `(,(car ebinding) ,(hash 'id (edge-id/reported db+id)))))
+                       (let ((edge/s (cdr ebinding)))
+                         `(,(car ebinding)
+                           . ,(map (lambda (db+id)
+                                   (hash 'id (edge-id/reported db+id)))
+                                 (if (list? edge/s) edge/s
+                                     (list edge/s))))))
                      (alist-ref bindings 'edge_bindings '())))) )
        results))
 
@@ -275,7 +294,13 @@
                            (snake->camel rest-str))))
       ""))
 
-;; horrible horrible hack for RTX2 20210204!!
+;; hack to ensure Biolink compliance for rtx2-20210204 and semmeddb
+(define (biolinkify/predicate curie)
+  (let ((curie (string-replace curie "," "")))
+    (if (string-prefix? curie "biolink:") curie
+        (string-append "biolink:" curie))))
+
+;; hack to ensure Biolink compliance for rtx2-20210204 and semmeddb
 (define (biolinkify/category curie)
   (if (string-prefix? curie "biolink:") curie
       (string-append "biolink:" 
@@ -283,9 +308,11 @@
 
 (define (props-kv k+v)
   (let ((k (car k+v)) (v (cdr k+v)))
-    (if (eq? k "category")
-        `(categories ,(biolinkify/category v)) 
-        (cons (string->symbol k) v))))
+    (cond ((eq? k "predicate")
+           `(predicate . ,(biolinkify/predicate v)))
+          (else
+           (cons (string->symbol k) v)))))
+
 (define (attributes-kv keys)
   (lambda (k+v)
     (let ((k (car k+v)) (v (cdr k+v)))
@@ -309,12 +336,16 @@
 (define (trapi-response-knodes results)
   (trapi-response-knodes/edges
    results 'node_bindings string->symbol
-   (lambda (node) 
-     (run* prop
-       (fresh (k v)
-         (membero k trapi-response-node-properties)
-         (== `(,k . ,v) prop)
-         (cprop node k v))))
+   ;; (lambda (node) 
+   ;;   (run* prop
+   ;;     (fresh (k v)
+   ;;       (membero k trapi-response-node-properties)
+   ;;       (== `(,k . ,v) prop)
+   ;;       (cprop node k v))))
+   (lambda (node)
+     `(("name" . ,(car (run 1 v (cprop node "name" v)))) ; hack: only gets 1!
+       ("categories" . ,(remove-duplicates
+                          (map biolinkify/category (run* v (cprop node "category" v)))))))
    (lambda (node)
      (run* attribute
       (fresh (k v)
@@ -347,4 +378,31 @@
          (== `(,k . ,v) attribute)
          (eprop node k v))))
    trapi-response-edge-attributes))
+
+(define (group-sets results singleton-nodes)
+  (define (get-nodes result)
+    (sort (filter (lambda (node)
+              (member (car node) singleton-nodes))
+                  (cdr (assoc 'node_bindings result)))
+          string<?
+          #:key (lambda (e) (symbol->string (car e)))))
+  (define (nodes-equal? a b)
+    (equal? (get-nodes a) (get-nodes b)))
+  (define (combine-bindings results key)
+    (foldl
+     (lambda (result rst) 
+       (dict-map result (lambda (id curie)
+                          (remove-duplicates
+                           (cons id (cons curie (alist-ref rst id '())))))))
+     '()
+     (map (lambda (result)
+            (cdr (assoc key result)))
+          results)))
+  (map (lambda (results)
+         `((node_bindings . ,(combine-bindings results 'node_bindings))
+           (edge_bindings . ,(combine-bindings results 'edge_bindings))))
+       (group-by values results nodes-equal?)))
+
+
+
 
