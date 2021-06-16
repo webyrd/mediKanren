@@ -4,21 +4,26 @@
  )
 (require racket/dict)
 (require racket/vector)
-(require "dbk/mk.rkt")
+(require "base.rkt")
 
 ;;; Shims
-(define (conde/databases) (error "not implemented"))
-(define (db:cid->concept) (error "not implemented"))
-(define (isao) (error "not implemented"))
-(define (subject-predicateo) (error "not implemented"))
-(define (object-predicateo) (error "not implemented"))
-(define (project) (error "not implemented"))
-(define (stream-refo) (error "not implemented"))
-(define (i&v->i&d) (error "not implemented"))
-(define (db:cui*->cids) (error "not implemented"))
+(define (conde/databases . args) (error "not implemented"))
+(define (db:cid->concept . args) (error "not implemented"))
+(define (isao . args) (error "not implemented"))
+(define (subject-predicateo . args) (error "not implemented"))
+(define (object-predicateo . args) (error "not implemented"))
+(define (project . args) (error "not implemented"))
+(define (stream-refo . args) (error "not implemented"))
+(define (i&v->i&d . args) (error "not implemented"))
+(define (db:cui*->cids . args) (error "not implemented"))
 
 ;;; db:~name*->cids calls ~name*->cid* via vector lookup
 ;;; ~name*->cid* in medikanren 1 is currently called make-~name*->cid* in medikanren 2
+
+;;; from gui-simple-v2.rkt
+;; :77
+(define (split-name-string name)
+  (string-split name #px"\\s+"))
 
 ;;; From common.rkt:182
 (define (~name*-concepto ~name* concept)
@@ -64,7 +69,16 @@
                   (or (string>? dbname1 dbname2)
                       (and (string=? dbname1 dbname2)
                            (string<? cui1 cui2))))))))
-;;; :457
+
+(define (find-concepts/options/cui-infer subject? object? isa-count strings)
+  (printf "find-concepts/options/cui-infe subject?=~s object?=~s isa-count=~s strings=~s \n" subject? object? isa-count strings)
+  (define yes-cui
+    (map (lambda (s) (run* (c) (~cui*-concepto (list s) c))) strings))
+  (define no-cui (filter-not not (map (lambda (s rs) (and (null? rs) s))
+                                      strings yes-cui)))
+  (define all (append* (cons (run* (c) (~name*-concepto no-cui c)) yes-cui)))
+  (concepts/options subject? object? isa-count all))
+
 (define (find-concepts/options subject? object? isa-count via-cui? strings)
   (concepts/options subject? object? isa-count
                     (if via-cui?
@@ -90,6 +104,10 @@
 
 ;;; From db.rkt:223
 (define (db:~name*->cids          db ~name*) ((vector-ref db 3) ~name*))
+;;; :242
+(define chars:ignore-typical "-")
+(define chars:split-typical "\t\n\v\f\r !\"#$%&'()*+,./:;<=>?@\\[\\\\\\]\\^_`{|}~")
+
 ;;; :245
 (define (smart-string-matches? case-sensitive? chars:ignore chars:split str* hay)
   (define re:ignore (and (non-empty-string? chars:ignore)
