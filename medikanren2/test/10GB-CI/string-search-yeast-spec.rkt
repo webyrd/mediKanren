@@ -67,9 +67,9 @@
 (chk
   (#:do (define a "CACNA"))
   (#:do (define b "2D1"))
-  (#:do (define res-a (name-string-matches nodes `(,a))))
-  (#:do (define res-b (name-string-matches nodes `(,b))))
-  (#:do (define res-ab (name-string-matches nodes `(,a ,b))))
+  (#:do (define res-a (name-string-matches nodes `(,a) (make-stsopt))))
+  (#:do (define res-b (name-string-matches nodes `(,b) (make-stsopt))))
+  (#:do (define res-ab (name-string-matches nodes `(,a ,b) (make-stsopt))))
   ;(#:do (printf "found ~s ~s ~s\n" (length res-a) (length res-b) (length res-ab)))
   ; .../yeast-sri-reference/0.3.0
   ; found 1412 1374 49
@@ -81,23 +81,12 @@
   )
 
 (chk
-  (#:do (define a "CACNA"))
-  (#:do (define b "2D1"))
-  (#:do (define res-a (find-concepts/options (make-stsopt) nodes `(,a))))
-  (#:do (define res-b (find-concepts/options (make-stsopt) nodes `(,b))))
-  (#:do (define res-ab (find-concepts/options (make-stsopt) nodes `(,a ,b))))
-  (#:do (printf "found ~s ~s ~s\n" (length res-a) (length res-b) (length res-ab)))
-  ; .../yeast-sri-reference/0.3.0
-  ; found 650 736 21
-  (#:t #t))
-
-(chk
   (#:do (define a "cacna"))
   (#:do (define b "2d1"))
   (#:do (define stsopt1 (make-stsopt #:case-sensitive? #t)))
-  (#:do (define res-a (find-concepts/options stsopt1 nodes `(,a))))
-  (#:do (define res-b (find-concepts/options stsopt1 nodes `(,b))))
-  (#:do (define res-ab (find-concepts/options stsopt1 nodes `(,a ,b))))
+  (#:do (define res-a (name-string-matches nodes `(,a) stsopt1)))
+  (#:do (define res-b (name-string-matches nodes `(,b) stsopt1)))
+  (#:do (define res-ab (name-string-matches nodes `(,a ,b) stsopt1)))
   (#:do (printf "found ~s ~s ~s\n" (length res-a) (length res-b) (length res-ab)))
   ; .../yeast-sri-reference/0.3.0
   ; found 650 736 21

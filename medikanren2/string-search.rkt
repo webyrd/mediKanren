@@ -20,7 +20,6 @@
  test:verify-corpus-index
  make-stsopt
  stsopt-t
- find-concepts/options
  )
 (require racket/dict)
 (require racket/vector)
@@ -211,38 +210,3 @@
   (let* ((reld-index (hash-ref (relation-definition-info rel) 'path)))
     (ensure-name-index-built reld-index fn-concept-name-index)
   ))
-
-;;; From common.rkt:182
-;; instead, use find-concept-named
-(define (~name*-concepto stsopt rel ~name*)
-  ;(printf "name*=~a\n" ~name*)
-  (define absdOut (hash-ref (relation-definition-info rel) 'path))
-        (db:~name*->concept*/options2 
-          stsopt
-          absdOut fn-cprop-primary fn-concept-name-index
-          ~name*))
-(define (~cui*-concepto ~cui* concept)
-  (error "not implemented")
-  #;(conde/databases
-    (lambda (dbname db)
-      (fresh (c) (== `(,dbname . ,c) concept)
-        (db:~cui*-concepto db ~cui* c)))))
-
-;; common.rkt:449
-#;(define (find-concepts/options/cui-infer subject? object? isa-count strings)
-  (printf "find-concepts/options/cui-infe subject?=~s object?=~s isa-count=~s strings=~s \n" subject? object? isa-count strings)
-  (define yes-cui
-    (map (lambda (s) (run* (c) (~cui*-concepto (list s) c))) strings))
-  (define no-cui (filter-not not (map (lambda (s rs) (and (null? rs) s))
-                                      strings yes-cui)))
-  (define all (append* (cons (run* (c) (~name*-concepto no-cui c)) yes-cui)))
-  (concepts/options subject? object? isa-count all))
-
-;;; common.rkt:457
-(define (find-concepts/options stsopt rel strings)
-  ;; TODO fix?
-  ;(concepts/options subject? object? isa-count
-  (~name*-concepto stsopt rel strings)
-                    #;(if via-cui?
-                      (run* (c) (~cui*-concepto strings c))
-                      (name-string-matches rel strings)))
