@@ -18,29 +18,21 @@
   )
 
 
-;; QUESTION
+;; QUESTIONS
 ;; - Do we return all attributes, or only specified ones?
 ;; - How is knowledge_graph used in queries?
 
-;; TODO (trapi.rkt and server.rkt)
-;; - status - logs - description
+;; TODO
 ;; - Understand Attribute types
 ;; - QEdge constraints
-;; - QNode is_set:
-;;       Boolean that if set to true, indicates that this QNode MAY
-;;       have multiple KnowledgeGraph Nodes bound to it wi;; thin each
-;;       Result. The nodes in a set should be considered as a set of
-;;       independent nodes, rather than a set of dependent nodes,
-;;       i.e., the answer would still be valid if the nodes in the set
-;;       were instead returned individually. Multiple QNodes may have
-;;       is_set=True. If a QNode (n1) with is_set=True is connected to
-;;       a QNode (n2) with is_set=False, each n1 must be connected to
-;;       n2. If a QNode (n1) with is_set=True is connected to a QNode
-;;       (n2) with is_set=True, each n1 must be connected to at least
-;;       one n2.
+;; - Blank node normalization
+;;   This can be implemented with a few small changes to trapi-edges
+;;   but with the current (June 2021) version of dbk, the resulting mediKanren query is too slow 
+;;   for some TRAPI queries.
+;;   For implementation see:  https://github.com/webyrd/mediKanren/commit/cb27f5225941736e3f222d3988b422c1a75c7f2c#diff-376714fcddb10f742941fdf9f3dba1815efe009496f4c645758ec7afc6f0c135
 
-(define use-reasoning? (make-parameter #f))
 
+;; Properties and attributes returned in query results KnowledgeGraph
 (define trapi-response-node-properties '("category" "name"))
 (define trapi-response-node-attributes '(("umls_type_label" . "miscellaneous")
                                          ("umls_type" . "miscellaneous")
@@ -50,6 +42,7 @@
                                          ("provided_by" . "miscellaneous")
                                          ("publications" . "miscellaneous")))
 
+;; Utils
 (define (alist-ref alist key default)
   (define kv (assoc key alist))
   (if kv (cdr kv) default))
@@ -77,6 +70,7 @@
         ((symbol? v) (symbol->string v))
         (error "Must be a number, string or symbol: ~s" v)))
 
+;; Main interface
 (define (trapi-response msg (log-key "[query]"))
   (define max-results (hash-ref msg 'max_results #f))
   (define qgraph (hash-ref msg 'query_graph))
@@ -85,16 +79,21 @@
   (define results (if max-results
                       (run max-results bindings (trapi-query qgraph kgraph bindings log-key))
                       (run* bindings (trapi-query qgraph kgraph bindings log-key))))
-  (hash 'results (trapi-response-results results qgraph)
+  (hash 'results (trapi-format-results results qgraph)
         'knowledge_graph
         (hash 'nodes (trapi-response-knodes results)
               'edges (trapi-response-kedges results))))
+
+;; TRAPI Interpreter
+;; Transforms TRAPI query into single mediKanren query
 
 (define (trapi-query qgraph kgraph bindings log-key)
   (define nodes  (hash->list (olift (hash-ref qgraph 'nodes hash-empty))))
   (define edges  (hash->list (olift (hash-ref qgraph 'edges hash-empty))))
 
   ;; Interpret included KnowledgeGraph element
+  ;; (A hopefully intelligent guess at what might be intended by the specs)
+  ;; This would only more useful if we add node normalization
   (define knodes (and kgraph
                       (alist-of-hashes->lists
                        (hash->list (olift (hash-ref kgraph 'nodes hash-empty))))))
@@ -112,8 +111,18 @@
       (membero `(subject . ,s) props)
       (membero `(predicate . ,p) props)
       (membero `(object . ,o) props)))
-
-    (let ((full-reasoning? (hash-ref qgraph 'use_reasoning #t)))
+  
+  ;; Non-standard parameter to disable lightweight reasoning for the whole query
+  ;; Can be overridden at the individual node and edge level
+  ;; ex: 
+  ;; {
+  ;;   "message": {
+  ;;     "query_graph": {
+  ;;       "use_reasoning": false,
+  ;;       "edges": {
+  ;;         "e01": {
+  ;;            "use_reasoning":true
+  (let ((full-reasoning? (hash-ref qgraph 'use_reasoning #t)))
     (fresh (node-bindings edge-bindings)
       (== bindings `((node_bindings . ,node-bindings) 
                      (edge_bindings . ,edge-bindings)))
@@ -129,21 +138,15 @@
           (let* ((id+n        (car nodes))
                  (id          (car id+n))
                  (n           (cdr id+n))
-                 (curie       (hash-ref n 'id #f)) ; deprecated v1.1
-                 (curies      (hash-ref n 'ids (and curie 
-                                                    (if (pair? curie) curie
-                                                        (list curie)))))
-                 (category   (hash-ref n 'category #f)) ; deprecated v1.1
-                 (categories  (hash-ref n 'categories (and category 
-                                                           (if (pair? category) category
-                                                               (list category)))))
+                 (curies      (hash-ref n 'ids #f))
+                 (categories  (hash-ref n 'categories #f))
                  (constraints (hash-ref n 'constraints '()))
                  (is-set?     (hash-ref n 'is_set #f))
-                 (reasoning?  (hash-ref n 'use_reasoning #f)))
+                 (reasoning?  (hash-ref n 'use_reasoning full-reasoning?)))
             (if curies
                 (if (pair? curies)
                     (let ((curies
-                           (if (or reasoning? full-reasoning?)
+                           (if reasoning? 
                                (log-time log-once log-key 
                                          (format "Subclasses/synonyms of ~s" curies)
                                          (get-synonyms-ls (subclasses/set curies)))
@@ -152,11 +155,11 @@
                         (== bindings `(,k+v . ,bindings-rest))
                         (== k+v `(,id . ,curie))
                         (membero curie curies)
-                        ((trapi-constraints constraints) curie)
+                        ((trapi-node-constraints constraints) curie)
                         (loop (cdr nodes) bindings-rest)))
                     (error "Field: 'QNode/ids' must be array of CURIEs (TRAPI 1.1)."))
                 (if (pair? categories)
-                    (let ((categories (if (or reasoning? full-reasoning?)
+                    (let ((categories (if reasoning?
                                           (log-time log-once log-key 
                                                     (format "Subclasses of ~s" categories)
                                                     (subclasses/set categories))
@@ -164,7 +167,7 @@
                       (fresh (cat curie k+v bindings-rest)
                         (== k+v `(,id . ,curie))
                         (== bindings `(,k+v . ,bindings-rest))
-                        ((trapi-constraints constraints) curie)
+                        ((trapi-node-constraints constraints) curie)
                         (membero cat categories)
                         (conde ((is-a curie cat))
                                ((k-is-a curie cat)))
@@ -179,18 +182,15 @@
           (let* ((id+e        (car edges))
                  (id          (car id+e))
                  (e           (cdr id+e))
-                 (predicate   (hash-ref e 'predicate #f)) ; deprecated v1.1
-                 (predicates  (hash-ref e 'predicates (and predicate
-                                                           (if (pair? predicate) predicate
-                                                               (list predicate)))))
+                 (predicates  (hash-ref e 'predicates #f))
                  (subject     (string->symbol (hash-ref e 'subject #f)))
                  (relation    (hash-ref e 'relation #f))
                  (object      (string->symbol (hash-ref e 'object #f)))
                  (constraints (hash-ref e 'constraints '()))
-                 (reasoning?  (hash-ref e 'use_reasoning #f)))
+                 (reasoning?  (hash-ref e 'use_reasoning full-reasoning?)))
             (if (and predicates (not (pair? predicates)))
                 (error "Field: 'QEdge/predicates' must be an array of CURIEs (TRAPI 1.1).")
-                (let ((predicates (if (and (or reasoning? full-reasoning?) predicates)
+                (let ((predicates (if (and reasoning? predicates)
                                       (log-time log-once log-key 
                                                 (format "Subclasses of ~s" predicates)
                                                 (subclasses/set predicates))
@@ -211,7 +211,7 @@
                     (== bindings `((,id . ,db+id) . ,bindings-rest))
                     (loop (cdr edges) bindings-rest)))))))))
 
-(define (trapi-constraints constraints)
+(define (trapi-node-constraints constraints)
   (relation trapi-node-constraints-o (node)
     (let loop ((constraints constraints))
       (if (null? constraints)
@@ -238,13 +238,15 @@
                           (== val value))))
               (loop (cdr constraints))))))))
 
+;; Transform mediKanren results to TRAPI response
+
 (define (edge-id/reported db+eid)
   (let ((db     (car db+eid))
         (eid    (cdr db+eid)))
     (if (eq? db 'kg) (strlift eid) 
         (string-append (strlift db) "." (strlift eid)))))
 
-(define (trapi-response-results results qgraph)
+(define (trapi-format-results results qgraph)
   (let-values (((is-set-nodes singleton-nodes)
                 (partition (lambda (node) (hash-ref (cdr node) 'is_set #f)) 
                            (hash->list (hash-ref qgraph 'nodes)))))
@@ -274,6 +276,8 @@
                                      (list edge/s))))))
                      (alist-ref bindings 'edge_bindings '())))) )
        results))
+
+;; Create KnowledgeGraph for results
 
 (define (unique-bindings-values results key)
   (remove-duplicates
