@@ -121,15 +121,35 @@
        (eprop id1 "predicate" drug->gene-pred)
        (eprop id2 "predicate" drug->disease-pred)
        (membero drug drug-categories)
-       (membero g Hakon-CHAMP1-RNA-up-syn)
+       (membero g Hakon-CHAMP1-RNA-up-syns)
        (membero drug->gene-pred inhibit-preds)
        (membero disease hypotonia-syn)
        (membero drug->disease-pred inhibit-preds)))))
 
-; this query takes too long or doesn't terminate
+(define Hakon-drugs-hypotonia-RNA-up
+  (time
+   (run 1 (d dname drug->gene-pred g gname disease disease-name drug->disease-pred)
+     (fresh (id1 id2 drug)
+       (edge id1 d g)
+       (edge id2 d disease)
+       (cprop d "category" drug)
+       (cprop d "name" dname)
+       (cprop g "name" gname)
+       (cprop disease "name" disease-name)
+       (eprop id1 "predicate" drug->gene-pred)
+       (eprop id2 "predicate" drug->disease-pred)
+       (membero drug drug-categories)
+       (membero g Hakon-CHAMP1-RNA-up-syns)
+       (membero drug->gene-pred inhibit-preds)
+       (membero disease hypotonia-syn)
+       (membero drug->disease-pred inhibit-preds)))))
+
+; this query terminates
+
+; cpu time: 17156 real time: 24444 gc time: 226
 
 
-; I then tried this query without asking for drug/gene/disease names and it terminated.
+; I tried this query without asking for drug/gene/disease names and it terminated.
 ; First, try with run 1
 ; According to Greg, if run 1 terminates, the query will eventually terminate so it
 ; is good to check run 1 first.
@@ -170,6 +190,9 @@
        (membero drug->gene-pred inhibit-preds)
        (membero disease hypotonia-syn)
        (membero drug->disease-pred inhibit-preds)))))
+
+
+
 
 ; cpu time: 404819 real time: 445583 gc time: 2925
 ; Hakon-drugs-hypotonia-RNA-up
@@ -231,8 +254,37 @@
        (rel-drug-disease-inhibit  drug->disease-pred) ; (membero drug->disease-pred inhibit-preds)
        ))))
 
+
+(define (Hakon-drugs-hypotonia-RNA-up)
+  (time
+   (define-relation/table (rel-drug arg1)
+     'source-stream (map list drug-categories))
+   (define-relation/table (rel-Hakon arg1)
+     'source-stream (map list Hakon-CHAMP1-RNA-up-syns))
+   (define-relation/table (rel-drug-gene-inhibit arg1)
+     'source-stream (map list  inhibit-preds))
+   (define-relation/table (rel-hypotonia-syn arg1)
+     'source-stream (map list hypotonia-syn))
+   (define-relation/table (rel-drug-disease-inhibit arg1)
+     'source-stream (map list inhibit-preds))
+   (run 1 (d g disease)
+     (fresh (id1 id2 drug drug->gene-pred drug->disease-pred)
+       (edge id1 d g)
+       (edge id2 d disease)
+       (cprop d "category" drug)
+       (eprop id1 "predicate" drug->gene-pred)
+       (eprop id2 "predicate" drug->disease-pred)
+       (rel-drug drug)           ;(membero drug drug-categories)
+       (rel-Hakon g)             ;(membero g Hakon-CHAMP1-RNA-up-syns)
+       (rel-drug-gene-inhibit drug->gene-pred) ;(membero drug->gene-pred inhibit-preds)
+       (rel-hypotonia-syn disease)    ;(membero disease hypotonia-syn)
+       (rel-drug-disease-inhibit  drug->disease-pred) ; (membero drug->disease-pred inhibit-preds)
+       ))))
+
 ; This approach doesn't speed up the code for some reason and it may creates infinite loop
 ; => bugs in mediKanren2 or?
+
+; Greg mentioned it is a query planning issue
 
 ; Jeff will take a look at this, June 15th, 2021.
 
@@ -240,6 +292,8 @@
 
 
 
+
+; Next time, try the map in place of membero to see if it helps
 
 
 
@@ -380,3 +434,5 @@
        (eprop id "predicate" drug->disease-pred)
        (inhibit-pred drug->disease-pred)
        (membero disease hypotonia-syn))))
+
+
