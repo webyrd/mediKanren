@@ -2,11 +2,7 @@
 (provide
   string/searchable
   suffix:corpus->index
-  suffix:corpus-find*
   suffix:corpus-find*/disk
-  string:corpus->index
-  string:corpus-find*
-  string:corpus-find*/disk
   (prefix-out test: string/searchable)
   (prefix-out test: suffix-key-count/port)
   (prefix-out test: suffix-index->suffix-key)
@@ -50,20 +46,6 @@
 (define (bytes->string-key bs)
   (define (bref-to pos offset) (arithmetic-shift (bytes-ref bs pos) offset))
   (+ (bref-to 0 40) (bref-to 1 32) (bref-to 2 24) (bref-to 3 16) (bref-to 4 8) (bref-to 5 0)))
-(define (read-string-key-bytes in) (read-bytes string-key-byte-size in))
-(define (write-string-keys out v)
-  (for ((s (in-vector v))) (write-bytes (string-key->bytes s) out)))
-(define (port->string-keys in)
-  (define end (begin (file-position in eof) (file-position in)))
-  (file-position in 0)
-  (for/vector ((_ (in-range (/ end string-key-byte-size))))
-              (bytes->string-key (read-string-key-bytes in))))
-(define (string-index->string-key in si)
-  (file-position in (* string-key-byte-size si))
-  (bytes->string-key (read-string-key-bytes in)))
-(define (string-key-count in)
-  (file-position in eof)
-  (/ (file-position in) string-key-byte-size))
 
 (define suffix-key-byte-size (+ 6 2))
 (define (suffix-key-count bs) (/ (bytes-length bs) suffix-key-byte-size))
@@ -209,10 +191,6 @@
                 (iter j-min j-avg))))))
   (iter 0 (vector-length corpus)))
 
-(define (suffix1->string corpus s)
-  (substring (vector-ref corpus (car s)) (cdr s)))
-(define (suffix2->string corpus s)
-  (substring (vector-sparse-find corpus (car s)) (cdr s)))
 (define (suffix-string-length1 corpus s)
   (- (string-length (vector-ref corpus (car s))) (cdr s)))
 (define (suffix-string-length2 corpus s)
@@ -234,9 +212,6 @@
 (define (suffix<?/corpus1 corpus a b)
   (string<?/suffixes (vector-ref corpus (car a)) (cdr a)
                      (vector-ref corpus (car b)) (cdr b)))
-(define (suffix<?/corpus2a corpus a b)
-  (string<? (substring (vector-sparse-find corpus (car a)) (cdr a))
-            (substring (vector-sparse-find corpus (car b)) (cdr b))))
 (define (suffix<?/corpus2 hashcorpus bin-a bin-b)
   (let* ((a (bytes->suffix-key bin-a 0))
          (b (bytes->suffix-key bin-b 0))
@@ -270,56 +245,6 @@
   (if (null? xs) '() (remove/x (car xs) (cdr xs))))
 
 (define (dedup/< ns) (remove-adjacent-duplicates (sort ns <)))
-
-(define (suffix:corpus-find-range corpus index str)
-  (define suffix->string
-    (if (pair? (vector-ref corpus 0))
-      suffix2->string
-      suffix1->string))
-  (define needle (string/searchable str))
-  (define (compare si needle)
-    (define hay (suffix->string corpus (suffix-key-ref index si)))
-    (cond ((string-prefix? hay needle) 0)
-          ((string<? hay needle)      -1)
-          (else                        1)))
-  ;; Find a point in the desired range...
-  (let find-range ((start 0) (end (suffix-key-count index)))
-    (cond ((< start end)
-           (define mid (+ start (quotient (- end start) 2)))
-           (case (compare mid needle)
-             ((-1) (find-range (+ 1 mid) end))
-             (( 1) (find-range start mid))
-             (( 0) ;; ... then find the start and end of that range.
-              (define rstart
-                (let loop ((start start) (end mid))
-                  (cond ((< start end)
-                         (define mid (+ start (quotient (- end start) 2)))
-                         (case (compare mid needle)
-                           ((-1) (loop (+ 1 mid) end))
-                           (( 0) (loop start mid))
-                           (else (error "rstart: this shouldn't happen."))))
-                        (else end))))
-              (define rend
-                (let loop ((start (+ 1 mid)) (end end))
-                  (cond ((< start end)
-                         (define mid (+ start (quotient (- end start) 2)))
-                         (case (compare mid needle)
-                           ((1) (loop start mid))
-                           ((0) (loop (+ 1 mid) end))
-                           (else (error "rend: this shouldn't happen."))))
-                        (else end))))
-              (cons rstart rend))))
-          (else (cons start end)))))
-
-(define (suffix:corpus-find* corpus index str*)
-  (define (rz r) (- (cdr r) (car r)))
-  (define rs (map (lambda (s) (suffix:corpus-find-range corpus index s)) str*))
-  (define zmin (* 2 (if (null? rs) 0 (foldl (lambda (r z) (min z (rz r)))
-                                            (rz (car rs)) (cdr rs)))))
-  (nlist-intersection
-    (map (lambda (r) (dedup/< (map (lambda (i) (car (suffix-key-ref index i)))
-                                   (range (car r) (cdr r)))))
-         (filter (lambda (r) (<= (rz r) zmin)) rs))))
 
 (define (suffix:corpus-find-range/disk cid->concept in-index str)
   (define needle (string/searchable str))
@@ -367,96 +292,6 @@
     (map (lambda (r) (dedup/< (map (lambda (i) (car (suffix-index->suffix-key in-index i)))
                                    (range (car r) (cdr r)))))
          (filter (lambda (r) (<= (rz r) zmin)) rs))))
-
-(define (string:corpus->index corpus)
-  (define ixs (range (vector-length corpus)))
-  (define (ix<? a b) (string<? (vector-ref corpus a) (vector-ref corpus b)))
-  (define (ix-length ix) (string-length (vector-ref corpus ix)))
-  (define (ix-ref ix i)  (char->integer (string-ref (vector-ref corpus ix) i)))
-  (msd-radix-sort ixs ix-length ix-ref ix<?))
-
-(define (string:corpus-find corpus index needle)
-  (define (compare si needle)
-    (define hay (vector-sparse-find corpus (vector-ref index si)))
-    (cond ((string=? hay needle)  0)
-          ((string<? hay needle) -1)
-          (else                   1)))
-  ;; Find a point in the desired range...
-  (let find-range ((start 0) (end (vector-length index)))
-    (cond ((< start end)
-           (define mid (+ start (quotient (- end start) 2)))
-           (case (compare mid needle)
-             ((-1) (find-range (+ 1 mid) end))
-             (( 1) (find-range start mid))
-             (( 0) ;; ... then find the start and end of that range.
-              (define rstart
-                (let loop ((start start) (end mid))
-                  (cond ((< start end)
-                         (define mid (+ start (quotient (- end start) 2)))
-                         (case (compare mid needle)
-                           ((-1) (loop (+ 1 mid) end))
-                           (( 0) (loop start mid))
-                           (else (error "rstart: this shouldn't happen."))))
-                        (else end))))
-              (define rend
-                (let loop ((start (+ 1 mid)) (end end))
-                  (cond ((< start end)
-                         (define mid (+ start (quotient (- end start) 2)))
-                         (case (compare mid needle)
-                           ((1) (loop start mid))
-                           ((0) (loop (+ 1 mid) end))
-                           (else (error "rend: this shouldn't happen."))))
-                        (else end))))
-              (remove-duplicates (map (lambda (i) (vector-ref index i))
-                                      (range rstart rend))))))
-          (else '()))))
-
-(define (string:corpus-find* corpus index str*)
-  (remove-duplicates
-    (sort (append* (map (lambda (s) (string:corpus-find corpus index s)) str*))
-          <)))
-
-(define (string:corpus-find/disk cid->concept in-index needle)
-  (define (compare si needle)
-    (define cid (string-index->string-key in-index si))
-    (define hay (concept-cui (cid->concept cid)))
-    (cond ((string=? hay needle)  0)
-          ((string<? hay needle) -1)
-          (else                   1)))
-  ;; Find a point in the desired range...
-  (let find-range ((start 0) (end (string-key-count in-index)))
-    (cond ((< start end)
-           (define mid (+ start (quotient (- end start) 2)))
-           (case (compare mid needle)
-             ((-1) (find-range (+ 1 mid) end))
-             (( 1) (find-range start mid))
-             (( 0) ;; ... then find the start and end of that range.
-              (define rstart
-                (let loop ((start start) (end mid))
-                  (cond ((< start end)
-                         (define mid (+ start (quotient (- end start) 2)))
-                         (case (compare mid needle)
-                           ((-1) (loop (+ 1 mid) end))
-                           (( 0) (loop start mid))
-                           (else (error "rstart: this shouldn't happen."))))
-                        (else end))))
-              (define rend
-                (let loop ((start (+ 1 mid)) (end end))
-                  (cond ((< start end)
-                         (define mid (+ start (quotient (- end start) 2)))
-                         (case (compare mid needle)
-                           ((1) (loop start mid))
-                           ((0) (loop (+ 1 mid) end))
-                           (else (error "rend: this shouldn't happen."))))
-                        (else end))))
-              (remove-duplicates (map (lambda (i) (string-index->string-key in-index i))
-                                      (range rstart rend))))))
-          (else '()))))
-
-(define (string:corpus-find*/disk cid->concept in-index str*)
-  (remove-duplicates
-    (sort (append* (map (lambda (s) (string:corpus-find/disk cid->concept in-index s)) str*))
-          <)))
 
 ;;; param-fd-input-binary:
 ;;;   A context for caching file descriptors.

@@ -29,24 +29,6 @@
 (require "string-search-impl2.rkt")
 
 ;;; *** routines for index building ***
-(define (nlogn n)
-  (floor (exact->inexact (* n (/ (log n) (log 2))))))
-
-(define (make-reporter name num-between)
-  (define t0 (current-milliseconds))
-  (define numops 0)
-  (define numops2 0)
-  (lambda ()
-    (set! numops (+ 1 numops))
-    (set! numops2 (+ 1 numops2))
-    (when (> numops2 num-between)
-      (set! numops2 1)
-      (let* (
-          (dt (exact->inexact (/ (- (current-milliseconds) t0) 1000)))
-          (ops-per-sec (exact->inexact (/ numops dt))))
-      (printf "We have now run ~a numops=~a dt=~a numops/dt=~a \n" name numops dt ops-per-sec)))
-  ))
-
 (define (report-memory)
   (collect-garbage 'major)
   (printf "current-memory-use ~aMB\n" (exact->inexact (/ (current-memory-use) 1000000))))
