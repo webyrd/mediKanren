@@ -4,7 +4,6 @@
 (require "../../db/yeast-sri-reference-kg-0.3.0.rkt")
 (require "../../base.rkt")
 (require "../../string-search.rkt")
-(require "../../profiling.rkt")
 
 ;;; Can we perform lookups with the string search API?
 
