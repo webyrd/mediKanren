@@ -147,90 +147,6 @@
 
 ;; generalize suffix:corpus->index
 
-;; vector-sparse-find
-
-#|
-(list->vector
- (reverse
-  (foldl
-   (lambda (xn yn)
-     (let ((n (+ (cdr xn) (cdar yn)))
-           (y (car xn)))
-       (cons (cons y n) yn)))
-   '(("" . 0))
-   (map (lambda (x) (cons x (+ 1 (random 10)))) (string-split "now is the time for all good men to come to the aid of their country")))))
-|#
-
-(define vsf-example-1
-  '#(("" . 0) ("now" . 7) ("is" . 9) ("the" . 18) ("time" . 24) ("for" . 25) ("all" . 31) ("good" . 39) ("men" . 44) ("to" . 52) ("come" . 56) ("to" . 65) ("the" . 73) ("aid" . 80) ("of" . 81) ("their" . 88) ("country" . 95)))
-
-(chk
- (#:do
-  (for ((i (range (vector-length vsf-example-1))))
-    (let* ((s-n (vector-ref vsf-example-1 i))
-           (s-expected (car s-n))
-           (n (cdr s-n))
-           (s (vector-sparse-find vsf-example-1 n)))
-      (unless (equal? s s-expected)
-        (error (format "vector-sparse-find i=~a n=~a s=~a s-expected=~a" i n s s-expected))))))
-  (#:t #t))
-
-
-
-;; suffix:corpus->index: status quo
-(chk
- (#:=
-  (suffix:corpus->index
-   (vector
-    "the"))
-  '#((0 . 2) (0 . 1) (0 . 0))))
-
-(chk
- (#:=
-  (suffix:corpus->index
-   (vector
-    "the"
-    "the"))
-  '#((1 . 2) (0 . 2) (1 . 1) (0 . 1) (1 . 0) (0 . 0))
-  ))
-
-(chk
- (#:=
-  (suffix:corpus->index
-   (vector
-    "tzzhze"))
-  '#((0 . 5) (0 . 3) (0 . 0) (0 . 4) (0 . 2) (0 . 1))
-  ))
-
-(chk
- (#:=
-  (suffix:corpus->index
-   (vector
-    "the"
-    "tzzhze"))
-  '#((1 . 5) (0 . 2) (0 . 1) (1 . 3) (0 . 0) (1 . 0) (1 . 4) (1 . 2) (1 . 1))
-  ))
-
-(chk
- (#:=
-  (suffix:corpus->index
-   (vector
-    "tzzhze"
-    "the"
-    ))
-  '#((1 . 2) (0 . 5) (1 . 1) (0 . 3) (1 . 0) (0 . 0) (0 . 4) (0 . 2) (0 . 1))
-  ))
-
-;; suffix:corpus->index-suffixes
-(chk
- (#:=
-  (test:suffix:corpus->index-suffixes
-   (vector
-    "the"
-    "the"))
-  '((1 . 2) (1 . 1) (1 . 0) (0 . 2) (0 . 1) (0 . 0))
-  ))
-
 (chk
  (#:=
   (list->set (map (lambda (b) (bytes->suffix-key b 0)) (vector->list (test:suffix:corpus2->index-suffixes
@@ -303,14 +219,6 @@
  (#:t #t))
 
 
-(chk
- (#:do
-  (with-temporary-dir-cleanup
-    "mediKanren-test-~a"
-    (lambda (adirTemp)
-      (test:build-name-string-search-v1 (vector-map car concept*-example-1) adirTemp))))
- (#:t #t))
- 
 ;; can we build an index in a format that returns file offsets?
 (chk
  (#:do
@@ -323,42 +231,6 @@
  (#:t #t))
 
 
-;; Test vector-sparse-find using data decoded from a temporary file.
-(chk
- (#:do
-  (with-temporary-dir-cleanup
-    "mediKanren-test-~a"
-    (lambda (adirTemp)
-      (let ((fn-primary (expand-user-path (build-path adirTemp fn-cprop-primary)))
-            (without-expected (vector-map car concept*-example-1)))
-        (build-test-corpus without-expected adirTemp)
-        (let ((name-corpus (test:read-name-corpus fn-cprop-primary adirTemp)))
-          (for ((i (range (vector-length name-corpus))))
-            (let* ((s-n (vector-ref name-corpus i))
-                  (s-expected (car s-n))
-                  (n (cdr s-n))
-                  (s (vector-sparse-find name-corpus n)))
-              (unless (equal? s s-expected)
-                (error (format "vector-sparse-find i=~a n=~a s=~a s-expected=~a" i n s s-expected))))))))))
-  (#:do (writeln "name-corpus OK"))
-  (#:t #t))
-
-
-(define (print-index-v1 corpus1 adirTemp)
-  (define (string-left str end)
-    (substring str 0 (min (string-length str) end)))
-  (let* ((fn-index (expand-user-path (build-path adirTemp fn-concept-name-index)))
-         (fd-index (open-input-file fn-index #:mode 'binary)))
-    (for ((i (range (test:suffix-key-count/port fd-index))))
-      (let* ((s-n (test:suffix-index->suffix-key fd-index i)))
-        (let* ((foffs (car s-n))
-               (soffs (cdr s-n))
-               (concept (vector-ref corpus1 foffs))
-               (name concept)
-               (st-hit (substring (string/searchable name) soffs))
-               (st-hit-short (string-left st-hit 30)))
-          (printf "~a (~a,~a) ~a len=~a \n" i foffs soffs st-hit-short (string-length st-hit) ))))
-    (close-input-port fd-index)))
 
 ;;; print-index-v2: print a human-readable form of the index for debugging purposes
 (define (print-index-v2 index-v2 adirTemp)
@@ -378,20 +250,6 @@
             (printf "~a (~a,~a) ~a len=~a id=~a\n" i foffs soffs st-hit-short (string-length st-hit) id))))
     (close-input-port fd-primary)))
 
-
-(chk
- (#:do
-  (with-temporary-dir-cleanup
-    "mediKanren-test-~a"
-    (lambda (adirTemp)
-      (test:build-name-string-search-v1 (vector-map car concept*-example-1) adirTemp)
-      (let* ((corpus1 (vector-map  cadar concept*-example-1))
-             (index (suffix:corpus->index corpus1)))
-;        (printf "about to print index from corpus v1:\n")
-;        (print-index-v1 corpus1 adirTemp)
-        '()
-        ))))
- (#:t #t))
 
 ;; Can we the sort an index without crashing?  If we print the index does it look right?
 (chk

@@ -1,14 +1,10 @@
 #lang racket
 (provide
  (prefix-out test: field-indexed)
- suffix:corpus->index
  suffix:corpus2->index
- vector-sparse-find
  test:read-name-corpus
- (prefix-out test: suffix:corpus->index-suffixes)
  test:suffix:corpus2->index-suffixes
  fn-cprop-primary
- (prefix-out test: build-name-string-search-v1)
  build-name-string-search-via-codec
  fn-concept-name-index
  (prefix-out test: foffs->concept)
@@ -33,12 +29,6 @@
   (collect-garbage 'major)
   (printf "current-memory-use ~aMB\n" (exact->inexact (/ (current-memory-use) 1000000))))
 
-(define (suffix:corpus->index-suffixes corpus)
-  (foldl (lambda (i all)
-           (foldl (lambda (j all) (cons (cons i j) all))
-                  all (range (string-length (vector-ref corpus i)))))
-         '() (range (vector-length corpus))))
-
 (define (suffix:corpus2->index-suffixes hashcorpus)
   (for*/vector (((foffs s-searchable) (in-hash hashcorpus))
               (soffs (range (string-length s-searchable))))
@@ -47,9 +37,6 @@
 (define (suffix:corpus2->index hashcorpus)
   (define (suffix<? a b)    (suffix<?/corpus2 hashcorpus a b))
   (define suffixes (suffix:corpus2->index-suffixes hashcorpus))
-  ;; It is acceptable to in-place sort the freshly allocated "suffixes",
-  ;; but "corpus" must remain ordered by primary storage file offset in
-  ;; order for vector-sparse-find to correctly guide the search.
   (report-memory)
   (printf "sorting suffixes\n")
   (vector-sort! suffixes suffix<?)
@@ -58,30 +45,7 @@
 
 (define (test:suffix:corpus2->index-suffixes veccorpus)
   (define hashcorpus (in-pairs->hash veccorpus))
-  (define (suffix<? a b)    (suffix<?/corpus2 hashcorpus a b))
   (suffix:corpus2->index-suffixes hashcorpus))
-
-(define (output/filename fname absdOut out->)
-  (printf "writing ~s\n" fname)
-  (time (call-with-output-file (expand-user-path (build-path absdOut fname)) out->)))
-
-(define (build-name-string-search-v1 concept* absdOut)
-  (printf "building name search corpus...\n")
-  (define name-corpus
-    (time (vector-map (lambda (c) (let ((name (concept-name c)))
-                                    (if name (string/searchable name) "")))
-                      concept*)))
-  (printf "building name search index...\n")
-  (define name-index (time (suffix:corpus->index name-corpus)))
-  (printf "indexed ~a suffixes\n" (vector-length name-index))
-  (output/filename
-   fn-concept-name-corpus
-   absdOut
-    (lambda (out) (for ((s (in-vector name-corpus))) (write-scm out s))))
-  (output/filename
-   fn-concept-name-index
-   absdOut
-    (lambda (out) (write-suffix-keys out name-index))))
 
 ;;; in-name-corpus
 ;;;   Opens a sequence produced by decoding a primary index file.  Auto-closes upon encountering eof.
@@ -115,7 +79,6 @@
   (let ((in-corpus (in-name-corpus fname absdOut)))
     (in-pairs->hash in-corpus)))
 
-;; For testing v1, we need vector-find-sparse, which needs a list of pairs ordered by foffs
 (define (test:read-name-corpus fname absdOut)
   (let ((in-corpus (in-name-corpus fname absdOut)))
     (for*/vector ((kv in-corpus))

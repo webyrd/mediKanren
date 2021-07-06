@@ -1,7 +1,6 @@
 #lang racket/base
 (provide
   string/searchable
-  suffix:corpus->index
   suffix:corpus-find*/disk
   (prefix-out test: string/searchable)
   (prefix-out test: suffix-key-count/port)
@@ -17,7 +16,6 @@
   test:parameterize-defaults
 
   ;; The following are internals used in string-search.rkt
-  vector-sparse-find
   suffix<?/corpus2
   concept-name
   write-scm
@@ -74,82 +72,6 @@
 (define (write-scm out scm) (fprintf out "~s\n" scm))
 ;; END:excerpted from medikanren/repr.rkt
 
-(define (msd-radix-sort vs len dref v<?)
-  (define vvs (list->vector vs))
-  (define out (make-vector (vector-length vvs)))
-  (define pos-count 127)
-  (define pos (make-vector pos-count))
-  (define (++pos! i) (unsafe-vector*-set!
-                       pos i (+ 1 (unsafe-vector*-ref pos i))))
-  (let loop ((bi 0) (vi 0) (vend (vector-length vvs)) (vs vvs) (out out))
-    (cond
-      ((< (- vend vi) 100) (vector-sort! vs v<? vi vend)
-                           (when (= 0 (bitwise-and bi 1))
-                             (vector-copy! out vi vs vi vend)))
-      (else (vector-fill! pos 0)
-            (define done-pos
-              (let i-loop ((i vi) (done-pos vi))
-                (cond ((< i vend)
-                       (define v (unsafe-vector*-ref vs i))
-                       (cond ((<= (len v) bi)
-                              (unsafe-vector*-set! out done-pos v)
-                              (i-loop (+ 1 i) (+ 1 done-pos)))
-                             (else (define d (dref v bi))
-                                   (when (< d pos-count) (++pos! d))
-                                   (i-loop (+ 1 i) done-pos))))
-                      (else done-pos))))
-            (define initial-big-pos
-              (let p-loop ((d 0) (p done-pos))
-                (cond ((< d pos-count)
-                       (define p^ (+ p (unsafe-vector*-ref pos d)))
-                       (unsafe-vector*-set! pos d p)
-                       (p-loop (+ 1 d) p^))
-                      (else p))))
-            (define big-pos
-              (let i-loop ((i vi) (big-pos initial-big-pos))
-                (cond ((< i vend)
-                       (define v (unsafe-vector*-ref vs i))
-                       (cond ((< bi (len v))
-                              (define d (dref v bi))
-                              (cond ((< d pos-count)
-                                     (unsafe-vector*-set!
-                                       out (unsafe-vector*-ref pos d) v)
-                                     (++pos! d)
-                                     (i-loop (+ 1 i) big-pos))
-                                    (else (unsafe-vector*-set! out big-pos v)
-                                          (i-loop (+ 1 i) (+ 1 big-pos)))))
-                             (else (i-loop (+ 1 i) big-pos))))
-                      (else big-pos))))
-            (when (< initial-big-pos vend)
-              (vector-sort! out v<? initial-big-pos vend)
-              (when (= 1 (bitwise-and bi 1))
-                (vector-copy! vs initial-big-pos out initial-big-pos big-pos)))
-            (when (= 1 (bitwise-and bi 1))
-              (vector-copy! vs vi out vi done-pos))
-            (let d-loop ((i done-pos))
-              (when (< i initial-big-pos)
-                (define d (dref (unsafe-vector*-ref out i) bi))
-                (let end-loop ((end i) (offset 1))
-                  (define next (+ end offset))
-                  (cond
-                    ((and (< next initial-big-pos)
-                          (= d (dref (unsafe-vector*-ref out next) bi)))
-                     (end-loop next (arithmetic-shift offset 1)))
-                    (else (let end-loop
-                            ((end end) (offset (arithmetic-shift offset -1)))
-                            (define next (+ end offset))
-                            (if (= offset 0)
-                              (begin (loop (+ 1 bi) i (+ 1 end) out vs)
-                                     (d-loop (+ 1 end)))
-                              (end-loop
-                                (cond ((and (< next initial-big-pos)
-                                            (= d (dref (unsafe-vector*-ref
-                                                         out next) bi)))
-                                       next)
-                                      (else end))
-                                (arithmetic-shift offset -1))))))))))))
-  out)
-
 (define (nlist-intersection nlists)
   (if (null? nlists) '()
     (let loop ((i** nlists))
@@ -170,37 +92,6 @@
   (define cs (map char->integer (string->list (string-upcase s))))
   (list->string (map integer->char (filter searchable? cs))))
 
-;; vector-sparse-find: find the corpus entry with file offset of exactly foffs.
-;; Requires corpus to be ordered as they are read from primary storage (by increasing foffs).
-(define (vector-sparse-find corpus foffs)
-  (unless (integer? foffs) (error "expected integer foffs"))
-  (define (iter j-min j-max)
-    (if (<= (- j-max j-min) 1)
-        (begin
-          ;(printf "return j-min=~a j-max=~a\n" j-min j-max)
-          (car (vector-ref corpus j-min)))
-        (let* ((j-avg (floor (/ (+ j-min j-max) 2)))
-               (s-foffs-avg (vector-ref corpus j-avg))
-               (foffs-avg (cdr s-foffs-avg)))
-          (if (<= foffs-avg foffs)
-              (begin
-                ;(printf "iter right j-min=~a j-max=~a foffs=~a j-avg=~a s-foffs-avg=~a\n" j-min j-max foffs j-avg s-foffs-avg)
-                (iter j-avg j-max))
-              (begin
-                ;(printf "iter left j-min=~a j-max=~a foffs=~a j-avg=~a s-foffs-avg=~a\n" j-min j-max foffs j-avg s-foffs-avg)
-                (iter j-min j-avg))))))
-  (iter 0 (vector-length corpus)))
-
-(define (suffix-string-length1 corpus s)
-  (- (string-length (vector-ref corpus (car s))) (cdr s)))
-(define (suffix-string-length2 corpus s)
-  (- (string-length (vector-sparse-find corpus (car s))) (cdr s)))
-(define (suffix-string-ref1 corpus s i)
-  (char->integer (string-ref (unsafe-vector*-ref corpus (car s))
-                             (+ (cdr s) i))))
-(define (suffix-string-ref2 corpus s i)
-  (char->integer (string-ref (vector-sparse-find corpus (car s))
-                             (+ (cdr s) i))))
 (define (string<?/suffixes a ai b bi)
   (define alen (- (string-length a) ai))
   (define blen (- (string-length b) bi))
@@ -209,32 +100,12 @@
           ((char<? (string-ref a ai) (string-ref b bi)) #t)
           ((char>? (string-ref a ai) (string-ref b bi)) #f)
           (else (loop (- k 1) (+ ai 1) (+ bi 1))))))
-(define (suffix<?/corpus1 corpus a b)
-  (string<?/suffixes (vector-ref corpus (car a)) (cdr a)
-                     (vector-ref corpus (car b)) (cdr b)))
 (define (suffix<?/corpus2 hashcorpus bin-a bin-b)
   (let* ((a (bytes->suffix-key bin-a 0))
          (b (bytes->suffix-key bin-b 0))
          (c (hash-ref hashcorpus (car a)))
          (d (hash-ref hashcorpus (car b))))
     (string<?/suffixes c (cdr a) d (cdr b))))
-
-(define (suffix:corpus->index corpus)
-  (printf "corpus[0]=~a\n" (vector-ref corpus 0))
-  (define-values
-    (suffix-string-length suffix<?/corpus suffix-string-ref)
-    (if (pair? (vector-ref corpus 0))
-      (values suffix-string-length2 suffix<?/corpus2 suffix-string-ref2)
-      (values suffix-string-length1 suffix<?/corpus1 suffix-string-ref1)))
-  (define suffixes
-    (foldl (lambda (i all)
-             (foldl (lambda (j all) (cons (cons i j) all))
-                    all (range (string-length (vector-ref corpus i)))))
-           '() (range (vector-length corpus))))
-  (define (suffix<? a b)    (suffix<?/corpus corpus a b))
-  (define (suffix-length s) (suffix-string-length corpus s))
-  (define (suffix-ref s i)  (suffix-string-ref corpus s i))
-  (msd-radix-sort suffixes suffix-length suffix-ref suffix<?))
 
 (define (remove-adjacent-duplicates xs)
   (define (remove/x x xs)
