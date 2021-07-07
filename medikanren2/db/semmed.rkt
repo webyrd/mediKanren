@@ -1,6 +1,7 @@
 #lang racket/base
 (provide concept cprop edge eprop)
 (require "../base.rkt" (except-in racket/match ==))
+(require "../string-search.rkt")
 
 ;; TODO: this might be useful later
 ;(define-relation/table concept
@@ -27,6 +28,8 @@
   ;'retrieval-type     'bytes
   ;'retrieval-type     'scm
   )
+
+(string-search-init-rel cprop)
 
 (define-relation/table edge
   'path               "semmed/edge"
