@@ -7,4 +7,5 @@ RUN mkdir -p /local/ci_artifacts/status/fail
 #weird error: /usr/bin/raco: Unrecognized command: make
 #  RUN bash /local/medikanren2/.compile.sh
 COPY target/medikanren2 /local/medikanren2
-CMD [ "/usr/bin/racket", "/local/medikanren2/server.rkt" ]
+COPY target/medikanren2/.docker_start.sh /local/medikanren2/start.sh
+CMD [ "/bin/bash", "/local/medikanren2/start.sh" ]
