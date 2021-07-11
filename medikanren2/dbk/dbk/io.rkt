@@ -1,7 +1,6 @@
 #lang racket/base
 (provide path->format file-stats s-pop-header produce/pop-header
          port-produce port-consume
-         (struct-out producer)
          out:transform out:procedure out:port out:file
          in:transform in:procedure in:port in:file
          in:stream in:pop-header
@@ -49,52 +48,39 @@
 ;; Producers and consumers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(struct producer (produce source-info) #:prefab)
-
-(define (in:procedure proc) (producer proc          'procedure))
-(define (in:stream s)       (producer (lambda () s) 'stream))
-
-(define (in:transform p f)
-  (cond (f (match-define (producer produce source-info) p)
-           (producer (lambda () (f (produce))) source-info))
-        (else p)))
-
-(define (in:pop-header p header)
-  (match-define (producer produce source-info) p)
-  (producer (produce/pop-header produce header) source-info))
+(define (in:procedure  proc)           proc)
+(define (in:stream     s)              (lambda () s))
+(define (in:transform  produce f)      (cond (f    (lambda () (f (produce))))
+                                             (else produce)))
+(define (in:pop-header produce header) (produce/pop-header produce header))
 
 (define (in:port p . pargs)
-  (define kwargs  (make-immutable-hash (plist->alist pargs)))
+  (define kwargs (make-immutable-hash (plist->alist pargs)))
   (define (produce) (port-produce p
                                   (hash-ref kwargs 'close? #f)
                                   (hash-ref kwargs 'format)
                                   (hash-ref kwargs 'type #f)))
-  (in:transform (producer (produce/pop-header produce
-                                              (hash-ref kwargs 'header #f))
-                          'port)
+  (in:transform (produce/pop-header produce (hash-ref kwargs 'header #f))
                 (hash-ref kwargs 'transform #f)))
 
 (define (in:file path.0 . pargs)
   (define path   (if (path? path.0) (path->string path.0) path.0))
   (define kwargs (make-immutable-hash (plist->alist pargs)))
   (define format (hash-ref kwargs 'format (path->format path)))
-  (unless format (error "unknown format:" path))
-  (define stats  (file-stats path))
-  (unless stats  (error "missing input file:" 'path: path))
+  (unless format            (error "unknown format:"     path))
+  (unless (file-stats path) (error "missing input file:" path))
   (define (produce) (let ((in (open-input-file path)))
                       (port-produce in (lambda () (close-input-port in))
                                     format
                                     (hash-ref kwargs 'type #f))))
-  (in:transform (producer (produce/pop-header produce
-                                              (hash-ref kwargs 'header #f))
-                          `(file ,stats))
+  (in:transform (produce/pop-header produce (hash-ref kwargs 'header #f))
                 (hash-ref kwargs 'transform #f)))
 
 (define (out:procedure proc) proc)
 (define (out:transform c f)  (lambda (s) (c (f s))))
 
 (define (out:port p . pargs)
-  (define kwargs  (make-immutable-hash (plist->alist pargs)))
+  (define kwargs (make-immutable-hash (plist->alist pargs)))
   (lambda (s) (port-consume p
                             (hash-ref kwargs 'close? #f)
                             (hash-ref kwargs 'format)
@@ -175,7 +161,7 @@
     ((in)   consume)
     ((out)  produce)))
 
-(define (in:pipe  p) (producer (p 'out) `(pipe ,(p 'name))))
+(define (in:pipe  p) (p 'out))
 (define (out:pipe p) (p 'in))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

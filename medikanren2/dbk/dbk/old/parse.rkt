@@ -1,12 +1,302 @@
 #lang racket/base
 (provide
+  env.empty env:new env-ref env-ref* env-set env-set* env-remove env-remove* env-bind env-bind* env-union env-rename
+  m:named m:link m:term m:relation m:assert
+  f:const f:relate f:implies f:iff f:or f:and f:not f:exist f:all
+  f:any<= f:== f:=/=
+  t:query t:map/merge t:quote t:var t:prim t:app t:lambda t:if t:let t:letrec
+  t:apply t:cons t:car t:cdr t:vector t:list->vector t:vector-ref t:vector-length
+  t-free-vars f-free-vars t-free-vars* t-free-vars-first-order t-free-vars-first-order*
+  t-substitute f-substitute t-substitute* t-substitute-first-order t-substitute-first-order*
+  f-relations t-relations t-relations*
+  module-flatten module-ref module-add module-remove module-remove* module-wrap module-unwrap
+  program.empty program:new program:set program-module program-env program-flatten program-remove*
   define-dbk dbk dbk-parse dbk-syntax link parameter input output
   dbk-environment dbk-environment-update with-dbk-environment-update with-fresh-names
-  env.empty env:new env-ref env-ref* env-set env-set* env-remove env-remove* env-bind env-bind* env-union
   literal? literal simple-parser
   parse:program parse:module parse:formula parse:term)
-(require "abstract-syntax.rkt" "misc.rkt"
-         racket/hash racket/list racket/match racket/set racket/struct)
+(require "misc.rkt" racket/hash racket/list racket/match racket/set racket/struct)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Environments with vocabularies
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define env.empty (hash))
+
+(define (env-ref     env vocab n)     (hash-ref (hash-ref env n (hash)) vocab #f))
+(define (env-ref*    env vocab ns)    (map (lambda (n) (env-ref env vocab n)) ns))
+(define (env-set     env vocab n  v)  (let* ((vocab=>v (hash-ref env n (hash)))
+                                             (vocab=>v (if v
+                                                         (hash-set    vocab=>v vocab v)
+                                                         (hash-remove vocab=>v vocab))))
+                                        (if (hash-empty? vocab=>v)
+                                          (hash-remove env n)
+                                          (hash-set env n vocab=>v))))
+(define (env-set*    env vocab ns vs) (foldl (lambda (n v env) (env-set env vocab n v)) env ns vs))
+
+(define (env-remove  env       n)     (hash-remove env n))
+(define (env-remove* env       ns)    (foldl (lambda (n e) (env-remove env n)) env ns))
+
+(define (env-bind    env vocab n  v)  (env-set  (env-remove  env n)  vocab n  v))
+(define (env-bind*   env vocab ns vs) (env-set* (env-remove* env ns) vocab ns vs))
+
+(define (env-union   env . envs)      (foldl (lambda (e e.0)
+                                               (hash-union e.0 e #:combine
+                                                           (lambda (vocab=>v.0 vocab=>v)
+                                                             (hash-union vocab=>v.0 vocab=>v #:combine
+                                                                         (lambda (v.0 v) (if v v v.0))))))
+                                             env envs))
+
+(define (env-rename env n=>n)
+  (define (v-rename vocab v)    (cons vocab               (if (procedure? v)
+                                                            v
+                                                            (hash-ref n=>n v v))))
+  (define (n-rename n vocab=>v) (cons (hash-ref n=>n n n) (make-immutable-hash
+                                                            (hash-map vocab=>v v-rename))))
+  (make-immutable-hash (hash-map env n-rename)))
+
+(define (env:new vocab . args)
+  (define nvs (plist->alist args))
+  (env-set* env.empty vocab
+            (map car nvs)
+            (map cdr nvs)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Abstract syntax
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-variant formula?
+  (f:const   value)  ; can be thought of as a relation taking no arguments
+  (f:relate  relation args)
+  (f:implies if then)
+  (f:iff     f1 f2)
+  (f:or      f1 f2)
+  (f:and     f1 f2)
+  (f:not     f)
+  (f:exist   params body)
+  (f:all     params body))
+
+(define (f:any<= u v) (f:relate '(prim any<=) (list u v)))
+(define (f:any<  u v) (f:relate '(prim any<)  (list u v)))
+(define (f:==    u v) (f:relate '(prim ==)    (list u v)))
+(define (f:=/=   u v) (f:relate '(prim =/=)   (list u v)))
+
+;; lambda calculus extended with constants (quote), logical queries, map/merge comprehensions
+(define-variant term?
+  (t:query     name formula)
+  (t:map/merge proc.map proc.merge default xs)
+  (t:quote     value)
+  (t:var       name)
+  (t:prim      name)
+  (t:app       proc args)
+  (t:lambda    params body)
+  (t:if        c t f)
+  (t:let       bpairs body)
+  (t:letrec    bpairs body))
+
+(define (t:apply f . args)  (t:app (t:prim 'apply)         args))
+(define (t:cons a d)        (t:app (t:prim 'cons)          (list a d)))
+(define (t:car p)           (t:app (t:prim 'car)           (list p)))
+(define (t:cdr p)           (t:app (t:prim 'cdr)           (list p)))
+(define (t:vector . args)   (t:app (t:prim 'vector)        args))
+(define (t:list->vector xs) (t:app (t:prim 'list->vector)  (list xs)))
+(define (t:vector-ref v i)  (t:app (t:prim 'vector-ref)    (list v i)))
+(define (t:vector-length v) (t:app (t:prim 'vector-length) (list v)))
+
+;; TODO: use CPS yielding to efficiently support partial-answer variations
+(define (t-free-vars t (first-order? #f))
+  (let loop ((t t))
+    (match t
+      ((t:query  name f)      (set-subtract (f-free-vars f first-order?) (set name)))
+      ((t:quote  _)           (set))
+      ((t:var    name)        (set name))
+      ((t:prim   _)           (set))
+      ((t:app    func args)   (set-union (t-free-vars* args first-order?)
+                                         (if first-order? (set) (loop func))))
+      ((t:lambda params body) (set-subtract (loop body) (list->set params)))
+      ((t:if     c t f)       (set-union (loop c) (loop t) (loop f)))
+      ((t:let    bpairs body) (set-union (t-free-vars* (map cdr bpairs) first-order?)
+                                         (set-subtract (loop body) (list->set (map car bpairs)))))
+      ((t:letrec bpairs body) (set-subtract (set-union (t-free-vars* (map cdr bpairs) first-order?)
+                                                       (loop body))
+                                            (list->set (map car bpairs)))))))
+
+(define (t-free-vars-first-order t) (t-free-vars t #t))
+
+(define (f-free-vars f (first-order? #f))
+  (let loop ((f f))
+    (match f
+      ((f:const   _)             (set))
+      ((f:or      f1 f2)         (set-union (loop f1) (loop f2)))
+      ((f:and     f1 f2)         (set-union (loop f1) (loop f2)))
+      ((f:implies if then)       (set-union (loop if) (loop then)))
+      ((f:relate  relation args) (t-free-vars* args first-order?))
+      ((f:exist   params body)   (set-subtract (loop body) (list->set params)))
+      ((f:all     params body)   (set-subtract (loop body) (list->set params))))))
+
+(define (t-free-vars* ts (first-order? #f))
+  (foldl (lambda (t vs) (set-union vs (t-free-vars t first-order?)))
+         (set) ts))
+(define (t-free-vars-first-order* ts) (t-free-vars* ts #t))
+
+(define (f-relations f)
+  (match f
+    ((f:const   _)             (set))
+    ((f:or      f1 f2)         (set-union (f-relations f1) (f-relations f2)))
+    ((f:and     f1 f2)         (set-union (f-relations f1) (f-relations f2)))
+    ((f:implies if then)       (set-union (f-relations if) (f-relations then)))
+    ((f:relate  relation args) (set-add (t-relations* args) relation))
+    ((f:exist   params body)   (f-relations body))
+    ((f:all     params body)   (f-relations body))))
+
+(define (t-relations t)
+  (match t
+    ((t:query  _ f)         (f-relations f))
+    ((t:quote  _)           (set))
+    ((t:var    _)           (set))
+    ((t:prim   _)           (set))
+    ((t:app    func args)   (set-union (t-relations func) (t-relations* args)))
+    ((t:lambda params body) (t-relations body))
+    ((t:if     c t f)       (set-union (t-relations c) (t-relations t) (t-relations f)))
+    ((t:let    bpairs body) (set-union (t-relations* (map cdr bpairs)) (t-relations body)))
+    ((t:letrec bpairs body) (set-union (t-relations* (map cdr bpairs)) (t-relations body)))))
+
+(define (t-relations* ts)
+  (foldl (lambda (t rs) (set-union rs (t-relations t)))
+         (set) ts))
+
+(define (t-substitute t name=>name (first-order? #f))
+  (let loop ((t t))
+    (match t
+      ((t:query  name f)      (t:query name (f-substitute f (hash-remove name=>name name) first-order?)))
+      ((t:quote  _)           t)
+      ((t:var    name)        (t:var (hash-ref name=>name name name)))
+      ((t:prim   _)           t)
+      ((t:app    func args)   (t:app func (t-substitute* args name=>name first-order?)))
+      ((t:lambda params body) (t:lambda params (t-substitute body
+                                                             (hash-remove* name=>name params)
+                                                             first-order?)))
+      ((t:if     c t f)       (t:if (loop c) (loop t) (loop f)))
+      ((t:let    bpairs body) (define params (map car bpairs))
+                              (t:let (map cons params (t-substitute* (map cdr bpairs)
+                                                                     name=>name
+                                                                     first-order?))
+                                     (t-substitute body
+                                                   (hash-remove* name=>name params)
+                                                   first-order?)))
+      ((t:letrec bpairs body) (define params (map car bpairs))
+                              (define n=>n   (hash-remove* name=>name params))
+                              (t:let (map cons params (t-substitute* (map cdr bpairs)
+                                                                     n=>n
+                                                                     first-order?))
+                                     (t-substitute body
+                                                   n=>n
+                                                   first-order?))))))
+
+(define (t-substitute* ts name=>name (first-order? #f))
+  (map (lambda (t) (t-substitute t name=>name first-order?)) ts))
+
+(define (f-substitute f name=>name (first-order? #f))
+  (let loop ((f f))
+    (match f
+      ((f:const   _)             f)
+      ((f:or      f1 f2)         (f:or      (loop f1)
+                                            (loop f2)))
+      ((f:and     f1 f2)         (f:and     (loop f1)
+                                            (loop f2)))
+      ((f:implies if then)       (f:implies (loop if)
+                                            (loop then)))
+      ((f:relate  relation args) (f:relate relation (t-substitute* args name=>name first-order?)))
+      ((f:exist   params body)   (f:exist params (f-substitute body
+                                                               (hash-remove* name=>name params)
+                                                               first-order?)))
+      ((f:all     params body)   (f:all   params (f-substitute body
+                                                               (hash-remove* name=>name params)
+                                                               first-order?))))))
+
+(define (t-substitute-first-order  t  name=>name) (t-substitute  t  name=>name #t))
+(define (t-substitute-first-order* ts name=>name) (t-substitute* ts name=>name #t))
+
+;; A schema is a finite map of names to finite maps of properties to sets of
+;; values, i.e.: (=> name (=> property (set value)))
+(define schema.empty (hash))
+(define (schema:new private=>property=>value)
+  (make-immutable-hash
+    (hash-map private=>property=>value
+              (lambda (private p=>v)
+                (cons private
+                      (make-immutable-hash
+                        (hash-map p=>v (lambda (p v) (cons p (set v))))))))))
+
+(define (schema-union p=>p=>v.0 p=>p=>v.1)
+  (hash-union p=>p=>v.0 p=>p=>v.1
+              #:combine (lambda (p=>v.0 p=>v.1)
+                          (hash-union p=>v.0 p=>v.1 #:combine set-union))))
+
+(record module (terms relations assertions name=>submodule) #:prefab)
+(define module.empty (module
+                       (terms           schema.empty)
+                       (relations       schema.empty)
+                       (assertions      (set))
+                       (name=>submodule (hash))))
+
+(define (m:link     ms)        (foldl (lambda (m m.0)
+                                        (match-define (module:struct ts.0 rs.0 as.0 n=>s.0) m.0)
+                                        (match-define (module:struct ts   rs   as   n=>s)   m)
+                                        (module
+                                          (terms           (schema-union ts.0 ts))
+                                          (relations       (schema-union rs.0 rs))
+                                          (assertions      (set-union    as.0 as))
+                                          (name=>submodule (hash-union n=>s.0 n=>s #:combine
+                                                                       (lambda (s.0 s)
+                                                                         (m:link (list s.0 s)))))))
+                                      module.empty
+                                      ms))
+(define (m:named    name m)    (module:set module.empty (name=>submodule (hash       name m))))
+(define (m:term     name p=>v) (module:set module.empty (terms           (schema:new (hash name p=>v)))))
+(define (m:relation name p=>v) (module:set module.empty (relations       (schema:new (hash name p=>v)))))
+(define (m:assert   formula)   (module:set module.empty (assertions      (set        formula))))
+
+(define (module-flatten m)          (m:link (cons (module:set m (module-name=>submodule (hash)))
+                                                  (map module-flatten (hash-values (module-name=>submodule m))))))
+
+(define (module-ref     m path)     (foldl (lambda (name m)
+                                             (hash-ref (module-name=>submodule m) name module.empty))
+                                           m path))
+
+(define (module-add     m path sub) (if (null? path)
+                                      (m:link (list m sub))
+                                      (module:set m (name=>submodule
+                                                      (hash-update (module-name=>submodule m) (car path)
+                                                                   (lambda (m) (module-add m (cdr path) sub))
+                                                                   module.empty)))))
+
+(define (module-remove  m path)     (if (null? path)
+                                      module.empty
+                                      (let loop ((m m) (path path))
+                                        (module:set m (name=>submodule
+                                                        (if (null? (cdr path))
+                                                          (hash-remove (module-name=>submodule m) (car path))
+                                                          (hash-update (module-name=>submodule m) (car path)
+                                                                       (lambda (m) (loop m (cdr path)))
+                                                                       module.empty)))))))
+
+(define (module-remove* m paths)    (foldl (lambda (path m) (module-remove m path)) m paths))
+
+(define (module-wrap    m path)     (foldl (lambda (name m)
+                                             (module:set module.empty (name=>submodules (hash name m))))
+                                           m path))
+
+(define (module-unwrap  m path)     (foldl (lambda (name m)
+                                             (hash-ref (module-name=>submodule m) name module.empty))
+                                           m path))
+
+(record program (module env) #:prefab)
+(define (program:new m env) (program (module m) (env env)))
+(define program.empty (program:new module.empty env.empty))
+
+(define (program-remove* p paths) (program:set p (module (module-remove* (program-module p) paths))))
+(define (program-flatten p)       (program:set p (module (module-flatten (program-module p)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Names and parameter trees
@@ -39,36 +329,6 @@
 (define (unique? names) (= (set-count (list->set names)) (length names)))
 
 (define (name? x) (not (or (not x) (procedure? x))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Environments with vocabularies
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define env.empty (hash))
-
-(define (env-ref     env vocab n)     (hash-ref (hash-ref env n (hash)) vocab #f))
-(define (env-ref*    env vocab ns)    (map (lambda (n) (env-ref env vocab n)) ns))
-(define (env-set     env vocab n  v)  (hash-update env n (lambda (vocab=>v) (hash-set vocab=>v vocab v)) (hash)))
-(define (env-set*    env vocab ns vs) (foldl (lambda (n v env) (env-set env vocab n v)) env ns vs))
-
-(define (env-remove  env       n)     (hash-remove env n))
-(define (env-remove* env       ns)    (foldl (lambda (n e) (env-remove env n)) env ns))
-
-(define (env-bind    env vocab n  v)  (env-set  (env-remove  env n)  vocab n  v))
-(define (env-bind*   env vocab ns vs) (env-set* (env-remove* env ns) vocab ns vs))
-
-(define (env-union   env . envs)      (foldl (lambda (e e.0)
-                                               (hash-union e.0 e #:combine
-                                                           (lambda (vocab=>v.0 vocab=>v)
-                                                             (hash-union vocab=>v.0 vocab=>v #:combine
-                                                                         (lambda (v.0 v) v)))))
-                                             env envs))
-
-(define (env:new vocab . args)
-  (define nvs (plist->alist args))
-  (env-set* env.empty vocab
-            (map car nvs)
-            (map cdr nvs)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Parsing
@@ -614,7 +874,7 @@
 ;; TODO: (define-dbk name (other attributes?) (parent ...) body ...)
 (define-syntax-rule (define-dbk name body ...) (define name (dbk body ...)))
 
-;; TODO: (dbk (other attributes?) (parent ...) clauses ...) using (dbk-parse (union-of-envs-of parent ...) clauses ...)
+;; TODO: (dbk (other attributes? such as process name) (parent ...) clauses ...) using (dbk-parse (union-of-envs-of parent ...) clauses ...)
 ;; dbk-parse produces AST and residual env
 ;; semantically process result of dbk-parse to produce a process value
 (define-syntax-rule (dbk clauses ...)          (dbk-parse (dbk-syntax clauses ...)))

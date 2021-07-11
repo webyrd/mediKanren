@@ -119,8 +119,8 @@
 ;; Partially-satisfied state of a query's constraints
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(record state (qterm vars log var=>cx cx pending))
-(define (state:new qterm) (state (qterm qterm) (vars (term-vars qterm)) (log '())
+(record state (qterm vars proc-stack log var=>cx cx pending))
+(define (state:new qterm) (state (qterm qterm) (vars (term-vars qterm)) (proc-stack '()) (log '())
                                  (var=>cx (hash)) (cx (hash)) (pending queue.empty)))
 
 (define (state-vars-simplify st)
@@ -128,6 +128,19 @@
 
 (define (state-vcx-ref st x)                          (hash-ref (state-var=>cx st) x vcx.empty))
 (define (state-vcx-set st x t) (state:set st (var=>cx (hash-set (state-var=>cx st) x t))))
+
+(define (state-proc-stack-push st proc-frame)
+  (define proc    (car proc-frame))
+  (define args    (cdr proc-frame))
+  (define parents (state-proc-stack st))
+  (let*/and ((st (c-apply st #f (c:conj (map (lambda (p)
+                                               ;(displayln `(=/= ,args ,(cdr p)))
+
+                                               (c:=/= args (cdr p)))
+                                             (filter (lambda (p) (equal? proc (car p)))
+                                                     parents))))))
+    (state:set st (proc-stack (cons proc-frame parents)))))
+(define (state-proc-stack-pop st) (state:set st (proc-stack (cdr (state-proc-stack st)))))
 
 (define (state-log-add st c)
   (define log (state-log st))
@@ -773,7 +786,12 @@
         (else           (s-append/interleaving (k (car s)) (thunk (bis:bind (cdr s) k))))))
 (define ((bis:apply/expand ex args) st)
   ((bis:goal (apply ex (walk* st args))) st))
-(define ((bis:expand ex args) st) (thunk ((bis:goal (apply ex args)) st)))
+(define ((bis:expand ex r args) st)
+  (define frame (cons r args))
+  (thunk (bis:bind (bis:return (state-proc-stack-push st frame))
+                   (lambda (st) (bis:bind ((bis:goal (apply ex args)) st)
+                                          (lambda (st) (bis:return (state-proc-stack-pop st))))))))
+
 (define (bis:goal f)
   (match f
     (`#s(conj ,f1 ,f2) (let ((k1 (bis:goal f1)) (k2 (bis:goal f2)))
@@ -791,7 +809,7 @@
       (define expand       (hash-ref r 'expand       #f))  ; pure expansion
       (cond (apply/bis    (apply/bis args))
             (apply.r      (lambda (st) (bis:return (apply.r st args))))
-            (expand       (bis:expand       expand       args))
+            (expand       (bis:expand expand r args))
             (else (error "no interpretation for:" proc args))))
     (_ (define c (f->c f))
        (lambda (st) (bis:return (c-apply st #f c))))))
@@ -805,7 +823,12 @@
     st
     (lambda ()   '())
     (lambda (st) (s-append (k1 st) (thunk (k2 st))))))
-(define ((dfs:expand ex args k) st) ((dfs:goal (apply ex args) k) st))
+(define ((dfs:expand ex r args k) st)
+  (define frame (cons r args))
+  (dfs:return (dfs:goal (apply ex args)
+                        (lambda (st) (dfs:return k (state-proc-stack-pop st))))
+              (state-proc-stack-push st frame)))
+
 (define (dfs:goal f k)
   (define loop dfs:goal)
   (match f
@@ -818,7 +841,7 @@
       (define expand       (hash-ref r 'expand       #f))  ; pure expansion
       (cond (apply/dfs    (apply/dfs k args))
             (apply.r      (lambda (st) (dfs:return k (apply.r st args))))
-            (expand       (dfs:expand       expand       args k))
+            (expand       (dfs:expand expand r args k))
             (else (error "no interpretation for:" proc args))))
     (_ (define c (f->c f))
        (lambda (st) (dfs:return k (c-apply st #f c))))))

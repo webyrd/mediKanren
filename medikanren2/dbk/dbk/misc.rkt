@@ -4,8 +4,9 @@
          foldl/and let*/and define-variant
          plist->alist alist-ref alist-remove alist-update alist-set
          hash-remove*
-         call/files let/files)
-(require (for-syntax racket/base) racket/match)
+         call/files let/files
+         map/merge map/append)
+(require (for-syntax racket/base) racket/list racket/match racket/set)
 
 (define-syntax simple-match-lambda
   (syntax-rules ()
@@ -206,3 +207,15 @@
 (define-syntax-rule (let/files ((in fin) ...) ((out fout) ...) body ...)
   (call/files (list fin ...) (list fout ...)
               (lambda (in ... out ...) body ...)))
+
+(define (map/merge f merge default xs)
+  (define ys (reverse (cond ((list?   xs) (map f               xs))
+                            ((vector? xs) (map f (vector->list xs)))
+                            ((set?    xs) (set-map  xs f))
+                            ((hash?   xs) (hash-map xs (lambda (k v) (f (cons k v)))))
+                            (else         (error "invalid map/merge collection:" xs)))))
+  (if (null? ys)
+    default
+    (foldl merge (car ys) (cdr ys))))
+
+(define (map/append f xs) (append* (map f xs)))
