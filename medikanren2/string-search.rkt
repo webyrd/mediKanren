@@ -2,7 +2,7 @@
 (provide
  test:read-name-corpus
  test:suffix:corpus2->index-suffixes
- build-name-index-via-codec
+ build-string-index-via-codec-and-write
  (prefix-out test: build-string-index-via-codec)
  (prefix-out test: ensure-name-index-built)
  find-ids-named
@@ -88,7 +88,7 @@
     (printf "building name search index...\n")
     (values hashcorpus (suffix:corpus2->index hashcorpus))))
 
-(define (build-name-index-via-codec fn-pri fn-index absdOut)
+(define (build-string-index-via-codec-and-write fn-pri fn-index absdOut)
   (define-values (hashcorpus name-index) (build-string-index-via-codec fn-pri absdOut))
   (printf "indexed ~a suffixes, now writing...\n" (vector-length name-index))
   (call-with-atomic-output-file
@@ -103,7 +103,7 @@
          (absf-index (path->string (simplify-path (build-path absd-index fn-concept-name-index)))))
     (printf "checking for index ~a\n" absf-index)
     (unless (file-exists? absf-index)
-      (build-name-index-via-codec fn-cprop-primary fn-concept-name-index absd-index))))
+      (build-string-index-via-codec-and-write fn-cprop-primary fn-concept-name-index absd-index))))
 
 (define (assert-name-index-built absd-index fn-concept-name-index)
   (let* (
