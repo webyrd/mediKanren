@@ -143,7 +143,7 @@
     (define-relation/table (found xxx)
       'source-stream (map list uris))
     (define-relation (found2 id subj object)
-      (found id)                                     ;; logical AND, as in conde
+      (found id)                                     ;; logical AND, as in fresh
       (rel id subj object))
     found2))
 
