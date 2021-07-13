@@ -218,7 +218,7 @@
     (lambda (adirTemp)
       (let ((fn-primary (expand-user-path (build-path adirTemp fn-cprop-primary))))
         (build-test-corpus (vector-map car concept*-example-1) adirTemp)
-        (build-string-index-via-codec-and-write fn-cprop-primary fn-concept-name-index adirTemp)))))
+        (test:build-string-index-via-codec-and-write fn-cprop-primary fn-concept-name-index adirTemp)))))
  (#:t #t))
 
 
@@ -316,7 +316,7 @@
     (lambda (adirTemp)
       (let ((fn-primary (expand-user-path (build-path adirTemp fn-cprop-primary))))
         (build-test-corpus (vector-map car concept*-example-1) adirTemp)
-        (build-string-index-via-codec-and-write fn-cprop-primary fn-concept-name-index adirTemp)
+        (test:build-string-index-via-codec-and-write fn-cprop-primary fn-concept-name-index adirTemp)
         (let ((lookup (lambda (name*)
             (map uri-from-pri (db:~name*->concept*/options stsopt-default adirTemp fn-cprop-primary fn-concept-name-index name*)))))
           (for ((i (range (vector-length concept*-example-1))))

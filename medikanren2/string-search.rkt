@@ -2,7 +2,7 @@
 (provide
  test:read-name-corpus
  test:suffix:corpus2->index-suffixes
- build-string-index-via-codec-and-write
+ (prefix-out test: build-string-index-via-codec-and-write)
  (prefix-out test: build-string-index-via-codec)
  (prefix-out test: ensure-name-index-built)
  find-ids-named
