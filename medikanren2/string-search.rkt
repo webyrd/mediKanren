@@ -139,9 +139,9 @@
       (map uri-from-pri pris)))
 
 (define (find-concept-named rel substrings (stsopt stsopt-default))
-  (let ((uris (name-string-matches rel substrings stsopt))) ;; ("HGNC:01" "HGNC:02")
+  (let ((uris (find-ids-named rel substrings stsopt)))
     (define-relation/table (found xxx)
-      'source-stream (map list uris))                ;; (("HGNC:01") ("HGNC:02"))
+      'source-stream (map list uris))
     (define-relation (found2 id subj object)
       (found id)                                     ;; logical AND, as in conde
       (rel id subj object))
