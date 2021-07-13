@@ -10,8 +10,8 @@
  (prefix-out test: foffs->concept)
  (prefix-out test: build-name-index-via-codec)
  (prefix-out test: ensure-name-index-built)
- name-string-matches
- find-concept-named
+ find-ids-named
+ find-concepts-named
  string-search-init-rel
  test:verify-corpus-index
  make-stsopt
@@ -130,15 +130,15 @@
         (error (format "index out of sequence: ~a should be < ~a\n" (shorten ss-prev) (shorten ss)))))
     ))
 
-(define (name-string-matches rel substrings (stsopt stsopt-default))
+(define (find-ids-named rel substrings (stsopt stsopt-default))
   (unless (andmap string? substrings)
-    (error "name-string-matches: substrings must be a list of strings"))
+    (error "find-ids-named: substrings must be a list of strings"))
   (define absd-index (hash-ref (relation-definition-info rel) 'path))
   (assert-name-index-built absd-index fn-concept-name-index)
     (let* ((pris (db:~name*->concept*/options stsopt absd-index fn-cprop-primary fn-concept-name-index substrings)))
       (map uri-from-pri pris)))
 
-(define (find-concept-named rel substrings (stsopt stsopt-default))
+(define (find-concepts-named rel substrings (stsopt stsopt-default))
   (let ((uris (find-ids-named rel substrings stsopt)))
     (define-relation/table (found xxx)
       'source-stream (map list uris))
@@ -150,7 +150,7 @@
 ;;; Prepare a string search index, if it has not already been prepared.
 ;; If the the string search index has already been prepared, string-search-init-rel
 ;; will exit quickly.  If no string search index is prepared, calls
-;; to name-string-matches and find-concept-named will fail.
+;; to find-ids-named and find-concepts-named will fail.
 (define (string-search-init-rel rel)
   (let* ((reld-index (hash-ref (relation-definition-info rel) 'path)))
     (ensure-name-index-built reld-index fn-concept-name-index)

@@ -38,7 +38,7 @@
     (#:do
         (test:ensure-name-index-built (hash-ref (relation-definition-info nodes) 'path) fn-perftest))
     (#:do
-        (time (length (name-string-matches nodes '("CACNA1")))))
+        (time (length (find-ids-named nodes '("CACNA1")))))
     (#:do
         (delete-file (absf-perftest nodes)))
     (#:t #t))
