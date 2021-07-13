@@ -1,13 +1,11 @@
 #lang racket
 (provide
- (prefix-out test: field-indexed)
  suffix:corpus2->index
  test:read-name-corpus
  test:suffix:corpus2->index-suffixes
  fn-cprop-primary
  build-name-string-search-via-codec
  fn-concept-name-index
- (prefix-out test: foffs->concept)
  (prefix-out test: build-name-index-via-codec)
  (prefix-out test: ensure-name-index-built)
  find-ids-named

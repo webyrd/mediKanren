@@ -2,15 +2,8 @@
 (provide
   string/searchable
   suffix:corpus-find*/disk
-  (prefix-out test: string/searchable)
-  (prefix-out test: suffix-key-count/port)
-  (prefix-out test: suffix-index->suffix-key)
-  (prefix-out test:  suffix-key-count/port)
-  (prefix-out test:  suffix-index->suffix-key)
   bytes->suffix-key
   suffix-key->bytes
-  (prefix-out test: bytes->string-key)
-  (prefix-out test: string-key->bytes)
   param-fd-input-binary
   ensure-fd-input-binary
   test:parameterize-defaults
@@ -39,12 +32,6 @@
 (define (byte-at offset n) (bitwise-and 255 (arithmetic-shift n offset)))
 ;; ...
 (define string-key-byte-size 6)
-(define (string-key->bytes cid)
-  (bytes (byte-at -40 cid) (byte-at -32 cid) (byte-at -24 cid) (byte-at -16 cid) (byte-at -8 cid) (byte-at 0 cid)))
-(define (bytes->string-key bs)
-  (define (bref-to pos offset) (arithmetic-shift (bytes-ref bs pos) offset))
-  (+ (bref-to 0 40) (bref-to 1 32) (bref-to 2 24) (bref-to 3 16) (bref-to 4 8) (bref-to 5 0)))
-
 (define suffix-key-byte-size (+ 6 2))
 (define (suffix-key-count bs) (/ (bytes-length bs) suffix-key-byte-size))
 (define (suffix-key-count/port in)

@@ -97,15 +97,6 @@
 
 (chk
   (#:do
-    (for ((xp (range 0 46)))
-      (let* ((foffs (arithmetic-shift 1 xp))
-              (foffs2 (test:bytes->string-key (test:string-key->bytes foffs))))
-        (unless (== foffs foffs2)
-          (error (format "could not round trip file offset ~a" foffs))))))
-  (#:t #t))
-
-(chk
-  (#:do
     (for ((xp (range 0 14)))
       (let* ((soffs (arithmetic-shift 1 xp))
               (soffs2 (car (bytes->suffix-key (suffix-key->bytes (cons 7 soffs)) 0))))
@@ -207,7 +198,7 @@
     (for/vector ((c concept*))
       (let ((id (car c))
             (name (cadr c)))
-        (encode fd schema-pri `(,id ,test:field-indexed ,name))))
+        (encode fd schema-pri `(,id ,field-indexed ,name))))
     (close-output-port fd)))
 
 (chk
@@ -242,7 +233,7 @@
       (let* ((s-n (vector-ref index-v2 i)))
           (let* ((foffs (car s-n))
                  (soffs (cdr s-n))
-                 (concept (test:foffs->concept fd-primary foffs))
+                 (concept (foffs->concept fd-primary foffs))
                  (id (list-ref concept 0))
                  (name (list-ref concept 2))
                  (st-hit (substring (string/searchable name) soffs))
