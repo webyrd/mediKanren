@@ -327,7 +327,7 @@
         (build-test-corpus (vector-map car concept*-example-1) adirTemp)
         (build-name-string-search-via-codec fn-cprop-primary fn-concept-name-index adirTemp)
         (let ((lookup (lambda (name*)
-            (map uri-from-pri (db:~name*->concept*/options2 stsopt-default adirTemp fn-cprop-primary fn-concept-name-index name*)))))
+            (map uri-from-pri (db:~name*->concept*/options stsopt-default adirTemp fn-cprop-primary fn-concept-name-index name*)))))
           (for ((i (range (vector-length concept*-example-1))))
             (let* ((a-q (vector-ref concept*-example-1 i))
                    (q (cdr a-q))

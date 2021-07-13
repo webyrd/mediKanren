@@ -95,8 +95,7 @@
     (smart-string-matches? stsopt str* hay))
   (filter p? value*))
 ;;; :295
-;(define (db:~name*->cid&concept*/options
-(define (db:~name*->concept*/options2
+(define (db:~name*->concept*/options
           stsopt absdOut fn-cprop-primary fn-concept-name-index ~name*)
   (define fd-corpus
     (ensure-fd-input-binary (expand-user-path (build-path absdOut fn-cprop-primary))))

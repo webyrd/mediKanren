@@ -135,7 +135,7 @@
     (error "name-string-matches: substrings must be a list of strings"))
   (define absd-index (hash-ref (relation-definition-info rel) 'path))
   (assert-name-index-built absd-index fn-concept-name-index)
-    (let* ((pris (db:~name*->concept*/options2 stsopt absd-index fn-cprop-primary fn-concept-name-index substrings)))
+    (let* ((pris (db:~name*->concept*/options stsopt absd-index fn-cprop-primary fn-concept-name-index substrings)))
       (map uri-from-pri pris)))
 
 (define (find-concept-named rel substrings (stsopt stsopt-default))
