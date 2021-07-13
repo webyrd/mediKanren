@@ -3,12 +3,12 @@
 ;(require racket/match)
 (require chk)
 (require "../../common.rkt")
+(require "../../string-search-config.rkt")
 (require "../../string-search-impl.rkt")
 (require "../../string-search.rkt")
 (require racket/pretty)
 (require "../../db/yeast-micro-sri-reference-kg-0.3.0.rkt")
 (require "../../base.rkt")
-(require "../../string-search.rkt")
 
 
 (chk
