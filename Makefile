@@ -3,7 +3,7 @@ adirRepo := $(shell cd $(dir $(firstword $(MAKEFILE_LIST))) && pwd)
 # https://stackoverflow.com/questions/322936/common-gnu-makefile-directory-path
 
 default:
-	@echo ***available targets***: prepare_ci, run_ci, install_pkgs, docker_build, update_trapi_metadata
+	@echo ***available targets***: prepare_ci, run_ci, install_pkgs
 
 prepare_ci:
 	@echo about to setup_artifacts
@@ -22,14 +22,4 @@ run_ci: prepare_ci
 install_pkgs:
 	-bash $(adirRepo)/medikanren/.install_pkgs.sh
 	-bash $(adirRepo)/medikanren2/.install_pkgs.sh
-
-docker_build:
-	mkdir -p $(adirRepo)/docker/medikanren-trapi/target
-	rm -rf $(adirRepo)/docker/medikanren-trapi/target/*
-	(cd $(adirRepo) && find medikanren2 -not -path medikanren2/data/\* -type f | cpio -p --make-directories --preserve-modification-time docker/medikanren-trapi/target/)
-	cd $(adirRepo)/docker/medikanren-trapi && \
-		docker build -t medikanren-trapi .
-
-update_trapi_metadata:
-	bash $(adirRepo)/medikanren2/open-api/yaml-to-json.sh
 
