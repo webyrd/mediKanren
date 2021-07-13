@@ -1,12 +1,9 @@
 #lang racket
 (provide
- suffix:corpus2->index
  test:read-name-corpus
  test:suffix:corpus2->index-suffixes
- fn-cprop-primary
- build-name-string-search-via-codec
- fn-concept-name-index
- (prefix-out test: build-name-index-via-codec)
+ build-name-index-via-codec
+ (prefix-out test: build-string-index-via-codec)
  (prefix-out test: ensure-name-index-built)
  find-ids-named
  find-concepts-named
@@ -83,16 +80,16 @@
       kv)))
 
 
-;;; build-name-index-via-codec
+;;; build-string-index-via-codec
 ;; Name+id corpus must live on disk so as to possess file offsets.
-(define (build-name-index-via-codec fname absdOut)
+(define (build-string-index-via-codec fname absdOut)
   (let ((hashcorpus (read-name-corpus fname absdOut)))
     (report-memory)
     (printf "building name search index...\n")
     (values hashcorpus (suffix:corpus2->index hashcorpus))))
 
-(define (build-name-string-search-via-codec fn-pri fn-index absdOut)
-  (define-values (hashcorpus name-index) (build-name-index-via-codec fn-pri absdOut))
+(define (build-name-index-via-codec fn-pri fn-index absdOut)
+  (define-values (hashcorpus name-index) (build-string-index-via-codec fn-pri absdOut))
   (printf "indexed ~a suffixes, now writing...\n" (vector-length name-index))
   (call-with-atomic-output-file
     (expand-user-path (build-path absdOut fn-index))
@@ -106,7 +103,7 @@
          (absf-index (path->string (simplify-path (build-path absd-index fn-concept-name-index)))))
     (printf "checking for index ~a\n" absf-index)
     (unless (file-exists? absf-index)
-      (build-name-string-search-via-codec fn-cprop-primary fn-concept-name-index absd-index))))
+      (build-name-index-via-codec fn-cprop-primary fn-concept-name-index absd-index))))
 
 (define (assert-name-index-built absd-index fn-concept-name-index)
   (let* (
