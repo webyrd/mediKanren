@@ -153,6 +153,8 @@
                                    (range (car r) (cdr r)))))
          (filter (lambda (r) (<= (rz r) zmin)) rs))))
 
+;;;; Provisions for efficient safe use of file handles
+
 ;;; param-fd-input-binary:
 ;;;   A context for caching file descriptors.
 ;;;   To preserve context, (make-hash), keep a reference, and pass
@@ -177,6 +179,12 @@
       (param-fd-input-binary h)
       fd)))
 
+;;; test:parameterize-defaults
+;;;   A helper for automated tests to be able to open string indexes.
+;;;   Applications should implement a similar but usually more complicated
+;;;   function.  Call (make-hash) as we do here to trigger allocation of a
+;;;   new hash of file handles, or supply a previously allocated hash
+;;;   of file handles for reuse.
 (define (test:parameterize-defaults thunk)
   (parameterize
     ((param-fd-input-binary (make-hash)))

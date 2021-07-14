@@ -12,7 +12,7 @@
     fn-cprop-primary
 )
 
-;;;; Isolate the hard-coded assumptions of string-search here.
+;;;; Isolate here the configuration of string-search (currently hard-coded).
 
 ;; For now, we only index the field called "name"
 (define field-indexed "name")

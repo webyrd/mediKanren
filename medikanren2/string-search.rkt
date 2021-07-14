@@ -126,6 +126,11 @@
         (error (format "index out of sequence: ~a should be < ~a\n" (shorten ss-prev) (shorten ss)))))
     ))
 
+;;; find-ids-named
+;; Consult the string index associated with rel to find the ids
+;; in rel with a (name) string matching every substr in substrs,
+;; according to options stsopt.  If the associated string index
+;; has not been previously prepared, fail.
 (define (find-ids-named rel substrs (stsopt stsopt-default))
   (unless (andmap string? substrs)
     (error "find-ids-named: substrs must be a list of strings"))
@@ -134,6 +139,11 @@
     (let* ((pris (db:~name*->concept*/options stsopt absd-index fn-cprop-primary fn-concept-name-index substrs)))
       (map uri-from-pri pris)))
 
+;;; find-ids-named
+;; Consult the string index associated with rel to find the concepts
+;; in rel with a (name) string matching every substr in substrs,
+;; according to options stsopt.  If the associated string index
+;; has not been previously prepared, fail.
 (define (find-concepts-named rel substrs (stsopt stsopt-default))
   (let ((uris (find-ids-named rel substrs stsopt)))
     (define-relation/table (found xxx)
@@ -143,7 +153,8 @@
       (rel id subj object))
     found2))
 
-;;; Prepare a string search index, if it has not already been prepared.
+;;; string-search-init-rel
+;; Prepare a string search index, if it has not already been prepared.
 ;; If the the string search index has already been prepared, string-search-init-rel
 ;; will exit quickly.  If no string search index is prepared, calls
 ;; to find-ids-named and find-concepts-named will fail.
