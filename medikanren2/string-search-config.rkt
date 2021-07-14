@@ -1,4 +1,6 @@
 #lang racket
+;; This file is private to string-search.rkt.
+;; Applications should include string-search.rkt instead.
 (provide
     field-indexed
     schema-pri

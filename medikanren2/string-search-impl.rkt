@@ -1,4 +1,6 @@
 #lang racket/base
+;; This file is private to string-search.rkt.
+;; Applications should include string-search.rkt instead.
 (provide
   string/searchable
   suffix:corpus-find*/disk

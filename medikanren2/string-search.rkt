@@ -1,16 +1,17 @@
 #lang racket
 (provide
+ find-ids-named
+ find-concepts-named
+ string-search-init-rel
+ make-stsopt
+ stsopt-t
+
  test:read-name-corpus
  test:suffix:corpus2->index-suffixes
  (prefix-out test: build-string-index-via-codec-and-write)
  (prefix-out test: build-string-index-via-codec)
  (prefix-out test: ensure-name-index-built)
- find-ids-named
- find-concepts-named
- string-search-init-rel
  test:verify-corpus-index
- make-stsopt
- stsopt-t
  )
 (require racket/dict)
 (require racket/vector)
