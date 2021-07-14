@@ -7,7 +7,7 @@ rfile_edges = "medikanren2/data/sri-reference/0.3.0/upstream/sri-reference-kg-0.
 
 configs = {
     'small': {
-        'level_max': 5,
+        'level_max': 3,
         'rel_blacklist':{
             "biolink:related_to":1,
             "biolink:actively_involved_in":1,
@@ -28,7 +28,7 @@ configs = {
     }
 }
 
-kconfig='micro'
+kconfig='small'
 do_write = True
 
 level_max = configs[kconfig]['level_max']
@@ -106,6 +106,7 @@ def path_prefix(prefix,rfile):
     return os.path.join(prefix, os.path.basename(rfile))
 
 if do_write:
+    os.makedirs(prefix_output, exist_ok=True)
     with open(rfile_nodes) as fin: 
         with open(path_prefix(prefix_output, rfile_nodes), "w") as fout:
             fout.seek(0)
