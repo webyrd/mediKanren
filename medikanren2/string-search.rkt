@@ -5,6 +5,7 @@
  string-search-init-rel
  make-stsopt
  stsopt-t
+ param-fd-input-binary
 
  test:read-name-corpus
  test:suffix:corpus2->index-suffixes
