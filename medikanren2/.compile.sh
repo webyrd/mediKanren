@@ -1,12 +1,13 @@
 #!/bin/bash
-adirRepo="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd .. && pwd )"
-adirMk="$adirRepo/medikanren2"
-adirArtifacts="$adirRepo/ci_artifacts"
-
-stepname=medikanren2_compile_trapi
-if raco make "$adirMk/server.rkt"
+if [ -z "$adirRepo" ]
 then
-    echo "$stepname" > "$adirArtifacts/status/pass/$stepname"
+    echo -e "*** ERROR ***\n  Invoke with \".\" or \"source\" from another bash script\n" 1>&2
 else
-    echo "$stepname" > "$adirArtifacts/status/fail/$stepname"
+    stepname=medikanren2_compile_trapi
+    if (cd "$adirMk" && raco make "server.rkt" ${rfileTests} )
+    then
+        echo "$stepname" > "$adirArtifacts/status/pass/$stepname"
+    else
+        echo "$stepname" > "$adirArtifacts/status/fail/$stepname"
+    fi
 fi
