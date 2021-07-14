@@ -1,8 +1,8 @@
 
 import os
 
-rfile_nodes = "medikanren2/data/sri-reference/0.3.0-input/sri-reference-kg-0.3.0_nodes_nocr.tsv"
-rfile_edges = "medikanren2/data/sri-reference/0.3.0-input/sri-reference-kg-0.3.0_edges_nocr.tsv"
+rfile_nodes = "medikanren2/data/sri-reference/0.3.0/upstream/sri-reference-kg-0.3.0_nodes_nocr.tsv"
+rfile_edges = "medikanren2/data/sri-reference/0.3.0/upstream/sri-reference-kg-0.3.0_edges_nocr.tsv"
 # When used as configured, requires ~9GB RAM ("RES = Resident Size" in top)
 
 configs = {
@@ -14,7 +14,7 @@ configs = {
             "biolink:enables":1,
             "biolink:part_of":1
         },
-        'prefix_output': 'small_'
+        'prefix_output': 'medikanren2/data/yeast-sri-reference/0.3.0a/simulation-of-upstream'
     },
     'micro': {
         'level_max': 0,
@@ -24,7 +24,7 @@ configs = {
             "biolink:enables":1,
             "biolink:part_of":1
         },
-        'prefix_output': 'micro_'
+        'prefix_output': 'medikanren2/data/yeast-micro-sri-reference/0.3.0/simulation-of-upstream'
     }
 }
 
@@ -103,10 +103,7 @@ for level in range(0,level_max+1):
                     #     print("cRev={} rel={}".format(cRev, edge[1]))
 
 def path_prefix(prefix,rfile):
-    return os.path.join(
-        os.path.dirname(rfile),
-        "{}{}".format(prefix,os.path.basename(rfile))
-        )
+    return os.path.join(prefix, os.path.basename(rfile))
 
 if do_write:
     with open(rfile_nodes) as fin: 

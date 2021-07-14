@@ -28,7 +28,7 @@
 
 (define-relation/table nodes
   'path               "yeast-micro-sri-reference/0.3.0/nodes"
-  'source-file-path   "sri-reference/0.3.0-input/micro_sri-reference-kg-0.3.0_nodes_nocr.tsv"
+  'source-file-path   "yeast-micro-sri-reference/0.3.0/simulation-of-upstream/sri-reference-kg-0.3.0_nodes_nocr.tsv"
   'source-file-header columns-of-nodes
   'attribute-names    '(id subject object)
   'attribute-types    '(string string string)
@@ -57,7 +57,7 @@
 
 (define-relation/table edges
   'path               "yeast-micro-sri-reference/0.3.0/edges"
-  'source-file-path   "sri-reference/0.3.0-input/micro_sri-reference-kg-0.3.0_edges_nocr.tsv"
+  'source-file-path   "yeast-micro-sri-reference/0.3.0/simulation-of-upstream/sri-reference-kg-0.3.0_edges_nocr.tsv"
   'source-file-header columns-of-edges
   'attribute-names    '(id subject object)
   'attribute-types    '(string string string)
