@@ -7,14 +7,14 @@ rfile_edges = "medikanren2/data/sri-reference/0.3.0/upstream/sri-reference-kg-0.
 
 configs = {
     'small': {
-        'level_max': 3,
+        'level_max': 4,
         'rel_blacklist':{
             "biolink:related_to":1,
             "biolink:actively_involved_in":1,
             "biolink:enables":1,
             "biolink:part_of":1
         },
-        'prefix_output': 'medikanren2/data/yeast-sri-reference/0.3.0a/simulation-of-upstream'
+        'prefix_output': 'medikanren2/data/yeast-sri-reference/0.3.0b/simulation-of-upstream'
     },
     'micro': {
         'level_max': 0,
