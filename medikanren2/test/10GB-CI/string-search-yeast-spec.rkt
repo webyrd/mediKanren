@@ -12,14 +12,14 @@
  (#:t
   (>=
    (length (find-ids-named nodes '("CACNA1")))
-   500)))
+   200)))
 
 (define cacna1-names
-  `(("ClinVarVariant:11614" "NM_001256789.3(CACNA1F):c.1106G>A (p.Gly369Asp)")
-    ("ClinVarVariant:11615" "NM_001256789.3(CACNA1F):c.2872C>T (p.Arg958Ter)")
-    ("ClinVarVariant:11616" "CACNA1F, 1-BP INS, 991C")
-    ("ClinVarVariant:11617" "NM_001256789.3(CACNA1F):c.2650C>T (p.Arg884Ter)")
-    ("ClinVarVariant:11618" "CACNA1F, 1-BP DEL, 4548C")))
+  `(("ClinVarVariant:11615" "NM_001256789.3(CACNA1F):c.2872C>T (p.Arg958Ter)")
+    ("ClinVarVariant:17623" "NM_000069.3(CACNA1S):c.3716G>A (p.Arg1239His)")
+    ("ClinVarVariant:17624" "NM_000069.3(CACNA1S):c.3715C>G (p.Arg1239Gly)")
+    ("ClinVarVariant:17625" "NM_000069.3(CACNA1S):c.1583G>A (p.Arg528His)")
+    ("ClinVarVariant:17626" "NM_000069.3(CACNA1S):c.3257G>A (p.Arg1086His)")))
 
 ;; find-ids-named: Do we find familiar IDs named CACNA1?
 (chk
