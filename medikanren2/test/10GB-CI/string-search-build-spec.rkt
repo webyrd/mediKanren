@@ -2,7 +2,6 @@
 ;(require racket)
 ;(require racket/match)
 (require chk)
-(require "../../common.rkt")
 (require "../../string-search-config.rkt")
 (require "../../string-search-impl.rkt")
 (require "../../string-search.rkt")

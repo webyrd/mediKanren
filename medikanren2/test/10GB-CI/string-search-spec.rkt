@@ -1,14 +1,11 @@
 #lang racket
-;(require racket)
-;(require racket/match)
 (require chk)
-(require "../../common.rkt")
+(require "../../base.rkt")
 (require "../../string-search-config.rkt")
 (require "../../string-search-impl.rkt")
 (require "../../string-search-impl2.rkt")
 (require "../../string-search.rkt")
 (require racket/pretty)
-
 
 ;; *** Utilities ***
 
@@ -83,9 +80,6 @@
   (reverse (iter 0 0 '() s)))
 
 
-(define (run-query numMax q)
-  (run-stream numMax (query->stream q)))
-
 (chk
   (#:do
     (for ((xp (range 0 46)))
@@ -103,38 +97,6 @@
         (unless (equal? soffs soffs2)
           (error (format "could not round trip string offset expected=~a actual=~a" soffs soffs2))))))
   (#:t #t))
-
-;; Originally, we thought that a query could be sufficient for populating a 
-;; string-search index.  We then realized that in order to record file offsets,
-;; the name data had to be collected from a file encoded with codec.rkt.  
-;; Ever since then, we have abandoned the idea of collecting string data
-;; from a query.
-
-(define (query-names-from-rel rel)
-  (query (id name)
-         (rel id "name" name)))
-
-(define (query-names-from-id-rel id rel)
-  (query (name)
-         (rel id "name" name)))
-
-(define uri-ion-transport "GO:0034765")
-
-;; Can we find one particular name?
-(chk
- (#:=
-  (run-query 10 (query-names-from-id-rel uri-ion-transport cprop))
-  '(("regulation of ion transmembrane transport"))))
-
-
-;; Can we find 10 names without crashing?
-(chk
- (#:=
-  (length (run-query 10
-            (query-names-from-rel cprop)))
-  10))
-
-
 
 ;; generalize suffix:corpus->index
 
