@@ -1,19 +1,41 @@
 #lang racket/base
 (provide
- (all-defined-out)
   string/searchable
   suffix:corpus->index
   suffix:corpus-find*
   suffix:corpus-find*/disk
   string:corpus->index
   string:corpus-find*
-  string:corpus-find*/disk)
+  string:corpus-find*/disk
+  (prefix-out test: string/searchable)
+  (prefix-out test: suffix-key-count/port)
+  (prefix-out test: suffix-index->suffix-key)
+  (prefix-out test:  suffix-key-count/port)
+  (prefix-out test:  suffix-index->suffix-key)
+  (prefix-out test: bytes->suffix-key)
+  (prefix-out test: suffix-key->bytes)
+  (prefix-out test: bytes->string-key)
+  (prefix-out test: string-key->bytes)
+  param-fd-input-binary
+  ensure-fd-input-binary
+  test:parameterize-defaults
+
+  ;; The following are internals used in string-search.rkt
+  vector-sparse-find
+  suffix<?/corpus2
+  concept-name
+  write-scm
+  write-suffix-keys
+  )
 (require
   racket/list
-  racket/match
+  (except-in racket/match ==)
   racket/string
   racket/unsafe/ops
-  racket/vector)
+  racket/vector
+  racket/dict
+  "base.rkt"
+)
 
 ;; adapted from medikanren/repr.rkt
 (define (concept-cui c)      (list-ref c 0))
@@ -22,12 +44,12 @@
 ;; BEGIN: excerpted from medikanren/repr.rkt
 (define (byte-at offset n) (bitwise-and 255 (arithmetic-shift n offset)))
 ;; ...
-(define string-key-byte-size 4)
+(define string-key-byte-size 6)
 (define (string-key->bytes cid)
-  (bytes (byte-at -24 cid) (byte-at -16 cid) (byte-at -8 cid) (byte-at 0 cid)))
+  (bytes (byte-at -40 cid) (byte-at -32 cid) (byte-at -24 cid) (byte-at -16 cid) (byte-at -8 cid) (byte-at 0 cid)))
 (define (bytes->string-key bs)
   (define (bref-to pos offset) (arithmetic-shift (bytes-ref bs pos) offset))
-  (+ (bref-to 0 24) (bref-to 1 16) (bref-to 2 8) (bref-to 3 0)))
+  (+ (bref-to 0 40) (bref-to 1 32) (bref-to 2 24) (bref-to 3 16) (bref-to 4 8) (bref-to 5 0)))
 (define (read-string-key-bytes in) (read-bytes string-key-byte-size in))
 (define (write-string-keys out v)
   (for ((s (in-vector v))) (write-bytes (string-key->bytes s) out)))
@@ -43,7 +65,7 @@
   (file-position in eof)
   (/ (file-position in) string-key-byte-size))
 
-(define suffix-key-byte-size (+ 4 2))
+(define suffix-key-byte-size (+ 6 2))
 (define (suffix-key-count bs) (/ (bytes-length bs) suffix-key-byte-size))
 (define (suffix-key-count/port in)
   (file-position in eof)
@@ -52,13 +74,14 @@
 (define (suffix-key->bytes s)
   (define cid (car s))
   (define pos (cdr s))
-  (bytes (byte-at -24 cid) (byte-at -16 cid) (byte-at -8 cid) (byte-at 0 cid)
+  (bytes (byte-at -40 cid) (byte-at -32 cid) 
+         (byte-at -24 cid) (byte-at -16 cid) (byte-at -8 cid) (byte-at 0 cid)
          (byte-at -8 pos) (byte-at 0 pos)))
 (define (bytes->suffix-key bs start)
   (define i (* start suffix-key-byte-size))
   (define (bref-to j offset) (arithmetic-shift (bytes-ref bs (+ i j)) offset))
-  (cons (+ (bref-to 0 24) (bref-to 1 16) (bref-to 2 8) (bref-to 3 0))
-        (+ (bref-to 4 8) (bref-to 5 0))))
+  (cons (+ (bref-to 0 40) (bref-to 1 32) (bref-to 2 24) (bref-to 3 16) (bref-to 4 8) (bref-to 5 0))
+        (+ (bref-to 6 8) (bref-to 7 0))))
 (define (read-suffix-key-bytes in) (read-bytes suffix-key-byte-size in))
 (define (write-suffix-keys out v)
   (for ((s (in-vector v))) (write-bytes (suffix-key->bytes s) out)))
@@ -164,12 +187,41 @@
 (define (string/searchable s)
   (define cs (map char->integer (string->list (string-upcase s))))
   (list->string (map integer->char (filter searchable? cs))))
-(define (suffix->string corpus s)
+
+;; vector-sparse-find: find the corpus entry with file offset of exactly foffs.
+;; Requires corpus to be ordered as they are read from primary storage (by increasing foffs).
+(define (vector-sparse-find corpus foffs)
+  (unless (integer? foffs) (error "expected integer foffs"))
+  (define (iter j-min j-max)
+    (if (<= (- j-max j-min) 1)
+        (begin
+          ;(printf "return j-min=~a j-max=~a\n" j-min j-max)
+          (car (vector-ref corpus j-min)))
+        (let* ((j-avg (floor (/ (+ j-min j-max) 2)))
+               (s-foffs-avg (vector-ref corpus j-avg))
+               (foffs-avg (cdr s-foffs-avg)))
+          (if (<= foffs-avg foffs)
+              (begin
+                ;(printf "iter right j-min=~a j-max=~a foffs=~a j-avg=~a s-foffs-avg=~a\n" j-min j-max foffs j-avg s-foffs-avg)
+                (iter j-avg j-max))
+              (begin
+                ;(printf "iter left j-min=~a j-max=~a foffs=~a j-avg=~a s-foffs-avg=~a\n" j-min j-max foffs j-avg s-foffs-avg)
+                (iter j-min j-avg))))))
+  (iter 0 (vector-length corpus)))
+
+(define (suffix1->string corpus s)
   (substring (vector-ref corpus (car s)) (cdr s)))
-(define (suffix-string-length corpus s)
+(define (suffix2->string corpus s)
+  (substring (vector-sparse-find corpus (car s)) (cdr s)))
+(define (suffix-string-length1 corpus s)
   (- (string-length (vector-ref corpus (car s))) (cdr s)))
-(define (suffix-string-ref corpus s i)
+(define (suffix-string-length2 corpus s)
+  (- (string-length (vector-sparse-find corpus (car s))) (cdr s)))
+(define (suffix-string-ref1 corpus s i)
   (char->integer (string-ref (unsafe-vector*-ref corpus (car s))
+                             (+ (cdr s) i))))
+(define (suffix-string-ref2 corpus s i)
+  (char->integer (string-ref (vector-sparse-find corpus (car s))
                              (+ (cdr s) i))))
 (define (string<?/suffixes a ai b bi)
   (define alen (- (string-length a) ai))
@@ -179,11 +231,24 @@
           ((char<? (string-ref a ai) (string-ref b bi)) #t)
           ((char>? (string-ref a ai) (string-ref b bi)) #f)
           (else (loop (- k 1) (+ ai 1) (+ bi 1))))))
-(define (suffix<?/corpus corpus a b)
+(define (suffix<?/corpus1 corpus a b)
   (string<?/suffixes (vector-ref corpus (car a)) (cdr a)
                      (vector-ref corpus (car b)) (cdr b)))
+(define (suffix<?/corpus2a corpus a b)
+  (string<? (substring (vector-sparse-find corpus (car a)) (cdr a))
+            (substring (vector-sparse-find corpus (car b)) (cdr b))))
+(define (suffix<?/corpus2 hashcorpus a b)
+  (let* ((c (hash-ref hashcorpus (car a)))
+         (d (hash-ref hashcorpus (car b))))
+    (string<?/suffixes c (cdr a) d (cdr b))))
 
 (define (suffix:corpus->index corpus)
+  (printf "corpus[0]=~a\n" (vector-ref corpus 0))
+  (define-values
+    (suffix-string-length suffix<?/corpus suffix-string-ref)
+    (if (pair? (vector-ref corpus 0))
+      (values suffix-string-length2 suffix<?/corpus2 suffix-string-ref2)
+      (values suffix-string-length1 suffix<?/corpus1 suffix-string-ref1)))
   (define suffixes
     (foldl (lambda (i all)
              (foldl (lambda (j all) (cons (cons i j) all))
@@ -205,6 +270,10 @@
 (define (dedup/< ns) (remove-adjacent-duplicates (sort ns <)))
 
 (define (suffix:corpus-find-range corpus index str)
+  (define suffix->string
+    (if (pair? (vector-ref corpus 0))
+      suffix2->string
+      suffix1->string))
   (define needle (string/searchable str))
   (define (compare si needle)
     (define hay (suffix->string corpus (suffix-key-ref index si)))
@@ -306,7 +375,7 @@
 
 (define (string:corpus-find corpus index needle)
   (define (compare si needle)
-    (define hay (vector-ref corpus (vector-ref index si)))
+    (define hay (vector-sparse-find corpus (vector-ref index si)))
     (cond ((string=? hay needle)  0)
           ((string<? hay needle) -1)
           (else                   1)))
@@ -386,3 +455,32 @@
   (remove-duplicates
     (sort (append* (map (lambda (s) (string:corpus-find/disk cid->concept in-index s)) str*))
           <)))
+
+;;; param-fd-input-binary:
+;;;   A context for caching file descriptors.
+;;;   To preserve context, (make-hash), keep a reference, and pass
+;;;   via parameterize.
+(define param-fd-input-binary
+  (make-parameter
+    'initialize-me-via-make-hash
+    #f))
+
+;;; ensure-fd-input-binary:
+;;;   Provide the cached file handle for fn, or open a file handle
+;;;   if one hasn't been created.
+(define (ensure-fd-input-binary absf)
+  (define (ensure-fd h)
+    (dict-ref! h absf (lambda () (open-input-file absf #:mode 'binary))))
+  (define h (param-fd-input-binary))
+  (if (dict? h)
+    (ensure-fd h)
+    (let* (
+        (h (make-hash))
+        (fd (ensure-fd h)))
+      (param-fd-input-binary h)
+      fd)))
+
+(define (test:parameterize-defaults thunk)
+  (parameterize
+    ((param-fd-input-binary (make-hash)))
+    (thunk)))

@@ -2,6 +2,7 @@
 (provide concept cprop edge eprop
          subclass-of subclass-of+ subclass-of*)
 (require "../base.rkt" (except-in racket/match ==))
+(require "../string-search.rkt")
 
 ;; TODO: this might be useful later
 ;(define-relation/table concept
@@ -22,6 +23,8 @@
   'attribute-types    '(string string string)
   'tables             '((curie key value))
   'indexes            '((key value)))
+
+(string-search-init-rel cprop)
 
 (define-relation/table edge
   'path               "rtx2/20210204/edge"

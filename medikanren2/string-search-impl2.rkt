@@ -1,10 +1,57 @@
 #lang racket
 (provide
-    find-concepts/options
+  (except-out
+    (all-defined-out)
+    concept-name
+  )
  )
 (require racket/dict)
 (require racket/vector)
 (require "base.rkt")
+(require "string-search-config.rkt")
+(require "string-search-impl.rkt")
+
+
+;;; schema-aware wrapping for string-search-impl.rkt functions
+
+(define (foffs->concept fd-corpus foffs)
+  (file-position fd-corpus foffs)
+  (decode fd-corpus schema-pri))
+
+(define (make-~name*->value* absdOut fn-cprop-primary fn-concept-name-index)
+  (define fd-corpus
+    (ensure-fd-input-binary (expand-user-path (build-path absdOut fn-cprop-primary))))
+  (define fd-index
+    (ensure-fd-input-binary (expand-user-path (build-path absdOut fn-concept-name-index))))
+  (define (cid->concept foffs)
+    (let ((v (foffs->concept fd-corpus foffs)))
+;      (printf "found file offset offs=~a v=~a\n" offs v)
+      (list '() (name-from-pri v))
+      ))
+  (lambda (~name*)
+    (map
+      (lambda (foffs)
+        (let ((v (foffs->concept fd-corpus foffs)))
+          v))
+      (suffix:corpus-find*/disk cid->concept fd-index ~name*))))
+
+;;; string search options
+(struct stsopt (
+  case-sensitive? ;; case sensitivity flag
+  chars:ignore    ;; ignored characters ('chars:ignore-typical' is pre-defined)
+  chars:split     ;; characters to split target name on for exact matching ('chars:split-typical' is pre-defined)
+) #:constructor-name new-stsopt
+  #:name stsopt-t
+  #:transparent)
+
+(define (make-stsopt
+    #:case-sensitive? (case-sensitive? #f)
+    #:chars:ignore (chars:ignore "")
+    #:chars:split (chars:split "")
+  )
+  (new-stsopt case-sensitive? chars:ignore chars:split))
+
+(define stsopt-default (make-stsopt))
 
 ;;; Shims
 (define (conde/databases . args) (error "not implemented"))
@@ -25,23 +72,7 @@
 (define (split-name-string name)
   (string-split name #px"\\s+"))
 
-;;; From common.rkt:182
-(define (~name*-concepto ~name* concept)
-  (conde/databases
-    (lambda (dbname db)
-      (fresh (c)
-        (== `(,dbname . ,c) concept)
-        (db:~name*-concepto/options
-          #f ;; case sensitivity flag
-          "" ;; ignored characters ('chars:ignore-typical' is pre-defined)
-          "" ;; characters to split target name on for exact matching ('chars:split-typical' is pre-defined)
-          db ~name* c)))))
-(define (~cui*-concepto ~cui* concept)
-  (conde/databases
-    (lambda (dbname db)
-      (fresh (c) (== `(,dbname . ,c) concept)
-        (db:~cui*-concepto db ~cui* c)))))
-;;; :421
+;;; common.rkt:421
 (define (find-isa-concepts count concepts)
   (remove-duplicates (run count (s/db)
                        (fresh (o/db)
@@ -70,21 +101,6 @@
                       (and (string=? dbname1 dbname2)
                            (string<? cui1 cui2))))))))
 
-(define (find-concepts/options/cui-infer subject? object? isa-count strings)
-  (printf "find-concepts/options/cui-infe subject?=~s object?=~s isa-count=~s strings=~s \n" subject? object? isa-count strings)
-  (define yes-cui
-    (map (lambda (s) (run* (c) (~cui*-concepto (list s) c))) strings))
-  (define no-cui (filter-not not (map (lambda (s rs) (and (null? rs) s))
-                                      strings yes-cui)))
-  (define all (append* (cons (run* (c) (~name*-concepto no-cui c)) yes-cui)))
-  (concepts/options subject? object? isa-count all))
-
-(define (find-concepts/options subject? object? isa-count via-cui? strings)
-  (concepts/options subject? object? isa-count
-                    (if via-cui?
-                      (run* (c) (~cui*-concepto strings c))
-                      (run* (c) (~name*-concepto strings c)))))
-
 
 ;;; From mk-db.rkt:51
 (define (db:~cui*-concepto db ~cui* concept)
@@ -92,14 +108,16 @@
     (stream-refo
       (stream-map (i&v->i&d db) (db:~cui*->cid&concept* db ~cui*)) concept)))
 ;;; :63
-(define (db:~name*-concepto/options
-          case-sensitive? chars:ignore chars:split db ~name* concept)
-  (project (~name*)
-    (stream-refo
-      (stream-map (i&v->i&d db)
-                  (db:~name*->cid&concept*/options
-                    case-sensitive? chars:ignore chars:split db ~name*))
-      concept)))
+;(define (db:~name*-concepto/options
+(define (db:~name*->concept*/options1
+          case-sensitive? chars:ignore chars:split rel ~name*)
+  (define absdOut (hash-ref (relation-definition-info rel) 'path))
+  (define fd-corpus
+    (ensure-fd-input-binary (expand-user-path (build-path absdOut fn-cprop-primary))))
+      (stream-map (lambda (foffs) (foffs->concept fd-corpus foffs))
+                  ((lambda (arg . args) #f) ;db:~name*->cid&concept*/options
+                    case-sensitive? chars:ignore chars:split rel ~name*))
+)
 
 
 ;;; From db.rkt:223
@@ -109,7 +127,11 @@
 (define chars:split-typical "\t\n\v\f\r !\"#$%&'()*+,./:;<=>?@\\[\\\\\\]\\^_`{|}~")
 
 ;;; :245
-(define (smart-string-matches? case-sensitive? chars:ignore chars:split str* hay)
+(define (smart-string-matches? stsopt str* hay)
+  (match stsopt
+      ( (struct stsopt-t (case-sensitive? chars:ignore chars:split))
+        (smart-string-matches-impl? case-sensitive? chars:ignore chars:split str* hay))))
+(define (smart-string-matches-impl? case-sensitive? chars:ignore chars:split str* hay)
   (define re:ignore (and (non-empty-string? chars:ignore)
                          (pregexp (string-append "[" chars:ignore "]"))))
   (define re:split (and (non-empty-string? chars:split)
@@ -134,25 +156,26 @@
         needles case-sensitive?*)))
 ;;; :269
 (define (~string*->offset&value*
-          case-sensitive? chars:ignore chars:split offset&value* str* v->str)
+          stsopt value* str*)
   (define (p? v)
-    (define hay (v->str (cdr v)))
-    (smart-string-matches? case-sensitive? chars:ignore chars:split str* hay))
-  (stream-filter p? offset&value*))
+    (define hay (name-from-pri v))
+    (smart-string-matches? stsopt str* hay))
+  (filter p? value*))
 ;;; :288
 (define (db:~cui*->cid&concept* db ~cui*)
   (define cids (db:cui*->cids db ~cui*))
   (foldr (lambda (i cs) (stream-cons (cons i (db:cid->concept db i)) cs))
          '() cids))
 ;;; :295
-(define (db:~name*->cid&concept*/options
-          case-sensitive? chars:ignore chars:split db ~name*)
-  (define cids (db:~name*->cids db ~name*))
-  (define found (foldr (lambda (i cs)
-                         (stream-cons (cons i (db:cid->concept db i)) cs))
-                       '() cids))
-  (~string*->offset&value* case-sensitive? chars:ignore chars:split
-                           found ~name* concept-name))
+;(define (db:~name*->cid&concept*/options
+(define (db:~name*->concept*/options2
+          stsopt absdOut fn-cprop-primary fn-concept-name-index ~name*)
+  (define fd-corpus
+    (ensure-fd-input-binary (expand-user-path (build-path absdOut fn-cprop-primary))))
+  (define lookup (make-~name*->value* absdOut fn-cprop-primary fn-concept-name-index))
+  (define value* (lookup ~name*))
+  (~string*->offset&value* stsopt
+                           value* ~name*))
 
 ;;; repr.rkt:62
 (define (concept-name c)     (vector-ref c 2))
