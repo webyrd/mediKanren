@@ -9,6 +9,7 @@ rfileTests=$(cd "$adirMk" && \
     find . -name \*-spec.rkt -a \
         \( -path \*/test/10GB-CI/\* -o -not -path \*/test/10GB-CI/\* \) )
 
+bash "$adirMk/.clean.sh"
 . "$adirMk/.compile.sh"
 
 if (cd "$adirMk" && raco test ${rfileTests} )
