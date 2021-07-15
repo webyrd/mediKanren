@@ -91,17 +91,17 @@
     (for ((xp (range 0 46)))
       (let* ((foffs (arithmetic-shift 1 xp))
               (foffs2 (car (bytes->suffix-key (suffix-key->bytes (cons foffs 7)) 0))))
-        (unless (== foffs foffs2)
-          (error (format "could not round trip file offset ~a" foffs))))))
+        (unless (equal? foffs foffs2)
+          (error (format "could not round trip file offset expected=~a actual=~a" foffs foffs2))))))
   (#:t #t))
 
 (chk
   (#:do
     (for ((xp (range 0 14)))
       (let* ((soffs (arithmetic-shift 1 xp))
-              (soffs2 (car (bytes->suffix-key (suffix-key->bytes (cons 7 soffs)) 0))))
-        (unless (== soffs soffs2)
-          (error (format "could not round trip string offset ~a" soffs))))))
+              (soffs2 (cdr (bytes->suffix-key (suffix-key->bytes (cons 7 soffs)) 0))))
+        (unless (equal? soffs soffs2)
+          (error (format "could not round trip string offset expected=~a actual=~a" soffs soffs2))))))
   (#:t #t))
 
 ;; Originally, we thought that a query could be sufficient for populating a 
