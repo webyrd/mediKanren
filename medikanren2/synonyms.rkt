@@ -26,7 +26,7 @@
       (conde ((==       x b))
              ((equiv=/= x b)))))
   (define-relation (equiv a b)
-    (conde ((==       a b) (node a) (node b))
+    (conde ((==       a b) (node a))
            ((equiv=/= a b))))
   equiv)
 
