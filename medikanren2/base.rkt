@@ -1,7 +1,7 @@
 #lang racket/base
 (provide (all-from-out "dbk/dbk.rkt") load-config
          relation-name relation-definition-info relation-missing-data?
-         dynamic-relation relation-extensions database-extend-relations! database-load! database-unload!)
+         tagged-relation dynamic-relation relation-extensions database-extend-relations! database-load! database-unload!)
 (require
   "dbk/dbk.rkt"
   racket/list (except-in racket/match ==) racket/runtime-path racket/set)
@@ -90,17 +90,24 @@
 (define (relation-extensions name)
   (set->list (hash-ref name.r=>tagged-relations name (set))))
 
-(define ((dynamic-relation name . tag-positions) . args)
+(define ((tagged-relation r tag . tag-positions) . args)
+  (let loop ((args args) (tag-positions tag-positions))
+    (match tag-positions
+      ('()                      (apply r args))
+      ((cons pos tag-positions) (fresh (x)
+                                  (== (list-ref args pos) (cons tag x))
+                                  (loop (list-set args pos x)
+                                        tag-positions))))))
+
+(define (dynamic-relation name . tag-positions)
   (define extensions (relation-extensions name))
-  (foldl (lambda (name.db r.db g)
-           (conde ((let loop ((args args) (tag-positions tag-positions))
-                     (match tag-positions
-                       ('()                      (apply r.db args))
-                       ((cons pos tag-positions) (fresh (x)
-                                                   (== (list-ref args pos) (cons name.db x))
-                                                   (loop (list-set args pos x)
-                                                         tag-positions))))))
-                  (g)))
-         (== #f #t)
+  (define tagged-relations
+    (map (lambda (name.db r.db) (apply tagged-relation r.db name.db tag-positions))
          (map car extensions)
          (map cdr extensions)))
+  (lambda args
+    (foldl (lambda (r g)
+             (conde ((apply r args))
+                    (g)))
+           (== #f #t)
+           tagged-relations)))
