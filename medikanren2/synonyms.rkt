@@ -14,7 +14,34 @@
 (provide direct-synonym direct-synonym* direct-synonym+ synonym close-match-synonym
          synonyms/step synonym-of/step synonyms/breadth synonym-of/breadth
          synonym synonym-path kgx-synonym
+         simple-synonym
          get-synonyms-ls get-names-ls get-names-set)
+
+(define (equivalence-relation node link)
+  (define-relation (equiv=/= a b)
+    (=/= a b)
+    (fresh (x)
+      (conde ((link a x))
+             ((link x a)))
+      (conde ((==       x b))
+             ((equiv=/= x b)))))
+  (define-relation (equiv a b)
+    (node a)
+    (node b)
+    (conde ((==       a b))
+           ((equiv=/= a b))))
+  equiv)
+
+(define (simple-node x) (fresh (k v) (cprop x k v)))
+
+(define (simple-link a b)
+  (fresh (id pred)
+    (edge a b)
+    (eprop id "predicate" pred)
+    (membero pred '("biolink:same_as"))))
+
+(define simple-synonym (equivalence-relation simple-node simple-link))
+
 
 (define synonyms-preds '("biolink:same_as"
                          ;; "biolink:close_match"   ; too risky un-constrained
