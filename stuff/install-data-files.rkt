@@ -71,6 +71,7 @@
    adir-storage
    adir-install
    do-config-scm
+   omit-aws-workaround
    dry-run
    (adir-temp #:mutable)
    (ardbs #:mutable)
@@ -246,11 +247,16 @@
 (define (includes-for-sync config)
   (append-map (lambda (ardb) (include-for-sync config ardb)) (config-ardbs config)))
 
+(define (prefix-for-aws-workaround config)
+  (if (config-omit-aws-workaround config)
+    '()
+    '("env" "AWS_EC2_METADATA_DISABLED=true")
+        ;; fix: "<botocore.awsrequest.AWSRequest object at 0x7f623ae5b040>"
+        ;; https://github.com/aws/aws-cli/issues/5262
+  ))
+
 (define (cmds-to-sync config)
-  `((() () (
-            "env" "AWS_EC2_METADATA_DISABLED=true"
-            ;; fix: "<botocore.awsrequest.AWSRequest object at 0x7f623ae5b040>"
-            ;; https://github.com/aws/aws-cli/issues/5262
+  `((() () (,@(prefix-for-aws-workaround config)
             "aws" "s3" "sync" "--quiet"
             "--exclude" "*"
             ,@(includes-for-sync config)
@@ -341,6 +347,7 @@
   (define adir-storage (make-parameter #f))
   (define adir-install (make-parameter #f))
   (define do-config-scm (make-parameter #f))
+  (define omit-aws-workaround (make-parameter #f))
   (define dry-run (make-parameter #f))
   (command-line
    #:program "install-data-files.rkt"
@@ -364,6 +371,9 @@
    [("--write-config-scm")
     "Generate and overwrite config.scm files for extracted data"
     (do-config-scm #t)]
+   [("--omit-aws-workaround")
+    "Generate and overwrite config.scm files for extracted data"
+    (omit-aws-workaround #t)]
    [("--dry-run")
     "Print commands to run.  Do not run."
     (dry-run #t)]
@@ -376,6 +386,7 @@
    (adir-storage)
    (adir-install)
    (do-config-scm)
+   (omit-aws-workaround)
    (dry-run)
    #f
    '()))
@@ -396,6 +407,7 @@
                            #f
                            "/path/to/storage"
                            "/path/to/install"
+                           #f
                            #f
                            #t
                            "/tmp/dir"
