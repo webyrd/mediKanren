@@ -42,10 +42,11 @@
                                  (list (list id k v))))
                            (cdr stcolumns-of-nodes)
                            (cdr row))))
-  'init-hook           string-search-init-hook
 ;  'tables             '((curie name value))
 ;  'indexes            '((name value))
   )
+
+(string-search-init-rel nodes)
 
 (define columns-of-edges
 '(id subject edge_label object relation

@@ -11,6 +11,7 @@
 
 
 (require "../base.rkt" (except-in racket/match ==))
+(require "../string-search.rkt")
 
 (define columns-of-nodes
 '(
@@ -42,6 +43,8 @@
 ;  'tables             '((curie name value))
 ;  'indexes            '((name value))
   )
+
+(string-search-init-rel nodes)
 
 (define columns-of-edges
 '(id subject edge_label object relation
