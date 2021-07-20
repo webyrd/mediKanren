@@ -160,6 +160,11 @@
 ;; will exit quickly.  If no string search index is prepared, calls
 ;; to find-ids-named and find-concepts-named will fail.
 (define (string-search-init-rel rel)
-  (let* ((reld-index (hash-ref (relation-definition-info rel) 'path)))
-    (ensure-name-index-built reld-index fn-concept-name-index)
-  ))
+  (let* ((absd-index (hash-ref (relation-definition-info rel) 'path))
+         (absf-primary (path->string (simplify-path (build-path absd-index fn-cprop-primary)))))
+    ;; We check for the file to exist so that individual db/foo.rkt files can call
+    ;; string-search-init-rel, and so that common.rkt can require db/foo.rkt
+    ;; without crashing, even when the data for db/foo.rkt is not installed.
+    (when (file-exists? absf-primary)
+      (ensure-name-index-built absd-index fn-concept-name-index)
+  )))
