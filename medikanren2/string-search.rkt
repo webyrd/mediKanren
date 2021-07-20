@@ -160,6 +160,6 @@
 ;; will exit quickly.  If no string search index is prepared, calls
 ;; to find-ids-named and find-concepts-named will fail.
 (define (string-search-init-rel rel)
-  (let* ((reld-index (hash-ref (relation-definition-info rel) 'path)))
-    (ensure-name-index-built reld-index fn-concept-name-index)
+  (let* ((absd-index (hash-ref (relation-definition-info rel) 'path)))
+    (ensure-name-index-built absd-index fn-concept-name-index)
   ))
