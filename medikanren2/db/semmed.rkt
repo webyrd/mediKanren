@@ -29,7 +29,7 @@
   ;'retrieval-type     'scm
   )
 
-(string-search-init-rel cprop)
+;(string-search-init-rel cprop)
 
 (define-relation/table edge
   'path               "semmed/edge"

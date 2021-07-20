@@ -10,6 +10,8 @@
          write-list-to-tsv)
 
 (require "base.rkt"
+         "string-search.rkt"
+         (except-in racket/match ==)
          (prefix-in semmed: "db/semmed.rkt")
          (prefix-in rtx:    "db/rtx2-20210204.rkt")
          (prefix-in kgx:    "db/kgx-synonym.rkt"))
@@ -104,3 +106,27 @@
           (cons header-ls lol)))
       #:mode 'text
       #:exists 'replace)))
+
+; *** Workaround for:
+;   loading configuration overrides: .../medikanren2/config.scm
+;   checking for index .../medikanren2/data/semmed/cprop/concept-name-index.bytes
+;   open-input-file: cannot open input file
+;
+; If we initialize dbs when they are required, then there is no opportunity
+; to consult the 'databases configuration key.  For example, if semmed is not
+; installed and not configured, requiring common.rkt will create the error above.
+;
+; By consulting 'databases here, we avoid the crash.  However, we lose the ability
+; for each database to be specific about when/how to index each relation.  For now,
+; we hard-code indexing on 'cprop.
+;
+; TODO: Allow databases to choose whether or not to configure string search
+; on a particular relation, without breaking common.rkt.
+(let ((databases (hash-ref (current-config) 'databases)))
+  (for ((name.rel (relation-extensions 'cprop)))
+    (match name.rel
+      (`(,name . ,rel)
+        (when (member name databases)
+          (printf "about to init-rel name=~a\n" name)
+          (string-search-init-rel rel))))))
+

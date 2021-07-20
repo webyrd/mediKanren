@@ -24,7 +24,7 @@
   'tables             '((curie key value))
   'indexes            '((key value)))
 
-(string-search-init-rel cprop)
+;(string-search-init-rel cprop)
 
 (define-relation/table edge
   'path               "rtx2/20210204/edge"
