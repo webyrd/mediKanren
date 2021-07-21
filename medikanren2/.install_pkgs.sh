@@ -1,8 +1,4 @@
 #!/bin/bash
+adirRepo="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd .. && pwd )"
 
-raco pkg install --auto --batch --fail-fast \
-    chk \
-    shell-pipeline \
-    yaml \
-    memoize \
-    aws
+bash "$adirRepo/pkgs/setup-mediKanren-pkgs.sh"
