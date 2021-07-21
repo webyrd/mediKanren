@@ -7,5 +7,6 @@
 /code/a.out
 /biolink/pieces-parts/etl_for_new_KGs/NCT000sample
 /biolink/pieces-parts/etl_for_new_KGs/NCT000sample/*.xml
+/pkgs/catalog
 *.dep
 *.zo

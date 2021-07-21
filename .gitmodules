@@ -1,0 +1,16 @@
+[submodule "pkgs/racket-rash"]
+	path = pkgs/racket-rash
+	url = https://github.com/willghatch/racket-rash
+	branch = master
+[submodule "pkgs/chk"]
+	path = pkgs/chk
+	url = https://github.com/jeapostrophe/chk
+	branch = master
+[submodule "pkgs/yaml"]
+	path = pkgs/yaml
+	url = https://github.com/esilkensen/yaml
+	branch = master
+[submodule "pkgs/memoize"]
+	path = pkgs/memoize
+	url = https://github.com/jbclements/memoize
+	branch = master
