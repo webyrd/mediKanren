@@ -68,7 +68,7 @@ if [ $ISOLATED -eq 1 ]; then
     
 else
     # If we are not isolated, add the existing package catalog files
-    raco pkg config catalogs >> $CFILE
+    raco pkg config catalogs | grep -v file:// >> $CFILE
 fi
 
 raco pkg config --set catalogs `cat $CFILE`
