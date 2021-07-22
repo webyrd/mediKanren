@@ -55,12 +55,12 @@
   (if kv (cdr kv) default))
 
 (define hash-empty (hash))
-(define (str   v) (if (string? v) v (error "invalid string:" v)))
-(define (olift v) (if (hash?   v) v (error "invalid object:" v)))
+(define (str   v) (if (string? v) v (error (format "invalid string: ~s" v))))
+(define (olift v) (if (hash?   v) v (error (format "invalid object: ~s" v))))
 (define (slift v) (cond ((pair?   v) v)
                         ((string? v) (list v))
                         ((null?   v) '())
-                        (else        (error "invalid string or list of strings:" v))))
+                        (else        (error (format "invalid string or list of strings: ~s" v)))))
 (define (alist-of-hashes->lists v)
   (map (lambda (pair)
          (cons (car pair) (hash->list (olift (cdr pair)))))
@@ -69,13 +69,13 @@
   (cond ((number? v) (string->symbol (number->string v)))
         ((string? v) (string->symbol v))
         ((symbol? v) v)
-        (else (error "Must be a number, string or symbol: ~s." v))))
+        (else (error (format "Must be a number, string or symbol: ~s." v)))))
 
 (define (strlift v)
   (cond ((number? v) (number->string v))
         ((string? v) v)
         ((symbol? v) (symbol->string v))
-        (error "Must be a number, string or symbol: ~s" v)))
+        (error (format "Must be a number, string or symbol: ~s" v))))
 
 (define (trapi-response msg (log-key "[query]"))
   (define max-results (hash-ref msg 'max_results #f))
@@ -154,7 +154,9 @@
                         (membero curie curies)
                         ((trapi-constraints constraints) curie)
                         (loop (cdr nodes) bindings-rest)))
-                    (error "Field: 'QNode/ids' must be array of CURIEs (TRAPI 1.1)."))
+                    (error (format
+                             "Field: 'QNode/ids' must be array of CURIEs (TRAPI 1.1).\nGiven ~s\n"
+                             curies)))
                 (if (pair? categories)
                     (let ((categories (if (or reasoning? full-reasoning?)
                                           (log-time log-once log-key 
@@ -169,7 +171,9 @@
                         (conde ((is-a curie cat))
                                ((k-is-a curie cat)))
                         (loop (cdr nodes) bindings-rest)))
-                    (error "Field: 'QNode/categories' must be array of CURIESs (TRAPI 1.1)."))))))))
+                    (error (format
+                             "Field: 'QNode/categories' must be array of CURIESs (TRAPI 1.1).\nGiven ~s\n"
+                             categories)))))))))
 
 (define (trapi-edges edges k-triple full-reasoning? log-key)
   (relation trapi-edges-o (node-bindings edge-bindings)
@@ -189,7 +193,9 @@
                  (constraints (hash-ref e 'constraints '()))
                  (reasoning?  (hash-ref e 'use_reasoning #f)))
             (if (and predicates (not (pair? predicates)))
-                (error "Field: 'QEdge/predicates' must be an array of CURIEs (TRAPI 1.1).")
+                (error (format
+                         "Field: 'QEdge/predicates' must be an array of CURIEs (TRAPI 1.1).  Given ~s\n"
+                         predicates))
                 (let ((predicates (if (and (or reasoning? full-reasoning?) predicates)
                                       (log-time log-once log-key 
                                                 (format "Subclasses of ~s" predicates)
