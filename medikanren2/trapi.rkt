@@ -69,7 +69,7 @@
   (cond ((number? v) (string->symbol (number->string v)))
         ((string? v) (string->symbol v))
         ((symbol? v) v)
-        (else (error "Must be a numebr, string or symbol: ~s." v))))
+        (else (error "Must be a number, string or symbol: ~s." v))))
 
 (define (strlift v)
   (cond ((number? v) (number->string v))
@@ -114,11 +114,11 @@
       (membero `(object . ,o) props)))
 
     (let ((full-reasoning? (hash-ref qgraph 'use_reasoning #t)))
-    (fresh (node-bindings edge-bindings)
-      (== bindings `((node_bindings . ,node-bindings) 
-                     (edge_bindings . ,edge-bindings)))
-      ((trapi-nodes nodes k-is-a full-reasoning? log-key) node-bindings)
-      ((trapi-edges edges k-triple full-reasoning? log-key) node-bindings edge-bindings))))
+      (fresh (node-bindings edge-bindings)
+        (== bindings `((node_bindings . ,node-bindings) 
+                       (edge_bindings . ,edge-bindings)))
+        ((trapi-nodes nodes k-is-a full-reasoning? log-key) node-bindings)
+        ((trapi-edges edges k-triple full-reasoning? log-key) node-bindings edge-bindings))))
 
 (define (trapi-nodes nodes k-is-a full-reasoning? log-key)
   (relation trapi-nodes-o (bindings)
@@ -227,11 +227,11 @@
               (triple node id val)
               (case operator
                 ((">")  (if not?
-                          (<=o val value)
-                          (<o value val)))
+                            (<=o val value)
+                            (<o value val)))
                 (("<")  (if not?
-                          (<=o val value)
-                          (<o val value)))
+                            (<=o val value)
+                            (<o val value)))
                 (("matches") (:== #t (val) (regexp-match value val)))
                 (else (if not?
                           (=/= val value)
@@ -258,10 +258,10 @@
                (make-hash
                 (map (lambda (binding) 
                        (let ((node/s (cdr binding)))
-                       `(,(car binding)
-                         . ,(map (lambda (id) (hash 'id id))
-                                 (if (list? node/s) node/s
-                                     (list node/s))))))
+                         `(,(car binding)
+                           . ,(map (lambda (id) (hash 'id id))
+                                   (if (list? node/s) node/s
+                                       (list node/s))))))
                      (alist-ref bindings 'node_bindings '())))
                'edge_bindings
                (make-hash
@@ -269,10 +269,16 @@
                        (let ((edge/s (cdr ebinding)))
                          `(,(car ebinding)
                            . ,(map (lambda (db+id)
-                                   (hash 'id (edge-id/reported db+id)))
-                                 (if (list? edge/s) edge/s
-                                     (list edge/s))))))
-                     (alist-ref bindings 'edge_bindings '())))) )
+                                     (hash 'id (edge-id/reported db+id)))
+                                   (if (list? edge/s) edge/s
+                                       (list edge/s))))))
+                     (alist-ref bindings 'edge_bindings '())))
+
+               ;;; WEB: dummy score, until I implement a scoring algorithm
+               'score
+               42.01
+               
+               ))
        results))
 
 (define (unique-bindings-values results key)
@@ -345,13 +351,13 @@
    (lambda (node)
      `(("name" . ,(car (run 1 v (cprop node "name" v)))) ; hack: only gets 1!
        ("categories" . ,(remove-duplicates
-                          (map biolinkify/category (run* v (cprop node "category" v)))))))
+                         (map biolinkify/category (run* v (cprop node "category" v)))))))
    (lambda (node)
      (run* attribute
-      (fresh (k v)
-        (membero k (map car trapi-response-node-attributes))
-        (== `(,k . ,v) attribute)
-        (cprop node k v))))
+       (fresh (k v)
+         (membero k (map car trapi-response-node-attributes))
+         (== `(,k . ,v) attribute)
+         (cprop node k v))))
    trapi-response-node-attributes))
 
 (define (trapi-response-kedges results)
@@ -382,7 +388,7 @@
 (define (group-sets results singleton-nodes)
   (define (get-nodes result)
     (sort (filter (lambda (node)
-              (member (car node) singleton-nodes))
+                    (member (car node) singleton-nodes))
                   (cdr (assoc 'node_bindings result)))
           string<?
           #:key (lambda (e) (symbol->string (car e)))))
@@ -402,7 +408,3 @@
          `((node_bindings . ,(combine-bindings results 'node_bindings))
            (edge_bindings . ,(combine-bindings results 'edge_bindings))))
        (group-by values results nodes-equal?)))
-
-
-
-
