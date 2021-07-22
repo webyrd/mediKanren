@@ -32,7 +32,7 @@
 (define argv (current-command-line-arguments))
 (define argv-optional '#(CONFIG_FILE))
 (when (not (<= (vector-length argv) (vector-length argv-optional)))
-  (error "optional arguments ~s; given ~s" argv-optional argv))
+  (error (format "optional arguments ~s; given ~s" argv-optional argv)))
 ;; Loading will occur at first use if not explicitly forced like this.
 (load-config #t (and (<= 1 (vector-length argv)) (vector-ref argv 0)))
 ;; (load-databases #t)
@@ -233,12 +233,12 @@ EOS
                (div (pre ((id "query-result")) "Result will appear here.")))))
 
 (define hash-empty (hash))
-(define (str   v) (if (string? v) v (error "invalid string:" v)))
-(define (olift v) (if (hash?   v) v (error "invalid object:" v)))
+(define (str   v) (if (string? v) v (error (format "invalid string:" v))))
+(define (olift v) (if (hash?   v) v (error (format "invalid object:" v))))
 (define (slift v) (cond ((pair?   v) v)
                         ((string? v) (list v))
                         ((null?   v) '())
-                        (else        (error "invalid string or list of strings:" v))))
+                        (else        (error (format "invalid string or list of strings:" v)))))
 
 (define (alist->attributes alist)
   ;; TODO: provide standard types for
