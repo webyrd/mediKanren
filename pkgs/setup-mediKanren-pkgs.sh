@@ -21,8 +21,11 @@ adirRepo="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd .. && pwd )"
 afileToCheck="$adirRepo/pkgs/chk/README"
 if [ ! -e "$afileToCheck" ]
 then
-    echo "*** ERROR\nFile $afileToCheck not found"
-    echo "Did you forget to initialize git submodules?"
+    echo "*** ERROR"
+    echo "  File $afileToCheck not found"
+    echo "  Did you forget to initialize git submodules?"
+    echo "  Hint:"
+    echo "    git submodule init && git submodule update --recursive"
     exit 1
 else
     bash "$adirRepo/pkgs/setup-catalog/setup-catalog.sh" "$adirRepo/pkgs"
