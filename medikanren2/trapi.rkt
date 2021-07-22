@@ -51,6 +51,7 @@
                                          ("publications" . "miscellaneous")))
 
 (define (alist-ref alist key default)
+  ;; WEB  FIXME unchecked 'assoc' result
   (define kv (assoc key alist))
   (if kv (cdr kv) default))
 
@@ -395,6 +396,7 @@
   (define (get-nodes result)
     (sort (filter (lambda (node)
                     (member (car node) singleton-nodes))
+                  ;; WEB  FIXME taking 'cdr' of unchecked 'assoc' result
                   (cdr (assoc 'node_bindings result)))
           string<?
           #:key (lambda (e) (symbol->string (car e)))))
@@ -408,6 +410,7 @@
                            (cons id (cons curie (alist-ref rst id '())))))))
      '()
      (map (lambda (result)
+            ;; WEB  FIXME taking 'cdr' of unchecked 'assoc' result
             (cdr (assoc key result)))
           results)))
   (map (lambda (results)
