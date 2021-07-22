@@ -23,7 +23,10 @@ use strict;
 #
 # cat medikanren2/data/sri-reference/0.3.0/upstream/sri-reference-kg-0.3.0_nodes.tsv \
 #   | perl util/data-import/remove_cr.pl \
-#   > medikanren2/data/sri-reference/0.3.0/upstream/sri-reference-kg-0.3.0_nodes_nocr.tsv 
+#   > medikanren2/data/yeast-sri-reference/0.3.0b/upstream-tsv-nocr/nodes.tsv
+# cat medikanren2/data/sri-reference/0.3.0/upstream/sri-reference-kg-0.3.0_edges.tsv \
+#   | perl util/data-import/remove_cr.pl \
+#   > medikanren2/data/yeast-sri-reference/0.3.0b/upstream-tsv-nocr/edges.tsv
 
 binmode(STDOUT);
 while($_ = <>) {
