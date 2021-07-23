@@ -1,8 +1,8 @@
 
 import os
 
-rfile_nodes = "medikanren2/data/sri-reference/0.3.0/upstream-tsv-nocr/nodes.tsv"
-rfile_edges = "medikanren2/data/sri-reference/0.3.0/upstream-tsv-nocr/edges.tsv"
+rfile_nodes = "medikanren2/data/sri-reference/0.3.0/upstream/sri-reference-kg-0.3.0_nodes_nocr.tsv"
+rfile_edges = "medikanren2/data/sri-reference/0.3.0/upstream/sri-reference-kg-0.3.0_edges_nocr.tsv"
 # When used as configured, requires ~9GB RAM ("RES = Resident Size" in top)
 
 configs = {
@@ -14,7 +14,7 @@ configs = {
             "biolink:enables":1,
             "biolink:part_of":1
         },
-        'prefix_output': 'medikanren2/data/yeast-sri-reference/0.3.0b/tsv'
+        'prefix_output': 'medikanren2/data/yeast-sri-reference/0.3.0b/simulation-of-upstream'
     },
     'micro': {
         'level_max': 0,
@@ -24,7 +24,7 @@ configs = {
             "biolink:enables":1,
             "biolink:part_of":1
         },
-        'prefix_output': 'medikanren2/data/yeast-micro-sri-reference/0.3.0b/tsv'
+        'prefix_output': 'medikanren2/data/yeast-micro-sri-reference/0.3.0/simulation-of-upstream'
     }
 }
 
