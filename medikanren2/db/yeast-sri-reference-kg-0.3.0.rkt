@@ -1,5 +1,5 @@
 #lang racket
-(provide nodes edges)
+(provide nodes edges cprop edge eprop)
 
 #|
   Extract from source data and rebuild with:
@@ -24,7 +24,7 @@
 )
 (define stcolumns-of-nodes (map symbol->string columns-of-nodes))
 
-(define-relation/table nodes
+(define-relation/table cprop
   'path               "yeast-sri-reference/0.3.0b/nodes"
   'source-file-path   "yeast-sri-reference/0.3.0b/simulation-of-upstream/sri-reference-kg-0.3.0_nodes_nocr.tsv"
   'source-file-header columns-of-nodes
@@ -44,7 +44,10 @@
 ;  'indexes            '((name value))
   )
 
-(string-search-init-rel nodes)
+(string-search-init-rel cprop)
+
+(define nodes cprop)
+
 
 (define columns-of-edges
 '(id subject edge_label object relation
@@ -75,7 +78,54 @@
                         (object subject)) ; implicit: lookup ending in id
 )
 
+(define (edge-from-row row)
+  (list
+  (list-ref row 1)
+  (list-ref row 3)))
+
+(define (eprop-from-row row)
+  (cons
+  (list-ref row 2)
+  (list-tail row 4)))
+
+(define-relation/table edge
+  'path               "yeast-sri-reference/0.3.0b/edge"
+  'source-file-path   "yeast-sri-reference/0.3.0b/simulation-of-upstream/sri-reference-kg-0.3.0_edges_nocr.tsv"
+  'source-file-header columns-of-edges
+  'attribute-names    '(id subject object)
+  'attribute-types    '(string string string)
+  'map/append          (value/syntax
+                        (lambda (row)
+                          (define id (car row))
+                          (list (cons id (edge-from-row row)))))
+  'indexes            '(                  ; default index is: id subject object
+                        (subject object)  ; implicit: lookup ending in id
+                        (object subject)) ; implicit: lookup ending in id
+)
+
+(define-relation/table eprop
+  'path               "yeast-sri-reference/0.3.0b/eprop"
+  'source-file-path   "yeast-sri-reference/0.3.0b/simulation-of-upstream/sri-reference-kg-0.3.0_edges_nocr.tsv"
+  'source-file-header columns-of-edges
+  'attribute-names    '(id subject object)
+  'attribute-types    '(string string string)
+  'map/append          (value/syntax
+                        (lambda (row)
+                          (define id (car row))
+                          (append-map
+                           (lambda (k v)
+                             (if (equal? v "")
+                                 '()
+                                 (list (list id k v))))
+                           (eprop-from-row stcolumns-of-edges)
+                           (eprop-from-row row))))
+  'indexes            '(                  ; default index is: id subject object
+                        (subject object)  ; implicit: lookup ending in id
+                        (object subject)) ; implicit: lookup ending in id
+)
+
 (database-extend-relations!
   'yeast-sri-reference-kg-0.3.0
-  '???nodes nodes
-  '???edges edges)
+  'cprop cprop
+  'edge edge
+  )
