@@ -193,7 +193,7 @@
                                      ((k-is-a curie cat)))
                               (loop (cdr nodes) bindings-rest)))
                           (error (format
-                                  "Field: 'QNode/categories' must be array of CURIESs (TRAPI 1.1), but given ~s\n"
+                                  "Field: 'QNode/categories' must be array of CURIEs (TRAPI 1.1), but given ~s\n"
                                   categories)))
                       ;; No ids (CURIEs) or categories specified for the node:
                       (fresh (curie k+v bindings-rest)
