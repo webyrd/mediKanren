@@ -4,6 +4,7 @@
 (require racket/cmdline)
 (require yaml)
 (require shell/pipeline)
+(require "run-shell-pipelines.rkt")
 (require chk)
 
 ;; logging approach 1: Actually try to make a log receiver and make it work.  AFAICT
@@ -15,45 +16,11 @@
 
 ;; *** generic utilities ***
 
-;; TODO: see if dynamic-wind preserves crash stacktraces better than with-handlers.
 (define (with-finally thunk-cleanup thunk-run)
   (dynamic-wind
     (lambda () #f)
     thunk-run
     thunk-cleanup))
-
-;; shell/pipelines can represent a pipeline step without
-;; running it, via pipeline-member-spec.  However, it seems to
-;; lack ability to represent a whole pipeline without running it.
-;; So as a workaround we'll use a list of lists to be able
-;; to test command generation without running commands.
-
-;;; Run a list of prepared pipelines
-(define (run-pipelines pipelines)
-  (define ret #f)
-  (for* ((pipeline pipelines))
-    (let* (
-           (ks (car pipeline))
-           (vs (cadr pipeline))
-           (fout (if (and
-                      (not (null? ks))
-                      (equal? (last ks) '#:out)
-                      (equal? (- (length ks) 1) (length vs)))
-                     (open-output-string)
-                     #f))
-           (vs (if fout
-                   (append vs (list fout))
-                   vs))
-           (p (keyword-apply run-subprocess-pipeline
-                             ks
-                             vs
-                             (pipeline-member-spec (caddr pipeline))
-                             (map (lambda (cmd) (pipeline-member-spec cmd)) (cdddr pipeline)))))
-      (if (not (equal? 0 (pipeline-status p)))
-          (raise (format "status ~a attempting to run ~s" (pipeline-status p) pipeline))
-          (printf "status ok\n"))
-      (when fout (set! ret (get-output-string fout)))))
-  ret)
 
 (define (dorash #:dry-run dry-run cmds)
   (unless (equal? dry-run 'quiet)
