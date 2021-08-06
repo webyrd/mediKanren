@@ -21,7 +21,7 @@ WEB: mediKanren 2 Explorer TODO:
  "common.rkt"
  "synonyms.rkt"
  "string-search.rkt"
- (prefix-in semmed: "db/semmed.rkt")
+ ;; (prefix-in semmed: "db/semmed.rkt")
  (prefix-in rtx:    "db/rtx2-biolink_2_1_2021_07_28.rkt")
  (prefix-in kgx:    "db/kgx-synonym.rkt")
   racket/sandbox
@@ -137,6 +137,12 @@ Choice 2:
 (define chars:ignore-typical "-")
 (define chars:split-typical "\t\n\v\f\r !\"#$%&'()*+,./:;<=>?@\\[\\\\\\]\\^_`{|}~")
 
+
+(define (curie-string str)
+  (let ((cs (regexp-match* #px"^[\\s]*(([^\\s]+:[^\\s]*)|(:[^\\s]+))[\\s]*$" str #:match-select cadr)))
+    (if (null? cs)
+        #f
+        (car cs))))
 
 
 (define (sort-paths paths)
@@ -773,7 +779,7 @@ Choice 2:
                                       (handle)))))
   (define node-normalization-field (new check-box%
                                         (parent parent-search/normalize/lw-panel)
-                                        (label "Show concept synonyms")
+                                        (label "Show concept synonyms for CURIE searches")
                                         (value #t)
                                         (callback (lambda (self event) (handle)))))
   (define lightweight-reasoning-field (new check-box%
@@ -859,33 +865,59 @@ Choice 2:
                       [(out-edge) #f]
                       [(in-edge)  #t]))
            (string-parts (split-name-string current-name))
-           (ans (if (null? string-parts) '()
-                  (begin (printf "searching for: ~s\n" current-name)
-                         ;; mediKanren 2 GUI: treat the string as a CURIE, for now
-                         (let ((synonyms (if (unbox node-normalization-flag)
-                                             (set->list
-                                              (set-union
-                                               (set current-name)
-                                               (list->set
-                                                (run* x (kgx-synonym current-name x)))))
-                                             (list current-name))))
-                           (printf "found synonyms:\n~s\n" synonyms)
-                           (time (set->list
-                                  (apply set-union
-                                         (map (lambda (curie)
-                                                (run*/set ans
-                                                  (fresh (dbname eid s o name cat)
-                                                    (== `(,dbname ,curie ,name ,cat) ans)
-                                                    (if subject?
-                                                        (== curie s)
-                                                        (== curie o))
-                                                    (edge `(,dbname . ,eid) s o)
-                                                    (cprop curie "name" name)
-                                                    (cprop curie "category" cat))))
-                                              synonyms)))))
-                         ;; Old mediKanren 1 GUI code:
-                         ;; (time (find-concepts/options/cui-infer subject? object? isa-count string-parts))
-                         ))))
+           (ans (cond
+                  ((null? string-parts) '())
+                  ((curie-string current-name) =>
+                   (lambda (cs)
+                     (printf "treating '~s' as a single CURIE\n" cs)
+                     (printf "performing CURIE search for: ~s\n" cs)
+                     (let ((synonyms (if (unbox node-normalization-flag)
+                                         (set->list
+                                          (set-union
+                                           (set cs)
+                                           (list->set
+                                            (run* x (kgx-synonym cs x)))))
+                                         (list cs))))
+                       (printf "found synonyms:\n~s\n" synonyms)
+                       (time (set->list
+                              (apply set-union
+                                     (map (lambda (curie)
+                                            (run*/set ans
+                                              (fresh (dbname eid s o name cat)
+                                                (== `(,dbname ,curie ,name ,cat) ans)
+                                                (if subject?
+                                                    (== curie s)
+                                                    (== curie o))
+                                                (edge `(,dbname . ,eid) s o)
+                                                (cprop curie "name" name)
+                                                (cprop curie "category" cat))))
+                                          synonyms)))))))
+                  (else
+
+                   (printf "treating '~s' as a non-CURIE search\n" string-parts)
+                   (printf "performing search for: ~s\n" string-parts)
+
+                   (let ((string-search-curies (find-ids-named rtx:cprop string-parts)))
+                     (time (set->list
+                            (apply set-union
+                                   (map (lambda (curie)
+                                          (run*/set ans
+                                            (fresh (dbname eid s o name cat)
+                                              (== `(,dbname ,curie ,name ,cat) ans)
+                                              (if subject?
+                                                  (== curie s)
+                                                  (== curie o))
+                                              (edge `(,dbname . ,eid) s o)
+                                              (cprop curie "name" name)
+                                              (cprop curie "category" cat))))
+                                        string-search-curies)))))                   
+
+                   ;; Old mediKanren 1 GUI code:
+                   ;; (time (find-concepts/options/cui-infer subject? object? isa-count string-parts))
+                   
+                   ))))
+
+      ;; (printf "ans:\n~s\n" ans)
       
       (set-box! choices ans)
       (send concept-listbox
@@ -893,12 +925,12 @@ Choice 2:
             (map (lambda (x)
                    (match x
                      [`(,dbname ,curie ,name ,cat)
-                       (~a dbname #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                      (~a dbname #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
                  ans)          
             (map (lambda (x)
                    (match x
                      [`(,dbname ,curie ,name ,cat)
-                       (~a curie #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                      (~a curie #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
                  ans)
             (map (lambda (x)
                    (match x
@@ -906,12 +938,12 @@ Choice 2:
                       (~a cat #:max-width MAX-CHAR-WIDTH #:limit-marker "...")
                       ;; Old mediKanren 1 GUI code:
                       ;; (~a `(,catid . ,cat) #:max-width MAX-CHAR-WIDTH #:limit-marker "...")
-                       ]))
+                      ]))
                  ans)
             (map (lambda (x)
                    (match x
                      [`(,dbname ,curie ,name ,cat)
-                       (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
+                      (~a name #:max-width MAX-CHAR-WIDTH #:limit-marker "...")]))
                  ans))
 
       ;; add choice data to each list-box entry
