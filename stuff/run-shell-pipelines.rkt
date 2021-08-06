@@ -38,19 +38,23 @@
   ret)
 
 (module+ test
+  ;; How to run a simple command
   (chk
    #:do (run-pipelines `((() () ("echo"))))
    #t)
 
+  ;; How to run a simple command with parameters
   (chk
    #:do (run-pipelines `((() () ("echo" "-e"))))
    #t)
 
+  ;; How to capture stdout to a file
   (chk
    #:do (with-handlers ((exn:fail? (lambda (ex) #t))) (delete-file "echo-out.tmp"))
    #:do (run-pipelines `(((#:out) ("echo-out.tmp") ("echo" "hello"))))
    #:t (file-exists? "echo-out.tmp"))
 
+  ;; How to capture stdout to a port
   (chk
    #:do (define fout (open-output-string))
    #:do (run-pipelines `(((#:out) (,fout) ("echo" "-ne" "foo\\nbar\\n") ("sort"))))
@@ -58,6 +62,24 @@
    #:do (define st (get-output-string fout))
    #:= st "bar\nfoo\n")
 
+  ;; How to capture capture stdout to a string
   (chk
    #:do (define st (run-pipelines `(((#:out) () ("echo" "-ne" "hello")))))
-   #:= st "hello"))
+   #:= st "hello")
+
+  ;; How to source stdin from a port and capture stdout to a string
+  (chk
+   #:do (define fin (open-input-string "foo\nbar\nbaz\n"))
+   #:do (define st (string-trim (run-pipelines `(((#:in #:out) (,fin) ("wc" "-l"))))))
+   #:do (close-input-port fin)
+   #:= st "3")
+
+  ;; How to source stdin from a port and capture stdout to a port
+  (chk
+   #:do (define fin (open-input-string "foo\nbar\nbaz\n"))
+   #:do (define fout (open-output-string))
+   #:do (run-pipelines `(((#:in #:out) (,fin ,fout) ("wc" "-l"))))
+   #:do (close-input-port fin)
+   #:do (close-output-port fout)
+   #:do (define st (string-trim (get-output-string fout)))
+   #:= st "3"))
