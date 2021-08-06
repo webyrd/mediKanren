@@ -1,6 +1,7 @@
 #lang racket
 (provide 
-    run-pipelines)
+    run-pipelines
+    report-invalid-pipelines)
 (require shell/pipeline)
 (require chk)
 
@@ -10,8 +11,19 @@
 ;; So as a workaround we'll use a list of lists to be able
 ;; to test command generation without running commands.
 
+(define (report-invalid-pipelines pipelines)
+  (for ((pipeline pipelines))
+    (unless (list? pipeline)
+      (error "pipeline must be a list:" pipeline))
+    (unless (and (>= (length pipeline) 3) (andmap list? pipeline))
+      (error "pipeline must contain at least three lists:" pipeline))
+    (unless (andmap (lambda (cmd) (> (length cmd) 0)) (list-tail pipeline 2))
+      (error "each command must be nonempty:" pipeline))))
+
+
 ;;; Run a list of prepared pipelines
 (define (run-pipelines pipelines)
+  (report-invalid-pipelines pipelines)
   (define ret #f)
   (for* ((pipeline pipelines))
     (let* (
