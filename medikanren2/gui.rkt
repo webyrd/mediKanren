@@ -24,6 +24,7 @@ WEB: mediKanren 2 Explorer TODO:
  ;; (prefix-in semmed: "db/semmed.rkt")
  (prefix-in rtx:    "db/rtx2-biolink_2_1_2021_07_28.rkt")
  (prefix-in kgx:    "db/kgx-synonym.rkt")
+  json
   racket/sandbox
   racket/gui/base
   framework
@@ -205,6 +206,37 @@ Choice 2:
     [else '()])
   )
 
+(define (python->json py)
+  (define len (string-length py))
+  (let loop ((i 0) (start 0))
+    (cond ((= i len) (if (= start 0) py (substring py start)))
+          ((eqv? (string-ref py i) #\')
+           (string-append
+             (substring py start i) "\""
+             (let requote ((i (+ i 1)) (start (+ i 1)))
+               (cond ((eqv? (string-ref py i) #\')
+                      (string-append (substring py start i) "\""
+                                     (loop (+ i 1) (+ i 1))))
+                     ((eqv? (string-ref py i) #\\)
+                      (if (eqv? (string-ref py (+ i 1)) #\")
+                        (requote (+ i 2) start)
+                        (string-append (substring py start i)
+                                       (requote (+ i 2) (+ i 1)))))
+                     ((eqv? (string-ref py i) #\")
+                      (string-append (substring py start i) "\\\""
+                                     (requote (+ i 1) (+ i 1))))
+                     (else (requote (+ i 1) start))))))
+          ((eqv? (string-ref py i) #\")
+           (let skip ((i (+ i 1)) (start start))
+             (cond ((eqv? (string-ref py i) #\") (loop (+ i 1) start))
+                   ((eqv? (string-ref py i) #\\)
+                    (if (eqv? (string-ref py (+ i 1)) #\")
+                      (skip (+ i 2) start)
+                      (string-append (substring py start i)
+                                     (skip (+ i 2) (+ i 1)))))
+                   (else                         (skip (+ i 1) start)))))
+          (else (loop (+ i 1) start)))))
+
 (define PUBMED_URL_PREFIX "https://www.ncbi.nlm.nih.gov/pubmed/")
 (define (pubmed-URLs-from-edge edge)
   (map (lambda (pubmed-id) (string-append PUBMED_URL_PREFIX (~a pubmed-id)))
@@ -218,8 +250,27 @@ Choice 2:
         (pubmed-ids-from-edge-props eprops)])))
 
 (define (publications-info-alist-from-edge-props eprops)
-  (printf "publications-info-alist-from-edge-props TODO IMPLEMENT ME!\n")
-  '())
+  (cond
+    [(assoc "publications_info" eprops)
+     => (lambda (pr)
+          (with-handlers ([exn:fail?
+                           (lambda (v)
+                             ((error-display-handler) (exn-message v) v)
+                             '())])
+            (define pubs (cdr pr))
+            (define jason-ht (string->jsexpr (python->json pubs)))
+            (hash-map jason-ht (lambda (k v)
+                                 (cons (string-append
+                                        PUBMED_URL_PREFIX
+                                        (car (regexp-match* #rx"([0-9]+)" (symbol->string k) #:match-select cadr)))
+                                       (list (hash-ref v '|publication date| #f)
+                                             (hash-ref v '|subject score| #f)
+                                             (hash-ref v '|object score| #f)
+                                             (regexp-replace*
+                                              #rx"([ ]+)"
+                                              (hash-ref v 'sentence #f)
+                                              " ")))))))]
+    [else '()]))
 
 (define (publications-info-alist-from-edge edge)
   ;; ((pubmed-URL . (publication-date subject-score object-score sentence)) ...)
