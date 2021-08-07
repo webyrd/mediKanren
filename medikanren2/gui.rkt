@@ -2,11 +2,8 @@
 
 WEB: mediKanren 2 Explorer TODO:
 
-* fix 2-hop queries, which seem to be returning 0 answers even when they exist
-* fix "Find in X's" sub-search, which doesn't seem to be working
 * fix sorting by CURIE, so that DOID:26 appears before DOID:2531
 
-* add string search (in addition to the existing CURIE search)
 * fully implement concept normalization checkbox
 * fully implement lightweight reasoning checkbox
 * implement smarter copy/paste
@@ -135,8 +132,6 @@ Choice 2:
    "biolink:produces"))
 
 
-(define chars:ignore-typical "-")
-(define chars:split-typical "\t\n\v\f\r !\"#$%&'()*+,./:;<=>?@\\[\\\\\\]\\^_`{|}~")
 
 
 (define (curie-string str)
@@ -346,9 +341,34 @@ Choice 2:
   (define all (append* (cons (run* (c) (~name*-concepto no-cui c)) yes-cui)))
   (concepts/options subject? object? isa-count all))
 
-;; TODO implement or remove
+
+(define chars:ignore-typical "-")
+(define chars:split-typical "\t\n\v\f\r !\"#$%&'()*+,./:;<=>?@\\[\\\\\\]\\^_`{|}~")
+
 (define (smart-string-matches? case-sensitive? chars:ignore chars:split str* hay)
-  #f)
+  (define re:ignore (and (non-empty-string? chars:ignore)
+                         (pregexp (string-append "[" chars:ignore "]"))))
+  (define re:split (and (non-empty-string? chars:split)
+                        (pregexp (string-append "[" chars:split "]"))))
+  (define (normalize s case-sensitive?)
+    (define pruned (if re:ignore (string-replace s re:ignore "") s))
+    (if case-sensitive? pruned (string-downcase pruned)))
+  (define (contains-upcase? s) (not (string=? s (string-downcase s))))
+  (define case-sensitive?*
+    (map (lambda (s) (or case-sensitive? (contains-upcase? s))) str*))
+  (define needles
+    (map (lambda (v case-sensitive?) (normalize v case-sensitive?))
+         str* case-sensitive?*))
+  (and hay
+       (andmap
+        (if re:split
+            (lambda (n case-sensitive?)
+              (ormap (lambda (s) (string=? s n))
+                     (string-split (normalize hay case-sensitive?) re:split)))
+            (lambda (n case-sensitive?)
+              (string-contains? (normalize hay case-sensitive?) n)))
+        needles case-sensitive?*)))
+
 
 ;; from medikanren/db.rkt:
 ;;
@@ -568,7 +588,7 @@ Choice 2:
                   [(< i 0) (loop (- count 1))]
                   [else
                    (define data (send concept-X-list-box get-data i))
-                   (define name-str (list-ref data 3))
+                   (define name-str (list-ref data 2))
                    (define matches?
                      (smart-string-matches? #f
                                             chars:ignore-typical
@@ -605,7 +625,7 @@ Choice 2:
                   [(>= i count) #f]
                   [else
                    (define data (send concept-X-list-box get-data i))
-                   (define name-str (list-ref data 3))
+                   (define name-str (list-ref data 2))
                    (define matches?
                      (smart-string-matches? #f
                                             chars:ignore-typical
