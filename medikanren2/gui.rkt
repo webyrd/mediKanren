@@ -2,7 +2,12 @@
 
 WEB: mediKanren 2 Explorer TODO:
 
-* fix sorting by CURIE, so that DOID:26 appears before DOID:2531
+* Fix problem with 'Find in X's':
+when you enter a string in 'Find in X's' text box, and a row is hilighted,
+the Paths and Pubmed info isn't updated, and *clicking* on the
+hilighted row doesn't update the Paths and Pubmed info.
+
+* Fix sorting by CURIE, so that DOID:26 appears before DOID:2531
 
 * fully implement concept normalization checkbox
 * fully implement lightweight reasoning checkbox
@@ -146,11 +151,11 @@ Choice 2:
   paths)
 
 (define (path-confidence . args)
-  (printf "path-confidence -- IMPLEMENT ME!\n")
+  ;(printf "path-confidence -- IMPLEMENT ME!\n")
   'todo)
 
 (define (path-confidence<? . args)
-  (printf "path-confidence<? -- IMPLEMENT ME!\n")
+  ;(printf "path-confidence<? -- IMPLEMENT ME!\n")
   'todo)
 
 (define (get-pred-names e*)
@@ -283,7 +288,7 @@ Choice 2:
     concepts)))
 
 (define (find-predicates/concepts subject? object? concepts)
-  (printf "find-predicates/concepts subject?: ~s\nobject?: ~s\nconcepts: ~s\n\n" subject? object? concepts)
+  ; (printf "find-predicates/concepts subject?: ~s\nobject?: ~s\nconcepts: ~s\n\n" subject? object? concepts)
   (let ((ans (map
               (lambda (c)
                 (match c
@@ -305,8 +310,8 @@ Choice 2:
                                  (edge `(,dbname . ,eid) s curie)
                                  (eprop `(,dbname . ,eid) "predicate" pred))))))
                    
-                   (printf "subject-predicates: ~s\n" subject-predicates)
-                   (printf "object-predicates: ~s\n" object-predicates)
+                   ; (printf "subject-predicates: ~s\n" subject-predicates)
+                   ; (printf "object-predicates: ~s\n" object-predicates)
                    (list c subject-predicates object-predicates)]))
               concepts)))
     ans))
@@ -403,7 +408,7 @@ Choice 2:
 (define (empty-string? str)
   (not (not (regexp-match #px"^[\\s]*$" str))))
 
-(define *verbose* #t)
+(define *verbose* #f)
 
 (define input-response-latency 50)
 
@@ -946,28 +951,31 @@ Choice 2:
                                             (run* x (kgx-synonym cs x)))))
                                          (list cs))))
                        (printf "found synonyms:\n~s\n" synonyms)
-                       (time (set->list
-                              (apply set-union
-                                     (map (lambda (curie)
-                                            (run*/set ans
-                                              (fresh (dbname eid s o name cat)
-                                                (== `(,dbname ,curie ,name ,cat) ans)
-                                                (if subject?
-                                                    (== curie s)
-                                                    (== curie o))
-                                                (edge `(,dbname . ,eid) s o)
-                                                (cprop curie "name" name)
-                                                (cprop curie "category" cat))))
-                                          synonyms)))))))
+
+                       (time (let ((result
+                                    (map (lambda (curie)
+                                           (run*/set ans
+                                             (fresh (dbname eid s o name cat)
+                                               (== `(,dbname ,curie ,name ,cat) ans)
+                                               (if subject?
+                                                   (== curie s)
+                                                   (== curie o))
+                                               (edge `(,dbname . ,eid) s o)
+                                               (cprop curie "name" name)
+                                               (cprop curie "category" cat))))
+                                         synonyms)))
+                               (if (null? result)
+                                   '()
+                                   (set->list (apply set-union result))))))))
                   (else
 
                    (printf "treating '~s' as a non-CURIE search\n" string-parts)
                    (printf "performing search for: ~s\n" string-parts)
 
                    (let ((string-search-curies (find-ids-named rtx:cprop string-parts)))
-                     (time (set->list
-                            (apply set-union
-                                   (map (lambda (curie)
+
+                     (time (let ((result
+                                  (map (lambda (curie)
                                           (run*/set ans
                                             (fresh (dbname eid s o name cat)
                                               (== `(,dbname ,curie ,name ,cat) ans)
@@ -977,7 +985,10 @@ Choice 2:
                                               (edge `(,dbname . ,eid) s o)
                                               (cprop curie "name" name)
                                               (cprop curie "category" cat))))
-                                        string-search-curies)))))                   
+                                        string-search-curies)))
+                             (if (null? result)
+                                 '()
+                                 (set->list (apply set-union result))))))
 
                    ;; Old mediKanren 1 GUI code:
                    ;; (time (find-concepts/options/cui-infer subject? object? isa-count string-parts))
@@ -1494,7 +1505,7 @@ Choice 2:
                                                                                                      (== k/v `(,k . ,v))
                                                                                                      (eprop `(,dbname2 . ,eid2) k v))))
                                                                                             )))))
-                                                                                  (printf "ans:\n~s\n" ans)
+                                                                                  ;; (printf "ans:\n~s\n" ans)
                                                                                   (if (null? ans)
                                                                                       '()
                                                                                       (car ans))))))
@@ -1523,7 +1534,7 @@ Choice 2:
 
                                                                            ])
 
-                                                                       (printf "paths: ~s\n" paths)
+                                                                       ;; (printf "paths: ~s\n" paths)
                                                                        (newline)
 
                                                                        ;; This sorting affects the order of the "Path" list
@@ -1547,7 +1558,7 @@ Choice 2:
 
                                                                        (define full-path-dbname-list
                                                                          (map (lambda (x)
-                                                                                (printf "x:\n~s\n" x)
+                                                                                ;(printf "x:\n~s\n" x)
                                                                                 (match x
                                                                                   ['path-separator "----"]
                                                                                   [`(,dbname ,eid ,subj ,obj ,pred ,eprops)
@@ -1933,11 +1944,12 @@ Choice 2:
                                                                        (eprop `(,dbname . ,eid) "predicate" pred)
                                                                        (cprop s-curie "name" s-name)
                                                                        (cprop s-curie "category" s-cat)
+                                                                       ;; Only get the minimal edge properties needed to populate the X list box
                                                                        (:== edge-props (dbname eid)
-                                                                            (run* k/v
-                                                                              (fresh (k v)
-                                                                                (== k/v `(,k . ,v))
-                                                                                (eprop `(,dbname . ,eid) k v)))))))))
+                                                                           (run 1 k/v
+                                                                             (fresh (v)
+                                                                               (== `("publications" . ,v) k/v)
+                                                                               (eprop `(,dbname . ,eid) "publications" v)))))))))
                                                              tmp)]))
                                                       concept-2*)))
                                         atomic-predicate-2*))))
@@ -1991,11 +2003,12 @@ Choice 2:
                                                                       (eprop `(,dbname . ,eid) "predicate" pred)
                                                                       (cprop o-curie "name" o-name)
                                                                       (cprop o-curie "category" o-cat)
+                                                                      ;; Only get the minimal edge properties needed to populate the X list box
                                                                       (:== edge-props (dbname eid)
-                                                                           (run* k/v
-                                                                             (fresh (k v)
-                                                                               (== k/v `(,k . ,v))
-                                                                               (eprop `(,dbname . ,eid) k v)))))))))
+                                                                           (run 1 k/v
+                                                                             (fresh (v)
+                                                                               (== `("publications" . ,v) k/v)
+                                                                               (eprop `(,dbname . ,eid) "publications" v)))))))))
                                                             tmp)]))
                                                      concept-1*)))
                                        atomic-predicate-1*))))
@@ -2064,7 +2077,8 @@ Choice 2:
                                                                                                       (== `(,m-curie ,m-name ,m-cat ,m-props) m)
                                                                                                       (== `(,s-curie1 ,s-name1 ,s-cat1 ,s-props1) s1)
                                                                                                       (== `(,o-curie2 ,o-name2 ,o-cat2 ,o-props2) o2)
-                                                                                                      ;; We get these concept properties later, when the user clicks on a path.
+                                                                                                      ;; We get these concept properties later,
+                                                                                                      ;; when the user clicks on a path.
                                                                                                       (== m-props '())
                                                                                                       (== s-props1 '())
                                                                                                       (== o-props2 '())
@@ -2077,22 +2091,18 @@ Choice 2:
                                                                                
                                                                                                       (cprop m-curie "name" m-name)
                                                                                                       (cprop m-curie "category" m-cat)
-                                                                               
+                                                                                                      ;; Only get the minimal edge properties needed to
+                                                                                                      ;; populate the X list box.
                                                                                                       (:== edge-props1 (dbname1 eid1)
-                                                                                                           (begin
-                                                                                                             ;(printf "reached alpha\n")
-                                                                                                             (run* k/v
-                                                                                                               (fresh (k v)
-                                                                                                                 (== k/v `(,k . ,v))
-                                                                                                                 (eprop `(,dbname1 . ,eid1) k v)))))
+                                                                                                           (run 1 k/v
+                                                                                                             (fresh (v)
+                                                                                                               (== `("publications" . ,v) k/v)
+                                                                                                               (eprop `(,dbname1 . ,eid1) "publications" v))))
                                                                                                       (:== edge-props2 (dbname2 eid2)
-                                                                                                           (begin
-                                                                                                             ;(printf "reached beta\n")
-                                                                                                             (run* k/v
-                                                                                                               (fresh (k v)
-                                                                                                                 (== k/v `(,k . ,v))
-                                                                                                                 (eprop `(,dbname2 . ,eid2) k v))))))))))
-                                                                                            ;(printf "tmp:\n~s\n" tmp)
+                                                                                                           (run 1 k/v
+                                                                                                             (fresh (v)
+                                                                                                               (== `("publications" . ,v) k/v)
+                                                                                                               (eprop `(,dbname2 . ,eid2) "publications" v)))))))))
                                                                                             tmp)]))
                                                                                      concept-2*))]))
                                                                     concept-1*)))
@@ -2128,6 +2138,9 @@ Choice 2:
   (printf "elapsed query time: ~s seconds\n" (/ elapsed-time 1000.0))
   (printf "=============================\n")
 
+
+  ;(printf "all-X-concepts-with-edges:\n\n~s\n\n" all-X-concepts-with-edges)
+  
   ;; This sorting affects order of appearance in the "X" concept list
   (set! all-X-concepts-with-edges
     (sort
