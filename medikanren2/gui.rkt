@@ -86,7 +86,7 @@ Choice 2:
 (displayln MEDIKANREN_VERSION_STRING)
 
 ;;; Query save file settings
-(define WRITE_QUERY_RESULTS_TO_FILE            #t)
+(define WRITE_QUERY_RESULTS_TO_FILE            #f)
 (define QUERY_RESULTS_FILE_NAME                "last.sx")
 (define HUMAN_FRIENDLY_QUERY_RESULTS_FILE_NAME "last.txt")
 (define SPREADSHEET_FRIENDLY_QUERY_RESULTS_FILE_NAME "last.tsv")
@@ -174,8 +174,6 @@ Choice 2:
   (length (pubmed-ids-from-edge e)))
 
 (define (pubmed-ids-from-edge-props eprops)
-  (printf ">>> calling pubmed-ids-from-edge-props...\n")
-  (printf "eprops:\n~s\n" eprops)
   (cond
     [(assoc "publications" eprops)
      => (lambda (pr)
@@ -183,8 +181,6 @@ Choice 2:
           (let ((pubmed-ids (if (not (string? pubs))
                                 '()
                                 (regexp-match* #rx"PMID:([0-9]+)" pubs #:match-select cadr))))
-            (printf "pubmed-ids:\n~s\n" pubmed-ids)
-            (printf "pubmed-ids length:\n~s\n" (length pubmed-ids))
             pubmed-ids))]
     [else '()])
   
@@ -1945,7 +1941,7 @@ Choice 2:
                                                              tmp)]))
                                                       concept-2*)))
                                         atomic-predicate-2*))))
-                       (printf "ans:\n~s\n" ans)
+                       ;(printf "ans:\n~s\n" ans)
                        ans))))
      
      ;; Old mediKanren 1 GUI code:
@@ -2003,7 +1999,7 @@ Choice 2:
                                                             tmp)]))
                                                      concept-1*)))
                                        atomic-predicate-1*))))
-                      (printf "ans:\n~s\n" ans)
+                      ;(printf "ans:\n~s\n" ans)
                       ans))))
      
      ;; Old mediKanren 1 GUI code:
@@ -2041,14 +2037,15 @@ Choice 2:
                                                                                        (match concept2
                                                                                          [`(,dbname2 ,o-curie2 ,o-name2 ,o-cat2)
 
+                                                                                          #|
                                                                                           (printf "<<<<<\n")
-
                                                                                           (printf "concept1 ~s\n" concept1)
                                                                                           (printf "concept2 ~s\n" concept2)
                                                                                           (printf "pred1 ~s\n" pred1)
                                                                                           (printf "pred2 ~s\n" pred2)
                                                                                           (printf "s-curie1 ~s\n" s-curie1)
                                                                                           (printf "o-curie2 ~s\n" o-curie2)
+                                                                                          |#
                                                                    
                                                                                           (let ((tmp
                                                                                                  (set->list
@@ -2083,25 +2080,25 @@ Choice 2:
                                                                                
                                                                                                       (:== edge-props1 (dbname1 eid1)
                                                                                                            (begin
-                                                                                                             (printf "reached alpha\n")
+                                                                                                             ;(printf "reached alpha\n")
                                                                                                              (run* k/v
                                                                                                                (fresh (k v)
                                                                                                                  (== k/v `(,k . ,v))
                                                                                                                  (eprop `(,dbname1 . ,eid1) k v)))))
                                                                                                       (:== edge-props2 (dbname2 eid2)
                                                                                                            (begin
-                                                                                                             (printf "reached beta\n")
+                                                                                                             ;(printf "reached beta\n")
                                                                                                              (run* k/v
                                                                                                                (fresh (k v)
                                                                                                                  (== k/v `(,k . ,v))
                                                                                                                  (eprop `(,dbname2 . ,eid2) k v))))))))))
-                                                                                            (printf "tmp:\n~s\n" tmp)
+                                                                                            ;(printf "tmp:\n~s\n" tmp)
                                                                                             tmp)]))
                                                                                      concept-2*))]))
                                                                     concept-1*)))
                                                       atomic-predicate-2*)))
                                         atomic-predicate-1*))))
-                       (printf "ans:\n~s\n" ans)
+                       ;(printf "ans:\n~s\n" ans)
                        ans))))
      
      ;; Old mediKanren 1 GUI code:
@@ -2149,7 +2146,6 @@ Choice 2:
       [(null? c*) (void)]
       [else (match (car c*)
               [`(,dbname (,curie ,name ,cat ,props) ,whatever ,e*)
-               (printf "matched\n")
                (let ((pred-names (get-pred-names e*)))
                  (let ((key (list dbname curie)))
                    (let ((current-v (hash-ref db/curie-to-pred-names-hash-table key #f)))
