@@ -1,5 +1,5 @@
 #lang racket
-(provide nodes edges cprop edge eprop)
+(provide nodes cprop edge eprop)
 
 #|
   Extract from source data and rebuild with:
@@ -40,8 +40,6 @@
                                  (list (list id k v))))
                            (cdr stcolumns-of-nodes)
                            (cdr row))))
-;  'tables             '((curie name value))
-;  'indexes            '((name value))
   )
 
 (string-search-init-rel cprop)
@@ -56,27 +54,6 @@
   onset source type xref
 ))
 (define stcolumns-of-edges (map symbol->string columns-of-edges))
-
-(define-relation/table edges
-  'path               "yeast-sri-reference/0.3.0b/edges"
-  'source-file-path   "yeast-sri-reference/0.3.0b/simulation-of-upstream/sri-reference-kg-0.3.0_edges_nocr.tsv"
-  'source-file-header columns-of-edges
-  'attribute-names    '(id subject object)
-  'attribute-types    '(string string string)
-  'map/append          (value/syntax
-                        (lambda (row)
-                          (define id (car row))
-                          (append-map
-                           (lambda (k v)
-                             (if (equal? v "")
-                                 '()
-                                 (list (list id k v))))
-                           (cdr stcolumns-of-edges)
-                           (cdr row))))
-  'indexes            '(                  ; default index is: id subject object
-                        (subject object)  ; implicit: lookup ending in id
-                        (object subject)) ; implicit: lookup ending in id
-)
 
 (define (edge-from-row row)
   (list
