@@ -80,7 +80,7 @@
 
 (define (log-thunk fn name-fn . args)
   (writeln `(
-             (event . end)
+             (event . begin)
              (method-name . ,name-fn)
              (args . ,args)))
   (let* ((
