@@ -9,19 +9,19 @@
 (define (main)
   (with-config
     (lambda ()
-  (with-adir-temp-root
-    (lambda ()
-    (parameterize ((dry-run #f))
-    (with-kge-token
+      (with-adir-temp-root
         (lambda ()
-            (let* (
-                    (idvers (log-thunk (lambda () (fetch-recent-kge-versions)) 'fetch-recent-kge-versions))
-                    (kgmetas (log-thunk (lambda () (fetch-recent-kgmeta idvers)) 'fetch-recent-kgmeta))
-                    (tasks (fetch-recent-tasks))
-                    (tbis (log-thunk (lambda () (tbis-tosync kgmetas tasks)) 'tbis-tosync kgmetas tasks)))
-                (for ((tbi tbis))
+          (parameterize ((dry-run #f))
+            (with-kge-token
+              (lambda ()
+                (let* (
+                       (idvers (log-thunk (lambda () (fetch-recent-kge-versions)) 'fetch-recent-kge-versions))
+                       (kgmetas (log-thunk (lambda () (fetch-recent-kgmeta idvers)) 'fetch-recent-kgmeta))
+                       (tasks (fetch-recent-tasks))
+                       (tbis (log-thunk (lambda () (tbis-tosync kgmetas tasks)) 'tbis-tosync kgmetas tasks)))
+                  (for ((tbi tbis))
                     (fetch-payload-to-disk tbi)
                     (process-tbi (s3path-base) tbi)))))))))))
 
 (module+ main
-    (main))
+  (main))

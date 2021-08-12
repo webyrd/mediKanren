@@ -25,8 +25,8 @@
         (error (printf "update-vals-by-key: key ~s not found in ~s" k keys)))))
 
 (define (adir-repo-ingest)
-    (let ((afile (afile-current-source)))
-        (simplify-path (build-path afile 'up 'up 'up 'up "mediKanren-ingest"))))
+  (let ((afile (afile-current-source)))
+    (simplify-path (build-path afile 'up 'up 'up 'up "mediKanren-ingest"))))
 
 (define dr-make-directory (dry-runify make-directory 'make-directory))
 
@@ -42,12 +42,12 @@
 
 (define (sha1sum afile)
   (if (dry-run)
-    "1234567890123456789012345678901234567890"
-    (run-pipelines 
-    `(((#:out) ()
-                ("sha1sum" ,afile)
-                ("cut" "-c1-40")
-                )))))
+      "1234567890123456789012345678901234567890"
+      (run-pipelines 
+       `(((#:out) ()
+                  ("sha1sum" ,afile)
+                  ("cut" "-c1-40")
+                  )))))
 
 (define (rfile-output tbi)
   (define kgec (task-build-index-kgec tbi))
@@ -77,7 +77,7 @@
       (() ()
           ("tar" "xzf" ,afile-archive "-C" ,adir-payload))
       (() () ("ls" "-lR" ,(adir-temp)))
-          ))
+      ))
   ; TODO capture ls -lR of what was in the archive
   ;(define cmds^ (run-pipeline-stdin-from-request request-inport cmds))
   ; TODO: check symlink:  medikanren2/data and symlink adir-payload to it
@@ -93,10 +93,10 @@
   `((() () ("bash" "-c" ,(format "cd '~a'; pwd; racket -e '(require \"medikanren2/db/~a\")'" adir rfile-rkt)))))
 
 (module+ test
-    (chk
-    #:do (run-pipelines (cmd-require-racket "stuff" "run-shell-pipelines.rkt"))
-    #t)
-)
+  (chk
+   #:do (run-pipelines (cmd-require-racket "stuff" "run-shell-pipelines.rkt"))
+   #t)
+  )
 
 (define (dispatch-build-impl tbi)
   (define kgid (kge-coord-kgid (task-build-index-kgec tbi)))
@@ -118,30 +118,30 @@
     (`((require-file . ,rfile-to-require)
        (local-name . ,local-name)
        (shell-pipeline-before . ,cmds-before))
-      (begin
-        (define kgid (kge-coord-kgid (task-build-index-kgec tbi)))
-        (define ver (kge-coord-ver (task-build-index-kgec tbi)))
-        (define adir-data1 (path->string (build-path (adir-temp) "data")))
-        (define rfile (rfile-output tbi))
-        (define afile-archout (path->string (build-path (adir-temp) (format "~a.tgz" rfile))))
-        (define adir-split (path->string (build-path (adir-temp) "split")))
-        (dr-make-directory adir-split)
-        (define afile-split (path->string (build-path (adir-temp) "split" (format "~a.tgz.split." rfile))))
-        (define adir-data (path->string (build-path (adir-repo-ingest) "medikanren2" "data")))
-        (run-cmds
+     (begin
+       (define kgid (kge-coord-kgid (task-build-index-kgec tbi)))
+       (define ver (kge-coord-ver (task-build-index-kgec tbi)))
+       (define adir-data1 (path->string (build-path (adir-temp) "data")))
+       (define rfile (rfile-output tbi))
+       (define afile-archout (path->string (build-path (adir-temp) (format "~a.tgz" rfile))))
+       (define adir-split (path->string (build-path (adir-temp) "split")))
+       (dr-make-directory adir-split)
+       (define afile-split (path->string (build-path (adir-temp) "split" (format "~a.tgz.split." rfile))))
+       (define adir-data (path->string (build-path (adir-repo-ingest) "medikanren2" "data")))
+       (run-cmds
         `(  (() () ("tar" "czf" ,afile-archout "-C" ,adir-data1 ,(format "~a/~a" local-name ver)))
             (() () ("split" "--bytes=1G" ,afile-archout ,afile-split))
             (() () ("ls" "-l" ,adir-split))
             ))
-        ; TODO: now that tgz is generated, sha1sum it and generate yaml
-        ))))
+       ; TODO: now that tgz is generated, sha1sum it and generate yaml
+       ))))
 
 (define (make-s3dir s3path-base tbi)
-    (define kgec (task-build-index-kgec tbi))
-    (define kgid (kge-coord-kgid kgec))
-    (define ver (kge-coord-ver kgec))
-    (define ver-mi (task-build-index-ver-mi tbi))
-    (format "~a/kgid/~a/v/~a/mi/~a" s3path-base kgid ver ver-mi)) ; TODO: omit "/" from "/kgid" or from s3path-base?
+  (define kgec (task-build-index-kgec tbi))
+  (define kgid (kge-coord-kgid kgec))
+  (define ver (kge-coord-ver kgec))
+  (define ver-mi (task-build-index-ver-mi tbi))
+  (format "~a/kgid/~a/v/~a/mi/~a" s3path-base kgid ver ver-mi)) ; TODO: omit "/" from "/kgid" or from s3path-base?
 
 (define (upload-archive-out s3dir)
   (define adir-split (path->string (build-path (adir-temp) "split")))
@@ -149,29 +149,29 @@
   ; TODO extract method for better dryrun copy-dir-to-s3
   (for ((patel patels))
     (let ((s3path (format "~a/~a" s3dir patel)))
-        (multipart-put/file s3path (path->string (build-path adir-split patel)))
-  ; TODO copy yaml
-  )))
+      (multipart-put/file s3path (path->string (build-path adir-split patel)))
+      ; TODO copy yaml
+      )))
 
 (define dr-upload-archive-out (dry-runify upload-archive-out 'upload-archive-out))
 
 (define (check-for-payload tbi)
-    (define afile (path->string (build-path (adir-temp) (payload-from-kgec (task-build-index-kgec tbi)))))
-    (if (dry-run)
-        (displayln `(check-for-payload ,afile))
-        (unless (file-exists? afile)
-            (error (format "Caller must supply a file at: ~a" afile)))))
+  (define afile (path->string (build-path (adir-temp) (payload-from-kgec (task-build-index-kgec tbi)))))
+  (if (dry-run)
+      (displayln `(check-for-payload ,afile))
+      (unless (file-exists? afile)
+        (error (format "Caller must supply a file at: ~a" afile)))))
 
 (define (process-tbi s3path-base tbi)
-          (check-for-payload tbi)  ; TODO
-          (expand-payload tbi)
-          (dispatch-build-impl tbi)
-          (compress-out tbi)
-          (dr-upload-archive-out (make-s3dir s3path-base tbi)))
-  ; TODO: promote temp dir context to main
-  ; TODO: leave for find-kgv-tosync: sha1, size
-  ;       recompute from tbi: reldir, filename
-  
+  (check-for-payload tbi)  ; TODO
+  (expand-payload tbi)
+  (dispatch-build-impl tbi)
+  (compress-out tbi)
+  (dr-upload-archive-out (make-s3dir s3path-base tbi)))
+; TODO: promote temp dir context to main
+; TODO: leave for find-kgv-tosync: sha1, size
+;       recompute from tbi: reldir, filename
+
 
 
 

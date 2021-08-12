@@ -1,7 +1,7 @@
 #lang racket
 (provide
-    afile-current-source
-    adir-current-source)
+ afile-current-source
+ adir-current-source)
 
 (define-syntax (afile-current-source stx)
   (datum->syntax
@@ -12,6 +12,6 @@
 (define-syntax (adir-current-source stx)
   (datum->syntax
    (quote-syntax here)
-    (simplify-path (build-path (syntax-source stx) 'up))
+   (simplify-path (build-path (syntax-source stx) 'up))
    stx))
 

@@ -1,10 +1,10 @@
 #lang racket
 (provide
-    adir-temp
-    with-adir-temp-root
-    dry-run
-    run-cmds
-    dry-runify)
+ adir-temp
+ with-adir-temp-root
+ dry-run
+ run-cmds
+ dry-runify)
 (require "../../stuff/run-shell-pipelines.rkt")
 
 ;;;; begin racket parameters
@@ -38,18 +38,18 @@
   (when (not (dry-run))
     (run-pipelines cmds)))
 #|  (if (dry-run)
-      (displayln cmds)
-      (run-pipelines cmds)))
+(displayln cmds)
+(run-pipelines cmds)))
 |#
 
 (define (dry-runify thunk name)
   (lambda args
     (when (or (dry-run) (verbose))
-        (displayln (cons name args)))
+      (displayln (cons name args)))
     (when (not (dry-run))
-            (apply thunk args))))
+      (apply thunk args))))
 #|
-    (if (dry-run)
-        (displayln (cons name args))
-        (apply thunk args))))
+(if (dry-run)
+    (displayln (cons name args))
+    (apply thunk args))))
 |#

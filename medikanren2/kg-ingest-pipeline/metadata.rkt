@@ -35,7 +35,7 @@
   )
 
 (define (payload-from-kgec kgec)
-    (format "~a_~a.tar.gz" (kge-coord-kgid kgec) (kge-coord-ver kgec)))
+  (format "~a_~a.tar.gz" (kge-coord-kgid kgec) (kge-coord-ver kgec)))
 
 (define kge-coord-mapping
   (json-mapping
