@@ -14,7 +14,6 @@ hilighted row doesn't update the Paths and Pubmed info.
 * implement smarter copy/paste
 * make the interface faster/more responsive
 
-
 |#
 
 
