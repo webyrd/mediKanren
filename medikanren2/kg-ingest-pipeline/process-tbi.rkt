@@ -99,10 +99,10 @@
    #t)
   )
 
-(define (has-dispatch? tbi)
-  (define kgid (kge-coord-kgid (task-build-index-kgec tbi)))
-  (define ver (kge-coord-ver (task-build-index-kgec tbi)))
-  (list? (dispatch-build-kg kgid ver "")))
+(define (has-dispatch? idver)
+  (match idver
+    (`(idver ,kgid ,ver)
+     (list? (dispatch-build-kg kgid ver "")))))
 
 (define ((kg-ref key (val-default 'kg-ref-default)) kgid ver adir-base)
   (define kg (dispatch-build-kg kgid ver adir-base))
