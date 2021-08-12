@@ -162,7 +162,7 @@
 
 (define (tbi-known-format? tbi)
   (define kgec (task-build-index-kgec tbi))
-  (match (dispatch-build-kg (kge-coord-kgid kgec) (kge-coord-ver kgec) "")
+  (match (dispatch-build-kg (kge-coord-kgid kgec) (kge-coord-ver kgec))
     ('unknown-format #f)
     ; TODO: fail fast if expected keys are not present?
     (else #t)))

@@ -12,6 +12,7 @@
 (require "metadata.rkt")
 (require "current-source.rkt")
 (require "cmd-helpers.rkt")
+(require "dispatch-params.rkt")
 
 ;task-build-index
 ;task-build-index-kgec
@@ -24,10 +25,6 @@
     (if i
         (list-set vals i v)
         (error (printf "update-vals-by-key: key ~s not found in ~s" k keys)))))
-
-(define (adir-repo-ingest)
-  (let ((afile (afile-current-source)))
-    (simplify-path (build-path afile 'up 'up 'up 'up "mediKanren-ingest"))))
 
 (define dr-make-directory (dry-runify make-directory 'make-directory))
 
@@ -102,10 +99,10 @@
 (define (has-dispatch? idver)
   (match idver
     (`(idver ,kgid ,ver)
-     (list? (dispatch-build-kg kgid ver "")))))
+     (list? (dispatch-build-kg kgid ver)))))
 
-(define ((kg-ref key (val-default 'kg-ref-default)) kgid ver adir-base)
-  (define kg (dispatch-build-kg kgid ver adir-base))
+(define ((kg-ref key (val-default 'kg-ref-default)) kgid ver)
+  (define kg (dispatch-build-kg kgid ver))
   (if (dict-has-key? kg key)
       (dict-ref kg key)
       (begin
@@ -123,8 +120,8 @@
   (define kgec (task-build-index-kgec tbi))
   (define adir-base (build-path (adir-repo-ingest) "medikanren2"))
   ; TODO: copy file_set.yaml, provider.yaml
-  (let ((rfile-to-require (require-file-from-kg (kge-coord-kgid kgec) (kge-coord-ver kgec) adir-base))
-        (cmds-before (shell-pipeline-before (kge-coord-kgid kgec) (kge-coord-ver kgec) adir-base)))
+  (let ((rfile-to-require (require-file-from-kg (kge-coord-kgid kgec) (kge-coord-ver kgec)))
+        (cmds-before (shell-pipeline-before (kge-coord-kgid kgec) (kge-coord-ver kgec))))
     (begin
       (report-invalid-pipelines cmds-before)
       (let ((cmds-require (cmd-require-racket (adir-repo-ingest) rfile-to-require)))
@@ -132,7 +129,7 @@
 
 (define (compress-out tbi)
   (define kgec (task-build-index-kgec tbi))
-  (let ((local-name (local-name-from-kg (kge-coord-kgid kgec) (kge-coord-ver kgec) "")))
+  (let ((local-name (local-name-from-kg (kge-coord-kgid kgec) (kge-coord-ver kgec))))
     (begin
       (define kgid (kge-coord-kgid (task-build-index-kgec tbi)))
       (define ver (kge-coord-ver (task-build-index-kgec tbi)))
