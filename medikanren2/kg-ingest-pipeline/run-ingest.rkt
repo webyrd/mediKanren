@@ -24,8 +24,9 @@
              (tasks (fetch-recent-tasks))
              (tbis (log-thunk (lambda () (tbis-tosync kgmetas tasks)) 'tbis-tosync kgmetas tasks)))
         (for ((tbi tbis))
-          (fetch-payload-to-disk tbi)
-          (process-tbi (s3path-base) tbi))))))
+          (when (has-dispatch? tbi)
+            (fetch-payload-to-disk tbi)
+            (process-tbi (s3path-base) tbi)))))))
 
 (module+ main
   (main))
