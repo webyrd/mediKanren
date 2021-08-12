@@ -44,16 +44,17 @@
   (define response-string (time (port->string in)))
   (printf "status:\n~s\n" status)
   (define OK-status? (bytes=? #"HTTP/1.1 200 OK" status))
-  (if OK-status?
-      (hash 'status status
-            'headers headers
-            'response (string->jsexpr response-string))
+  (define bad-gateway-status? (bytes=? #"HTTP/1.1 502 Bad Gateway" status))
+  (if bad-gateway-status?
       (begin
         (printf "!!!!!! unexpected non-OK status returned from ~s:\n" url-string)
         (pretty-print `(,status ,headers ,response-string))
         (hash 'status status
               'headers headers
-              'response (hash)))))
+              'response (hash)))
+      (hash 'status status
+            'headers headers
+            'response (string->jsexpr response-string))))
 
 (define (js-query edges nodes)
   (hash 'message
