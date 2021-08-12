@@ -112,7 +112,7 @@
   (append-map
    (lambda (kgid)
      (for/list ((ver (dict-ref (dict-ref jsex kgid) 'versions)))
-       `(idver ,kgid ,ver)))
+       `(idver ,(symbol->string kgid) ,ver)))
    (dict-keys jsex)))
 
 
