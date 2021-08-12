@@ -5,6 +5,8 @@
 (require "process-tbi.rkt")
 (require "current-source.rkt")
 (require "dispatch-params.rkt")
+(require "kge-params.rkt")
+(require "main-params.rkt")
 
 (define (fetch-recent-tasks) '()) ; TODO: in task-queue.rkt
 

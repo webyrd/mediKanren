@@ -10,18 +10,10 @@
 (require "process-tbi.rkt")
 (require "cmd-helpers.rkt")
 (require "current-source.rkt")
+(require "main-params.rkt")
+(require "kge-params.rkt")
+
 (require chk)
-
-(define config (make-parameter 'config-placeholder))
-
-(define (with-config thunk-run)
-  (define afile-config 
-    (simplify-path (build-path (adir-current-source) "config.json")))
-  (define st-token (file->string afile-config))
-  (define jsexpr (string->jsexpr st-token))
-  (printf "loaded config: ~s\n" jsexpr)
-  (parameterize ((config jsexpr))
-    (thunk-run)))
 
 (define (uri-kge-base) (dict-ref (config) 'uri-kge))
 
@@ -38,18 +30,6 @@
   ;; example:
   ;;   archive/yeast-sri-reference-kg-tsv/1.0/download
   (format "archive/~a/~a/download" kgid ver))
-
-(define kge-token (make-parameter 'kge-token-placeholder))
-
-(define s3path-base (make-parameter 's3path-base-placeholder))
-
-(define (with-kge-token thunk-run)
-  (define afile-token 
-    (simplify-path (build-path (adir-current-source) 'up 'up 'up "kge" "browserbot_kge_client" "session_token.json")))
-  (define st-token (file->string afile-token))
-  (define jsexpr-token (dict-ref (string->jsexpr st-token) 'value))
-  (parameterize ((kge-token jsexpr-token))
-    (thunk-run)))
 
 ;; Based on https://lisp.sh/fetch-a-url/
 (define (http-request uri
