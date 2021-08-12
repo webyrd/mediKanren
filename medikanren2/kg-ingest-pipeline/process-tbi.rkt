@@ -141,7 +141,7 @@
       (define afile-split (path->string (build-path (adir-temp) "split" (format "~a.tgz.split." rfile))))
       (define adir-data (path->string (build-path (adir-repo-ingest) "medikanren2" "data")))
       (run-cmds
-       `(  (() () ("tar" "czf" ,afile-archout "-C" ,adir-data1 ,(format "~a/~a" local-name ver)))
+       `(  (() () ("tar" "czf" ,afile-archout "-C" ,adir-data1 ,local-name))
            (() () ("split" "--bytes=1G" ,afile-archout ,afile-split))
            (() () ("ls" "-l" ,adir-split))
            ))
