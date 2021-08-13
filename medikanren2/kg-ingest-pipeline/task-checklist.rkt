@@ -2,7 +2,7 @@
 (provide
     fetch-tasks-completed
     tasks-incomplete
-    commit-as-complete
+    commit-task
     )
 (require aws/keys)
 (require aws/s3)
@@ -71,24 +71,24 @@
         '() ; initial value of checks
         num-max-each))
 
-(define (tasks-incomplete idvers checks get-id get-ver)
+(define ((tasks-incomplete get-id get-ver) idvers checks states-completed)
     (define h (make-hash))
     (for ((check checks))
         (match check
-            (`(check ,kgid ,ver ,tyysec "completed")
-                (hash-set! h `(,kgid ,ver) #t))))
+            (`(check ,kgid ,ver ,tyysec ,state)
+                (when (member state states-completed)
+                    (hash-set! h `(,kgid ,ver) #t)))))
     (filter (lambda (idver)
         (not (hash-has-key? h `(,(get-id idver) ,(get-ver idver)))))
         idvers))
 
 
-(define (commit-as-complete idver jsexpr)
+(define (commit-task idver state jsexpr)
     (define tsec-completed (floor (/ (current-milliseconds) 1000)))
     (define payload (jsexpr->bytes jsexpr))
     (match idver
         (`(idver ,kgid ,ver)
             (define tyysec (format-yyyy-from-tsec (floor (/ (current-milliseconds) 1000))))
-            (define state "completed")
             (match (uri-from-check `(check ,kgid ,ver ,tyysec ,state))
                 (`(,uri)
                     (put/bytes
