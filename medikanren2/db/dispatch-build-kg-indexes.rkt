@@ -8,13 +8,6 @@
     ((equal? kgekgid "rtx")                 ; currently for illustrative purposes only since currently rtx is not in KGE
      `((require-file . "rtx2-20210204.rkt")
        (shell-pipeline-before . ())))
-    ((equal? kgekgid "sri-reference-kg")
-     `((require-file . "sri-reference-kg-0.3.0.rkt")
-       (shell-pipeline-before . 
-                              (
-                               (() ()
-                                   ("bash" ,(path->string (simplify-path (build-path (adir-repo-ingest) "medikanren2/util/data-import-workaround/remove_cr.sh")))))
-                               ))))
     ((and (equal? kgekgid "yeast-sri-reference-kg-tsv") (equal? version "1.2"))
      `((require-file . "yeast-sri-reference-kg-1.0.rkt")
        (local-name . "yeast-sri-reference-kg/1.0")
