@@ -25,9 +25,8 @@
   (
    kgec
    ; dbwrapper      ; no: dispatch-build-kg computes this dynamically
-   tsec-requested   ; TODO: log
+   tsec-requested
    duration-max     ; TODO: add gnu timeout
-   ; see payload-from-kgec: payload          ; TODO: can this be static?
    ver-mi           ; TODO: add to output filename
    ) #:transparent
   #:name task-build-index-t

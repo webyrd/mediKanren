@@ -60,7 +60,10 @@
   (define kgid (kge-coord-kgid kgec))
   (define ver (kge-coord-ver kgec))
   (define afile-archive (path->string (build-path (adir-temp) (payload-from-kgec kgec))))
-  (define sha1 (sha1sum afile-archive))    ; TODO: check sha1 against upstream
+  (define sha1 (sha1sum afile-archive))
+  ;; TODO: check sha1 once upstream sha1 is available
+  ;;   https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/issues/35
+  
   ;; Q: Does the place for extracting the data need to be unique?
   ;; A: No, in fact it being unique would mean that a db/foo.rkt would have to change the
   ;; 'source-file-path in each of its define-relation/table statements, which would be burdensome.
@@ -78,12 +81,7 @@
       ))
   ; TODO capture ls -lR of what was in the archive
   ;(define cmds^ (run-pipeline-stdin-from-request request-inport cmds))
-  ; TODO: check symlink:  medikanren2/data and symlink adir-payload to it
   (dr-ensure-file-or-directory-link adir-data1 adir-data2)
-  ; TODO: fix:
-  ;   make-file-or-directory-link: cannot make link;
-  ;    the path already exists
-  ;     path: /var/tmp/medikanren_16287039581628703958190/data
   (run-cmds cmds-expand)
   (dr-delete-file afile-archive))
 
@@ -160,7 +158,6 @@
 (define (upload-archive-out s3dir)
   (define adir-split (build-path (adir-temp) "split"))
   (define patels (directory-list adir-split #:build? #f))
-  ; TODO extract method for better dryrun copy-dir-to-s3
   (for ((patel patels))
     (let ((s3path (format "~a/~a" s3dir patel)))
       (multipart-put/file s3path (build-path adir-split patel))
@@ -177,14 +174,11 @@
         (error (format "Caller must supply a file at: ~a" afile)))))
 
 (define (process-tbi s3path-base tbi)
-  (check-for-payload tbi)  ; TODO
+  (check-for-payload tbi)
   (expand-payload tbi)
   (dispatch-build-impl tbi)
   (compress-out tbi)
   (dr-upload-archive-out (make-s3dir s3path-base tbi)))
-; TODO: promote temp dir context to main
-; TODO: leave for find-kgv-tosync: sha1, size
-;       recompute from tbi: reldir, filename
 
 
 
