@@ -41,10 +41,10 @@
                            (cdr stcolumns-of-nodes)
                            (cdr row))))
   )
-
-(string-search-init-rel cprop)
+;(string-search-init-rel cprop)
 
 (define nodes cprop)
+#|
 
 
 (define columns-of-edges
@@ -100,6 +100,17 @@
                         (subject object)  ; implicit: lookup ending in id
                         (object subject)) ; implicit: lookup ending in id
 )
+|#
+
+(define-relation/table edge
+  'attribute-names    '(id subject object)
+  'attribute-types    '(string string string)
+  'source-stream '())
+
+(define-relation/table eprop
+  'attribute-names    '(id subject object)
+  'attribute-types    '(string string string)
+  'source-stream '())
 
 (database-extend-relations!
   'yeast-sri-reference-kg-0.3.0
