@@ -118,6 +118,8 @@
   (define kgid (kge-coord-kgid (task-build-index-kgec tbi)))
   (define adir-payload (path->string (build-path (adir-temp) "data" "upstream" kgid))) ; ver purposely omitted
   (define kgec (task-build-index-kgec tbi))
+  ; TODO: git pull adir-repo-ingest, optionally pinning
+  ; a version from dispatch-build-kg-indexes.rkt.
   (define adir-base (build-path (adir-repo-ingest) "medikanren2"))
   ; TODO: copy file_set.yaml, provider.yaml
   (let ((rfile-to-require (require-file-from-kg (kge-coord-kgid kgec) (kge-coord-ver kgec)))
