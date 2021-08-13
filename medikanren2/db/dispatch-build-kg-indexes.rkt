@@ -5,7 +5,7 @@
 
 (define (dispatch-build-kg kgekgid version)
   (cond
-    ((equal? kgekgid "rtx") 
+    ((equal? kgekgid "rtx")                 ; currently for illustrative purposes only since currently rtx is not in KGE
      `((require-file . "rtx2-20210204.rkt")
        (shell-pipeline-before . ())))
     ((equal? kgekgid "sri-reference-kg")
