@@ -25,8 +25,8 @@
 (define stcolumns-of-nodes (map symbol->string columns-of-nodes))
 
 (define-relation/table cprop
-  'path               "yeast-sri-reference/0.3.0b/nodes"
-  'source-file-path   "yeast-sri-reference/0.3.0b/simulation-of-upstream/sri-reference-kg-0.3.0_nodes_nocr.tsv"
+  'path               "yeast-sri-reference-kg/1.0/nodes"
+  'source-file-path   "upstream/yeast-sri-reference-kg-tsv/nodes.tsv"
   'source-file-header columns-of-nodes
   'attribute-names    '(id subject object)
   'attribute-types    '(string string string)
@@ -66,8 +66,8 @@
   (list-tail row 4)))
 
 (define-relation/table edge
-  'path               "yeast-sri-reference/0.3.0b/edge"
-  'source-file-path   "yeast-sri-reference/0.3.0b/simulation-of-upstream/sri-reference-kg-0.3.0_edges_nocr.tsv"
+  'path               "yeast-sri-reference-kg/1.0/edge"
+  'source-file-path   "upstream/yeast-sri-reference-kg-tsv/edges.tsv"
   'source-file-header columns-of-edges
   'attribute-names    '(id subject object)
   'attribute-types    '(string string string)
@@ -81,8 +81,8 @@
 )
 
 (define-relation/table eprop
-  'path               "yeast-sri-reference/0.3.0b/eprop"
-  'source-file-path   "yeast-sri-reference/0.3.0b/simulation-of-upstream/sri-reference-kg-0.3.0_edges_nocr.tsv"
+  'path               "yeast-sri-reference-kg/1.0/eprop"
+  'source-file-path   "upstream/yeast-sri-reference-kg-tsv/edges.tsv"
   'source-file-header columns-of-edges
   'attribute-names    '(id subject object)
   'attribute-types    '(string string string)
