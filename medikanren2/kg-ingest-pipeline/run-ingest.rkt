@@ -1,4 +1,5 @@
 #lang racket
+(require json)
 (require "metadata.rkt")
 (require "cmd-helpers.rkt")
 (require "kge.rkt")
@@ -7,8 +8,7 @@
 (require "dispatch-params.rkt")
 (require "kge-params.rkt")
 (require "main-params.rkt")
-
-(define (fetch-recent-tasks) '()) ; TODO: in task-queue.rkt
+(require "task-checklist.rkt")
 
 (define (with-context thunk)
   (with-config
@@ -20,7 +20,9 @@
               (with-adir-repo-ingest adir-repo
                 (lambda ()
                   (with-kge-token
-                    thunk))))))))))
+                    (lambda ()
+                      (parameterize ((s3path-base (dict-ref (config) 's3path-prefix)))
+                        (thunk)))))))))))))
 
 (define (main)
   (with-context
@@ -29,11 +31,15 @@
              (idvers (log-thunk (lambda () (fetch-recent-kge-versions)) 'fetch-recent-kge-versions))
              (idvers^ (filter has-dispatch? idvers))
              (kgmetas (log-thunk (lambda () (fetch-recent-kgmeta idvers^)) 'fetch-recent-kgmeta))
-             (tasks (fetch-recent-tasks))
-             (tbis (log-thunk (lambda () (tbis-tosync kgmetas tasks)) 'tbis-tosync kgmetas tasks)))
+             (tasks (log-thunk (lambda () (fetch-tasks-completed)) 'fetch-tasks-completed))
+             (kgmetas^ (log-thunk (lambda () (tasks-incomplete kgmetas tasks kgid-from-kgmeta ver-from-kgmeta)) 'tasks-incomplete))
+             (tbis (log-thunk (lambda () (map tbi-from-kgmeta kgmetas^)) 'tbis-tosync kgmetas^ tasks)))
         (for ((tbi tbis))
           (fetch-payload-to-disk tbi)
-          (process-tbi (dict-ref (config) 's3path-prefix) tbi))))))
+          (process-tbi (dict-ref (config) 's3path-prefix) tbi)
+          (commit-as-complete
+            `(idver ,(kge-coord-kgid (task-build-index-kgec tbi)) ,(kge-coord-ver (task-build-index-kgec tbi)))
+            (string->jsexpr "{}")))))))
 
 (module+ main
   (main))

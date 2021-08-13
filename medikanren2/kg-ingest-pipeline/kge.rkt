@@ -148,14 +148,6 @@
     (else #t)))
 
 
-(define (tbis-tosync kgmetas tasks)
-  ; TODO: dedupe tasks not implemented
-  (for/list ((kgmeta kgmetas)) ; TODO rename kges
-    (tbi-from-kgmeta kgmeta)))
-; `(  (kgid . ,(kgid-from-meta kgmeta))
-;     (ver . ,(ver-from-meta kgmeta))
-;     (kgmeta . ,kgmeta))))
-
 (define (fetch-payload-to-disk tbi)
   (define kgec (task-build-index-kgec tbi))
   (define kgid (kge-coord-kgid kgec))
