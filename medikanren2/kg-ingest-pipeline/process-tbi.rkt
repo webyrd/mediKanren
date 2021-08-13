@@ -156,12 +156,12 @@
   (format "~a/kgid/~a/v/~a/mi/~a" s3path-base kgid ver ver-mi)) ; TODO: omit "/" from "/kgid" or from s3path-base?
 
 (define (upload-archive-out s3dir)
-  (define adir-split (path->string (build-path (adir-temp) "split")))
+  (define adir-split (build-path (adir-temp) "split"))
   (define patels (directory-list adir-split #:build? #f))
   ; TODO extract method for better dryrun copy-dir-to-s3
   (for ((patel patels))
     (let ((s3path (format "~a/~a" s3dir patel)))
-      (multipart-put/file s3path (path->string (build-path adir-split patel)))
+      (multipart-put/file s3path (build-path adir-split patel))
       ; TODO copy yaml
       )))
 

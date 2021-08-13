@@ -33,7 +33,7 @@
              (tbis (log-thunk (lambda () (tbis-tosync kgmetas tasks)) 'tbis-tosync kgmetas tasks)))
         (for ((tbi tbis))
           (fetch-payload-to-disk tbi)
-          (process-tbi (s3path-base) tbi))))))
+          (process-tbi (dict-ref (config) 's3path-prefix) tbi))))))
 
 (module+ main
   (main))
