@@ -28,11 +28,11 @@
   (with-context
     (lambda ()
       (let* (
-             (idvers (log-thunk (lambda () (fetch-recent-kge-versions)) 'fetch-recent-kge-versions))
+             (idvers (log-thunk (lambda () (fetch-kge-catalog)) 'fetch-kge-catalog))
              (idvers^ (filter has-dispatch? idvers))
-             (kgmetas (log-thunk (lambda () (fetch-recent-kgmeta idvers^)) 'fetch-recent-kgmeta))
-             (tasks (log-thunk (lambda () (fetch-tasks-completed)) 'fetch-tasks-completed))
-             (kgmetas^ (log-thunk (lambda () ((tasks-incomplete kgid-from-kgmeta ver-from-kgmeta) kgmetas tasks '("completed"))) 'tasks-incomplete))
+             (kgmetas (log-thunk (lambda () (fetch-kge-recent-versions idvers^)) 'fetch-kge-recent-versions))
+             (tasks (log-thunk (lambda () (fetch-task-events)) 'fetch-task-events))
+             (kgmetas^ (log-thunk (lambda () ((tasks-resolved kgid-from-kgmeta ver-from-kgmeta) kgmetas tasks '("completed"))) 'tasks-resolved))
              (tbis (log-thunk (lambda () (map tbi-from-kgmeta kgmetas^)) 'tbis-tosync kgmetas^ tasks)))
         (for ((tbi tbis))
           (fetch-payload-to-disk tbi)

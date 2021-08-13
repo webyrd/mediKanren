@@ -96,7 +96,7 @@
    (dict-keys jsex)))
 
 
-(define (fetch-recent-kge-versions)
+(define (fetch-kge-catalog)
   (let* (
          (response (fetch-kge path-catalog))
          (jsex (bytes->jsexpr response))
@@ -104,7 +104,7 @@
     (parse-kge-versions
      jsex)))
 
-(define (fetch-recent-kgmeta idvers)
+(define (fetch-kge-recent-versions idvers)
   (for/list ((idver idvers))
     (match idver
       (`(idver ,kgid ,ver)

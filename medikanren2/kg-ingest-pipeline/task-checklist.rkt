@@ -1,7 +1,7 @@
 #lang racket
 (provide
-    fetch-tasks-completed
-    tasks-incomplete
+    fetch-task-events
+    tasks-resolved
     commit-task
     )
 (require aws/keys)
@@ -54,7 +54,7 @@
             `(,(format "~a/kgid/~a/ver/~a/~a-~a.json" (s3path-base) kgid ver tyysec state)))
         (_ `())))
 
-(define (fetch-tasks-completed)
+(define (fetch-task-events)
     (define num-max-each 1000)
     (ls/proc
         (s3path-base)
@@ -71,7 +71,7 @@
         '() ; initial value of checks
         num-max-each))
 
-(define ((tasks-incomplete get-id get-ver) idvers checks states-completed)
+(define ((tasks-resolved get-id get-ver) idvers checks states-completed)
     (define h (make-hash))
     (for ((check checks))
         (match check
