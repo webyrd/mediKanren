@@ -37,7 +37,7 @@
 
 (define (check-from-uri s3uri)
     (match (s3split-from-uri s3uri)
-        (`("kgid" ,kgid "ver" ,ver ,relf)
+        (`("kgid" ,kgid "v" ,ver ,relf)
             #:when (string-contains? relf ".json")
             (printf "matched ~a\n" s3uri)
             (let (
@@ -51,7 +51,7 @@
 (define (uri-from-check check)
     (match check
         (`(check ,kgid ,ver ,tyysec ,state)
-            `(,(format "~a/kgid/~a/ver/~a/~a-~a.json" (s3path-base) kgid ver tyysec state)))
+            `(,(format "~a/kgid/~a/v/~a/~a-~a.json" (s3path-base) kgid ver tyysec state)))
         (_ `())))
 
 (define (fetch-task-events)
