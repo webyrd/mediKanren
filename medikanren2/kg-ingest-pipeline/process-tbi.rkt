@@ -127,6 +127,10 @@
       (let ((cmds-require (cmd-require-racket (adir-repo-ingest) rfile-to-require)))
         (run-cmds (append cmds-before cmds-require))))))
 
+(define (afile-archout tbi)
+  (define rfile (rfile-output tbi))
+  (path->string (build-path (adir-temp) (format "~a.tgz" rfile))))
+
 (define (compress-out tbi)
   (define kgec (task-build-index-kgec tbi))
   (let ((local-name (local-name-from-kg (kge-coord-kgid kgec) (kge-coord-ver kgec))))
@@ -135,25 +139,28 @@
       (define ver (kge-coord-ver (task-build-index-kgec tbi)))
       (define adir-data1 (path->string (build-path (adir-temp) "data")))
       (define rfile (rfile-output tbi))
-      (define afile-archout (path->string (build-path (adir-temp) (format "~a.tgz" rfile))))
+      (define afile-archout1 (afile-archout tbi))
       (define adir-split (path->string (build-path (adir-temp) "split")))
       (dr-make-directory adir-split)
       (define afile-split (path->string (build-path (adir-temp) "split" (format "~a.tgz.split." rfile))))
       (define adir-data (path->string (build-path (adir-repo-ingest) "medikanren2" "data")))
       (run-cmds
-       `(  (() () ("tar" "czf" ,afile-archout "-C" ,adir-data1 ,local-name))
-           (() () ("split" "--bytes=1G" ,afile-archout ,afile-split))
+       `(  (() () ("tar" "czf" ,afile-archout1 "-C" ,adir-data1 ,local-name))
+           (() () ("split" "--bytes=1G" ,afile-archout1 ,afile-split))
            (() () ("ls" "-l" ,adir-split))
            ))
       ; TODO: now that tgz is generated, sha1sum it and generate yaml
       )))
 
-(define (make-s3dir s3path-base tbi)
+(define (s3rdir-task tbi)
   (define kgec (task-build-index-kgec tbi))
   (define kgid (kge-coord-kgid kgec))
   (define ver (kge-coord-ver kgec))
   (define ver-mi (task-build-index-ver-mi tbi))
-  (format "~a/kgid/~a/v/~a/mi/~a" s3path-base kgid ver ver-mi)) ; TODO: omit "/" from "/kgid" or from s3path-base?
+  (format "kgid/~a/v/~a/mi/~a" kgid ver ver-mi))
+
+(define (s3adir-task s3path-base tbi)
+  (format "~a/~a" s3path-base (s3rdir-task tbi))) ; TODO: omit "/" from "/kgid" or from s3path-base?
 
 (define (upload-archive-out s3dir)
   (define adir-split (build-path (adir-temp) "split"))
@@ -178,7 +185,7 @@
   (expand-payload tbi)
   (dispatch-build-impl tbi)
   (compress-out tbi)
-  (dr-upload-archive-out (make-s3dir s3path-base tbi)))
+  (dr-upload-archive-out (s3adir-task s3path-base tbi)))
 
 
 
