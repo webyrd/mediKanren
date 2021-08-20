@@ -116,4 +116,5 @@
   'yeast-sri-reference-kg-0.3.0
   'cprop cprop
   'edge edge
+  'eprop eprop
   )
