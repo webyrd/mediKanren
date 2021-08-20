@@ -80,13 +80,13 @@
 (define (fetch-kge uri #:redirects [redirects 10])
   (unless (string? (kge-token))
     (error "Must specify a session token for kge via kge-token"))
-  (log-thunk
-   (lambda ()
+;  (log-thunk
+;   (lambda ()
      (http-request (uri-kge uri)
                    #:heads (headers-kge)
                    #:redirects redirects))
-   'http-request
-   uri))
+;   'http-request
+;   uri))
 
 (define (parse-kge-versions jsex)
   (append-map
