@@ -45,7 +45,7 @@
       (run-pipelines 
        `(((#:out) ()
                   ("sha1sum" ,afile)
-                  ("cut" "-c1-40")
+                  ("head" "-c40")
                   )))))
 
 (define (rfile-output tbi)
