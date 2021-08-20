@@ -1,7 +1,7 @@
 #lang racket
 (provide
     fetch-task-events
-    tasks-resolved
+    tasks-unresolved
     commit-task
     )
 (require aws/keys)
@@ -71,7 +71,7 @@
         '() ; initial value of checks
         num-max-each))
 
-(define ((tasks-resolved get-id get-ver) idvers checks states-completed)
+(define ((tasks-unresolved get-id get-ver) idvers checks states-completed)
     (define h (make-hash))
     (for ((check checks))
         (match check

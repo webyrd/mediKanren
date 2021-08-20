@@ -46,7 +46,7 @@
              (idvers^ (filter has-dispatch? idvers))
              (kgmetas (log-thunk (lambda () (fetch-kge-recent-versions idvers^)) 'fetch-kge-recent-versions))
              (tasks (log-thunk (lambda () (fetch-task-events)) 'fetch-task-events))
-             (kgmetas^ (log-thunk (lambda () ((tasks-resolved kgid-from-kgmeta ver-from-kgmeta) kgmetas tasks states-resolved)) 'tasks-resolved))
+             (kgmetas^ (log-thunk (lambda () ((tasks-unresolved kgid-from-kgmeta ver-from-kgmeta) kgmetas tasks states-resolved)) 'tasks-unresolved))
              (tbis (log-thunk (lambda () (map tbi-from-kgmeta kgmetas^)) 'tbis-tosync kgmetas^ tasks)))
         (for ((tbi tbis))
           (fetch-payload-to-disk tbi)
