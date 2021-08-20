@@ -21,7 +21,7 @@
         (parameterize ([adir-temp adir]) (thunk-run)))
       (lambda ()
         #f
-        ;(delete-directory/files adir)
+        (delete-directory/files adir)
         ))))
 
 (define dry-run
