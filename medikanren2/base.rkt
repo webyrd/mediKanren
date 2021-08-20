@@ -2,7 +2,8 @@
 (provide cfg:config cfg:config-ref cfg:load-config cfg:override-config
          (all-from-out "dbk/dbk.rkt") load-config
          relation-name relation-definition-info relation-missing-data?
-         tagged-relation dynamic-relation relation-extensions database-extend-relations! database-load! database-unload!)
+         tagged-relation dynamic-relation relation-extensions dbs-available
+         database-extend-relations! database-load! database-unload!)
 (require
   "dbk/dbk.rkt"
   racket/list (except-in racket/match ==) racket/runtime-path racket/set
@@ -86,6 +87,12 @@
 
 (define (relation-extensions name)
   (set->list (hash-ref name.r=>tagged-relations name (set))))
+
+;;; Return the IDs of databases which have called database-extend-relations!.
+;;; Bypasses config.scm so that e.g. kg-ingest-pipeline can advise on how to
+;;; populate the databases field of config.scm.
+(define (dbs-available)
+  (hash-keys name.db=>name.r=>relations))
 
 (define ((tagged-relation r tag . tag-positions) . args)
   (let loop ((args args) (tag-positions tag-positions))
