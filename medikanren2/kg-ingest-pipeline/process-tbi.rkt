@@ -7,6 +7,7 @@
 (require chk)
 (require aws/keys)
 (require aws/s3)
+(require "tagyaml.rkt")
 (require "../db/dispatch-build-kg-indexes.rkt")
 (require "../../stuff/run-shell-pipelines.rkt")
 (require "metadata.rkt")
@@ -63,7 +64,7 @@
   (define sha1 (sha1sum afile-archive))
   ;; TODO: check sha1 once upstream sha1 is available
   ;;   https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/issues/35
-  
+
   ;; Q: Does the place for extracting the data need to be unique?
   ;; A: No, in fact it being unique would mean that a db/foo.rkt would have to change the
   ;; 'source-file-path in each of its define-relation/table statements, which would be burdensome.
@@ -88,11 +89,11 @@
 (define (cmd-require-racket adir rfile-rkt)
   `((() () ("bash" "-c" ,(format "cd '~a'; pwd; racket -e '(require \"medikanren2/db/~a\")'" adir rfile-rkt)))))
 
-(module+ test
-  (chk
-   #:do (run-pipelines (cmd-require-racket "stuff" "run-shell-pipelines.rkt"))
-   #t)
-  )
+;;; Ask dbs-available to find out how the db identified itself to database-extend-relations!.
+(define (cmd-get-dbnames adir rfile-rkt)
+  (define stbash (format "cd '~a'; pwd; racket -e '(require \"medikanren2/db/~a\") (require \"medikanren2/base.rkt\") (dbs-available)'" adir rfile-rkt))
+  `(((#:out) () ("bash" "-c" ,stbash)
+                ("tail" "-1"))))
 
 (define (has-dispatch? idver)
   (match idver
@@ -180,12 +181,57 @@
       (unless (file-exists? afile)
         (error (format "Caller must supply a file at: ~a" afile)))))
 
+(define (get-dbname tbi)
+  (define kgec (task-build-index-kgec tbi))
+  (define rfile-to-require (require-file-from-kg (kge-coord-kgid kgec) (kge-coord-ver kgec)))
+  (define cmd (cmd-get-dbnames (adir-repo-ingest) rfile-to-require))
+  (define stout (run-pipelines cmd))
+  (define dbnames (read (open-input-string stout)))
+  ;; We only build one db at a time, from a clean directory, so we should be the only
+  (match dbnames
+    (`(quote . ((,dbname))) (symbol->string dbname))
+    (`(quote . ((,dbname . ,_)))
+      (error "get-dbname: Detected multiple calls to database-extend-relations!.  Only one is allowed."))
+    (`(quote . (())) ; TODO: Really this is a warning, but we don't currently have a way to report warnings
+      (error "get-dbname: No db found.  Please call database-extend-relations! from your db wrapper."))
+    (_ (error "get-dbname: internal error."))))
+
+(define (yamlexpr-for-install-data-files tbi)
+  (define kgec (task-build-index-kgec tbi))
+  (define afile-archout1 (afile-archout tbi))
+  (define size (file-size afile-archout1))
+  (define sha1 (sha1sum afile-archout1))
+  (define dbname (get-dbname tbi))
+  `(#hash(
+    ("versionOfMedikanren" . ,(format "v~a" (task-build-index-ver-mi tbi)))
+    ("reldir" . ,(local-name-from-kg (kge-coord-kgid kgec) (kge-coord-ver kgec)))
+    ("configkey" . ,dbname)
+    ("sha1sum" . ,sha1)
+    ("size" . ,size)
+    ("filename" . ,(format "~a/~a" (s3rdir-task tbi) (rfile-output tbi)))
+    ("format" . (
+      "tar.gz"
+      "split"
+    )))))
+
+(define (upload-install-data-files-yaml s3dir tbi)
+  (define yamlexpr (yamlexpr-for-install-data-files tbi))
+  (define styaml (tagyaml->string "!ardb" yamlexpr))
+  (define s3path (format "~a/~a" s3dir "install.yaml"))
+  (put/bytes
+    s3path
+    (string->bytes/utf-8 (tagyaml->string "!ardb" (yamlexpr-for-install-data-files tbi)))
+    "application/yaml"))
+
+(define dr-upload-install-data-files-yaml (dry-runify upload-install-data-files-yaml 'upload-install-data-files-yaml))
+
 (define (process-tbi s3path-base tbi)
   (check-for-payload tbi)
   (expand-payload tbi)
   (dispatch-build-impl tbi)
   (compress-out tbi)
-  (dr-upload-archive-out (s3adir-task s3path-base tbi)))
+  (dr-upload-archive-out (s3adir-task s3path-base tbi))
+  (dr-upload-install-data-files-yaml (s3adir-task s3path-base tbi) tbi))
 
 
 
