@@ -15,5 +15,5 @@ then
 else
     rm -f "$afileBad"
     mv "$afileGood" "$afileBad"
-    head -n-2 "$afileBad" > "$afileGood"
+    head -n100 "$afileBad" > "$afileGood"
 fi
