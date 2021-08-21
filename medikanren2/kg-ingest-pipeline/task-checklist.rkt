@@ -12,6 +12,7 @@
 (require "metadata.rkt")
 (require "main-params.rkt")
 (require "simple-time.rkt")
+(require "s3path.rkt")
 
 #|
     Module task-checklist.rkt is a sort of "half" task queue: it persists
@@ -29,14 +30,8 @@
 (define (s3path-tasks)
     (format "~a/tasks/v1" (s3path-base)))
 
-(define (s3split-impl s3uri)
-    (string-split s3uri "/" #:trim? #f))
-
-(define (s3split-from-uri s3uri)
-    (list-tail (s3split-impl s3uri) (+ 1 (length (s3split-impl (s3path-base))))))
-
 (define (check-from-uri s3uri)
-    (match (s3split-from-uri s3uri)
+    (match (s3split-from-uri (s3path-base) s3uri)
         (`("kgid" ,kgid "v" ,ver ,relf)
             #:when (string-contains? relf ".json")
             (printf "matched ~a\n" s3uri)
