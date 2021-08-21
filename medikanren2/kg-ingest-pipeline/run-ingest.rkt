@@ -42,12 +42,7 @@
   (with-context
     (lambda ()
       (let* (
-             (idvers (log-thunk (lambda () (fetch-kge-catalog)) 'fetch-kge-catalog))
-                ; Fetch an up-to-date list of resource versions.
-             (idvers^ (filter has-dispatch? idvers))
-                ; If we don't have a rule to use a resource, forget about it.
-             (kgmetas (log-thunk (lambda () (fetch-kge-recent-versions idvers^)) 'fetch-kge-recent-versions))
-                ; Fetch details on potentially interesting resource versions.
+             (kgmetas (fetch-kgmetas-kge))
              (tasks (log-thunk (lambda () (fetch-task-events)) 'fetch-task-events))
                 ; Fetch s3 paths.  We need them to figure out what has already been built.  Because there
                 ; are no two step transformations, we didn't need them to figure out what we could build.

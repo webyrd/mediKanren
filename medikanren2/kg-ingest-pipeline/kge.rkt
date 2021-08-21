@@ -115,6 +115,16 @@
          ;(displayln (bytes->string/utf-8 response))
          jsex)))))
 
+(define (fetch-kgmetas-kge)
+  (let* (
+        (idvers (log-thunk (lambda () (fetch-kge-catalog)) 'fetch-kge-catalog))
+          ; Fetch an up-to-date list of resource versions.
+        (idvers^ (filter has-dispatch? idvers))
+          ; If we don't have a rule to use a resource, forget about it.
+        (kgmetas (log-thunk (lambda () (fetch-kge-recent-versions idvers^)) 'fetch-kge-recent-versions)))
+          ; Fetch details on potentially interesting resource versions.
+    kgmetas))
+
 (define (ver-from-kgmeta kgmeta)
   (dict-ref (dict-ref kgmeta 'fileset) 'fileset_version))
 
