@@ -361,7 +361,7 @@ query_result_clear.addEventListener('click', function(){
         (printf "broad response:\n~s\n" (hash-ref broad-response 'status))
         (pretty-print (hash-ref broad-response 'headers))
         broad-results)
-      '()
+      '#hash()
       ))
   (printf "broad result size: ~s\n" (js-count broad-results))
   ;; NOTE: ignore 'results and 'knowledge_graph until we find a use for them.
