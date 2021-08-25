@@ -15,8 +15,6 @@
 
 (require chk)
 
-(define (uri-kge-base) (dict-ref (config) 'uri-kge))
-
 (define (uri-kge path) (format "~a/~a" (uri-kge-base) path))
 
 (define path-catalog "archive/catalog")

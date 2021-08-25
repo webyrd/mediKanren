@@ -22,8 +22,7 @@
                 (lambda ()
                   (with-kge-token
                     (lambda ()
-                      (parameterize ((s3path-base (dict-ref (config) 's3path-prefix)))
-                        (thunk)))))))))))))
+                      (thunk))))))))))))
 
 (define states-resolved '("completed" "failed"))
 
@@ -60,7 +59,7 @@
                 (lambda (ex)
                   (mark-task tbi "failed" ex "kg-ingest-pipeline failed in local processing, which is likely to be a deterministic failure due to bad configuration.  To retry, change configuration."))])
             (begin
-              (process-tbi (dict-ref (config) 's3path-prefix) tbi)
+              (process-tbi (s3path-base) tbi)
               (mark-task tbi "completed" #f #f))))))))
 
 (module+ main

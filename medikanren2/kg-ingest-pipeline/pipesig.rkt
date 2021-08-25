@@ -1,4 +1,6 @@
 #lang racket
+(require
+  (all-defined-out))
 (require racket/dict)
 (require file/sha1)
 (require chk)
