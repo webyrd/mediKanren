@@ -2,6 +2,7 @@
 (provide
  adir-temp
  with-adir-temp-root
+ sha1sum
  dry-run
  run-cmds
  dry-runify)
@@ -53,3 +54,11 @@
     (displayln (cons name args))
     (apply thunk args))))
 |#
+
+(define (sha1sum afile)
+  (run-cmds
+    `(((#:out) ()
+              ("sha1sum" ,afile)
+              ("head" "-c40")
+              ))))
+

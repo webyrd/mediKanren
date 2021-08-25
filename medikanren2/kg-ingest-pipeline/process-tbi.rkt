@@ -39,15 +39,6 @@
 (define dr-delete-file (dry-runify delete-file 'delete-file))
 
 
-(define (sha1sum afile)
-  (if (dry-run)
-      "1234567890123456789012345678901234567890"
-      (run-pipelines 
-       `(((#:out) ()
-                  ("sha1sum" ,afile)
-                  ("head" "-c40")
-                  )))))
-
 (define (rfile-output tbi)
   (define kgec (task-build-index-kgec tbi))
   (define kgid (kge-coord-kgid kgec))
