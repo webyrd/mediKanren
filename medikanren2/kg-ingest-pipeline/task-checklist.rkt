@@ -48,13 +48,14 @@
 
 (define (fetch-task-events)
     (define num-max-each 1000)
+    (define bucket (bucket-from-s3path (s3path-base)))
     (ls/proc
         (s3path-base)
         (lambda (checks xmls)
             (define checks-new (append-map 
                 (lambda (xml)
                     (define key (se-path* '(Key) xml))
-                    (define uri (format "~a/~a" (s3path-base) key))
+                    (define uri (format "~a/~a" bucket key))
                     (check-from-uri uri))
                 xmls))
             (printf "parsed tasks from ~a of ~a keys" (length checks-new) (length xmls))
