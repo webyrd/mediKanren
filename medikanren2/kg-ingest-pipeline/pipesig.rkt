@@ -124,4 +124,13 @@
    (#:=
     (psig-hash (psig-main-set (psig `#hash((bar . 2) (baz . 3)) `#hash()) 'foo 1))
     (psig-hash (psig-main-set (psig `#hash((foo . 1) (bar . 2)) `#hash()) 'baz 3))))
+
+  (chk
+    (#:=
+      (psig-main-ref (psig `#hash((bar . 2)) `#hash()) 'bar)
+      2))
+  (chk
+    (#:=
+      (psig-extra-ref (psig `#hash() `#hash((bar . 2)) ) 'bar)
+      2))
   )

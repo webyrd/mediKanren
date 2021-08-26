@@ -41,11 +41,11 @@
     (lambda ()
       (let* (
              (kgmetas (fetch-kgmetas-kge))
-             (psigs (map psig-from-kgmeta kgmetas))
-             (tasks (log-thunk (lambda () (fetch-task-events)) 'fetch-task-events))
+             (psigs-kge (map psig-from-kgmeta kgmetas))
+             (tasks-out (log-thunk (lambda () (fetch-task-events)) 'fetch-task-events))
                 ; Fetch s3 paths.  We need them to figure out what has already been built.  Because there
                 ; are no two step transformations, we didn't need them to figure out what we could build.
-             (psigs^ (log-thunk (lambda () (tasks-unresolved psigs tasks states-resolved)) 'tasks-unresolved)))
+             (psigs^ (log-thunk (lambda () (tasks-unresolved psigs-kge tasks-out state-from-check hsig-from-check states-resolved)) 'tasks-unresolved)))
                 ; Figure out incomplete transformations.
         (for ((psig psigs^))
           (define tbi (tbi-from-kgmeta (psig-extra-ref psig "kgmeta")))

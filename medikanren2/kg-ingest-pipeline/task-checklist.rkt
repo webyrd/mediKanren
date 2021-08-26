@@ -4,6 +4,8 @@
     tasks-unresolved
     commit-task
     s3adir-for-psig
+    state-from-check
+    hsig-from-check
     )
 (require aws/keys)
 (require aws/s3)
@@ -72,6 +74,12 @@
         '() ; initial value of checks
         num-max-each))
 
+(define (hsig-from-check check)
+    (match check
+        (`(check ,kgid ,sig ,tyysec . ,relfs)
+            sig)
+        (_ (error "uri-from-check: malformed check"))))
+
 (define (state-from-relf relf)
     (define i (- (string-length relf) 5))
     (define s-first (substring relf 0 i))
@@ -81,22 +89,21 @@
         #f))
 (define (state-from-relfs relfs)
     (if (empty? relfs) #f (state-from-relf (car relfs))))
+(define (state-from-check check)
+    (match check
+        (`(check ,kgid ,sig ,tyysec . ,relfs)
+            (state-from-relfs relfs))
+        (_ #f)))
 
-(define (tasks-unresolved psigs checks states-completed)
+(define (tasks-unresolved psigs-in checks-out state-get #;(from out) hsig-get #;(from out) states-completed)
     (define h (make-hash))
-    (for ((check checks))
-        ;(printf "\nfound check=~a\n" check)
-        (match check
-            (`(check ,kgid ,sig ,tyysec . ,relfs)
-                (define state (state-from-relfs relfs))
-                (when state
-                    ;(printf "found state=~a\n" state)
-                    (when (member state states-completed)
-                        (hash-set! h `(,kgid ,sig) #t))))))
-    (filter (lambda (psig)
-        (define kgid (psig-main-ref psig "kgid"))
-        (not (hash-has-key? h `(,kgid ,(psig-hash psig)))))
-        psigs))
+    (for ((check-out checks-out))
+        (define state (state-get check-out))
+        (when (member state states-completed)
+            (hash-set! h (hsig-get check-out) #t)))
+    (filter (lambda (psig-in)
+        (not (hash-has-key? h (psig-hash psig-in))))
+        psigs-in))
 
 (define (commit-task psig state)
     (define payload (psig-payload (psig-extra-set psig "state" state)))
