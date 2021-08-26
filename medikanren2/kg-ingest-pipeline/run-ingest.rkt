@@ -36,11 +36,6 @@
     psig
     state))
 
-(define (psig-from-kgmeta kgmeta) ; TODO rename idver=>kgmeta?
-    (psig
-      `#hash(("source" . "KGE") ("kgid" . ,(kgid-from-kgmeta kgmeta)) ("ver" . ,(ver-from-kgmeta kgmeta)))
-      `#hash(("kgmeta" . ,kgmeta))))
-
 (define (main)
   (with-context
     (lambda ()

@@ -12,6 +12,7 @@
 (require "current-source.rkt")
 (require "main-params.rkt")
 (require "kge-params.rkt")
+(require "pipesig.rkt")
 
 (require chk)
 
@@ -132,6 +133,11 @@
 
 (define (day-from-kgmeta kgmeta)
   (dict-ref (dict-ref kgmeta 'fileset) 'date_stamp))
+
+(define (psig-from-kgmeta kgmeta) ; TODO rename idver=>kgmeta?
+    (psig
+      `#hash(("source" . "KGE") ("kgid" . ,(kgid-from-kgmeta kgmeta)) ("ver" . ,(ver-from-kgmeta kgmeta)))
+      `#hash(("kgmeta" . ,kgmeta))))
 
 (define (tbi-from-kgmeta kgmeta)
   (define tsec-requested (floor (/ (current-milliseconds) 1000)))
