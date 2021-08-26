@@ -32,21 +32,20 @@
 
 (define (check-from-uri s3uri)
     (match (s3split-from-uri (s3path-tasks) s3uri)
-        (`("kgid" ,kgid "v" ,ver ,relf)
+        (`("kgid" ,kgid "v" ,ver "t" ,tyysec ,relf)
             #:when (string-contains? relf ".json")
             (printf "matched ~a\n" s3uri)
             (let (
-                    (tyysec (substring relf 0 14))
-                    (state (substring relf 15 (- (string-length relf) 5))))
+                    (state (substring relf 0 (- (string-length relf) 5))))
                 `((check ,kgid ,ver ,tyysec ,state))))
         (foo
-            (printf "could not match ~s\n" foo)
+            (printf "could not match ~s from s3path-tasks=~a and s3uri=~a\n" foo (s3path-tasks) s3uri)
             `())))
 
 (define (uri-from-check check)
     (match check
         (`(check ,kgid ,ver ,tyysec ,state)
-            `(,(format "~a/kgid/~a/v/~a/~a-~a.json" (s3path-tasks) kgid ver tyysec state)))
+            `(,(format "~a/kgid/~a/v/~a/t/~a/~a.json" (s3path-tasks) kgid ver tyysec state)))
         (_ `())))
 
 (define (fetch-task-events)
