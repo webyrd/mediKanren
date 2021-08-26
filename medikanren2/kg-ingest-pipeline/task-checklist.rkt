@@ -27,9 +27,6 @@
 
 (define mimetype "application/json")
 
-(define (s3path-tasks)
-    (format "~a/tasks/v1" (s3path-base)))
-
 (define (check-from-uri s3uri)
     (match (s3split-from-uri (s3path-base) s3uri)
         (`("kgid" ,kgid "v" ,ver ,relf)
