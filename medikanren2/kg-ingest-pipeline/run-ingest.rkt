@@ -10,6 +10,7 @@
 (require "kge-params.rkt")
 (require "main-params.rkt")
 (require "task-checklist.rkt")
+(require "pipesig.rkt")
 
 (define (with-context thunk)
   (with-config
@@ -26,41 +27,54 @@
 
 (define states-resolved '("completed" "failed"))
 
-(define (mark-task tbi state ex msg)
+(define (mark-task psig state ex msg)
   (when msg
     (displayln msg))
   (when ex
     (displayln ex))
+  (define tbi (psig-extra-ref psig "tbi"))
   (let ((jsexpr (string->jsexpr "{}")))
     (commit-task
-      `(idver ,(kge-coord-kgid (task-build-index-kgec tbi)) ,(kge-coord-ver (task-build-index-kgec tbi)))
+      psig
       state
       jsexpr)))
+
+(define (psig-from-kgmeta kgmeta) ; TODO rename idver=>kgmeta?
+    (psig
+      `#hash(("source" . "KGE") ("kgid" . ,(kgid-from-kgmeta kgmeta)) ("ver" . ,(ver-from-kgmeta kgmeta)))
+      `#hash(("kgmeta" . ,kgmeta))))
+
+(define (psig-with-tbi psig)
+  (psig-extra-set
+    psig
+    "tbi"
+    (tbi-from-kgmeta (psig-extra-ref psig "kgmeta"))))
 
 (define (main)
   (with-context
     (lambda ()
       (let* (
              (kgmetas (fetch-kgmetas-kge))
+             (psigs (map psig-from-kgmeta kgmetas))
              (tasks (log-thunk (lambda () (fetch-task-events)) 'fetch-task-events))
                 ; Fetch s3 paths.  We need them to figure out what has already been built.  Because there
                 ; are no two step transformations, we didn't need them to figure out what we could build.
-             (kgmetas^ (log-thunk (lambda () ((tasks-unresolved kgid-from-kgmeta ver-from-kgmeta) kgmetas tasks states-resolved)) 'tasks-unresolved))
+             (psigs^ (log-thunk (lambda () ((tasks-unresolved kgid-from-kgmeta ver-from-kgmeta) psigs tasks states-resolved)) 'tasks-unresolved)))
                 ; Figure out incomplete transformations.
-             (tbis (log-thunk (lambda () (map tbi-from-kgmeta kgmetas^)) 'tbis-tosync kgmetas^ tasks)))
-        (for ((tbi tbis))
-          (fetch-payload-to-disk tbi)
+        (for ((psig (map psig-with-tbi psigs^)))
+          (printf "\n\nfetching tbi from psig=~s\n" psig)
+          (fetch-payload-to-disk (psig-extra-ref psig "tbi"))
           (with-handlers
             (
               [exn:fail:aws?
                 (lambda (ex)
-                  (mark-task tbi "fault" ex "kg-ingest-pipeline failed with exception that may be transient.  Bypassing commit so that job will retry"))]
+                  (mark-task psig "fault" ex "kg-ingest-pipeline failed with exception that may be transient.  Bypassing commit so that job will retry"))]
               [exn:fail?
                 (lambda (ex)
-                  (mark-task tbi "failed" ex "kg-ingest-pipeline failed in local processing, which is likely to be a deterministic failure due to bad configuration.  To retry, change configuration."))])
+                  (mark-task psig "failed" ex "kg-ingest-pipeline failed in local processing, which is likely to be a deterministic failure due to bad configuration.  To retry, change configuration."))])
             (begin
-              (process-tbi (s3path-base) tbi)
-              (mark-task tbi "completed" #f #f))))))))
+              (process-tbi (s3path-base) (psig-extra-ref psig "tbi"))
+              (mark-task psig "completed" #f #f))))))))
 
 (module+ main
   (main))

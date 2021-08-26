@@ -1,9 +1,47 @@
 #lang racket
-(require
-  (all-defined-out))
+(provide
+  psig-new
+  psig-main-ref
+  psig-extra-ref
+  psig-main-set
+  psig-extra-set
+  psig-hash
+  (struct-out psig-t))
 (require racket/dict)
 (require file/sha1)
 (require chk)
+
+(struct psig
+  (
+   main
+   extra
+   ) #:transparent
+  #:name psig-t
+  )
+
+(define (psig-new)
+  (psig
+    (make-immutable-hash)
+    (make-immutable-hash)))
+
+(define (psig-main-ref psig k)
+  (hash-ref (psig-main psig) k))
+
+(define (psig-extra-ref psig k)
+  (hash-ref (psig-extra psig) k))
+
+(define (psig-main-set psig1 k v)
+  (struct-copy
+    psig-t
+    psig1
+    (main (hash-set (psig-main psig1) k v))))
+
+(define (psig-extra-set psig1 k v)
+  (struct-copy
+    psig-t
+    psig1
+    (extra (hash-set (psig-extra psig1) k v))))
+
 
 (define (pipesig-flatten sig)
   (define (keynorm k)
@@ -40,6 +78,9 @@
         (write (pipesig-flatten sig)))))
   (sha1 bytes))
 
+(define (psig-hash psig)
+  (pipesig-hash (psig-main psig)))
+
 
 (module+ test
   (chk
@@ -71,4 +112,9 @@
    (#:=
     (pipesig-hash `#hash((bar . 2) (baz . 3) (foo . 1)))
     (pipesig-hash `#hash((foo . 1) (bar . 2) (baz . 3)))))
+
+  (chk
+   (#:=
+    (psig-hash (psig-main-set (psig `#hash((bar . 2) (baz . 3)) `#hash()) 'foo 1))
+    (psig-hash (psig-main-set (psig `#hash((foo . 1) (bar . 2)) `#hash()) 'baz 3))))
   )
