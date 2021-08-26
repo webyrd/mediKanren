@@ -27,8 +27,11 @@
 
 (define mimetype "application/json")
 
+(define (s3path-tasks)
+    (format "~a/tasks" (s3path-base)))
+
 (define (check-from-uri s3uri)
-    (match (s3split-from-uri (s3path-base) s3uri)
+    (match (s3split-from-uri (s3path-tasks) s3uri)
         (`("kgid" ,kgid "v" ,ver ,relf)
             #:when (string-contains? relf ".json")
             (printf "matched ~a\n" s3uri)
@@ -43,14 +46,14 @@
 (define (uri-from-check check)
     (match check
         (`(check ,kgid ,ver ,tyysec ,state)
-            `(,(format "~a/kgid/~a/v/~a/~a-~a.json" (s3path-base) kgid ver tyysec state)))
+            `(,(format "~a/kgid/~a/v/~a/~a-~a.json" (s3path-tasks) kgid ver tyysec state)))
         (_ `())))
 
 (define (fetch-task-events)
     (define num-max-each 1000)
-    (define bucket (bucket-from-s3path (s3path-base)))
+    (define bucket (bucket-from-s3path (s3path-tasks)))
     (ls/proc
-        (s3path-base)
+        (s3path-tasks)
         (lambda (checks xmls)
             (define checks-new (append-map 
                 (lambda (xml)
