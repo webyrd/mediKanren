@@ -148,13 +148,6 @@
    ver-mi
    ))
 
-(define (tbi-known-format? tbi)
-  (define kgec (task-build-index-kgec tbi))
-  (match (dispatch-build-kg (kge-coord-kgid kgec) (kge-coord-ver kgec))
-    ('unknown-format #f)
-    (else #t)))
-
-
 (define (fetch-payload-to-disk tbi)
   (define kgec (task-build-index-kgec tbi))
   (define kgid (kge-coord-kgid kgec))

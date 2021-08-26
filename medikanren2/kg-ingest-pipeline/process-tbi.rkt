@@ -8,7 +8,7 @@
 (require aws/keys)
 (require aws/s3)
 (require "tagyaml.rkt")
-(require "../db/dispatch-build-kg-indexes.rkt")
+(require "dispatch.rkt")
 (require "../../stuff/run-shell-pipelines.rkt")
 (require "metadata.rkt")
 (require "current-source.rkt")
@@ -85,24 +85,6 @@
   (define stbash (format "cd '~a'; pwd; racket -e '(require \"medikanren2/db/~a\") (require \"medikanren2/base.rkt\") (dbs-available)'" adir rfile-rkt))
   `(((#:out) () ("bash" "-c" ,stbash)
                 ("tail" "-1"))))
-
-(define (has-dispatch? idver)
-  (match idver
-    (`(idver ,kgid ,ver)
-     (list? (dispatch-build-kg kgid ver)))))
-
-(define ((kg-ref key (val-default 'kg-ref-default)) kgid ver)
-  (define kg (dispatch-build-kg kgid ver))
-  (if (dict-has-key? kg key)
-      (dict-ref kg key)
-      (begin
-        (unless (not (equal? val-default 'kg-ref-default))
-          (error (format "dispatch-build-kg-indexes key ~a is required for kgid=~a version=~a" key kgid ver)))
-        val-default)))
-
-(define require-file-from-kg (kg-ref 'require-file))
-(define shell-pipeline-before (kg-ref 'shell-pipeline-before '()))
-(define local-name-from-kg (kg-ref 'local-name))
 
 (define (dispatch-build-impl tbi)
   (define kgid (kge-coord-kgid (task-build-index-kgec tbi)))
