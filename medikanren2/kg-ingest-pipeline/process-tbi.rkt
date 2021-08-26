@@ -14,6 +14,8 @@
 (require "current-source.rkt")
 (require "cmd-helpers.rkt")
 (require "dispatch-params.rkt")
+(require "pipesig.rkt")
+(require "task-checklist.rkt")
 
 ;task-build-index
 ;task-build-index-kgec
@@ -39,13 +41,11 @@
 (define dr-delete-file (dry-runify delete-file 'delete-file))
 
 
-(define (rfile-output tbi)
+(define (rfile-output tbi #:extension? (extension? #f))
   (define kgec (task-build-index-kgec tbi))
   (define kgid (kge-coord-kgid kgec))
   (define ver (kge-coord-ver kgec))
-  (define mi (task-build-index-ver-mi tbi))
-  (format "~a-~a_mi~a" kgid ver mi))
-
+  (format "~a-~a~a" kgid ver (if extension? ".tgz" "")))
 
 (define (expand-payload tbi)
   (define kgec (task-build-index-kgec tbi))
@@ -102,8 +102,8 @@
         (run-cmds (append cmds-before cmds-require))))))
 
 (define (afile-archout tbi)
-  (define rfile (rfile-output tbi))
-  (path->string (build-path (adir-temp) (format "~a.tgz" rfile))))
+  (define rfile (rfile-output tbi #:extension? #t))
+  (path->string (build-path (adir-temp) rfile)))
 
 (define (compress-out tbi)
   (define kgec (task-build-index-kgec tbi))
@@ -125,16 +125,6 @@
            ))
       ; TODO: now that tgz is generated, sha1sum it and generate yaml
       )))
-
-(define (s3rdir-task tbi)
-  (define kgec (task-build-index-kgec tbi))
-  (define kgid (kge-coord-kgid kgec))
-  (define ver (kge-coord-ver kgec))
-  (define ver-mi (task-build-index-ver-mi tbi))
-  (format "kgid/~a/v/~a/mi/~a" kgid ver ver-mi))
-
-(define (s3adir-task s3path-base tbi)
-  (format "~a/~a" s3path-base (s3rdir-task tbi))) ; TODO: omit "/" from "/kgid" or from s3path-base?
 
 (define (upload-archive-out s3dir)
   (define adir-split (build-path (adir-temp) "split"))
@@ -169,7 +159,7 @@
       (error "get-dbname: No db found.  Please call database-extend-relations! from your db wrapper."))
     (_ (error "get-dbname: internal error."))))
 
-(define (yamlexpr-for-install-data-files tbi)
+(define (yamlexpr-for-install-data-files tbi psig)
   (define kgec (task-build-index-kgec tbi))
   (define afile-archout1 (afile-archout tbi))
   (define size (file-size afile-archout1))
@@ -181,30 +171,33 @@
     ("configkey" . ,dbname)
     ("sha1sum" . ,sha1)
     ("size" . ,size)
-    ("filename" . ,(format "~a/~a" (s3rdir-task tbi) (rfile-output tbi)))
+    ("filename" . ,(rfile-output tbi #:extension? #t))
     ("format" . (
       "tar.gz"
       "split"
     )))))
 
-(define (upload-install-data-files-yaml s3dir tbi)
-  (define yamlexpr (yamlexpr-for-install-data-files tbi))
+(define (upload-install-data-files-yaml s3dir tbi psig)
+  (define yamlexpr (yamlexpr-for-install-data-files tbi psig))
   (define styaml (tagyaml->string "!ardb" yamlexpr))
   (define s3path (format "~a/~a" s3dir "install.yaml"))
   (put/bytes
     s3path
-    (string->bytes/utf-8 (tagyaml->string "!ardb" (yamlexpr-for-install-data-files tbi)))
+    (string->bytes/utf-8 (tagyaml->string "!ardb" yamlexpr))
     "application/yaml"))
 
 (define dr-upload-install-data-files-yaml (dry-runify upload-install-data-files-yaml 'upload-install-data-files-yaml))
 
-(define (process-tbi s3path-base tbi)
+(define (process-tbi s3path-base psig tbi)
   (check-for-payload tbi)
   (expand-payload tbi)
   (dispatch-build-impl tbi)
   (compress-out tbi)
-  (dr-upload-archive-out (s3adir-task s3path-base tbi))
-  (dr-upload-install-data-files-yaml (s3adir-task s3path-base tbi) tbi))
+  (define tsec-upload (floor (/ (current-milliseconds) 1000)))
+  ; Use tsec-upload for both upload and yaml so that the relative path relationship
+  ; for the yaml field "filename:" will be preserved
+  (dr-upload-archive-out (s3adir-for-psig psig tsec-upload))
+  (dr-upload-install-data-files-yaml (s3adir-for-psig psig tsec-upload) tbi psig))
 
 
 

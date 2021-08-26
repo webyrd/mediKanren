@@ -3,6 +3,7 @@
     fetch-task-events
     tasks-unresolved
     commit-task
+    s3adir-for-psig
     )
 (require aws/keys)
 (require aws/s3)
@@ -33,21 +34,25 @@
 
 (define (check-from-uri s3uri)
     (match (s3split-from-uri (s3path-tasks) s3uri)
-        (`("kgid" ,kgid "s" ,sig "t" ,tyysec ,relf)
-            #:when (string-contains? relf ".json")
+        (`("kgid" ,kgid "s" ,sig "t" ,tyysec . ,relfs)
             (printf "matched ~a\n" s3uri)
-            (let (
-                    (state (substring relf 0 (- (string-length relf) 5))))
-                `((check ,kgid ,sig ,tyysec ,state))))
+            `((check ,kgid ,sig ,tyysec . ,relfs)))
         (foo
             (printf "could not match ~s from s3path-tasks=~a and s3uri=~a\n" foo (s3path-tasks) s3uri)
             `())))
 
 (define (uri-from-check check)
     (match check
-        (`(check ,kgid ,sig ,tyysec ,state)
-            `(,(format "~a/kgid/~a/s/~a/t/~a/~a.json" (s3path-tasks) kgid sig tyysec state)))
-        (_ `())))
+        (`(check ,kgid ,sig ,tyysec . ,relfs)
+            (format "~a/kgid/~a/s/~a/t/~a" (s3path-tasks) kgid sig tyysec))
+        (_ (error "uri-from-check: malformed check"))))
+
+(define (s3adir-for-psig psig tsec)
+    ;tsec: (floor (/ (current-milliseconds) 1000))
+    (define kgid (psig-main-ref psig "kgid"))
+    (define hsig (psig-hash psig))
+    (define tyysec (format-yyyy-from-tsec tsec))
+    (uri-from-check `(check ,kgid ,hsig ,tyysec)))
 
 (define (fetch-task-events)
     (define num-max-each 1000)
@@ -67,44 +72,58 @@
         '() ; initial value of checks
         num-max-each))
 
+(define (state-from-relf relf)
+    (define i (- (string-length relf) 5))
+    (define s-first (substring relf 0 i))
+    (define s-end (substring relf i (string-length relf)))
+    (if (equal? s-end ".json")
+        s-first
+        #f))
+(define (state-from-relfs relfs)
+    (if (empty? relfs) #f (state-from-relf (car relfs))))
+
 (define ((tasks-unresolved get-id get-ver) psigs checks states-completed)
     (define h (make-hash))
     (for ((check checks))
+        ;(printf "\nfound check=~a\n" check)
         (match check
-            (`(check ,kgid ,sig ,tyysec ,state)
-                (when (member state states-completed)
-                    (hash-set! h `(,kgid ,sig) #t)))))
+            (`(check ,kgid ,sig ,tyysec . ,relfs)
+                (define state (state-from-relfs relfs))
+                (when state
+                    ;(printf "found state=~a\n" state)
+                    (when (member state states-completed)
+                        (hash-set! h `(,kgid ,sig) #t))))))
     (filter (lambda (psig)
         (define kgid (psig-main-ref psig "kgid"))
         (not (hash-has-key? h `(,kgid ,(psig-hash psig)))))
         psigs))
 
-
-(define (commit-task psig state jsexpr)
+(define (commit-task psig state)
+    (define payload (psig-payload (psig-extra-set psig "state" state)))
     (define tsec-completed (floor (/ (current-milliseconds) 1000)))
-    (define payload (jsexpr->bytes jsexpr))
-    (define kgid (psig-main-ref psig "kgid"))
-    (define hsig (psig-hash psig))
-            (define tyysec (format-yyyy-from-tsec (floor (/ (current-milliseconds) 1000))))
-            (match (uri-from-check `(check ,kgid ,hsig ,tyysec ,state))
-                (`(,uri)
+    (define uri (format "~a/~a.json" (s3adir-for-psig psig tsec-completed) state))
                     (put/bytes
                         uri
                         payload
-                        mimetype))))
+                        mimetype))
 
 (module+ test
 
-    (define check-1 `(check "foo-kg" "1.7" "20010203070809" "completed"))
+    (define check-1 `(check "foo-kg" "1.7" "20010203070809"))
+
+    (chk
+        (#:do (parameterize ((s3path-base "bucket"))
+                (uri-from-check check-1)))
+        (#:t #t))
 
     (chk
         (#:= (parameterize ((s3path-base "bucket"))
-                (length (append-map uri-from-check `(,check-1))))
-            1))
-
-    (chk
-        (#:= (parameterize ((s3path-base "bucket"))
-                (append-map check-from-uri (append-map uri-from-check `(,check-1))))
+                (check-from-uri (uri-from-check check-1)))
             `(,check-1)))
+
+    (chk
+        (#:=
+            (state-from-relf "hello.json")
+            "hello"))
 )
 

@@ -32,23 +32,14 @@
     (displayln msg))
   (when ex
     (displayln ex))
-  (define tbi (psig-extra-ref psig "tbi"))
-  (let ((jsexpr (string->jsexpr "{}")))
-    (commit-task
-      psig
-      state
-      jsexpr)))
+  (commit-task
+    psig
+    state))
 
 (define (psig-from-kgmeta kgmeta) ; TODO rename idver=>kgmeta?
     (psig
       `#hash(("source" . "KGE") ("kgid" . ,(kgid-from-kgmeta kgmeta)) ("ver" . ,(ver-from-kgmeta kgmeta)))
       `#hash(("kgmeta" . ,kgmeta))))
-
-(define (psig-with-tbi psig)
-  (psig-extra-set
-    psig
-    "tbi"
-    (tbi-from-kgmeta (psig-extra-ref psig "kgmeta"))))
 
 (define (main)
   (with-context
@@ -61,9 +52,10 @@
                 ; are no two step transformations, we didn't need them to figure out what we could build.
              (psigs^ (log-thunk (lambda () ((tasks-unresolved kgid-from-kgmeta ver-from-kgmeta) psigs tasks states-resolved)) 'tasks-unresolved)))
                 ; Figure out incomplete transformations.
-        (for ((psig (map psig-with-tbi psigs^)))
+        (for ((psig psigs^))
+          (define tbi (tbi-from-kgmeta (psig-extra-ref psig "kgmeta")))
           (printf "\n\nfetching tbi from psig=~s\n" psig)
-          (fetch-payload-to-disk (psig-extra-ref psig "tbi"))
+          (fetch-payload-to-disk tbi)
           (with-handlers
             (
               [exn:fail:aws?
@@ -73,7 +65,7 @@
                 (lambda (ex)
                   (mark-task psig "failed" ex "kg-ingest-pipeline failed in local processing, which is likely to be a deterministic failure due to bad configuration.  To retry, change configuration."))])
             (begin
-              (process-tbi (s3path-base) (psig-extra-ref psig "tbi"))
+              (process-tbi (s3path-base) psig tbi)
               (mark-task psig "completed" #f #f))))))))
 
 (module+ main

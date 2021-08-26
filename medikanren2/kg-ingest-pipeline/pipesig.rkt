@@ -6,10 +6,13 @@
   psig-main-set
   psig-extra-set
   psig-hash
+  psig-payload
   (struct-out psig-t))
 (require racket/dict)
 (require file/sha1)
+(require json)
 (require chk)
+(require "yaml-json-compat.rkt")
 
 (struct psig
   (
@@ -41,7 +44,6 @@
     psig-t
     psig1
     (extra (hash-set (psig-extra psig1) k v))))
-
 
 (define (pipesig-flatten sig)
   (define (keynorm k)
@@ -80,6 +82,11 @@
 
 (define (psig-hash psig)
   (pipesig-hash (psig-main psig)))
+
+(define (psig-payload psig)
+  (sjsexpr->bytes
+    `#hash(("main" . ,(psig-main psig))
+           ("extra" . ,(psig-extra psig)))))
 
 
 (module+ test
