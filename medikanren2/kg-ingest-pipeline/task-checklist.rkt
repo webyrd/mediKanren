@@ -82,7 +82,7 @@
 (define (state-from-relfs relfs)
     (if (empty? relfs) #f (state-from-relf (car relfs))))
 
-(define ((tasks-unresolved get-id get-ver) psigs checks states-completed)
+(define (tasks-unresolved psigs checks states-completed)
     (define h (make-hash))
     (for ((check checks))
         ;(printf "\nfound check=~a\n" check)
