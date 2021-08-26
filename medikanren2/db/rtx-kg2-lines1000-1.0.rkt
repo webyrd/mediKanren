@@ -9,7 +9,7 @@
     (cprop curie k v)))
 
 (define-relation/table cprop
-  'path               "rtx2/20210204/cprop"
+  'path               "rtx-kg2-lines1000/1.0/cprop"
   'source-file-path   "upstream/rtx-kg2-lines1000/rtx_kg2.nodeprop.tsv"
   'source-file-header '(:ID propname value)
   'attribute-names    '(curie key value)
@@ -20,7 +20,7 @@
 (string-search-init-rel cprop)
 
 (define-relation/table edge
-  'path               "rtx2/20210204/edge"
+  'path               "rtx-kg2-lines1000/1.0/edge"
   'source-file-path   "upstream/rtx-kg2-lines1000/rtx_kg2.edge.tsv"
   'source-file-header '(":ID" ":START" ":END")
   'map                (value/syntax
@@ -33,7 +33,7 @@
                         (object subject)))
 
 (define-relation/table eprop
-  'path               "rtx2/20210204/eprop"
+  'path               "rtx-kg2-lines1000/1.0/eprop"
   'source-file-path   "upstream/rtx-kg2-lines1000/rtx_kg2.edgeprop.tsv"
   'source-file-header '(":ID" "propname" "value")
   'map                (value/syntax
