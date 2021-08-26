@@ -136,7 +136,6 @@
 (define (tbi-from-kgmeta kgmeta)
   (define tsec-requested (floor (/ (current-milliseconds) 1000)))
   (define duration-max 3600)
-  (define ver-mi "2.0")
   (task-build-index
    (kge-coord
     (kgid-from-kgmeta kgmeta) ;"yeast-sri-reference-kg"    ; kgid
@@ -145,7 +144,6 @@
     )
    tsec-requested
    duration-max
-   ver-mi
    ))
 
 (define (fetch-payload-to-disk tbi)

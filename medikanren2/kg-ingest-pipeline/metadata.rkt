@@ -27,7 +27,6 @@
    ; dbwrapper      ; no: dispatch-build-kg computes this dynamically
    tsec-requested
    duration-max     ; TODO: add gnu timeout
-   ver-mi           ; TODO: add to output filename
    ) #:transparent
   #:name task-build-index-t
   ;    #:constructor-name task-build-index-new
@@ -52,6 +51,5 @@
            [tsec-requested : number]
            [duration-max : number]
            ;[payload : (list string)]
-           [ver-mi : string]
            )))
 

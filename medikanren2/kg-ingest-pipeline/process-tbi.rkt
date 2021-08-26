@@ -166,7 +166,7 @@
   (define sha1 (sha1sum afile-archout1))
   (define dbname (get-dbname tbi))
   `(#hash(
-    ("versionOfMedikanren" . ,(format "v~a" (task-build-index-ver-mi tbi)))
+    ("versionOfMedikanren" . "v2")
     ("reldir" . ,(local-name-from-kg (kge-coord-kgid kgec) (kge-coord-ver kgec)))
     ("configkey" . ,dbname)
     ("sha1sum" . ,sha1)
