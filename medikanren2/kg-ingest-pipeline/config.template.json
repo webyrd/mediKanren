@@ -1,4 +1,5 @@
 {
     "uri-kge": ". . .",
-    "s3path-prefix": ". . ."
+    "s3path-prefix": ". . .",
+    "uri-webhook-slack": ". . ."
 }

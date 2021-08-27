@@ -17,6 +17,7 @@
 (require "pipesig.rkt")
 (require "task-checklist.rkt")
 (require "data-import.rkt")
+(require "notify-slack.rkt")
 
 ;task-build-index
 ;task-build-index-kgec
@@ -159,16 +160,27 @@
       "split"
     )))))
 
-(define (upload-install-data-files-yaml s3dir tbi psig)
+(define (s3path-yaml psig tsec-upload)
+  (define s3adir (s3adir-for-psig psig tsec-upload))
+  (format "~a/~a" s3adir "install.yaml"))
+
+(define (upload-install-data-files-yaml tbi psig tsec-upload)
   (define yamlexpr (yamlexpr-for-install-data-files tbi psig))
   (define styaml (tagyaml->string "!ardb" yamlexpr))
-  (define s3path (format "~a/~a" s3dir "install.yaml"))
   (put/bytes
-    s3path
+    (s3path-yaml psig tsec-upload)
     (string->bytes/utf-8 (tagyaml->string "!ardb" yamlexpr))
     "application/yaml"))
 
 (define dr-upload-install-data-files-yaml (dry-runify upload-install-data-files-yaml 'upload-install-data-files-yaml))
+
+(define (report-to-slack state kgec psig tsec-upload)
+    (match `(,state ,kgec ,psig ,tsec-upload)
+      (`(ok ,kgec ,psig ,tsec-upload)
+        (define s3path (s3path-yaml psig tsec-upload))
+        (notify-slack (format "Sucessfully built ~a version ~a at s3://~a"
+          (kge-coord-kgid kgec) (kge-coord-ver kgec) (s3path-yaml psig tsec-upload))))
+      (_ #f)))
 
 (define (process-tbi s3path-base psig tbi)
   (check-for-payload tbi)
@@ -179,7 +191,8 @@
   ; Use tsec-upload for both upload and yaml so that the relative path relationship
   ; for the yaml field "filename:" will be preserved
   (dr-upload-archive-out (s3adir-for-psig psig tsec-upload) tbi)
-  (dr-upload-install-data-files-yaml (s3adir-for-psig psig tsec-upload) tbi psig))
+  (dr-upload-install-data-files-yaml tbi psig tsec-upload)
+  (report-to-slack 'ok (task-build-index-kgec tbi) psig tsec-upload))
 
 
 
