@@ -16,6 +16,7 @@
 (require "dispatch-params.rkt")
 (require "pipesig.rkt")
 (require "task-checklist.rkt")
+(require "data-import.rkt")
 
 ;task-build-index
 ;task-build-index-kgec
@@ -76,23 +77,6 @@
   (dr-ensure-file-or-directory-link adir-data1 adir-data2)
   (run-cmds cmds-expand)
   (dr-delete-file afile-archive))
-
-(define (cmd-require-racket adir rfile-rkt)
-  `((() () ("bash" "-c" ,(format "cd '~a'; pwd; racket -e '(require \"medikanren2/db/~a\")'" adir rfile-rkt)))))
-
-;;; Ask dbs-available to find out how the db identified itself to database-extend-relations!.
-(define (cmd-get-dbnames adir rfile-rkt)
-  (define stbash (format "cd '~a'; pwd; racket -e '(require \"medikanren2/db/~a\") (require \"medikanren2/base.rkt\") (dbs-available)'" adir rfile-rkt))
-  `(((#:out) () ("bash" "-c" ,stbash)
-                ("tail" "-1"))))
-
-(define (dispatch-tbi tbi)
-  (printf "about to dispatch-build-impl\n")
-  (define kgec (task-build-index-kgec tbi))
-  (let-values (((rfile-to-require version-of-dbwrapper git-revision cmds-before)
-                (dispatch/validation (kge-coord-kgid kgec) (kge-coord-ver kgec))))
-    (define cmds-require (cmd-require-racket (adir-repo-ingest) rfile-to-require))
-    (run-cmds (append cmds-before cmds-require))))
 
 (define (afile-archout tbi)
   (define rfile (rfile-output tbi #:extension? #t))
@@ -189,7 +173,7 @@
 (define (process-tbi s3path-base psig tbi)
   (check-for-payload tbi)
   (expand-payload tbi)
-  (dispatch-tbi tbi)
+  (dispatch-kgec (task-build-index-kgec tbi))
   (compress-out tbi)
   (define tsec-upload (floor (/ (current-milliseconds) 1000)))
   ; Use tsec-upload for both upload and yaml so that the relative path relationship
