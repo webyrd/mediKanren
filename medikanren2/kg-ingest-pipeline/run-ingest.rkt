@@ -7,6 +7,7 @@
 (require "process-tbi.rkt")
 (require "current-source.rkt")
 (require "dispatch-params.rkt")
+(require "dispatch.rkt")
 (require "kge-params.rkt")
 (require "main-params.rkt")
 (require "task-checklist.rkt")
@@ -42,6 +43,8 @@
     (lambda ()
       (let* (
              (kgmetas (fetch-kgmetas-kge))
+             (_ (for ((kgmeta kgmetas)) ; fail fast for any errors in dispatch rules
+                    (dispatch-and-validate (kgid-from-kgmeta kgmeta) (ver-from-kgmeta kgmeta))))
              (psigs-kge (map psig-from-kgmeta kgmetas))
              (tasks-out (log-thunk (lambda () (fetch-task-events)) 'fetch-task-events))
                 ; Fetch s3 paths.  We need them to figure out what has already been built.  Because there

@@ -86,21 +86,13 @@
   `(((#:out) () ("bash" "-c" ,stbash)
                 ("tail" "-1"))))
 
-(define (dispatch-build-impl tbi)
+(define (dispatch-tbi tbi)
   (printf "about to dispatch-build-impl\n")
-  (define kgid (kge-coord-kgid (task-build-index-kgec tbi)))
-  (define adir-payload (path->string (build-path (adir-temp) "data" "upstream" kgid))) ; ver purposely omitted
   (define kgec (task-build-index-kgec tbi))
-  ; TODO: git pull adir-repo-ingest, optionally pinning
-  ; a version from dispatch-build-kg-indexes.rkt.
-  (define adir-base (build-path (adir-repo-ingest) "medikanren2"))
-  ; TODO: copy file_set.yaml, provider.yaml
-  (let ((rfile-to-require (require-file-from-kg (kge-coord-kgid kgec) (kge-coord-ver kgec)))
-        (cmds-before (shell-pipeline-before (kge-coord-kgid kgec) (kge-coord-ver kgec))))
-    (begin
-      (report-invalid-pipelines cmds-before)
-      (let ((cmds-require (cmd-require-racket (adir-repo-ingest) rfile-to-require)))
-        (run-cmds (append cmds-before cmds-require))))))
+  (let-values (((rfile-to-require cmds-before)
+                (dispatch-and-validate (kge-coord-kgid kgec) (kge-coord-ver kgec))))
+    (define cmds-require (cmd-require-racket (adir-repo-ingest) rfile-to-require))
+    (run-cmds (append cmds-before cmds-require))))
 
 (define (afile-archout tbi)
   (define rfile (rfile-output tbi #:extension? #t))
@@ -197,7 +189,7 @@
 (define (process-tbi s3path-base psig tbi)
   (check-for-payload tbi)
   (expand-payload tbi)
-  (dispatch-build-impl tbi)
+  (dispatch-tbi tbi)
   (compress-out tbi)
   (define tsec-upload (floor (/ (current-milliseconds) 1000)))
   ; Use tsec-upload for both upload and yaml so that the relative path relationship

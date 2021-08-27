@@ -1,7 +1,11 @@
 #lang racket
 (provide
     (all-defined-out))
+
+;(require "dispatch-params.rkt")
+(require "cmd-helpers.rkt")
 (require "../db/dispatch-build-kg-indexes.rkt")
+(require "../../stuff/run-shell-pipelines.rkt")
 
 (define (has-dispatch? idver)
   (match idver
@@ -20,3 +24,20 @@
 (define require-file-from-kg (kg-ref 'require-file))
 (define shell-pipeline-before (kg-ref 'shell-pipeline-before '()))
 (define local-name-from-kg (kg-ref 'local-name))
+
+(define (dispatch-and-validate kgid ver)
+  ; dispatch-and-validate is called twice, once on startup and again
+  ; once data is available to be processed.  Make sure that all
+  ; required kg-ref arguments are fetched here so that absent or
+  ; invalid arguments in the dispatch rules fail fast:
+  (local-name-from-kg kgid ver)
+  ; <insert any other required kg-ref arguments here>
+  ;
+  ; TODO: git pull adir-repo-ingest, optionally pinning
+  ; a version from dispatch-build-kg-indexes.rkt.
+  ; TODO: copy file_set.yaml, provider.yaml
+  (let ((rfile-to-require (require-file-from-kg kgid ver))
+        (cmds-before (shell-pipeline-before kgid ver)))
+    (begin
+      (report-invalid-pipelines cmds-before)
+      (values rfile-to-require cmds-before))))
