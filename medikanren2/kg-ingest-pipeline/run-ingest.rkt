@@ -44,12 +44,14 @@
       (let* (
              (kgmetas (fetch-kgmetas-kge))
              (psigs-kge (map psig-from-kgmeta kgmetas))
+             (psigs-sideload (map psig-from-sideload (fetch-sideload-events)))
+                ; Fetch all work to be done.  Building psigs requires version-of-dbwrapper, so triggers
+                ; dispatch, and in doing so validates the dispatch rules.
              (tasks-out (log-thunk (lambda () (fetch-task-events)) 'fetch-task-events))
                 ; Fetch s3 paths.  We need them to figure out what has already been built.  Because there
                 ; are no two step transformations, we didn't need them to figure out what we could build.
              (psigs-kge^ (log-thunk (lambda () (tasks-unresolved psigs-kge tasks-out state-from-check hsig-from-check states-resolved)) 'tasks-unresolved))
                 ; Figure out incomplete transformations.
-             (psigs-sideload (map psig-from-sideload (fetch-sideload-events)))
              (psigs-sideload^ (log-thunk (lambda () (tasks-unresolved psigs-sideload tasks-out state-from-check hsig-from-check states-resolved)) 'tasks-unresolved)))
         (for ((psig psigs-sideload^))
           (define tbi (tbi-from-sideload-psig psig))
