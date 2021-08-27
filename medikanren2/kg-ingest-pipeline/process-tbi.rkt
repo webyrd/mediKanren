@@ -87,6 +87,7 @@
                 ("tail" "-1"))))
 
 (define (dispatch-build-impl tbi)
+  (printf "about to dispatch-build-impl\n")
   (define kgid (kge-coord-kgid (task-build-index-kgec tbi)))
   (define adir-payload (path->string (build-path (adir-temp) "data" "upstream" kgid))) ; ver purposely omitted
   (define kgec (task-build-index-kgec tbi))
@@ -111,6 +112,7 @@
   (build-path (adir-temp) "split" kgid ver))
 
 (define (compress-out tbi)
+  (printf "about to compress-out\n")
   (define kgec (task-build-index-kgec tbi))
   (let ((local-name (local-name-from-kg (kge-coord-kgid kgec) (kge-coord-ver kgec))))
     (begin
