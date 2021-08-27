@@ -8,6 +8,10 @@
     ((equal? kgekgid "rtx")                 ; currently for illustrative purposes only since currently rtx is not in KGE
      `((require-file . "rtx2-20210204.rkt")
        (shell-pipeline-before . ())))
+    ((equal? kgekgid "rtx-kg2-lines1000")
+     `((require-file . "rtx-kg2-lines1000-1.0.rkt")
+       (local-name . "rtx-kg2-lines1000/1.0")
+       (shell-pipeline-before . ())))
     ((and (equal? kgekgid "yeast-sri-reference-kg-tsv") (equal? version "1.2"))
      `((require-file . "yeast-sri-reference-kg-1.0.rkt")
        (local-name . "yeast-sri-reference-kg/1.0")
