@@ -13,6 +13,7 @@
 (require "task-checklist.rkt")
 (require "sideload-helpers.rkt")
 (require "pipesig.rkt")
+(require "cron-singleton.rkt")
 
 (define (with-context thunk)
   (with-config
@@ -25,7 +26,9 @@
                 (lambda ()
                   (with-kge-token
                     (lambda ()
-                      (thunk))))))))))))
+                      (try-lock-singleton
+                        (lambda ()
+                          (thunk))))))))))))))
 
 (define states-resolved '("completed" "failed"))
 
