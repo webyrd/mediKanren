@@ -183,9 +183,10 @@
       (_ #f)))
 
 (define (process-tbi s3path-base psig tbi)
+  (define hsig (psig-hash psig))
   (check-for-payload tbi)
   (expand-payload tbi)
-  (dispatch-kgec (task-build-index-kgec tbi))
+  (dispatch-kgec (task-build-index-kgec tbi) hsig)
   (compress-out tbi)
   (define tsec-upload (floor (/ (current-milliseconds) 1000)))
   ; Use tsec-upload for both upload and yaml so that the relative path relationship
