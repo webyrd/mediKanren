@@ -106,7 +106,9 @@
   (path->string (build-path (adir-temp) rfile)))
 
 (define (path-split tbi)
-  (build-path (adir-temp) "split"))
+  (define kgid (kge-coord-kgid (task-build-index-kgec tbi)))
+  (define ver (kge-coord-ver (task-build-index-kgec tbi)))
+  (build-path (adir-temp) "split" kgid ver))
 
 (define (compress-out tbi)
   (define kgec (task-build-index-kgec tbi))
