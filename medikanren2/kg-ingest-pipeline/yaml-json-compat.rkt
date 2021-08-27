@@ -10,7 +10,12 @@
     agree on whether strings (yaml) or symbols (json) are to be used as the representation for keys
     in racket.
 
-    Escape hatch, so long as you aren't concerned about the performance side of the problem.
+    Escape hatch: keynorm-as-json
+
+    A symbolic expression in racket may contain symbols as values, but the json package does
+    not allow symbols as values.
+
+    Escape hatch: valnorm-as-json
 |#
 
 (define (keynorm-as-json k)
@@ -19,7 +24,12 @@
         ((symbol? k) k)
         (else k)))
 
-(define (dictkeynorm keynorm expr)
+(define (valnorm-as-json v)
+    (cond
+        ((symbol? v) (symbol->string v))
+        (else v)))
+
+(define (dictkeynorm keynorm valnorm expr)
   (define (walk-kvs kvs kvs-done)
     (if (null? kvs)
         (make-hash (reverse kvs-done))
@@ -38,14 +48,14 @@
          (walk-kvs kvs '())))
       ((list? expr)
        (walk-list expr '()))
-      (else expr)))
+      (else (valnorm expr))))
   (walk expr))
 
 (define (sjsexpr->string expr)
-  (jsexpr->string (dictkeynorm keynorm-as-json expr)))
+  (jsexpr->string (dictkeynorm keynorm-as-json valnorm-as-json expr)))
 
 (define (sjsexpr->bytes expr)
-  (jsexpr->bytes (dictkeynorm keynorm-as-json expr)))
+  (jsexpr->bytes (dictkeynorm keynorm-as-json valnorm-as-json expr)))
 
 (module+ test
   (chk
