@@ -29,7 +29,7 @@
         (list-set vals i v)
         (error (printf "update-vals-by-key: key ~s not found in ~s" k keys)))))
 
-(define dr-make-directory (dry-runify make-directory 'make-directory))
+(define dr-make-directory (dry-runify make-directory* 'make-directory))
 
 (define (ensure-file-or-directory-link adir1 adir2)
   (when (link-exists? adir2)
@@ -117,7 +117,6 @@
       (define adir-split (path->string (build-path (adir-temp) "split")))
       (dr-make-directory adir-split)
       (define afile-split (path->string (build-path (adir-temp) "split" (format "~a.tgz.split." rfile))))
-      (define adir-data (path->string (build-path (adir-repo-ingest) "medikanren2" "data")))
       (run-cmds
        `(  (() () ("tar" "czf" ,afile-archout1 "-C" ,adir-data1 ,local-name))
            (() () ("split" "--bytes=1G" ,afile-archout1 ,afile-split))
