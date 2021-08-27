@@ -105,32 +105,35 @@
   (define rfile (rfile-output tbi #:extension? #t))
   (path->string (build-path (adir-temp) rfile)))
 
+(define (path-split tbi)
+  (build-path (adir-temp) "split"))
+
 (define (compress-out tbi)
   (define kgec (task-build-index-kgec tbi))
   (let ((local-name (local-name-from-kg (kge-coord-kgid kgec) (kge-coord-ver kgec))))
     (begin
       (define kgid (kge-coord-kgid (task-build-index-kgec tbi)))
       (define ver (kge-coord-ver (task-build-index-kgec tbi)))
-      (define adir-data1 (path->string (build-path (adir-temp) "data")))
+      (define adir-data1 (build-path (adir-temp) "data"))
       (define rfile (rfile-output tbi))
       (define afile-archout1 (afile-archout tbi))
-      (define adir-split (path->string (build-path (adir-temp) "split")))
-      (dr-make-directory adir-split)
-      (define afile-split (path->string (build-path (adir-temp) "split" (format "~a.tgz.split." rfile))))
+      (define path-split1 (path-split tbi))
+      (dr-make-directory path-split1)
+      (define afile-split1 (path->string (build-path path-split1 (format "~a.tgz.split." rfile))))
       (run-cmds
        `(  (() () ("tar" "czf" ,afile-archout1 "-C" ,adir-data1 ,local-name))
-           (() () ("split" "--bytes=1G" ,afile-archout1 ,afile-split))
-           (() () ("ls" "-l" ,adir-split))
+           (() () ("split" "--bytes=1G" ,afile-archout1 ,afile-split1))
+           (() () ("ls" "-l" ,(path->string path-split1)))
            ))
       ; TODO: now that tgz is generated, sha1sum it and generate yaml
       )))
 
-(define (upload-archive-out s3dir)
-  (define adir-split (build-path (adir-temp) "split"))
-  (define patels (directory-list adir-split #:build? #f))
+(define (upload-archive-out s3dir tbi)
+  (define path-split1 (path-split tbi))
+  (define patels (directory-list path-split1 #:build? #f))
   (for ((patel patels))
     (let ((s3path (format "~a/~a" s3dir patel)))
-      (multipart-put/file s3path (build-path adir-split patel))
+      (multipart-put/file s3path (build-path path-split1 patel))
       ; TODO copy yaml
       )))
 
@@ -195,7 +198,7 @@
   (define tsec-upload (floor (/ (current-milliseconds) 1000)))
   ; Use tsec-upload for both upload and yaml so that the relative path relationship
   ; for the yaml field "filename:" will be preserved
-  (dr-upload-archive-out (s3adir-for-psig psig tsec-upload))
+  (dr-upload-archive-out (s3adir-for-psig psig tsec-upload) tbi)
   (dr-upload-install-data-files-yaml (s3adir-for-psig psig tsec-upload) tbi psig))
 
 
