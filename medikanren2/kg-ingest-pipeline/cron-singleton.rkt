@@ -1,9 +1,10 @@
 #lang racket
 (provide
     (all-defined-out))
+(require "current-source.rkt")
 
 (define (afile-lock-script-singleton)
-    (define afile-script (find-system-path 'run-file))
+    (define afile-script (afile-current-source))
     (define adir (find-system-path 'temp-dir))
     (define patel-script (last (explode-path afile-script)))
     (define patel (string->path-element (format "~a.lock" (path-element->string patel-script))))
