@@ -6,13 +6,13 @@
 (require json)
 (require racket/dict)
 (require "metadata.rkt")
-(require "../db/dispatch-build-kg-indexes.rkt")
 (require "process-tbi.rkt")
 (require "cmd-helpers.rkt")
 (require "current-source.rkt")
 (require "main-params.rkt")
 (require "kge-params.rkt")
 (require "pipesig.rkt")
+(require "dispatch.rkt")
 
 (require chk)
 
@@ -135,8 +135,13 @@
   (dict-ref (dict-ref kgmeta 'fileset) 'date_stamp))
 
 (define (psig-from-kgmeta kgmeta) ; TODO rename idver=>kgmeta?
+    (define version-of-dbwrapper
+        (version-of-dbwrapper/validation (kgid-from-kgmeta kgmeta) (ver-from-kgmeta kgmeta)))
     (psig
-      `#hash(("source" . "KGE") ("kgid" . ,(kgid-from-kgmeta kgmeta)) ("ver" . ,(ver-from-kgmeta kgmeta)))
+      `#hash(("source" . "KGE")
+              ("kgid" . ,(kgid-from-kgmeta kgmeta))
+              ("ver" . ,(ver-from-kgmeta kgmeta))
+              ("version-of-dbwrapper" . ,version-of-dbwrapper))
       `#hash(("kgmeta" . ,kgmeta))))
 
 (define (tbi-from-kgmeta kgmeta)

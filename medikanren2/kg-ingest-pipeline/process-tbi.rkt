@@ -89,8 +89,8 @@
 (define (dispatch-tbi tbi)
   (printf "about to dispatch-build-impl\n")
   (define kgec (task-build-index-kgec tbi))
-  (let-values (((rfile-to-require cmds-before)
-                (dispatch-and-validate (kge-coord-kgid kgec) (kge-coord-ver kgec))))
+  (let-values (((rfile-to-require version-of-dbwrapper cmds-before)
+                (dispatch/validation (kge-coord-kgid kgec) (kge-coord-ver kgec))))
     (define cmds-require (cmd-require-racket (adir-repo-ingest) rfile-to-require))
     (run-cmds (append cmds-before cmds-require))))
 

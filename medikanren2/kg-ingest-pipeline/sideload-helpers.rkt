@@ -9,6 +9,7 @@
 (require "s3path.rkt")
 (require "pipesig.rkt")
 (require "cmd-helpers.rkt")
+(require "dispatch.rkt")
 
 (define rfile-default "payload.tar.gz")
 (define duration-max-default 3600)
@@ -55,11 +56,14 @@
 (define (psig-from-sideload sideload)
     (match sideload
         (`(sideload ,kgid ,ver ,sha1 ,tyysec . ,relfs)
+            (define version-of-dbwrapper
+                (version-of-dbwrapper/validation kgid ver))
             (psig
                 `#hash(("source" . "sideload") 
                         ("kgid" . ,kgid)
                         ("ver" . ,ver)
-                        ("sha1" . ,sha1))
+                        ("sha1" . ,sha1)
+                        ("version-of-dbwrapper" . ,version-of-dbwrapper))
                 `#hash(("sideload" . ,sideload))))
         (_ (error (format "psig-from-sideload: could not parse sideload: ~s" sideload)))))
 

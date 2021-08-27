@@ -24,9 +24,10 @@
 (define require-file-from-kg (kg-ref 'require-file))
 (define shell-pipeline-before (kg-ref 'shell-pipeline-before '()))
 (define local-name-from-kg (kg-ref 'local-name))
+(define version-of-dbwrapper-from-kg (kg-ref 'version-of-dbwrapper))
 
-(define (dispatch-and-validate kgid ver)
-  ; dispatch-and-validate is called twice, once on startup and again
+(define (dispatch/validation kgid ver)
+  ; dispatch/validation is called twice, once on startup and again
   ; once data is available to be processed.  Make sure that all
   ; required kg-ref arguments are fetched here so that absent or
   ; invalid arguments in the dispatch rules fail fast:
@@ -36,8 +37,15 @@
   ; TODO: git pull adir-repo-ingest, optionally pinning
   ; a version from dispatch-build-kg-indexes.rkt.
   ; TODO: copy file_set.yaml, provider.yaml
-  (let ((rfile-to-require (require-file-from-kg kgid ver))
-        (cmds-before (shell-pipeline-before kgid ver)))
+  (let ((cmds-before (shell-pipeline-before kgid ver)))
     (begin
       (report-invalid-pipelines cmds-before)
-      (values rfile-to-require cmds-before))))
+      (values
+        (require-file-from-kg kgid ver)
+        (version-of-dbwrapper-from-kg kgid ver)
+        cmds-before))))
+
+(define (version-of-dbwrapper/validation kgid ver)
+  (let-values (((rfile-to-require version-of-dbwrapper cmds-before)
+                (dispatch/validation kgid ver)))
+    version-of-dbwrapper))
