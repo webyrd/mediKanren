@@ -3,15 +3,13 @@
  afile-current-source
  adir-current-source)
 
-(define-syntax (afile-current-source stx)
-  (datum->syntax
-   (quote-syntax here)
-   (syntax-source stx)
-   stx))
+(define (afile-current-source)
+  (define p (find-system-path 'run-file))
+  (if (absolute-path? p)
+      (simplify-path p)
+      (simplify-path
+       (build-path (current-directory) p))))
 
-(define-syntax (adir-current-source stx)
-  (datum->syntax
-   (quote-syntax here)
-   (simplify-path (build-path (syntax-source stx) 'up))
-   stx))
+(define (adir-current-source)
+  (simplify-path (build-path (afile-current-source) 'up)))
 
