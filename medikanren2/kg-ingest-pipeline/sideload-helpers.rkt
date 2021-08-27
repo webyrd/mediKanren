@@ -56,7 +56,7 @@
 (define (psig-from-sideload sideload)
     (match sideload
         (`(sideload ,kgid ,ver ,sha1 ,tyysec . ,relfs)
-            (define version-of-dbwrapper
+            (define-values (version-of-dbwrapper git-revision)
                 (version-of-dbwrapper/validation kgid ver))
             (psig
                 `#hash(("source" . "sideload") 
@@ -64,7 +64,8 @@
                         ("ver" . ,ver)
                         ("sha1" . ,sha1)
                         ("version-of-dbwrapper" . ,version-of-dbwrapper))
-                `#hash(("sideload" . ,sideload))))
+                `#hash(("sideload" . ,sideload)
+                        ("git-revision" . ,git-revision))))
         (_ (error (format "psig-from-sideload: could not parse sideload: ~s" sideload)))))
 
 (define (sideload-fetch-to-disk psig)

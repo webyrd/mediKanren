@@ -25,6 +25,7 @@
 (define shell-pipeline-before (kg-ref 'shell-pipeline-before '()))
 (define local-name-from-kg (kg-ref 'local-name))
 (define version-of-dbwrapper-from-kg (kg-ref 'version-of-dbwrapper))
+(define git-revision (kg-ref 'git-revision "/master"))
 
 (define (dispatch/validation kgid ver)
   ; dispatch/validation is called twice, once on startup and again
@@ -43,9 +44,10 @@
       (values
         (require-file-from-kg kgid ver)
         (version-of-dbwrapper-from-kg kgid ver)
+        (git-revision kgid ver)
         cmds-before))))
 
 (define (version-of-dbwrapper/validation kgid ver)
-  (let-values (((rfile-to-require version-of-dbwrapper cmds-before)
+  (let-values (((rfile-to-require version-of-dbwrapper git-revision cmds-before)
                 (dispatch/validation kgid ver)))
-    version-of-dbwrapper))
+    (values version-of-dbwrapper git-revision)))

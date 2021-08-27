@@ -135,14 +135,15 @@
   (dict-ref (dict-ref kgmeta 'fileset) 'date_stamp))
 
 (define (psig-from-kgmeta kgmeta) ; TODO rename idver=>kgmeta?
-    (define version-of-dbwrapper
+    (define-values (version-of-dbwrapper git-revision)
         (version-of-dbwrapper/validation (kgid-from-kgmeta kgmeta) (ver-from-kgmeta kgmeta)))
     (psig
       `#hash(("source" . "KGE")
               ("kgid" . ,(kgid-from-kgmeta kgmeta))
               ("ver" . ,(ver-from-kgmeta kgmeta))
               ("version-of-dbwrapper" . ,version-of-dbwrapper))
-      `#hash(("kgmeta" . ,kgmeta))))
+      `#hash(("kgmeta" . ,kgmeta)
+              ("git-revision" . ,git-revision))))
 
 (define (tbi-from-kgmeta kgmeta)
   (define tsec-requested (floor (/ (current-milliseconds) 1000)))

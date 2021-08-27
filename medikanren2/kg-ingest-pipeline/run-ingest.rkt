@@ -14,6 +14,7 @@
 (require "sideload-helpers.rkt")
 (require "pipesig.rkt")
 (require "cron-singleton.rkt")
+(require "git-repo-ingest.rkt")
 
 (define (with-context thunk)
   (with-config
@@ -69,6 +70,7 @@
                 (lambda (ex)
                   (mark-task psig "failed" ex "kg-ingest-pipeline failed in local processing, which is likely to be a deterministic failure due to bad configuration.  To retry, change configuration."))])
             (begin
+              (prepare-git-repo-ingest psig)
               (process-tbi (s3path-base) psig tbi)
               (mark-task psig "completed" #f #f))))
         (for ((psig psigs-kge^))
@@ -84,6 +86,7 @@
                 (lambda (ex)
                   (mark-task psig "failed" ex "kg-ingest-pipeline failed in local processing, which is likely to be a deterministic failure due to bad configuration.  To retry, change configuration."))])
             (begin
+              (prepare-git-repo-ingest psig)
               (process-tbi (s3path-base) psig tbi)
               (mark-task psig "completed" #f #f))))
       ))))
