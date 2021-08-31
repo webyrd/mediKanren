@@ -5,6 +5,7 @@
   "logging.rkt"
   "lw-reasoning.rkt"
   "open-api/api-query.rkt"
+  "ingest-pipeline-status.rkt"
   racket/file racket/function racket/list racket/hash
   (except-in racket/match ==)
   racket/port
@@ -532,6 +533,8 @@ EOS
      ;; (("pmi" "v2" "query" "find-concepts")   #:method "post" /v2/find-concepts)
      ;; (("pmi" "v2" "query" "find-categories") #:method "post" /v2/find-categories)
      ;; (("pmi" "v2" "query" "find-predicates") #:method "post" /v2/find-predicates)
+
+     (("pmi" "v2" "ingest-pipeline" "status") #:method "get" /ingest-pipeline-status)
 
      (("health")               #:method "get" /health)
 
