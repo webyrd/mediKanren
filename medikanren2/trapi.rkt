@@ -80,16 +80,22 @@
 
 (define (trapi-response msg (log-key "[query]"))
   (define max-results (hash-ref msg 'max_results #f))
-  (define qgraph (hash-ref msg 'query_graph))
+  (define qgraph (hash-ref msg 'query_graph #f))
   (define kgraph (hash-ref msg 'knowledge_graph #f))
+  (define request-valid? (not (not qgraph)))
 
-  (define results (if max-results
-                      (run max-results bindings (trapi-query qgraph kgraph bindings log-key))
-                      (run* bindings (trapi-query qgraph kgraph bindings log-key))))
-  (hash 'results (trapi-response-results results qgraph)
-        'knowledge_graph
-        (hash 'nodes (trapi-response-knodes results)
-              'edges (trapi-response-kedges results))))
+  (if (not request-valid?)
+    (hash 'results '()
+          'knowledge_graph
+          (hash 'nodes '#hash()
+                'edges '#hash()))
+    (let ((results (if max-results
+                          (run max-results bindings (trapi-query qgraph kgraph bindings log-key))
+                          (run* bindings (trapi-query qgraph kgraph bindings log-key)))))
+      (hash 'results (trapi-response-results results qgraph)
+            'knowledge_graph
+            (hash 'nodes (trapi-response-knodes results)
+                  'edges (trapi-response-kedges results))))))
 
 (define (trapi-query qgraph kgraph bindings log-key)
   (define nodes  (hash->list (olift (hash-ref qgraph 'nodes hash-empty))))

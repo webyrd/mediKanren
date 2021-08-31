@@ -381,7 +381,7 @@ EOS
                 (let-values (((message logs) (message->response request-msg)))
                   (let ((length-local (length (hash-ref message 'results))))
                     (hash 'message message
-                          'query_graph (hash-ref request-msg 'query_graph)
+                          'query_graph (hash-ref request-msg 'query_graph '#hash())
                           'status "Success"
                           'description (format "Success. ~s result~a." length-local (if (= length-local 1) "" "s"))
                           'logs logs)))))))
