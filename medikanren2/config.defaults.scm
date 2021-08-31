@@ -17,5 +17,10 @@
  ;; Unless more specifically configured, we assume no databases have been installed:
  (databases                  . ())
 
+ ;; Disable this flag to prevent translator-web-server.rkt
+ ;; and open-api/ from making downstream HTTP requests.  Useful
+ ;; for functional CI tests, and for offline development.
+ (trapi-enable-external-requests?  . #t)
+
  ;; Add new configuration options as new association pairs.
  )

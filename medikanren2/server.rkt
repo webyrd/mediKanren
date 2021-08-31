@@ -283,7 +283,9 @@ EOS
 
 (define (message->response msg)
   (define log-key (current-seconds))
-  (define broad-response (if (hash-ref msg 'disable_external_requests #f) 
+  (define broad-response (if (or
+                                (hash-ref msg 'disable_external_requests #f)
+                                (not (current-config-ref 'trapi-enable-external-requests?)))
                              (hash 'response hash-empty 'status "disabled" 'headers '())
                              (time (api-query (string-append url.broad path.query)
                                               (hash 'message msg)))))
@@ -479,6 +481,7 @@ EOS
 ;; (define (/v2/find-concepts   req) (OK/jsexpr find-concepts/any            req))
 ;; (define (/v2/find-categories req) (OK/jsexpr (find/db-id find-categories) req))
 ;; (define (/v2/find-predicates req) (OK/jsexpr (find/db-id find-predicates) req))
+
 
 (struct job-failure (message))
 
