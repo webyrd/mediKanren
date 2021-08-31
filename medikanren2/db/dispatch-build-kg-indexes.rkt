@@ -5,9 +5,11 @@
 
 (define (dispatch-build-kg kgekgid version)
   (cond
-    ((equal? kgekgid "rtx")                 ; currently for illustrative purposes only since currently rtx is not in KGE
-     `((require-file . "rtx2-20210204.rkt")
+    ((equal? kgekgid "rtx-kg2")
+     `((require-file . "rtx-kg2-20210816.rkt")
+       (local-name . "rtx-kg2/20210816")
        (shell-pipeline-before . ())
+       (git-revision . "/kg_builder-1")
        (version-of-dbwrapper . "1")))
     ((equal? kgekgid "rtx-kg2-lines1000")
      `((require-file . "rtx-kg2-lines1000-1.0.rkt")

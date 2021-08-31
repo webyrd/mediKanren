@@ -9,8 +9,8 @@
     (cprop curie k v)))
 
 (define-relation/table cprop
-  'path               "rtx-kg2-lines1000/1.0/cprop"
-  'source-file-path   "upstream/rtx-kg2-lines1000/rtx_kg2.nodeprop.tsv"
+  'path               "rtx-kg2/20210816/cprop"
+  'source-file-path   "upstream/rtx-kg2/rtx_kg2.nodeprop.tsv"
   'source-file-header '(:ID propname value)
   'attribute-names    '(curie key value)
   'attribute-types    '(string string string)
@@ -20,8 +20,8 @@
 (string-search-init-rel cprop)
 
 (define-relation/table edge
-  'path               "rtx-kg2-lines1000/1.0/edge"
-  'source-file-path   "upstream/rtx-kg2-lines1000/rtx_kg2.edge.tsv"
+  'path               "rtx-kg2/20210816/edge"
+  'source-file-path   "upstream/rtx-kg2/rtx_kg2.edge.tsv"
   'source-file-header '(":ID" ":START" ":END")
   'map                (value/syntax
                         (lambda (row)
@@ -33,8 +33,8 @@
                         (object subject)))
 
 (define-relation/table eprop
-  'path               "rtx-kg2-lines1000/1.0/eprop"
-  'source-file-path   "upstream/rtx-kg2-lines1000/rtx_kg2.edgeprop.tsv"
+  'path               "rtx-kg2/20210816/eprop"
+  'source-file-path   "upstream/rtx-kg2/rtx_kg2.edgeprop.tsv"
   'source-file-header '(":ID" "propname" "value")
   'map                (value/syntax
                         (lambda (row)
@@ -60,7 +60,7 @@
          ((subclass-of+ a b))))
 
 (database-extend-relations!
-  'rtx2-20210204
+  'rtx2-kg2
   'cprop cprop
   'eprop eprop
   'edge  edge)
