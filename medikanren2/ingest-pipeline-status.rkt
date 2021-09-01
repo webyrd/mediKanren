@@ -10,6 +10,21 @@
   aws/keys
   aws/s3
 )
+
+(define ec2-role-assumed? #f)
+
+;;; ensure-aws-credentials
+;;; Calling credentials-from-ec2-instance! more than one seems to cause subsequent
+;;; requests to fail, so avoid it.
+(define (ensure-aws-credentials)
+  (unless ec2-role-assumed?
+    ;; for local testing:
+    ;;(aws-cli-profile)
+    ;; for prod:
+    (credentials-from-ec2-instance! "transltr_eks_ci_unsecret_node_group_iam_role")
+    ;; TODO: do we need to time out?
+    (set! ec2-role-assumed? #t)))
+
 (define mime:text (string->bytes/utf-8 "text/plain;charset=utf-8"))
 
 (define (respond code message headers mime-type body)
@@ -41,10 +56,7 @@
 ;;;   path: an S3 URL that conforms that is a status file from kg-ingest-pipeline.
 (define (/ingest-pipeline-status req . args)
   (define bindings (request-bindings req))
-  ;; for local testing:
-  ;;(aws-cli-profile)
-  ;; for prod:
-  (credentials-from-ec2-instance! "transltr_eks_ci_unsecret_node_group_iam_role")
+  (ensure-aws-credentials)
   (define path (sanitize-input-path (dict-ref bindings 'path "")))
   (with-handlers
     ((aws:exn:fail:aws?
