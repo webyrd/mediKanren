@@ -25,7 +25,7 @@
 (define stcolumns-of-nodes (map symbol->string columns-of-nodes))
 
 (define-relation/table cprop
-  'path               "yeast-sri-reference-kg/1.0/nodes"
+  'path               "yeast-sri-reference-kg/ver-default/nodes"
   'source-file-path   "upstream/yeast-sri-reference-kg-tsv/nodes.tsv"
   'source-file-header columns-of-nodes
   'attribute-names    '(id subject object)
@@ -66,7 +66,7 @@
   (list-tail row 4)))
 
 (define-relation/table edge
-  'path               "yeast-sri-reference-kg/1.0/edge"
+  'path               "yeast-sri-reference-kg/ver-default/edge"
   'source-file-path   "upstream/yeast-sri-reference-kg-tsv/edges.tsv"
   'source-file-header columns-of-edges
   'attribute-names    '(id subject object)
@@ -81,7 +81,7 @@
 )
 
 (define-relation/table eprop
-  'path               "yeast-sri-reference-kg/1.0/eprop"
+  'path               "yeast-sri-reference-kg/ver-default/eprop"
   'source-file-path   "upstream/yeast-sri-reference-kg-tsv/edges.tsv"
   'source-file-header columns-of-edges
   'attribute-names    '(id subject object)
@@ -113,7 +113,7 @@
   'source-stream '())
 
 (database-extend-relations!
-  'yeast-sri-reference-kg-0.3.0
+  'yeast-sri-reference-kg
   'cprop cprop
   'edge edge
   'eprop eprop
