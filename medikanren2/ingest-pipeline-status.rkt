@@ -9,21 +9,32 @@
   ;(except-in aws module) ;module: identifier already required ;except-in: identifier `module' not included in nested require spec
   aws/keys
   aws/s3
+  json
+  net/url
+  (only-in http gmt-8601-string->seconds)
 )
 
 (define ec2-role-assumed? #f)
 
-;;; ensure-aws-credentials
-;;; Calling credentials-from-ec2-instance! more than one seems to cause subsequent
-;;; requests to fail, so avoid it.
-(define (ensure-aws-credentials)
-  (unless ec2-role-assumed?
-    ;; for local testing:
-    ;;(aws-cli-profile)
-    ;; for prod:
-    (credentials-from-ec2-instance! "transltr_eks_ci_unsecret_node_group_iam_role")
-    ;; TODO: do we need to time out?
-    (set! ec2-role-assumed? #t)))
+(define (ensure-aws-credentials iam-role)
+  ;; Workaround copy paste: https://github.com/greghendershott/aws/blob/master/aws/keys.rkt
+  ;; If we just call the provided credentials-from-ec2-instance! we seem to get corrupted
+  ;; state when ec2-instance-creds-expiration gets preserved but the other parameters
+  ;; get erased for serving subsequent requests.
+
+  ;; This code avoids caching altogether.
+  (define url
+    (string->url
+    (~a "http://169.254.169.254/latest/meta-data/iam/security-credentials/"
+        iam-role)))
+  (match (call/input-url url get-pure-port read-json)
+    [(hash-table ['AccessKeyId     public]
+                ['SecretAccessKey private]
+                ['Token           token]
+                ['Expiration      (app gmt-8601-string->seconds exp)])
+      (public-key public)
+      (private-key private)
+      (security-token token)]))
 
 (define mime:text (string->bytes/utf-8 "text/plain;charset=utf-8"))
 
@@ -56,7 +67,7 @@
 ;;;   path: an S3 URL that conforms that is a status file from kg-ingest-pipeline.
 (define (/ingest-pipeline-status req . args)
   (define bindings (request-bindings req))
-  (ensure-aws-credentials)
+  (ensure-aws-credentials "transltr_eks_ci_unsecret_node_group_iam_role")
   (define path (sanitize-input-path (dict-ref bindings 'path "")))
   (with-handlers
     ((aws:exn:fail:aws?
