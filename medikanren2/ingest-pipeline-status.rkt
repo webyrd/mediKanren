@@ -41,12 +41,6 @@
 ;;;   path: an S3 URL that conforms that is a status file from kg-ingest-pipeline.
 (define (/ingest-pipeline-status req . args)
   (define bindings (request-bindings req))
-  (printf "echo curl variation 1:\n")
-  (system "curl http://169.254.169.254/latest/meta-data/iam/security-credentials/")
-  (printf "echo curl variation 2:\n")
-  (system "curl http://169.254.169.254/latest/meta-data/iam/security-credentials")
-  (printf "echo curl variation 3:\n")
-  (system "curl http://169.254.169.254/2014-11-05/meta-data/iam/security-credentials")
   ;; for local testing:
   ;;(aws-cli-profile)
   ;; for prod:
