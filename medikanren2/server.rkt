@@ -286,7 +286,7 @@ EOS
   (define log-key (current-seconds))
   (define broad-response (if (or
                                 (hash-ref msg 'disable_external_requests #f)
-                                (not (current-config-ref 'trapi-enable-external-requests?)))
+                                (not (cfg:config-ref 'trapi-enable-external-requests?)))
                              (hash 'response hash-empty 'status "disabled" 'headers '())
                              (time (api-query (string-append url.broad path.query)
                                               (hash 'message msg)))))
