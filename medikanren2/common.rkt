@@ -14,7 +14,7 @@
          (prefix-in rtx:    "db/rtx2-20210204.rkt")
          (prefix-in kgx:    "db/kgx-synonym.rkt"))
 
-(for-each database-load! (hash-ref (current-config) 'databases))
+(for-each database-load! (cfg:config-ref 'databases))
 
 ;; TODO: define higher-level relations over the db-specific relations
 
