@@ -51,7 +51,7 @@
     (if kv
       (cdr kv)
       (find k (cdr configs))))
-  (define ks (map car (last configs)))
+  (define ks (remove-duplicates (append-map (lambda (config) (map car config)) configs)))
   (map (lambda (k)
     (cons k (find k configs)))
     ks)
