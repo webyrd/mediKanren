@@ -5,6 +5,7 @@
 (require yaml)
 (require shell/pipeline)
 (require "run-shell-pipelines.rkt")
+(require (prefix-in cmd: "cmd-helpers.rkt"))
 (require chk)
 
 ;; logging approach 1: Actually try to make a log receiver and make it work.  AFAICT
@@ -22,13 +23,6 @@
     thunk-run
     thunk-cleanup))
 
-(define (dorash #:dry-run dry-run cmds)
-  (unless (equal? dry-run 'quiet)
-    (printf "~s\n" cmds))
-  (unless dry-run
-    (run-pipelines cmds)))
-
-
 ;; *** application configuration ***
 
 (define afile-yaml (make-parameter #f))
@@ -38,7 +32,6 @@
 (define adir-install (make-parameter #f))
 (define do-config-scm (make-parameter #f))
 (define omit-aws-workaround (make-parameter #f))
-(define dry-run (make-parameter #f))
 (define config-ardbs (make-parameter #f))     ; mutable
 (define config-adir-temp (make-parameter #f)) ; mutable
 
@@ -178,26 +171,26 @@
   (let* ((adir (path->string (build-path (adir-storage) (ardb-sha1sum ardb)))))
     `((() () ("echo" ,adir " appears to be already installed, skipping")))))
 
-(define (run-check-extract-link dir-archive #:dry-run dry-run)
+(define (run-check-extract-link dir-archive)
   (for ((ardb (config-ardbs)))
     (let* ((sha1-expected (ardb-sha1sum ardb)))
       (cond 
         ((ardb-already-installed? ardb)
          (begin
-           (dorash #:dry-run dry-run (cmds-echo-already-installed ardb))
-           (dorash #:dry-run dry-run (cmds-to-symlink sha1-expected ardb))))
-        (dry-run
+           (cmd:run-cmds (cmds-echo-already-installed ardb))
+           (cmd:run-cmds (cmds-to-symlink sha1-expected ardb))))
+        ((cmd:dry-run)
          (let ((sha1 (ardb-sha1sum ardb)))
-           (dorash #:dry-run dry-run (cmds-to-extract sha1-expected ardb dir-archive))
-           (dorash #:dry-run dry-run (cmds-to-symlink sha1-expected ardb))))
+           (cmd:run-cmds (cmds-to-extract sha1-expected ardb dir-archive))
+           (cmd:run-cmds (cmds-to-symlink sha1-expected ardb))))
         (else
          (let ((sha1 (string-trim
                       #:left? #f
-                      (dorash #:dry-run dry-run (cmds-to-sha1 ardb dir-archive)))))
+                      (cmd:run-cmds (cmds-to-sha1 ardb dir-archive)))))
            (if (equal? sha1 sha1-expected)
                (begin
-                 (dorash #:dry-run dry-run (cmds-to-extract sha1 ardb dir-archive))
-                 (dorash #:dry-run dry-run (cmds-to-symlink sha1 ardb)))
+                 (cmd:run-cmds (cmds-to-extract sha1 ardb dir-archive))
+                 (cmd:run-cmds (cmds-to-symlink sha1 ardb)))
                (error (format "sha1 ~a != expected ~a" sha1 sha1-expected)))))))))
 
 ;; *** commands for syncing from a remote source ***
@@ -267,21 +260,15 @@
 
 (define (setup-teardown-run-install)
   (validate-env)
-  (let* (
-         (dry-run (dry-run))
-         (adir-temp (path->string (make-temporary-file "medikanren_~a" 'directory #f))))
-    (config-adir-temp adir-temp) ; parameter set!
-    (with-finally
-      (lambda () (dorash #:dry-run dry-run (cmds-rm-r adir-temp)))
-      (lambda ()
-        (dorash #:dry-run dry-run (cmds-to-sync))
-        (run-check-extract-link (config-adir-temp) #:dry-run dry-run)))))
+  (cmd:with-adir-temp-root
+    (lambda ()
+        (config-adir-temp (cmd:adir-temp)) ; parameter set!
+        (cmd:run-cmds (cmds-to-sync))
+        (run-check-extract-link (config-adir-temp)))))
 
+;; TODO: inline
 (define (run-from-local-archive)
-  (let* (
-         (dry-run (dry-run))
-         )
-    (run-check-extract-link (adir-local-archive) #:dry-run dry-run)))
+  (run-check-extract-link (adir-local-archive)))
 
 
 (define (run-main)
@@ -303,6 +290,7 @@
 
 ;; *** CLI parsing ***
 (define (parse-configuration)
+  (cmd:dry-run #f)
   (command-line
    #:program "install-data-files.rkt"
    #:usage-help "install-data-files.rkt <options>"
@@ -330,7 +318,7 @@
     (omit-aws-workaround #t)]
    [("--dry-run")
     "Print commands to run.  Do not run."
-    (dry-run #t)]
+    (cmd:dry-run #t)]
    #:args ()
    '())
    'dont-care-because-we-set-parameters
@@ -481,7 +469,7 @@
   (chk
    #:do (with-config-sample-1
     (lambda ()
-      (run-check-extract-link (config-adir-temp) #:dry-run #t)))
+      (run-check-extract-link (config-adir-temp))))
    #:t #t)
 
   (chk
