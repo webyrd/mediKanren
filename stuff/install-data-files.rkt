@@ -93,11 +93,11 @@
                  [yaml-representers (list ardb-representer)]
                  [yaml-constructors (list ardb-constructor)]
                  )
-    (file->yaml* absfile)))
+    (append-map (lambda (x) x)
+      (file->yaml* absfile))))
 
 (define (dataconfig)
-  (yamlfile->ardb (afile-yaml)))
-
+    (yamlfile->ardb (afile-yaml)))
 
 (define (path-ver-from-st v)
   (cond
@@ -279,7 +279,7 @@
     ((not (or (uri-remote-archive) (adir-local-archive)))
      (error "either --uri-remote-archive or --dir-local-archive is required"))
     (else
-     (config-ardbs (append-map (lambda (x) x) (dataconfig))) ; parameter set!
+     (config-ardbs (dataconfig)) ; parameter set!
      (cond
        ((uri-remote-archive) (setup-teardown-run-install))
        ((adir-local-archive) (run-from-local-archive))
