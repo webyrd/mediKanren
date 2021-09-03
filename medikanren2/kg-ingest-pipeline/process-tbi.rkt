@@ -12,7 +12,7 @@
 (require "../../stuff/run-shell-pipelines.rkt")
 (require "metadata.rkt")
 (require "current-source.rkt")
-(require "cmd-helpers.rkt")
+(require "../../stuff/cmd-helpers.rkt")
 (require "dispatch-params.rkt")
 (require "pipesig.rkt")
 (require "task-checklist.rkt")

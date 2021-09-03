@@ -7,7 +7,7 @@
 (require racket/dict)
 (require "metadata.rkt")
 (require "process-tbi.rkt")
-(require "cmd-helpers.rkt")
+(require "../../stuff/cmd-helpers.rkt")
 (require "current-source.rkt")
 (require "main-params.rkt")
 (require "kge-params.rkt")

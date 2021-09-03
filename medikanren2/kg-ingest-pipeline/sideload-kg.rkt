@@ -5,7 +5,7 @@
 (require aws/s3)
 (require "current-source.rkt")
 (require "main-params.rkt")
-(require "cmd-helpers.rkt")
+(require "../../stuff/cmd-helpers.rkt")
 (require "sideload-helpers.rkt")
 (require "simple-time.rkt")
 

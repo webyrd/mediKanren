@@ -8,7 +8,7 @@
 (require "main-params.rkt")
 (require "s3path.rkt")
 (require "pipesig.rkt")
-(require "cmd-helpers.rkt")
+(require "../../stuff/cmd-helpers.rkt")
 (require "dispatch.rkt")
 
 (define rfile-default "payload.tar.gz")

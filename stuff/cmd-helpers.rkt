@@ -6,7 +6,7 @@
  dry-run
  run-cmds
  dry-runify)
-(require "../../stuff/run-shell-pipelines.rkt")
+(require "run-shell-pipelines.rkt")
 
 ;;;; begin racket parameters
 (define adir-temp 

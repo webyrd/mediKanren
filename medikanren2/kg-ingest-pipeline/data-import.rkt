@@ -4,7 +4,7 @@
 (require "metadata.rkt")
 (require "dispatch.rkt")
 (require "dispatch-params.rkt")
-(require "cmd-helpers.rkt")
+(require "../../stuff/cmd-helpers.rkt")
 
 (define (cmd-require-racket adir rfile-rkt hsig)
     ; We generate a temporary racket file so that we can get full stack traces on errors.

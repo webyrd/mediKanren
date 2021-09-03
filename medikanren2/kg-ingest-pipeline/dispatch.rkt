@@ -3,7 +3,7 @@
     (all-defined-out))
 
 ;(require "dispatch-params.rkt")
-(require "cmd-helpers.rkt")
+(require "../../stuff/cmd-helpers.rkt")
 (require "../db/dispatch-build-kg-indexes.rkt")
 (require "../../stuff/run-shell-pipelines.rkt")
 

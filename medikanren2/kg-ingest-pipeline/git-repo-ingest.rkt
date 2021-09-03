@@ -4,7 +4,7 @@
 (require "dispatch-params.rkt")
 (require "current-source.rkt")
 (require "pipesig.rkt")
-(require "cmd-helpers.rkt")
+(require "../../stuff/cmd-helpers.rkt")
 
 #|
     Make sure we have the latest or otherwise most appropriate version to build.

@@ -2,7 +2,7 @@
 (require json)
 (require aws)
 (require "metadata.rkt")
-(require "cmd-helpers.rkt")
+(require "../../stuff/cmd-helpers.rkt")
 (require "kge.rkt")
 (require "process-tbi.rkt")
 (require "current-source.rkt")
