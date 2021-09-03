@@ -81,7 +81,7 @@
                  )
     (yaml->string ardb)))
 
-(define (styaml->ardb styaml)
+(define (styaml->ardbs styaml)
   (parameterize (
                  [yaml-representers (list ardb-representer)]
                  [yaml-constructors (list ardb-constructor)]
@@ -350,13 +350,13 @@
    )
   (chk
    #:=
-   (styaml->ardb (ardb->yaml ardb-sample))
+   (styaml->ardbs (ardb->yaml ardb-sample))
    (list ardb-sample)
    )
 
   (chk
    (#:do
-    (define ardb (car (styaml->ardb
+    (define ardb (car (styaml->ardbs
                        (string-join '(
                                       "!ardb"
                                       "sha1sum: d56c1a0507b4e2c16f941214576af052f1279500"
@@ -372,7 +372,7 @@
   (chk
    (#:do
     (define configscm
-      (gen-config-scm "v2." (car (styaml->ardb
+      (gen-config-scm "v2." (car (styaml->ardbs
                                   (string-join '(
                                                  "---"
                                                  "- !ardb"
@@ -392,7 +392,7 @@
   (chk
    (#:do
     (define configscm
-      (gen-config-scm "v2." (car (styaml->ardb
+      (gen-config-scm "v2." (car (styaml->ardbs
                                   (string-join '(
                                                  "---"
                                                  "- !ardb"
@@ -411,7 +411,7 @@
   (chk
    (#:do
     (define configscm
-      (gen-config-scm "v2." (car (styaml->ardb
+      (gen-config-scm "v2." (car (styaml->ardbs
                                   (string-join '(
                                                  "---"
                                                  "- !ardb"
