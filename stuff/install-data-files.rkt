@@ -109,19 +109,19 @@
   (let ((v (ardb-versionOfMedikanren ardb)))
     (path-ver-from-st v)))
 
-(define (adir-temp-prefix uri-remote-archive ardb)
-  (format "~a/~a/~a" uri-remote-archive (path-ver ardb)
+(define (dir-cat-temp dir-archive ardb)
+  (format "~a/~a/~a" dir-archive (path-ver ardb)
           (ardb-filename ardb)))
 
-(define (adir-temp-prefix-* uri-remote-archive ardb)
-  (format "~a*" (adir-temp-prefix uri-remote-archive ardb)))
+(define (dir-cat-temp-* dir-archive ardb)
+  (format "~a*" (dir-cat-temp dir-archive ardb)))
 
 ;; *** commands for extracting, checking, and installing ***
 (define (cmd-to-cat ardb dir-archive)
   (cond
     ((member "split" (ardb-format ardb))
-     `("sh" "-c" ,(format "cat ~a" (adir-temp-prefix-* dir-archive ardb))))
-    (else `("cat" ,(adir-temp-prefix dir-archive ardb)))))
+     `("sh" "-c" ,(format "cat ~a" (dir-cat-temp-* dir-archive ardb))))
+    (else `("cat" ,(dir-cat-temp dir-archive ardb)))))
 
 (define (cmds-to-sha1 ardb dir-archive)
   `(((#:out) ()
