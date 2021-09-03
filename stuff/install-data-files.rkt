@@ -88,7 +88,7 @@
                  )
     (string->yaml* styaml #:allow-undefined? #t)))
 
-(define (yamlfile->ardb absfile)
+(define (yamlfile->ardbs absfile)
   (parameterize (
                  [yaml-representers (list ardb-representer)]
                  [yaml-constructors (list ardb-constructor)]
@@ -97,7 +97,7 @@
       (file->yaml* absfile))))
 
 (define (dataconfig)
-    (yamlfile->ardb (afile-yaml)))
+    (yamlfile->ardbs (afile-yaml)))
 
 (define (path-ver-from-st v)
   (cond
