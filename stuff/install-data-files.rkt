@@ -100,9 +100,9 @@
     (yamlfile->ardbs (afile-yaml)))
 
 (define (path-ver-from-st v)
-  (cond
-    ((string-prefix? v "v1.") "medikanren1")
-    ((string-prefix? v "v2.") "medikanren2")
+  (match (map string->number (string-split (string-trim v "v") "."))
+    (`(1 . ,_) "medikanren1")
+    (`(2 . ,_) "medikanren2")
     (else (error (format "unknown versionOfMedikanren: ~a" v)))))
 
 (define (path-ver ardb)
