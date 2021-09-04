@@ -4,6 +4,7 @@
 (require racket/cmdline)
 (require yaml)
 (require shell/pipeline)
+(require net/url-string)
 (require "run-shell-pipelines.rkt")
 (require (prefix-in cmd: "cmd-helpers.rkt"))
 (require racket/pretty)
@@ -29,6 +30,7 @@
 ;; *** application configuration ***
 
 (define afile-yaml (make-parameter #f))
+(define uri-yaml (make-parameter #f))
 (define uri-remote-archive (make-parameter #f))
 (define adir-local-archive (make-parameter #f))
 (define adir-storage (make-parameter #f))
@@ -110,8 +112,38 @@
     (append-map (lambda (x) x)
       (file->yaml* absfile))))
 
+(define (sturl-dirname sturl)
+  (define url1 (string->url sturl))
+  (define path1 (url-path url1))
+  (define path2 (take path1 (- (length path1) 1)))
+  (url->string (struct-copy url url1 (path path2))))
+
+(define (implicit-uri-remote?)
+  (and (not (uri-remote-archive))
+          (uri-yaml)))
+
+(define (uri-remote)
+  (if (implicit-uri-remote?)
+    (sturl-dirname (uri-yaml))
+    (uri-remote-archive)))
+
+(define (yamluri->ardbs uri-yaml)
+  (define afile-yaml-temp (path->string (build-path (string->path (config-adir-temp)) "tmp.yaml")))
+  (parameterize
+      ((cmd:dry-run #f))
+    (cmd:run-cmds
+    `(((#:out) () (,@(prefix-for-aws-workaround)
+              "aws" "s3" "cp" "--quiet"
+              ,uri-yaml
+              ,afile-yaml-temp
+              ))))
+    (yamlfile->ardbs afile-yaml-temp)))
+
 (define (dataconfig)
-    (yamlfile->ardbs (afile-yaml)))
+  (cond
+    ((afile-yaml) (yamlfile->ardbs (afile-yaml)))
+    ((uri-yaml) (yamluri->ardbs (uri-yaml)))
+    (else (error "internal error"))))
 
 (define (path-ver-from-st v)
   (match (map string->number (string-split (string-trim v "v") "."))
@@ -124,8 +156,10 @@
     (path-ver-from-st v)))
 
 (define (dir-cat-temp dir-archive ardb)
-  (format "~a/~a/~a" dir-archive (path-ver ardb)
-          (ardb-filename ardb)))
+  (if (implicit-uri-remote?)
+    (format "~a/~a" dir-archive (ardb-filename ardb))
+    (format "~a/~a/~a" dir-archive (path-ver ardb)
+            (ardb-filename ardb))))
 
 (define (dir-cat-temp-* dir-archive ardb)
   (format "~a*" (dir-cat-temp dir-archive ardb)))
@@ -230,7 +264,9 @@
 (define (include-for-sync ardb)
   (if (ardb-already-installed? ardb)
       '()
-      `("--include" ,(format "*~a/~a*" (path-ver ardb) (ardb-filename ardb)))))
+      (if (implicit-uri-remote?)
+        `("--include" ,(format "*~a*" (ardb-filename ardb)))
+        `("--include" ,(format "*~a/~a*" (path-ver ardb) (ardb-filename ardb))))))
 
 (define (includes-for-sync)
   (append-map (lambda (ardb) (include-for-sync ardb)) (config-ardbs)))
@@ -248,7 +284,7 @@
             "aws" "s3" "sync" "--quiet"
             "--exclude" "*"
             ,@(includes-for-sync)
-            ,(uri-remote-archive)
+            ,(uri-remote)
             ,(config-adir-temp)
             ))))
 
@@ -348,27 +384,30 @@
 
 (define (setup-teardown-run-install)
   (validate-env)
-  (cmd:with-adir-temp-root
-    (lambda ()
-        (config-adir-temp (cmd:adir-temp)) ; parameter set!
-        (cmd:run-cmds (cmds-to-sync))
-        (run-check-extract-link (config-adir-temp)))))
+  (cmd:run-cmds (cmds-to-sync))
+  (run-check-extract-link (config-adir-temp)))
 
 ;; TODO: inline
 (define (run-from-local-archive)
   (run-check-extract-link (adir-local-archive)))
 
-
 (define (run-main)
+  (cmd:with-adir-temp-root
+    (lambda ()
+      (run-main-impl))))
+
+(define (run-main-impl)
   (cond
-    ((not (afile-yaml)) (error "--dir-root required"))
+    ((not (or (afile-yaml) (uri-yaml))) (error "--dir-root required"))
     ((not (adir-install)) (error "--dir-install required"))
     ((not (adir-storage)) (error "--dir-storage required"))
-    ((not (or (uri-remote-archive) (adir-local-archive)))
+    ((not (or (uri-remote-archive) (implicit-uri-remote?) (adir-local-archive)))
      (error "either --uri-remote-archive or --dir-local-archive is required"))
     (else
+     (config-adir-temp (cmd:adir-temp)) ; parameter set!
      (config-ardbs (dataconfig)) ; parameter set!
      (cond
+       ((implicit-uri-remote?) (setup-teardown-run-install))
        ((uri-remote-archive) (setup-teardown-run-install))
        ((adir-local-archive) (run-from-local-archive))
        (else (error "Nothing to do.  Pass --help for usage.")))
@@ -386,6 +425,9 @@
    [("--file-yaml") adir
                     "The absolute path to a data.yaml file"
                     (afile-yaml (string-trim #:left? #f adir))]
+   [("--uri-yaml") adir
+                    "An S3 URI to a data.yaml file with data accessible at a relative path"
+                    (uri-yaml (string-trim #:left? #f adir))]
    [("--uri-remote-archive") uri
                              "The base URI of the remote data repository"
                              (uri-remote-archive (string-trim #:left? #f uri))]
