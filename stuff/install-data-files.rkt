@@ -39,6 +39,7 @@
 ;;; Mnemonic: "ARchive of DataBase"
 (struct ardb 
   (
+   kgid
    versionOfKg
    configkey             ; For --write-config-scm.  Leave configkey blank
    ; to prevent the ardb from adding to config.scm.
@@ -56,6 +57,7 @@
 (define (construct-ardb node)
   (define mapping (construct-mapping node))
   (ardb-new
+   (hash-ref mapping "kgid" (lambda () 'null))
    (hash-ref mapping "versionOfKg" (lambda () 'null))
    (hash-ref mapping "configkey" (lambda () 'null))
    (hash-ref mapping "reldir")
@@ -65,6 +67,7 @@
    (hash-ref mapping "format")))
 (define (represent-ardb p)
   (define mapping (make-hash))
+  (hash-set! mapping "kgid" (ardb-kgid p))
   (hash-set! mapping "versionOfKg" (ardb-versionOfKg p))
   (hash-set! mapping "configkey" (ardb-configkey p))
   (hash-set! mapping "reldir" (ardb-reldir p))
@@ -362,7 +365,7 @@
   )
 
 (module+ test
-  (define ardb-sample (ardb-new "1.0-kge"
+  (define ardb-sample (ardb-new "rtx" "1.0-kge"
                                 "rtx2-20210204" "rtx2"
                                 "d56c1a0507b4e2c16f941214576af052f1279500" 
                                 "v2.0"
@@ -395,6 +398,7 @@
                                       "format: []"
                                       "versionOfMedikanren: v2.0"
                                       "filename: rtx2_2021_02_04.tar.gz"
+                                      "kgid: rtx"
                                       "versionOfKg: 1.0-kge"
                                       "reldir: rtx2")
                                     "\n"
@@ -415,6 +419,7 @@
                                                  "  sha1sum: nonempty"
                                                  "  size: 0"
                                                  "  filename: nonempty"
+                                                 "  kgid: rtx"
                                                  "  versionOfKg: 1.0-kge"
                                                  "  format:")
                                                "\n"
@@ -435,6 +440,7 @@
                                                  "  sha1sum: nonempty"
                                                  "  size: 0"
                                                  "  filename: nonempty"
+                                                 "  kgid: rtx"
                                                  "  versionOfKg: 1.0-kge"
                                                  "  format:")
                                                "\n"
@@ -456,6 +462,7 @@
                                                  "  sha1sum: nonempty"
                                                  "  size: 0"
                                                  "  filename: nonempty"
+                                                 "  kgid: rtx"
                                                  "  versionOfKg: 1.0-kge"
                                                  "  format:")
                                                "\n"
