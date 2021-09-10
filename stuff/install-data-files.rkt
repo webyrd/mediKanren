@@ -6,6 +6,7 @@
 (require shell/pipeline)
 (require "run-shell-pipelines.rkt")
 (require (prefix-in cmd: "cmd-helpers.rkt"))
+(require racket/pretty)
 (require chk)
 
 ;; logging approach 1: Actually try to make a log receiver and make it work.  AFAICT
@@ -242,7 +243,7 @@
 ;; *** commands to automatically populate config.scm ***
 (define (write-config-scm ver)
   (let* (
-         (absf (format "~a/~a/config.scm" (adir-install) (path-ver-from-st ver)))
+         (absf (format "~a/~a/etc/config.scm" (adir-install) (path-ver-from-st ver)))
          (_ (make-parent-directory* absf))
          (fout1 (open-output-file absf #:exists 'replace))
          (cfg (gen-config-scm ver (config-ardbs))))
@@ -252,6 +253,33 @@
 (define (write-configs-scm)
   (write-config-scm "v1.")
   (write-config-scm "v2."))
+
+(define (update-vfd vfd ardbs)
+  (for ((ardb ardbs))
+    (cond
+      ((equal? (ardb-version ardb) 'null) '())
+      ((equal? (ardb-configkey ardb) 'null) '())
+      (else
+        (dict-update! vfd (string->symbol (ardb-configkey ardb)) (string->symbol (ardb-version ardb)))))))
+
+(define (rewrite-config-installer-scm)
+  (let* ((ver "v2.")
+         (absf (format "~a/~a/etc/config.installer.scm" (adir-install) (path-ver-from-st ver)))
+         (_ (make-parent-directory* absf))
+         (fin1 (if (file-exists? absf) (open-input-file absf) (open-input-string "()")))
+         (h (read fin1))
+         (vfd (dict-ref h 'version-for-database '()))
+         (vfd2 (update-vfd vfd (config-ardbs)))
+         (h3 (dict-set h 'version-for-database vfd2)))
+    (if (cmd:dry-run)
+      (begin
+        (pretty-write h)
+        (newline))
+      (let ((fout1 (open-output-file absf #:exists 'replace)))
+        (pretty-write `((rewrite-config-installer-scm . ,h3)))
+        (pretty-write h3 fout1)
+        (newline fout1)
+        (close-output-port fout1)))))
 
 ;; *** main program ***
 (define (validate-env )
@@ -289,6 +317,7 @@
        (else (error "Nothing to do.  Pass --help for usage.")))
      (when (do-config-scm)
        (write-configs-scm))
+     (rewrite-config-installer-scm)
      )))
 
 ;; *** CLI parsing ***
