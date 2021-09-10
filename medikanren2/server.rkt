@@ -35,7 +35,7 @@
 (when (not (<= (vector-length argv) (vector-length argv-optional)))
   (error (format "optional arguments ~s; given ~s" argv-optional argv)))
 ;; Loading will occur at first use if not explicitly forced like this.
-(load-config #t (and (<= 1 (vector-length argv)) (vector-ref argv 0)))
+(load-config #t)
 ;; (load-databases #t)
 
 (define-runtime-path path:root ".")

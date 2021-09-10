@@ -17,8 +17,8 @@
 (define (path/data relative-path)
   (path-simple (build-path path.data relative-path)))
 
-(define (load-config (verbose? #t) (path.config #f))
-  (cfg:load-config #t #f)
+(define (load-config (verbose? #t))
+  (cfg:load-config verbose?)
   (cfg:override-config
     (list (cons 'relation-root-path  path.data)
           (cons 'temporary-root-path (path/data "temporary"))))
@@ -31,7 +31,7 @@
       (dict->list dbk:config.default)))
   (dbk:current-config-set!/alist #;(dbk:current-config) config-for-dbkanren))
 
-(load-config #t #f)
+(load-config #t)
 
 (define (relation-name            r) (hash-ref (relations-ref r)            'name))
 (define (relation-definition-info r) (hash-ref (relations-ref r)            'definition-info))

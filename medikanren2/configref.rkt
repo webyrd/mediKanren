@@ -20,7 +20,7 @@
 (define (config)
   (define cfg (unbox box:config))
   (cond (cfg cfg)
-        (else (load-config #t #f)
+        (else (load-config #t)
               (unbox box:config))))
 ;;; override-config
 ;; Set a set of config keys with higher precidence than "user config" config.scm
@@ -56,15 +56,15 @@
     (cons k (find k configs)))
     ks)
 )
-(define (path:config.user path:config) (or path:config (path/root "config.scm")))
+(define (path:config.user) (path/root "config.scm"))
 (define (path:config.defaults) (path/root "config.defaults.scm"))
-(define (load-config verbose? path:config)
+(define (load-config verbose?)
   (when verbose? (printf "loading default configuration: ~a\n"
                          (path-simple (path:config.defaults))))
   (when verbose? (printf "loading user configuration: ~a\n"
-                         (path-simple (path:config.user path:config))))
-  (define config.user     (if (file-exists? (path:config.user path:config))
-                            (read/file (path:config.user path:config))
+                         (path-simple (path:config.user))))
+  (define config.user     (if (file-exists? (path:config.user))
+                            (read/file (path:config.user))
                             '()))
   (define config.defaults (read/file (path:config.defaults)))
   (validate-config config.user)
