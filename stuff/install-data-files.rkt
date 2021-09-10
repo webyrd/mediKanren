@@ -162,9 +162,17 @@
       (() ()
           ("mv" ,adir-target-temp ,adir-target)))))
 
+(define (reldir-from-ardb ardb)
+  (if (new-format? ardb)
+    `(,(ardb-kgid ardb) ,(ardb-versionOfKg ardb))
+    `(,(ardb-reldir ardb)))) ; This is now the only bona fide usage of ardb-reldir
+
+(define (append-path path patels)
+  (apply build-path (cons path patels)))
+
 (define (cmds-to-symlink sha1 ardb)
   (let* (
-         (pathOwned (build-path (adir-install) (path-ver ardb) "data" (ardb-reldir ardb)))
+         (pathOwned (append-path (build-path (adir-install) (path-ver ardb) "data") (reldir-from-ardb ardb)))
          (adirOwned (path->string pathOwned))
          (adirParent (path->string (simplify-path (build-path pathOwned 'up)))))
     `((() () ("mkdir" "-p"
@@ -172,7 +180,7 @@
       (() () ("rm" "-f"
                    ,adirOwned))
       (() () ("ln" "-s"
-                   ,(path->string (build-path (adir-storage) sha1 (ardb-reldir ardb)))
+                   ,(path->string (append-path (build-path (adir-storage) sha1) (reldir-from-ardb ardb)))
                    ,adirOwned)))))
 
 (define (ardb-already-installed? ardb)
