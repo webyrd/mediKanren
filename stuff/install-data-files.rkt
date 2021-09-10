@@ -233,6 +233,33 @@
 (define (cmds-rm-r absd)
   `((() () ("rm" "-rf" ,(path-remove-wildcards absd)))))
 
+;;; TEMPORARY: migrated-to-new-db-versioning
+;;; BEGIN functions that do compatibility between the new kgid based config keys and the
+;;; older configkey field.
+
+(define (new-format? ardb)
+  (cond
+    ((equal? (ardb-kgid ardb) 'null) #f)
+    ((equal? (ardb-versionOfKg ardb) 'null) #f)
+    (else #t)))
+
+(define (get-configkey ardb)
+  (define k
+    (if (new-format? ardb)
+      (ardb-kgid ardb)
+      (ardb-configkey ardb)))
+  (define s (ardb-configkey ardb))
+  (cond
+    ((and (string? s) (> (string-length s) 0)) k)
+    (else #f)))
+
+(define (idver-from-ardb ardb)
+  (if (new-format? ardb)
+    (values (ardb-kgid ardb) (ardb-versionOfKg ardb))
+    (values #f #f)))
+
+;;; END compatibility
+
 (define (gen-config-scm ver ardbs)
   (let* (
          (ardbs1
@@ -240,7 +267,7 @@
            (lambda (ardb) (string-prefix? (ardb-versionOfMedikanren ardb) ver))
            ardbs)))
     `((databases ,@(append-map (lambda (ardb)
-                                 (if (equal? (ardb-configkey ardb) 'null) '() (list (string->symbol (ardb-configkey ardb)))))
+                                 (if (get-configkey ardb) (list (string->symbol (get-configkey ardb))) '()))
                                ardbs1)))))
 
 ;; *** commands to automatically populate config.scm ***
@@ -258,12 +285,14 @@
   (write-config-scm "v2."))
 
 (define (update-vfd vfd ardbs)
-  (for ((ardb ardbs))
-    (cond
-      ((equal? (ardb-versionOfKg ardb) 'null) '())
-      ((equal? (ardb-configkey ardb) 'null) '())
-      (else
-        (dict-update! vfd (string->symbol (ardb-configkey ardb)) (string->symbol (ardb-versionOfKg ardb)))))))
+  (if (null? ardbs)
+    vfd
+    (let-values (((id ver) (idver-from-ardb (car ardbs))))
+      (update-vfd
+        (if id
+          (dict-set vfd (string->symbol id) (string->symbol ver))
+          vfd)
+        (cdr ardbs)))))
 
 (define (rewrite-config-installer-scm)
   (let* ((ver "v2.")
