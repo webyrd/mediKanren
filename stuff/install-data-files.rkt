@@ -44,6 +44,7 @@
    sha1sum
    versionOfMedikanren
    filename
+   version
    format
    ) #:transparent
   #:name ardb-t
@@ -59,6 +60,7 @@
    (hash-ref mapping "sha1sum")
    (hash-ref mapping "versionOfMedikanren")
    (hash-ref mapping "filename")
+   (hash-ref mapping "version" (lambda () 'null))
    (hash-ref mapping "format")))
 (define (represent-ardb p)
   (define mapping (make-hash))
@@ -67,6 +69,7 @@
   (hash-set! mapping "sha1sum" (ardb-sha1sum p))
   (hash-set! mapping "versionOfMedikanren" (ardb-versionOfMedikanren p))
   (hash-set! mapping "filename" (ardb-filename p))
+  (hash-set! mapping "version" (ardb-version p))
   (hash-set! mapping "format" (ardb-format p))
   (represent-mapping "!ardb" mapping))
 (define ardb-representer
@@ -334,6 +337,7 @@
                                 "d56c1a0507b4e2c16f941214576af052f1279500" 
                                 "v2.0"
                                 "rtx2_2021_02_04.tar.gz"
+                                "1.0-kge"
                                 '()))
 
   (define (with-config-sample-1 thunk)
@@ -346,7 +350,7 @@
   (chk
    #:=
    (ardb->yaml ardb-sample)
-   "!ardb\nsha1sum: d56c1a0507b4e2c16f941214576af052f1279500\nformat: []\nversionOfMedikanren: v2.0\nfilename: rtx2_2021_02_04.tar.gz\nreldir: rtx2\nconfigkey: rtx2-20210204\n"
+   "!ardb\nversion: 1.0-kge\nsha1sum: d56c1a0507b4e2c16f941214576af052f1279500\nformat: []\nversionOfMedikanren: v2.0\nfilename: rtx2_2021_02_04.tar.gz\nreldir: rtx2\nconfigkey: rtx2-20210204\n"
    )
   (chk
    #:=
@@ -363,6 +367,7 @@
                                       "format: []"
                                       "versionOfMedikanren: v2.0"
                                       "filename: rtx2_2021_02_04.tar.gz"
+                                      "version: 1.0-kge"
                                       "reldir: rtx2")
                                     "\n"
                                     )))))
@@ -382,6 +387,7 @@
                                                  "  sha1sum: nonempty"
                                                  "  size: 0"
                                                  "  filename: nonempty"
+                                                 "  version: 1.0-kge"
                                                  "  format:")
                                                "\n"
                                                ))))))
@@ -401,6 +407,7 @@
                                                  "  sha1sum: nonempty"
                                                  "  size: 0"
                                                  "  filename: nonempty"
+                                                 "  version: 1.0-kge"
                                                  "  format:")
                                                "\n"
                                                ))))))
@@ -421,6 +428,7 @@
                                                  "  sha1sum: nonempty"
                                                  "  size: 0"
                                                  "  filename: nonempty"
+                                                 "  version: 1.0-kge"
                                                  "  format:")
                                                "\n"
                                                ))))))
