@@ -4,6 +4,8 @@
 (require "../base.rkt" (except-in racket/match ==))
 (require "../string-search.rkt")
 
+(define kgid 'rtx-kg2)
+
 ;; TODO: this might be useful later
 ;(define-relation/table concept
   ;'path               "rtx2/20210204/concept"
@@ -16,7 +18,9 @@
     (cprop curie k v)))
 
 (define-relation/table cprop
-  'path               "rtx2/20210204/cprop"
+  'path               (if (cfg:config-ref 'migrated-to-new-db-versioning)
+                          (path-for-database kgid 'cprop)
+                          "rtx2/20210204/cprop")
   'source-file-path   "rtx2/20210204/rtx_kg2.nodeprop.tsv"
   'source-file-header '(:ID propname value)
   'attribute-names    '(curie key value)
@@ -27,7 +31,9 @@
 (string-search-init-rel cprop)
 
 (define-relation/table edge
-  'path               "rtx2/20210204/edge"
+  'path               (if (cfg:config-ref 'migrated-to-new-db-versioning)
+                          (path-for-database kgid 'edge)
+                          "rtx2/20210204/edge")
   'source-file-path   "rtx2/20210204/rtx_kg2.edge.tsv"
   'source-file-header '(":ID" ":START" ":END")
   'map                (value/syntax
@@ -40,7 +46,9 @@
                         (object subject)))
 
 (define-relation/table eprop
-  'path               "rtx2/20210204/eprop"
+  'path               (if (cfg:config-ref 'migrated-to-new-db-versioning)
+                          (path-for-database kgid 'eprop)
+                          "rtx2/20210204/eprop")
   'source-file-path   "rtx2/20210204/rtx_kg2.edgeprop.tsv"
   'source-file-header '(":ID" "propname" "value")
   'map                (value/syntax
@@ -67,7 +75,7 @@
          ((subclass-of+ a b))))
 
 (database-extend-relations!
-  'rtx2-20210204
+  kgid
   'cprop cprop
   'eprop eprop
   'edge  edge)
