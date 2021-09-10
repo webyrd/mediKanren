@@ -60,7 +60,7 @@
    (hash-ref mapping "kgid" (lambda () 'null))
    (hash-ref mapping "versionOfKg" (lambda () 'null))
    (hash-ref mapping "configkey" (lambda () 'null))
-   (hash-ref mapping "reldir")
+   (hash-ref mapping "reldir" (lambda () 'null))
    (hash-ref mapping "sha1sum")
    (hash-ref mapping "versionOfMedikanren")
    (hash-ref mapping "filename")
