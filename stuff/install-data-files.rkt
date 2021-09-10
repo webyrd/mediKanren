@@ -137,8 +137,17 @@
              ("cut" "-c1-40")
              )))
 
+(define (dirname afile)
+  (path->string (simplify-path (build-path (string->path afile) 'up))))
+
+(define (inst-subdir-from-ardb ardb)
+  (if (new-format? ardb)
+    (format "/~a/~a" (ardb-kgid ardb) (ardb-versionOfKg ardb))
+    ""))
+
 (define (cmds-to-extract sha1 ardb dir-archive)
-  (let* ((adir-target (format "~a/~a" (adir-storage) sha1))
+  (let* ((adir-target (format "~a/~a~a" (adir-storage) sha1 (inst-subdir-from-ardb ardb)))
+         (adir-target-parent (dirname adir-target))
          (adir-target-temp (format "~a/~a-temp" (adir-storage) sha1)))
     `((() ()
           ("rm" "-rf" ,adir-target-temp))
@@ -148,6 +157,8 @@
           ,(cmd-to-cat ardb dir-archive)
           ("tar" "xzf" "-" "-C" ,adir-target-temp)
           )
+      (() ()
+          ("mkdir" "-p" ,adir-target-parent))
       (() ()
           ("mv" ,adir-target-temp ,adir-target)))))
 
@@ -547,4 +558,12 @@
   (chk
    #:= (path-remove-wildcards "/foo/*bar*") "/foo/bar"
    #:= (path-remove-wildcards "/foo/?bar?") "/foo/bar")
+
+  (chk
+    (#:= (dirname "/foo/bar/baz")
+      "/foo/bar/"))
+
+  (chk
+    (#:= (dirname "/foo/bar/baz/")
+      "/foo/bar/"))
   )
