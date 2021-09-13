@@ -21,10 +21,17 @@
 
 ;; The active configuration, or #f if configuration needs to be rebuilt
 (define box:config (box #f))
+(define box:build-config (box (lambda () '())))
+(define (set-build-config! build-config)
+  (set-box! box:build-config build-config))
+(define box:verbose? (box #t))
+(define (set-verbose! b)
+  (set-box! box:verbose? b))
+
 (define (config-current)
   (define cfg (unbox box:config))
   (cond (cfg cfg)
-        (else (load-config #t)
+        (else (load-config-impl)
               (unbox box:config))))
 (define ((override-config-impl cbranch) config)
   (validate-config config)
@@ -117,15 +124,22 @@
       ('stage config.stage)
       (else (hash-ref config-by-cbranch cbranch '())))))
 
+(define cbranches '(defaults dbkanren-defaults installer stage user override-test override))
+
 (define (make-rebuild-flat with-user? verbose?)
   (apply config-combine
     (map (make-rebuild-by-cbranch with-user? verbose?) (reverse cbranches))))
 
-(define (load-config verbose?)
-  (define with-user? #t)
-  (set-box! box:config (make-rebuild-flat with-user? verbose?)))
+(define (load-config-impl)
+  (set-box! box:config ((unbox box:build-config))))
 
-(define cbranches '(defaults dbkanren-defaults installer stage user override-test override))
+(define (load-config verbose?)
+  (set-verbose! verbose?)
+  (load-config-impl))
+
+(let ((with-user? #t)
+      (verbose? #t))
+  (set-build-config! (lambda () (make-rebuild-flat with-user? verbose?))))
 
 ;; Primarily for use in the repl, secondarily for use
 ;; in automated tests.  Use discouraged in applications.
