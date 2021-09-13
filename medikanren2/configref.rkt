@@ -183,17 +183,17 @@
     1)
 
   ; test override-config
-  (chk
+  #;(chk
     #:do ((override-config-impl 'override-test) '())
     #:do (override-config '((query-results.file-name-human . "last.txt")))
     #:= (config-ref 'query-results.file-name-human) "last.txt"
     )
-  (chk
+  #;(chk
     #:do ((override-config-impl 'override-test) '((query-results.file-name-human . "last.txt")))
     #:do (override-config '())
     #:= (config-ref 'query-results.file-name-human) "last.txt"
     )
-  (chk
+  #;(chk
     #:do ((override-config-impl 'override-test) '((query-results.file-name-human . "last.txt")))
     #:do (override-config '((query-results.file-name-human . "bob")))
     #:= (config-ref 'query-results.file-name-human) "bob"
