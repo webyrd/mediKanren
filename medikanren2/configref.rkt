@@ -3,7 +3,6 @@
     racket/runtime-path
 )
 (provide
-    config
     config-ref
     load-config
     override-config
@@ -22,7 +21,7 @@
 
 ;; The active configuration, or #f if configuration needs to be rebuilt
 (define box:config (box #f))
-(define (config)
+(define (config-current)
   (define cfg (unbox box:config))
   (cond (cfg cfg)
         (else (load-config #t)
@@ -31,7 +30,7 @@
   (validate-config config)
   (hash-set! config-by-cbranch cbranch config)
   (set-box! box:config #f))
-(define (config-ref key #:testing-dict (dict-config (config)))
+(define (config-ref key #:testing-dict (dict-config (config-current)))
   (define kv (assoc key dict-config))
   (unless kv (error "missing configuration key:" key))
   (cdr kv))

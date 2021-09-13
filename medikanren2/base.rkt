@@ -1,5 +1,5 @@
 #lang racket/base
-(provide cfg:config cfg:config-ref cfg:load-config cfg:override-config
+(provide cfg:config-ref cfg:load-config cfg:override-config
          path-for-database
          (all-from-out "dbk/dbk.rkt") load-config
          relation-name relation-definition-info relation-missing-data?
