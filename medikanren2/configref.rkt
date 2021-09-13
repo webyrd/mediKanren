@@ -4,36 +4,31 @@
 )
 (provide
     config-ref
-    load-config
-    override-config
-    override-dbkanren-defaults
+    refresh-config
+    validate-config
+    config-combine
+    configlayer-ref
+    expose-configlayer
+    set-build-thunk!
 )
-
-(define (read/file path)  (with-input-from-file  path (lambda () (read))))
-
-(define-runtime-path path:root ".")
-(define (path/root relative-path) (build-path path:root relative-path))
-(define (path/etc relative-path) (build-path path:root "etc" relative-path))
-(define (path-simple path)        (path->string (simplify-path path)))
 
 ;; The configuration layers
 (define config-by-cbranch (make-hash))
+(define (configlayer-ref cb cb-default)
+  (hash-ref config-by-cbranch cb cb-default))
 
 ;; The active configuration, or #f if configuration needs to be rebuilt
 (define box:config (box #f))
 (define box:build-config (box (lambda () '())))
-(define (set-build-config! build-config)
+(define (set-build-thunk! build-config)
   (set-box! box:build-config build-config))
-(define box:verbose? (box #t))
-(define (set-verbose! b)
-  (set-box! box:verbose? b))
 
 (define (config-current)
   (define cfg (unbox box:config))
   (cond (cfg cfg)
-        (else (load-config-impl)
+        (else (refresh-config)
               (unbox box:config))))
-(define ((override-config-impl cbranch) config)
+(define ((expose-configlayer cbranch) config)
   (validate-config config)
   (hash-set! config-by-cbranch cbranch config)
   (set-box! box:config #f))
@@ -63,89 +58,9 @@
     (cons k (find k configs)))
     ks)
 )
-(define (env-ref/utf-8 k)
-  (define v (environment-variables-ref (current-environment-variables) (string->bytes/utf-8 k)))
-  (if v
-    (bytes->string/utf-8 v)
-    #f))
-(define (path:config.user migrated?)
-  (if migrated?
-    (path/etc "config.scm")
-    ;; BEGIN TEMPORARY: migrated-to-new-db-versioning:
-    (path/root "config.scm")))
-    ;; END TEMPORARY
-(define (path:config.stage.prod) (path/etc "config.stage.prod.scm"))
-(define (path:config.stage.dev) (path/etc "config.stage.dev.scm"))
-(define (path:config.installer) (path/etc "config.installer.scm"))
-(define (path:config.defaults) (path/etc "config.defaults.scm"))
-(define (make-config-user migrated? verbose?)
-  (when verbose? (printf "loading user configuration: ~a\n"
-                         (path-simple (path:config.user migrated?))))
-  (define config.user     (if (file-exists? (path:config.user migrated?))
-                            (read/file (path:config.user migrated?))
-                            '()))
-  (validate-config config.user)
-  config.user)
 
-(define (make-rebuild-by-cbranch with-user? verbose?)
-  (when verbose? (printf "loading default configuration: ~a\n"
-                         (path-simple (path:config.defaults))))
-  (define config.user
-    ;; BEGIN TEMPORARY: migrated-to-new-db-versioning:
-    (if with-user?
-      (let* (
-          (h (make-rebuild-flat #f #f))
-          (migrated? (dict-ref h 'migrated-to-new-db-versioning)))
-    ;; END TEMPORARY
-        (make-config-user migrated? verbose?))
-      `()))
-  (define config.stage
-    (let* (
-        (stage (env-ref/utf-8 "MK_STAGE"))
-        (path1
-          (cond
-            ((equal? stage "prod") (path:config.stage.prod))
-            ((equal? stage "dev") (path:config.stage.dev))
-            ((not stage) (path:config.stage.dev))
-            (else
-              (printf "***Warning*** unknown MK_STAGE value: ~a" stage)
-              (path:config.stage.dev)))))
-      ;; No fallbacks for this file if missing.  Stage files should be in revision control
-      (read/file path1)))
-  (define config.installer (if (file-exists? (path:config.installer))
-                              (read/file (path:config.installer))
-                              '()))
-  (define config.defaults (read/file (path:config.defaults)))
-  (lambda (cbranch)
-    (case cbranch
-      ('user config.user)
-      ('defaults config.defaults)
-      ('installer config.installer)
-      ('stage config.stage)
-      (else (hash-ref config-by-cbranch cbranch '())))))
-
-(define cbranches '(defaults dbkanren-defaults installer stage user override-test override))
-
-(define (make-rebuild-flat with-user? verbose?)
-  (apply config-combine
-    (map (make-rebuild-by-cbranch with-user? verbose?) (reverse cbranches))))
-
-(define (load-config-impl)
+(define (refresh-config)
   (set-box! box:config ((unbox box:build-config))))
-
-(define (load-config verbose?)
-  (set-verbose! verbose?)
-  (load-config-impl))
-
-(let ((with-user? #t)
-      (verbose? #t))
-  (set-build-config! (lambda () (make-rebuild-flat with-user? verbose?))))
-
-;; Primarily for use in the repl, secondarily for use
-;; in automated tests.  Use discouraged in applications.
-(define override-config (override-config-impl 'override))
-;; Propagates defaults from medikanren to dbkanren.
-(define override-dbkanren-defaults (override-config-impl 'dbkanren-defaults))
 
 (module+ test
   ; has required package:
@@ -172,9 +87,6 @@
   (chk
       #:do (validate-config '((foo . 1)))
       #:t #t)
-  (chk
-      #:do (validate-config (read/file (path:config.defaults)))
-      #:t #t)
 
 
   ; test config-combine
@@ -197,17 +109,17 @@
 
   ; test override-config
   #;(chk
-    #:do ((override-config-impl 'override-test) '())
+    #:do ((expose-configlayer 'override-test) '())
     #:do (override-config '((query-results.file-name-human . "last.txt")))
     #:= (config-ref 'query-results.file-name-human) "last.txt"
     )
   #;(chk
-    #:do ((override-config-impl 'override-test) '((query-results.file-name-human . "last.txt")))
+    #:do ((expose-configlayer 'override-test) '((query-results.file-name-human . "last.txt")))
     #:do (override-config '())
     #:= (config-ref 'query-results.file-name-human) "last.txt"
     )
   #;(chk
-    #:do ((override-config-impl 'override-test) '((query-results.file-name-human . "last.txt")))
+    #:do ((expose-configlayer 'override-test) '((query-results.file-name-human . "last.txt")))
     #:do (override-config '((query-results.file-name-human . "bob")))
     #:= (config-ref 'query-results.file-name-human) "bob"
     )

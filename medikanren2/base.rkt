@@ -8,7 +8,7 @@
   "dbk/dbk.rkt"
   racket/list (except-in racket/match ==) racket/runtime-path racket/set
   racket/dict racket/string
-  (prefix-in cfg: "configref.rkt"))
+  (prefix-in cfg: "mkconfigref.rkt"))
 
 (define-runtime-path path.root ".")
 (define (path-simple path) (path->string (simplify-path path)))
