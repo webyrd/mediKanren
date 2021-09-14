@@ -53,12 +53,17 @@
   #:constructor-name ardb-new
   )
 
+(define (prefer-string v)
+  (cond
+    ((number? v) (number->string v))
+    (else v)))
+
 ;; wow lots of work to have the file be yaml
 (define (construct-ardb node)
   (define mapping (construct-mapping node))
   (ardb-new
    (hash-ref mapping "kgid" (lambda () 'null))
-   (hash-ref mapping "versionOfKg" (lambda () 'null))
+   (prefer-string (hash-ref mapping "versionOfKg" (lambda () 'null)))
    (hash-ref mapping "configkey" (lambda () 'null))
    (hash-ref mapping "reldir" (lambda () 'null))
    (hash-ref mapping "sha1sum")
