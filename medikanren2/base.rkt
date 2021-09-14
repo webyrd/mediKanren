@@ -71,14 +71,7 @@
                           name=>relations (map car nr*s) (map cdr nr*s)))
                  (hash))))
 
-(define (database-load! name.db0)
-  ;; BEGIN TEMPORARY: migrated-to-new-db-versioning:
-  ;;   don't break users until tooling is available to help them
-  (define name.db
-    (if (and (equal? name.db0 'rtx2) (not (cfg:config-ref 'migrated-to-new-db-versioning)))
-      'rtx-kg2
-      name.db0))
-  ;; END TEMPORARY
+(define (database-load! name.db)
   (define name=>relations (hash-ref name.db=>name.r=>relations name.db
                                     (lambda () (error "unknown database:" name.db))))
   (define missing (filter-not not (append* (map (lambda (rs)
