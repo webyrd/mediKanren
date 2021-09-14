@@ -1,10 +1,13 @@
 #lang racket/base
-(provide concept cprop edge eprop
+(provide kgid concept cprop edge eprop
          subclass-of subclass-of+ subclass-of*)
 (require "../base.rkt" (except-in racket/match ==))
 (require "../string-search.rkt")
 
-(define kgid 'rtx-kg2)
+(define kgid
+  (if (cfg:config-ref 'migrated-to-new-db-versioning)
+      'rtx-kg2
+      'rtx2-20210204))
 
 ;; TODO: this might be useful later
 ;(define-relation/table concept
