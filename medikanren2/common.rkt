@@ -14,6 +14,7 @@
          (prefix-in rtx:    "db/rtx2-20210204.rkt")
          (prefix-in kgx:    "db/kgx-synonym.rkt"))
 
+(printf "Configuration says to load these databases: ~s\n" (cfg:config-ref 'databases))
 (for-each database-load! (cfg:config-ref 'databases))
 
 ;; TODO: define higher-level relations over the db-specific relations
