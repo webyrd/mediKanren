@@ -24,7 +24,9 @@
   'path               (if (cfg:config-ref 'migrated-to-new-db-versioning)
                           (path-for-database kgid 'cprop)
                           "rtx2/20210204/cprop")
-  'source-file-path   "rtx2/20210204/rtx_kg2.nodeprop.tsv"
+  'source-file-path   (if (cfg:config-ref 'migrated-to-new-db-versioning)
+                          "upstream/rtx-kg2/rtx_kg2.nodeprop.tsv"          ; TODO kip: migrated-to-new-db-versioning
+                          "rtx2/20210204/rtx_kg2.nodeprop.tsv")
   'source-file-header '(:ID propname value)
   'attribute-names    '(curie key value)
   'attribute-types    '(string string string)
@@ -37,7 +39,9 @@
   'path               (if (cfg:config-ref 'migrated-to-new-db-versioning)
                           (path-for-database kgid 'edge)
                           "rtx2/20210204/edge")
-  'source-file-path   "rtx2/20210204/rtx_kg2.edge.tsv"
+  'source-file-path   (if (cfg:config-ref 'migrated-to-new-db-versioning)
+                          "upstream/rtx-kg2/rtx_kg2.edge.tsv"              ; TODO kip: migrated-to-new-db-versioning
+                          "rtx2/20210204/rtx_kg2.edge.tsv")
   'source-file-header '(":ID" ":START" ":END")
   'map                (value/syntax
                         (lambda (row)
@@ -52,7 +56,9 @@
   'path               (if (cfg:config-ref 'migrated-to-new-db-versioning)
                           (path-for-database kgid 'eprop)
                           "rtx2/20210204/eprop")
-  'source-file-path   "rtx2/20210204/rtx_kg2.edgeprop.tsv"
+  'source-file-path   (if (cfg:config-ref 'migrated-to-new-db-versioning)
+                          "upstream/rtx-kg2/rtx_kg2.edgeprop.tsv"          ; TODO kip: migrated-to-new-db-versioning
+                          "rtx2/20210204/rtx_kg2.edgeprop.tsv")
   'source-file-header '(":ID" "propname" "value")
   'map                (value/syntax
                         (lambda (row)
