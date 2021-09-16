@@ -298,13 +298,15 @@
 
 ;; *** commands to automatically populate config.scm ***
 (define (write-config-scm ver)
-  (let* (
-         (absf (format "~a/~a/etc/config.scm" (adir-install) (path-ver-from-st ver)))
-         (_ (make-parent-directory* absf))
-         (fout1 (open-output-file absf #:exists 'replace))
-         (cfg (gen-config-scm ver (config-ardbs))))
-    (writeln cfg fout1)
-    (close-output-port fout1)))
+  (define cfg (gen-config-scm ver (config-ardbs)))
+  (pretty-write `((generated-config-scm . ,cfg)))
+  (unless (cmd:dry-run)
+    (let* (
+          (absf (format "~a/~a/etc/config.scm" (adir-install) (path-ver-from-st ver)))
+          (_ (make-parent-directory* absf))
+          (fout1 (open-output-file absf #:exists 'replace)))
+      (writeln cfg fout1)
+      (close-output-port fout1))))
 
 (define (write-configs-scm)
   (write-config-scm "v1.")
@@ -331,7 +333,7 @@
          (h3 (dict-set h 'version-for-database vfd2)))
     (if (cmd:dry-run)
       (begin
-        (pretty-write h)
+        (pretty-write `((rewrite-config-installer-scm . ,h)))
         (newline))
       (let ((fout1 (open-output-file absf #:exists 'replace)))
         (pretty-write `((rewrite-config-installer-scm . ,h3)))
@@ -373,8 +375,7 @@
        ((uri-remote-archive) (setup-teardown-run-install))
        ((adir-local-archive) (run-from-local-archive))
        (else (error "Nothing to do.  Pass --help for usage.")))
-     (when (do-config-scm)
-       (write-configs-scm))
+     (write-configs-scm)
      (rewrite-config-installer-scm)
      )))
 
