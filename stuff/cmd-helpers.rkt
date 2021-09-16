@@ -46,7 +46,8 @@
 (define (dry-runify thunk name)
   (lambda args
     (when (or (dry-run) (verbose))
-      (displayln (cons name args)))
+      (displayln (cons name args))
+      (flush-output))
     (when (not (dry-run))
       (apply thunk args))))
 #|

@@ -14,7 +14,9 @@
 ;; logging approach 2: KISS but abuse the API.
 ;;
 ;; This is approach 2:
-(define log-warning displayln)
+(define (log-warning . args)
+  (apply displayln args)
+  (flush-output))
 
 ;; *** generic utilities ***
 
