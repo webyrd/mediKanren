@@ -1,10 +1,14 @@
 #lang racket/base
-(provide (all-from-out "dbk/dbk.rkt") load-config
+(provide cfg:config-ref cfg:load-config cfg:override-config
+         path-for-database
+         (all-from-out "dbk/dbk.rkt") load-config
          relation-name relation-definition-info relation-missing-data?
          tagged-relation dynamic-relation relation-extensions database-extend-relations! database-load! database-unload!)
 (require
   "dbk/dbk.rkt"
-  racket/list (except-in racket/match ==) racket/runtime-path racket/set)
+  racket/list (except-in racket/match ==) racket/runtime-path racket/set
+  racket/dict racket/string
+  (prefix-in cfg: "mkconfigref.rkt"))
 
 (define-runtime-path path.root ".")
 (define (path-simple path) (path->string (simplify-path path)))
@@ -14,27 +18,39 @@
 (define (path/data relative-path)
   (path-simple (build-path path.data relative-path)))
 
-(define path.config.defaults (path-simple (path/root "config.defaults.scm")))
-(define path.config.override (path-simple (path/root "config.scm")))
+(define (load-config (verbose? #t))
+  (cfg:load-config #t)
+  (cfg:override-dbkanren-defaults
+    (list (cons 'relation-root-path  path.data)
+          (cons 'temporary-root-path (path/data "temporary"))))
+  ;; populate configuration of dbKanren
+  (define config-for-dbkanren
+    (map (lambda (kv)
+      (define k (car kv))
+      (define v (cfg:config-ref k))
+      (cons k v))
+      (dict->list dbk:config.default)))
+  (dbk:current-config-set!/alist #;(dbk:current-config) config-for-dbkanren))
 
-(define (load-config (verbose? #t) (path.config #f))
-  (define (config/file path)
-    (config-set/alist
-      (current-config)
-      (append (list (cons 'relation-root-path  path.data)
-                    (cons 'temporary-root-path (path/data "temporary")))
-              (with-input-from-file path read))))
-  (when verbose? (eprintf "loading configuration defaults: ~a\n"
-                         path.config.defaults))
-  (current-config (config/file path.config.defaults))
-  (define path (or (and path.config (file-exists? path.config) path.config)
-                   (and (file-exists? path.config.override)
-                        path.config.override)))
-  (when path
-    (when verbose? (eprintf "loading configuration overrides: ~a\n" path))
-    (current-config (config/file path))))
+(load-config #t)
 
-(load-config)
+(define (version-for-database kgid)
+  (define version-for-database (cfg:config-ref 'version-for-database))
+  (if (dict-has-key? version-for-database kgid)
+    (dict-ref version-for-database kgid)
+    'ver-bogus  ;; Not a real version.  The system is designed to allow
+                ;; (require "db/foodb.rkt") without foodb actually being installed.
+                ;; Returning a bogus value will tell the system that the bogus
+                ;; database is not installed, which is ok.  Throwing an exception
+                ;; here will cause a crash if a database version is not specified,
+                ;; which is not ok.
+    ))
+
+(define (path-for-database kgid rel)
+  (define ver (version-for-database kgid))
+  (define path (string-join `(,(symbol->string kgid) ,(symbol->string ver) ,(symbol->string rel)) "/"))
+  (printf "relation will be at path ~a\n" path)
+  path)
 
 (define (relation-name            r) (hash-ref (relations-ref r)            'name))
 (define (relation-definition-info r) (hash-ref (relations-ref r)            'definition-info))

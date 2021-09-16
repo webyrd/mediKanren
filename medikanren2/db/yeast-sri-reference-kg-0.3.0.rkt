@@ -24,8 +24,12 @@
 )
 (define stcolumns-of-nodes (map symbol->string columns-of-nodes))
 
+(define kgid 'yeast-sri-reference)
+
 (define-relation/table nodes
-  'path               "yeast-sri-reference/0.3.0b/nodes"
+  'path               (if (cfg:config-ref 'migrated-to-new-db-versioning)
+                          (path-for-database kgid 'nodes)
+                          "yeast-sri-reference/0.3.0b/nodes")
   'source-file-path   "yeast-sri-reference/0.3.0b/simulation-of-upstream/sri-reference-kg-0.3.0_nodes_nocr.tsv"
   'source-file-header columns-of-nodes
   'attribute-names    '(id subject object)
@@ -55,7 +59,9 @@
 (define stcolumns-of-edges (map symbol->string columns-of-edges))
 
 (define-relation/table edges
-  'path               "yeast-sri-reference/0.3.0b/edges"
+  'path               (if (cfg:config-ref 'migrated-to-new-db-versioning)
+                          (path-for-database kgid 'edges)
+                          "yeast-sri-reference/0.3.0b/edges")
   'source-file-path   "yeast-sri-reference/0.3.0b/simulation-of-upstream/sri-reference-kg-0.3.0_edges_nocr.tsv"
   'source-file-header columns-of-edges
   'attribute-names    '(id subject object)
@@ -76,6 +82,6 @@
 )
 
 (database-extend-relations!
-  'yeast-sri-reference-kg-0.3.0
+  kgid
   '???nodes nodes
   '???edges edges)
