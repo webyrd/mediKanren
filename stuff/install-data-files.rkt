@@ -270,14 +270,11 @@
     (else #t)))
 
 (define (get-configkey ardb)
-  (define k
-    (if (new-format? ardb)
-      (ardb-kgid ardb)
-      (ardb-configkey ardb)))
-  (define s (ardb-configkey ardb))
   (cond
-    ((and (string? s) (> (string-length s) 0)) k)
-    (else #f)))
+    ((not (ardb-configkey ardb)) #f)
+    ((eq? (ardb-configkey ardb) 'null) #f)
+    ((new-format? ardb) (ardb-kgid ardb))
+    (else (ardb-configkey ardb))))
 
 (define (idver-from-ardb ardb)
   (if (new-format? ardb)
