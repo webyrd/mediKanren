@@ -7,6 +7,7 @@
 (require net/url-string)
 (require "run-shell-pipelines.rkt")
 (require (prefix-in cmd: "cmd-helpers.rkt"))
+(require "symlink-tree.rkt")
 (require racket/pretty)
 (require chk)
 
@@ -211,18 +212,18 @@
 (define (append-path path patels)
   (apply build-path (cons path patels)))
 
-(define (cmds-to-symlink sha1 ardb)
+(define (do-symlink-impl path-src path-dest)
+  (make-directory* path-dest)
+  (make-directory* path-src)
+  (symlink-tree path-src path-dest))
+
+(define dr-do-symlink-impl (cmd:dry-runify do-symlink-impl 'do-symlink))
+
+(define (do-symlink sha1 ardb)
   (let* (
-         (pathOwned (append-path (build-path (adir-install) (path-ver ardb) "data") (reldir-from-ardb ardb)))
-         (adirOwned (path->string pathOwned))
-         (adirParent (path->string (simplify-path (build-path pathOwned 'up)))))
-    `((() () ("mkdir" "-p"
-                      ,adirParent))
-      (() () ("rm" "-f"
-                   ,adirOwned))
-      (() () ("ln" "-s"
-                   ,(path->string (append-path (build-path (adir-storage) sha1) (reldir-from-ardb ardb)))
-                   ,adirOwned)))))
+         (path-dest (append-path (build-path (adir-install) (path-ver ardb) "data") (reldir-from-ardb ardb)))
+         (path-src (append-path (build-path (adir-storage) sha1) (reldir-from-ardb ardb))))
+    (dr-do-symlink-impl path-src path-dest)))
 
 (define (ardb-already-installed? ardb)
   ;; cmds-to-extract owns adir-ardb-storage and writes atomically.  Manual
@@ -245,11 +246,11 @@
         ((ardb-already-installed? ardb)
          (begin
            (cmd:run-cmds (cmds-echo-already-installed ardb))
-           (cmd:run-cmds (cmds-to-symlink sha1-expected ardb))))
+           (do-symlink sha1-expected ardb)))
         ((cmd:dry-run)
          (let ((sha1 (ardb-sha1sum ardb)))
            (cmd:run-cmds (cmds-to-extract sha1-expected ardb dir-archive))
-           (cmd:run-cmds (cmds-to-symlink sha1-expected ardb))))
+           (do-symlink sha1-expected ardb)))
         (else
          (let ((sha1 (string-trim
                       #:left? #f
@@ -257,7 +258,7 @@
            (if (equal? sha1 sha1-expected)
                (begin
                  (cmd:run-cmds (cmds-to-extract sha1 ardb dir-archive))
-                 (cmd:run-cmds (cmds-to-symlink sha1 ardb)))
+                 (do-symlink sha1 ardb))
                (error (format "sha1 ~a != expected ~a" sha1 sha1-expected)))))))))
 
 ;; *** commands for syncing from a remote source ***
