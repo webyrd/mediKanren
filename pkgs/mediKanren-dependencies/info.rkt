@@ -1,6 +1,7 @@
 #lang info
 (define collection "mediKanren-dependencies")
 (define deps '(
+               "aws"
                "chk"
                "shell-pipeline"
                "yaml"
