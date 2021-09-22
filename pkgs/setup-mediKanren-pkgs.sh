@@ -28,7 +28,8 @@ then
     echo "    git submodule init && git submodule update --recursive"
     exit 1
 else
-    bash "$adirRepo/pkgs/setup-catalog/setup-catalog.sh" "$adirRepo/pkgs"
+    rsync -rv --exclude-from="$adirRepo/pkgs/.rsync_exclude.txt" --exclude=aws/\* --delete "$adirRepo/pkgs/" "$adirRepo/pkgs-bin/"
+    bash "$adirRepo/pkgs/setup-catalog/setup-catalog.sh" "$adirRepo/pkgs-bin"
     raco pkg remove --auto mediKanren-dependencies
     raco pkg install --batch --auto mediKanren-dependencies
     for adir in "$adirRepo"/pkgs/*
