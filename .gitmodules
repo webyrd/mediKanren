@@ -14,3 +14,6 @@
 	path = pkgs/memoize
 	url = https://github.com/jbclements/memoize
 	branch = master
+[submodule "pkgs/aws"]
+	path = pkgs/aws
+	url = https://github.com/greghendershott/aws
