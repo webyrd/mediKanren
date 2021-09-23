@@ -1,6 +1,6 @@
 #lang racket/base
 (provide cfg:config-ref cfg:load-config cfg:override-config
-         path-for-database
+         path-for-database source-path-for-database
          (all-from-out "dbk.rkt") load-config
          relation-name relation-definition-info relation-missing-data?
          tagged-relation dynamic-relation relation-extensions database-extend-relations! database-load! database-unload!)
@@ -49,6 +49,14 @@
 (define (path-for-database kgid rel)
   (define ver (version-for-database kgid))
   (define path (string-join `(,(symbol->string kgid) ,(symbol->string ver) ,(symbol->string rel)) "/"))
+  path)
+
+(define (source-path-for-database kgid filename)
+  (define ver (version-for-database kgid))
+  (define path
+    (if filename
+      (string-join `("upstream" ,(symbol->string kgid) ,(symbol->string ver) ,filename) "/")
+      (string-join `("upstream" ,(symbol->string kgid) ,(symbol->string ver)) "/")))
   path)
 
 (define (relation-name            r) (hash-ref (relations-ref r)            'name))
