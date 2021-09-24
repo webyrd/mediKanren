@@ -22,6 +22,7 @@
   memoize
   )
 
+
 ;; Generalized transitive closure
 
 (define (transitive-closure base-relation)
