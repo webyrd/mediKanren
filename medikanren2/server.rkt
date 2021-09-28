@@ -462,7 +462,8 @@ EOS
 ;; (define ((find/db-id find) data)
 ;;   (group-by-db (map (lambda (x) (cons (car x) (cddr x))) (find (list data)))))
 (define (/health req)
-  (let-values (((result cpu real gc) (time-apply (lambda () (run 1 () (triple "NCIT:C18585" "biolink:actively_involved_in" "NCIT:C45399"))) '())))
+  (OK req '() mime:json (jsexpr->string '#hasheq()))
+  #;(let-values (((result cpu real gc) (time-apply (lambda () (run 1 () (triple "NCIT:C18585" "biolink:actively_involved_in" "NCIT:C45399"))) '())))
     (let ((response
            (if (null? result)
                (hash 'status "corrupt"
