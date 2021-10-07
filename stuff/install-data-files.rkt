@@ -280,9 +280,15 @@
         ;; https://github.com/aws/aws-cli/issues/5262
   ))
 
+;; interpret --write-config-scm to indicate unattended installation, otherwise show progress for the user
+(define (verbosity-options)
+  (if (do-config-scm)
+    '("--quiet")
+    '()))
+
 (define (cmds-to-sync)
   `((() () (,@(prefix-for-aws-workaround)
-            "aws" "s3" "sync" "--quiet"
+            "aws" "s3" "sync" ,@(verbosity-options)
             "--exclude" "*"
             ,@(includes-for-sync)
             ,(uri-remote)
