@@ -14,7 +14,10 @@
 (define (set-verbose! b)
   (set-box! box:verbose? b))
 
-(define (read/file path)  (with-input-from-file  path (lambda () (read))))
+(define (read/file path)
+  (define verbose? #t)
+  (when verbose? (printf "loading configuration: ~a\n" (path->string path)))
+  (with-input-from-file  path (lambda () (read))))
 
 (define-runtime-path path:root ".")
 (define (path/root relative-path) (build-path path:root relative-path))
@@ -26,37 +29,32 @@
   (if v
     (bytes->string/utf-8 v)
     #f))
-(define (path:config.user migrated?)
-  (if migrated?
-    (path/etc "config.scm")
+(define (path:config.user.migrated)
+    (path/etc "config.scm"))
     ;; BEGIN TEMPORARY: migrated-to-new-db-versioning:
-    (path/root "config.scm")))
+(define (path:config.user.legacy)
+    (path/root "config.scm"))
     ;; END TEMPORARY
 (define (path:config.stage.prod) (path/etc "config.stage.prod.scm"))
 (define (path:config.stage.dev) (path/etc "config.stage.dev.scm"))
 (define (path:config.installer) (path/etc "config.installer.scm"))
 (define (path:config.defaults) (path/etc "config.defaults.scm"))
-(define (make-config-user migrated? verbose?)
-  (when verbose? (printf "loading user configuration: ~a\n"
-                         (path-simple (path:config.user migrated?))))
-  (define config.user     (if (file-exists? (path:config.user migrated?))
-                            (read/file (path:config.user migrated?))
-                            '()))
-  (validate-config config.user)
-  config.user)
 
-(define (make-rebuild-by-cbranch with-user? verbose?)
-  (when verbose? (printf "loading default configuration: ~a\n"
-                         (path-simple (path:config.defaults))))
+(define (make-rebuild-by-cbranch verbose?)
   (define config.user
+    (let
+      ((config.tmp
     ;; BEGIN TEMPORARY: migrated-to-new-db-versioning:
-    (if with-user?
-      (let* (
-          (h (make-rebuild-flat #f #f))
-          (migrated? (dict-ref h 'migrated-to-new-db-versioning)))
+        (if (not (file-exists? (path:config.user.migrated)))
+          (if (file-exists? (path:config.user.legacy))
+            (read/file (path:config.user.legacy))
+            '())
     ;; END TEMPORARY
-        (make-config-user migrated? verbose?))
-      `()))
+          (if (file-exists? (path:config.user.migrated))
+            (read/file (path:config.user.migrated))
+            '()))))
+        (validate-config config.tmp)
+        config.tmp))
   (define config.stage
     (let* (
         (stage (env-ref/utf-8 "MK_STAGE"))
@@ -84,16 +82,15 @@
 
 (define cbranches '(defaults dbkanren-defaults installer stage user override-test override))
 
-(define (make-rebuild-flat with-user? verbose?)
+(define (make-rebuild-flat verbose?)
   (apply config-combine
-    (map (make-rebuild-by-cbranch with-user? verbose?) (reverse cbranches))))
+    (map (make-rebuild-by-cbranch verbose?) (reverse cbranches))))
 
 (define (load-config verbose?)
   (set-verbose! verbose?)
   (refresh-config))
 
-(let ((with-user? #t))
-  (set-build-thunk! (lambda () (make-rebuild-flat with-user? (unbox box:verbose?)))))
+(set-build-thunk! (lambda () (make-rebuild-flat (unbox box:verbose?))))
 
 ;; Primarily for use in the repl, secondarily for use
 ;; in automated tests.  Use discouraged in applications.
