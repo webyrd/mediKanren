@@ -37,6 +37,7 @@
 (define adir-storage (make-parameter #f))
 (define adir-install (make-parameter #f))
 (define do-config-scm (make-parameter #f))
+(define delete-data-cache (make-parameter #f))
 (define omit-aws-workaround (make-parameter #f))
 (define config-ardbs (make-parameter #f))     ; mutable
 (define config-adir-temp (make-parameter #f)) ; mutable
@@ -376,6 +377,10 @@
         (newline fout1)
         (close-output-port fout1)))))
 
+(define (cmds-delete-data-cache)
+  `((() ()
+        ("rm" "-rf" ,(adir-storage)))))
+
 ;; *** main program ***
 (define (validate-env )
   (define s3-id (getenv "ncats_s3_id"))
@@ -408,6 +413,8 @@
     (else
      (config-adir-temp (cmd:adir-temp)) ; parameter set!
      (config-ardbs (dataconfig)) ; parameter set!
+     (when (delete-data-cache)
+       (cmd:run-cmds (cmds-delete-data-cache)))
      (cond
        ((implicit-uri-remote?) (setup-teardown-run-install))
        ((uri-remote-archive) (setup-teardown-run-install))
@@ -449,6 +456,9 @@
    [("--omit-aws-workaround")
     "Generate and overwrite config.scm files for extracted data"
     (omit-aws-workaround #t)]
+   [("--delete-data-cache")
+    "In case of full disk or invalid state, delete existing cache"
+    (delete-data-cache #t)]
    [("--dry-run")
     "Print commands to run.  Do not run."
     (cmd:dry-run #t)]
