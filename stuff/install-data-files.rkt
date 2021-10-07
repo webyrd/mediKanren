@@ -412,7 +412,8 @@
        ((uri-remote-archive) (setup-teardown-run-install))
        ((adir-local-archive) (run-from-local-archive))
        (else (error "Nothing to do.  Pass --help for usage.")))
-     (write-configs-scm)
+     (when (do-config-scm)
+       (write-configs-scm))
      (rewrite-config-installer-scm)
      )))
 
