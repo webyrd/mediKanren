@@ -452,7 +452,7 @@
     (cmd:dry-run #t)]
    #:args ()
    '())
-   'dont-care-because-we-set-parameters
+   ;""  ; We don't care about the return value because configuration lives in mutatable racket parameters
   )
 
 (module+ main
