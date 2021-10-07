@@ -182,13 +182,8 @@
 (define (dirname afile)
   (path->string (simplify-path (build-path (string->path afile) 'up))))
 
-(define (inst-subdir-from-ardb ardb)
-  (if (new-format? ardb)
-    (format "/~a/~a" (ardb-kgid ardb) (ardb-versionOfKg ardb))
-    ""))
-
 (define (cmds-to-extract sha1 ardb dir-archive)
-  (let* ((adir-target (format "~a/~a~a" (adir-storage) sha1 (inst-subdir-from-ardb ardb)))
+  (let* ((adir-target (format "~a/~a" (adir-storage) sha1))
          (adir-target-parent (dirname adir-target))
          (adir-target-temp (format "~a/~a-temp" (adir-storage) sha1)))
     `((() ()
@@ -222,7 +217,7 @@
 (define (do-symlink sha1 ardb)
   (let* (
          (path-dest (append-path (build-path (adir-install) (path-ver ardb) "data") (reldir-from-ardb ardb)))
-         (path-src (append-path (build-path (adir-storage) sha1) (reldir-from-ardb ardb))))
+         (path-src (build-path (adir-storage) sha1)))
     (dr-do-symlink-impl path-src path-dest)))
 
 (define (ardb-already-installed? ardb)
