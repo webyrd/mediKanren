@@ -60,7 +60,10 @@
 )
 
 (define (refresh-config)
-  (set-box! box:config ((unbox box:build-config))))
+  (define config-new ((unbox box:build-config)))
+  ; (printf "refresh-config:\n")
+  ; (pretty-write config-new)
+  (set-box! box:config config-new))
 
 (module+ test
   ; has required package:
