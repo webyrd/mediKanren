@@ -50,6 +50,7 @@
    configkey             ; For --write-config-scm.  Leave configkey blank
    ; to prevent the ardb from adding to config.scm.
    reldir
+   isUpstream
    sha1sum
    versionOfMedikanren
    filename
@@ -72,6 +73,7 @@
    (prefer-string (hash-ref mapping "versionOfKg" (lambda () 'null)))
    (hash-ref mapping "configkey" (lambda () 'null))
    (hash-ref mapping "reldir" (lambda () 'null))
+   (hash-ref mapping "isUpstream" (lambda () #f))
    (hash-ref mapping "sha1sum")
    (hash-ref mapping "versionOfMedikanren")
    (hash-ref mapping "filename")
@@ -82,6 +84,7 @@
   (hash-set! mapping "versionOfKg" (ardb-versionOfKg p))
   (hash-set! mapping "configkey" (ardb-configkey p))
   (hash-set! mapping "reldir" (ardb-reldir p))
+  (hash-set! mapping "isUpstream" (ardb-isUpstream p))
   (hash-set! mapping "sha1sum" (ardb-sha1sum p))
   (hash-set! mapping "versionOfMedikanren" (ardb-versionOfMedikanren p))
   (hash-set! mapping "filename" (ardb-filename p))
@@ -201,9 +204,11 @@
           ("mv" ,adir-target-temp ,adir-target)))))
 
 (define (reldir-from-ardb ardb)
-  (if (new-format? ardb)
-    `(,(ardb-kgid ardb) ,(ardb-versionOfKg ardb))
-    `(,(ardb-reldir ardb)))) ; This is now the only bona fide usage of ardb-reldir
+  (if (not (new-format? ardb))
+    `(,(ardb-reldir ardb)) ; This is now the only bona fide usage of ardb-reldir
+    (if (ardb-isUpstream ardb)
+      `("upstream" ,(ardb-kgid ardb) ,(ardb-versionOfKg ardb))
+      `(,(ardb-kgid ardb) ,(ardb-versionOfKg ardb)))))
 
 (define (append-path path patels)
   (apply build-path (cons path patels)))
