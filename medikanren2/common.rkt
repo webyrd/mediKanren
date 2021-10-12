@@ -10,11 +10,15 @@
          write-list-to-tsv)
 
 (require "base.rkt"
+         racket/dict
          (prefix-in semmed: "db/semmed.rkt")
          (prefix-in rtx:    "db/rtx2-20210204.rkt")
          (prefix-in kgx:    "db/kgx-synonym.rkt"))
 
 (printf "Configuration says to load these databases: ~s\n" (cfg:config-ref 'databases))
+(for ((kgid (cfg:config-ref 'databases)))
+  (unless (dict-has-key? (cfg:config-ref 'version-for-database) kgid)
+    (printf "Warning: no version-for-database information for ~a (check etc/config.installer.scm)\n" kgid)))
 (for-each database-load! (cfg:config-ref 'databases))
 
 ;; TODO: define higher-level relations over the db-specific relations
