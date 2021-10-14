@@ -203,6 +203,17 @@
       (() ()
           ("mv" ,adir-target-temp ,adir-target)))))
 
+(define (label-sha1-dir sha1 ardb dir-archive)
+  (when (new-format? ardb)
+    (let* ((afile-kgid (build-path (adir-storage) sha1 "kgid" (ardb-kgid ardb)))
+          (afile-ver (build-path (adir-storage) sha1 "ver" (ardb-versionOfKg ardb))))
+      (make-parent-directory* afile-kgid)
+      (display-to-file "" afile-kgid)
+      (make-parent-directory* afile-ver)
+      (display-to-file "" afile-ver))))
+
+(define dr-label-sha1-dir (cmd:dry-runify label-sha1-dir 'label-sha1-dir))
+
 (define (reldir-from-ardb ardb)
   (if (not (new-format? ardb))
     `(,(ardb-reldir ardb)) ; This is now the only bona fide usage of ardb-reldir
@@ -259,6 +270,7 @@
            (if (equal? sha1 sha1-expected)
                (begin
                  (cmd:run-cmds (cmds-to-extract sha1 ardb dir-archive))
+                 (dr-label-sha1-dir sha1 ardb dir-archive)
                  (do-symlink sha1 ardb))
                (error (format "sha1 ~a != expected ~a" sha1 sha1-expected)))))))))
 
