@@ -49,7 +49,6 @@
 (define (path-for-database kgid rel)
   (define ver (version-for-database kgid))
   (define path (string-join `(,(symbol->string kgid) ,(symbol->string ver) ,(symbol->string rel)) "/"))
-  (printf "relation will be at path ~a\n" path)
   path)
 
 (define (relation-name            r) (hash-ref (relations-ref r)            'name))
