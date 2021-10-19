@@ -18,6 +18,8 @@ adirRepo="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd .. && pwd )"
 #
 #   https://github.com/alex-hhh/ActivityLog2/blob/36a4bb8af45db19cea02e982e22379acb18d0c49/etc/scripts/setup-catalog.sh
 
+RACO=(raco pkg)
+
 afileToCheck="$adirRepo/pkgs/chk/README"
 if [ ! -e "$afileToCheck" ]
 then
@@ -30,8 +32,8 @@ then
 else
     rsync -rv --exclude-from="$adirRepo/pkgs/.rsync_exclude.txt" --exclude=aws/\* --delete "$adirRepo/pkgs/" "$adirRepo/pkgs-bin/"
     bash "$adirRepo/pkgs/setup-catalog/setup-catalog.sh" "$adirRepo/pkgs-bin"
-    raco pkg remove --auto mediKanren-dependencies
-    raco pkg install --batch --auto mediKanren-dependencies
+    ${RACO[*]} remove --auto mediKanren-dependencies
+    ${RACO[*]} install --batch --auto mediKanren-dependencies
     for adir in "$adirRepo"/pkgs/*
     do
 	if [ -e "$adir/.git" ]

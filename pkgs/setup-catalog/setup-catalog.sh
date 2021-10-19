@@ -11,6 +11,8 @@
 # and it is used to ensure that all required packages are available as GIT
 # submodules.
 
+RACO=(raco pkg)
+
 set -e
 SCRIPT_NAME=${0##**/}
 ISOLATED=0
@@ -64,15 +66,15 @@ echo "file://$THIS_CATALOG_PATH/catalog" > $CFILE
 
 if [ $ISOLATED -eq 1 ]; then
     echo "*** Discarding these existing package catalogs from this Racket installation:"
-    raco pkg config catalogs
+    ${RACO[*]} config catalogs
     
 else
     # If we are not isolated, add the existing package catalog files
-    raco pkg config catalogs | grep -v file:// >> $CFILE
+    ${RACO[*]} config catalogs | grep -v file:// >> $CFILE
 fi
 
-raco pkg config --set catalogs `cat $CFILE`
+${RACO[*]} config --set catalogs `cat $CFILE`
 rm $CFILE
 
 echo "*** Package catalog setup complete"
-echo "*** $THIS_CATALOG_PATH will be checked for packages by 'raco pkg install'"
+echo "*** $THIS_CATALOG_PATH will be checked for packages by '${RACO[*]} install'"
