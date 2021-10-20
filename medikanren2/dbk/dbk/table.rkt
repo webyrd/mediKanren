@@ -248,18 +248,18 @@
       (error "offset file stats do not match metadata:" fname.offset
              'file: fstat.offset 'metadata: (hash-ref info 'offset-file))))
   (case retrieval-type
-    ((disk) (define cell.fname=>port (make-thread-cell (hash)))
-            (define (open-input-file/memoize fname)
-              (define fname=>port (thread-cell-ref cell.fname=>port))
-              (or (hash-ref fname=>port fname #f)
-                  (let ((in (open-input-file fname)))
-                    (thread-cell-set! cell.fname=>port (hash-set fname=>port fname in))
-                    in)))
-            (define (thunk.in.value) (open-input-file/memoize fname.value))
+    ((disk) (define (open-input-file/memoize fname)
+              (define cell.port (make-thread-cell #f))
+              (lambda ()
+                (or (thread-cell-ref cell.port)
+                    (let ((in (open-input-file fname)))
+                      (thread-cell-set! cell.port in)
+                      in))))
+            (define thunk.in.value (open-input-file/memoize fname.value))
             (if offset-type
               (table/port/offsets
                 (table/port len #t '(offset) `(,offset-type)
-                            (lambda () (open-input-file/memoize fname.offset)))
+                            (open-input-file/memoize fname.offset))
                 key-name column-names column-types thunk.in.value)
               (table/port len key-name column-names column-types thunk.in.value)))
     ((bytes) (define bs.value (file->bytes2 fname.value))
