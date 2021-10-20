@@ -1,11 +1,11 @@
 #lang racket/base
 (provide cfg:config-ref cfg:load-config cfg:override-config
          path-for-database
-         (all-from-out "dbk/dbk.rkt") load-config
+         (all-from-out "dbk.rkt") load-config
          relation-name relation-definition-info relation-missing-data?
          tagged-relation dynamic-relation relation-extensions database-extend-relations! database-load! database-unload!)
 (require
-  "dbk/dbk.rkt"
+  "dbk.rkt"
   racket/list (except-in racket/match ==) racket/runtime-path racket/set
   racket/dict racket/string
   (prefix-in cfg: "mkconfigref.rkt"))
