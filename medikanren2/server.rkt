@@ -487,6 +487,30 @@ EOS
 
 (struct job-failure (message))
 
+(define (work-safely work)
+  (define custodian.work (make-custodian))
+  (define result
+    ;; current-custodian will collect all file handles opened during work
+    (parameterize ((current-custodian custodian.work))
+      (with-handlers ((exn:fail?
+                        (lambda (v)
+                          ((error-display-handler) (exn-message v) v)
+                          (job-failure (exn-message v))))
+                      ((lambda _ #t)
+                       (lambda (v)
+                         (define message
+                           (string-append "unknown error: "
+                                          (with-output-to-string (thunk (write v)))))
+                         (pretty-write message)
+                         (job-failure message))))
+        (work))))
+  (custodian-shutdown-all custodian.work) ; close all file handles opened during work
+  result)
+
+;; Run multiple jobs concurrently
+;(define (job work) (work-safely work))
+
+;; Run multiple jobs sequentially
 (define (job work)
   (define job-response (make-channel))
   (channel-put job-request (cons job-response work))
@@ -498,19 +522,7 @@ EOS
   (thread
     (thunk (let loop ()
              (match-define (cons job-response work) (channel-get job-request))
-             (channel-put job-response
-                          (with-handlers ((exn:fail?
-                                            (lambda (v)
-                                              ((error-display-handler) (exn-message v) v)
-                                              (job-failure (exn-message v))))
-                                          ((lambda _ #t)
-                                           (lambda (v)
-                                             (define message
-                                               (string-append "unknown error: "
-                                                              (with-output-to-string (thunk (write v)))))
-                                             (pretty-write message)
-                                             (job-failure message))))
-                            (work)))
+             (channel-put job-response (work-safely work))
              (loop)))))
 
 (define (start)
@@ -555,3 +567,72 @@ EOS
                  ))
 
 (module+ main (start))
+
+;; Notes for exercising multi-threaded file handle usage to stress-test work-safely:
+;; Start a long query, then repeatedly run short queries while the long query runs.
+;; Query results should be deterministic and produce no errors.
+
+;; A long query for semmed:
+#|
+{
+  "message": {
+    "query_graph": {
+      "nodes": {
+        "n0": {
+          "ids": [
+            "UMLS:C0520909"
+          ]
+        },
+        "n1": {
+          "categories": [
+            "disease_or_phenotypic_feature"
+          ]
+        },
+        "n2": {
+          "categories": [
+            "gene"
+          ]
+        }
+      },
+      "edges": {
+        "e01": {
+          "subject": "n0",
+          "object": "n1"
+        },
+        "e21": {
+          "subject": "n2",
+          "object": "n1"
+        }
+      }
+    }
+  }
+}
+|#
+
+;; A short query for semmed:
+#|
+{
+  "message": {
+    "query_graph": {
+      "nodes": {
+        "n0": {
+          "ids": [
+            "UMLS:C0520909"
+          ]
+        },
+        "n1": {
+          "categories": [
+            "disease_or_phenotypic_feature"
+          ]
+        }
+      },
+      "edges": {
+        "e01": {
+          "subject": "n0",
+          "object": "n1"
+        }
+      }
+    }
+  }
+}
+|#
