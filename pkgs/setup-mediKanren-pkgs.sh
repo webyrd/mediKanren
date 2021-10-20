@@ -30,7 +30,7 @@ then
     echo "    git submodule init && git submodule update --recursive"
     exit 1
 else
-    rsync -rv --exclude-from="$adirRepo/pkgs/.rsync_exclude.txt" --exclude=aws/\* --delete "$adirRepo/pkgs/" "$adirRepo/pkgs-bin/"
+    rsync -rv --exclude-from="$adirRepo/pkgs/.rsync_exclude.txt" --delete "$adirRepo/pkgs/" "$adirRepo/pkgs-bin/"
     bash "$adirRepo/pkgs/setup-catalog/setup-catalog.sh" "$adirRepo/pkgs-bin"
     ${RACO[*]} remove --auto mediKanren-dependencies
     ${RACO[*]} install --batch --auto mediKanren-dependencies
