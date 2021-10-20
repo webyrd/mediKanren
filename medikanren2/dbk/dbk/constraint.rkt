@@ -576,7 +576,7 @@
 (define (table-statistics st      tc) (tc 'variable-statistics st))
 
 (define (relation/table . pargs)
-  (match-define (list info t.0) (apply materialization pargs))
+  (match-define (list info thunk.t.0) (apply materialization pargs))
   (define name             (hash-ref info 'relation-name))
   (define attribute-names  (hash-ref info 'attribute-names))
   (define primary-key-name (hash-ref info 'key-name))
@@ -597,7 +597,8 @@
       (foldl/and (lambda (c a st)
                    (c-apply st #f (c:bounds (hash-ref c=>b c bounds.any) a)))
                  st attrs args.0))
-    (let*/and ((st (update-state st t.0)))
+    (let*/and ((t.0 (thunk.t.0))
+               (st  (update-state st t.0)))
       (define args (walk* st args.0))
       (define tc
         (let controller ((t  t.0)
@@ -630,9 +631,7 @@
       (c-apply st #f (c:table tc))))
   (define r (make-relation name attribute-names))
   (relations-set! r 'definition-info info)
-  (if t.0
-    (relations-set! r 'apply  app)
-    (relations-set! r 'expand (lambda args (== (cons name args) 'nothing))))
+  (relations-set! r 'apply           app)
   r)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

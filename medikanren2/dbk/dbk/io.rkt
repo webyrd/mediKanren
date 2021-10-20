@@ -1,14 +1,13 @@
 #lang racket/base
 (provide path->format file-stats s-pop-header produce/pop-header
          port-produce port-consume
-         out:transform out:procedure out:port out:file
+         out:port out:file
          in:transform in:procedure in:port in:file
          in:stream in:pop-header
-         io:pipe in:pipe out:pipe
          json->scm scm->json jsexpr->scm scm->jsexpr
          jsonl:read jsonl:write json:read json:write
          tsv:read tsv:write csv:read csv:write csv:escape)
-(require "codec.rkt" "misc.rkt" "stream.rkt"
+(require "codec.rkt" "enumerator.rkt" "misc.rkt" "stream.rkt"
          json racket/list racket/match racket/port racket/string)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -54,9 +53,9 @@
                                              (else produce)))
 (define (in:pop-header produce header) (produce/pop-header produce header))
 
-(define (in:port p . pargs)
+(define (in:port in . pargs)
   (define kwargs (make-immutable-hash (plist->alist pargs)))
-  (define (produce) (port-produce p
+  (define (produce) (port-produce in
                                   (hash-ref kwargs 'close? #f)
                                   (hash-ref kwargs 'format)
                                   (hash-ref kwargs 'type #f)))
@@ -76,16 +75,9 @@
   (in:transform (produce/pop-header produce (hash-ref kwargs 'header #f))
                 (hash-ref kwargs 'transform #f)))
 
-(define (out:procedure proc) proc)
-(define (out:transform c f)  (lambda (s) (c (f s))))
-
-(define (out:port p . pargs)
-  (define kwargs (make-immutable-hash (plist->alist pargs)))
-  (lambda (s) (port-consume p
-                            (hash-ref kwargs 'close? #f)
-                            (hash-ref kwargs 'format)
-                            (hash-ref kwargs 'type #f)
-                            s)))
+(define (out:port out . pargs) (port-consume out
+                                             (plist-ref pargs 'format)
+                                             (plist-ref pargs 'type #f)))
 
 (define (out:file path.0 . pargs)
   (define path   (if (path? path.0) (path->string path.0) path.0))
@@ -93,11 +85,10 @@
   (define exists (hash-ref kwargs 'exists 'error))
   (define format (hash-ref kwargs 'format (path->format path)))
   (unless format (error "unknown format:" path))
-  (lambda (s) (let ((out (open-output-file path #:exists exists)))
-                (port-consume out (lambda () (close-output-port out))
-                              format
-                              (hash-ref kwargs 'type #f)
-                              s))))
+  (let ((pargs (alist->plist (hash->list (hash-set kwargs 'format format)))))
+    (call-with-output-file path
+                           (lambda (out) (apply out:port out pargs))
+                           #:exists exists)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Port management
@@ -123,46 +114,17 @@
                                            '())
                       (else                (cons datum (loop)))))))))
 
-(define (port-consume out close? format type s)
+(define (port-consume out format type)
   (case format
-    ((json) (json:write out (list->vector (s-take #f s)))
-            (when close? (close?)))
-    (else   (define put
-              (case format
-                ((bscm)  (lambda (x) (encode out type x)))
-                ((scm)   (lambda (x) (write x out) (write-char #\newline out)))
-                ((tsv)   (lambda (x) (tsv:write out x)))
-                ((csv)   (lambda (x) (csv:write out x)))
-                ((jsonl) (lambda (x) (jsonl:write out x)))
-                (else    (error "unsupported output format:" format))))
-            (let loop ((s s))
-              (match (s-force s)
-                ('()        (when close? (close?)))
-                (`(,x . ,s) (put x) (loop s)))))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Pipe IO
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define (io:pipe (name? #f))
-  ;; TODO: thread safety
-  (define received-streams '())
-  (define (produce)
-    (if (null? received-streams)
-      '()
-      (let ((s (foldl s-append (car received-streams) (cdr received-streams))))
-        (set! received-streams '())
-        s)))
-  (define (consume s)
-    (set! received-streams (cons s received-streams)))
-  (method-lambda
-    ;; TODO: support optional named persistence
-    ((name) name?)
-    ((in)   consume)
-    ((out)  produce)))
-
-(define (in:pipe  p) (p 'out))
-(define (out:pipe p) (p 'in))
+    ((json) (lambda (en) (json:write out (enumerator->list en))))
+    (else   (let ((yield (case format
+                           ((scm)   (lambda (x) (write x out) (write-char #\newline out)))
+                           ((bscm)  (lambda (x) (encode      out type x)))
+                           ((tsv)   (lambda (x) (tsv:write   out      x)))
+                           ((csv)   (lambda (x) (csv:write   out      x)))
+                           ((jsonl) (lambda (x) (jsonl:write out      x)))
+                           (else    (error "unsupported output format:" format)))))
+              (lambda (en) (en yield))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSON and JSONL formats
