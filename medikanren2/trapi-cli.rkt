@@ -18,13 +18,30 @@
   racket/pretty
   racket/runtime-path
   racket/dict
+  racket/async-channel
   json
 )
 
+
+(define (with-timeout seconds thunk)
+  (define ach (make-async-channel))
+  (define t (thread
+              (lambda ()
+                (async-channel-put
+                    ach
+                    (list (thunk))))))    ; nonempty list indicates success
+  ; Watcher thread:
+  (thread (lambda ()
+            (sleep seconds)
+            (kill-thread t)
+            (async-channel-put ach '()))) ; empty list indicates timeout
+  (sync ach))
+
+(define seconds-timeout 60)
 (define (call-trapi fn msg)
     (printf "starting fn=~a\n" fn)
     (flush-output (current-output-port))
-    (define out (trapi-response msg (current-seconds)))
+    (define out (with-timeout seconds-timeout (lambda () (trapi-response msg (current-seconds)))))
     (printf "completed fn=~a\n" fn)
     (flush-output (current-output-port))
     out)
@@ -46,14 +63,15 @@
                 (iter (cons inout inouts)))))
     (iter '()))
 
-(define (results-from-out a1)
-    (hash-ref a1 'results))
+(define (num-results-from-out a1)
+    (if (null? a1)
+        -1                               ; -1 indicates timeout
+        (length (hash-ref (car a1) 'results))))
 
 (let ((inouts (read-and-run-by-filename (current-input-port))))
     (for ((inout inouts))
         (let* (
-                (results (results-from-out (dict-ref inout 'out)))
-                (n (length results)))
+                (n (num-results-from-out (dict-ref inout 'out))))
             (printf "num-answers=~a dt=~a for ~a\n"
                 n
                 (dict-ref inout 'dt)
