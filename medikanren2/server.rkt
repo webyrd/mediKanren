@@ -10,6 +10,7 @@
   (except-in racket/match ==)
   racket/port
   racket/pretty
+  racket/format
   racket/runtime-path
   racket/string
   json
@@ -386,6 +387,38 @@ EOS
                           'status "Success"
                           'description (format "Success. ~s result~a." length-local (if (= length-local 1) "" "s"))
                           'logs logs)))))))
+
+; Loosely adapted from:
+;   https://stackoverflow.com/questions/53911162/how-to-show-http-status-code-in-web-server-logs
+(define (headers->hasheq hs)
+  (for/hasheq ([h (in-list hs)])
+    (values (string->symbol (~a (header-field h)))
+            (~a (header-value h)))))
+(define ((logwrap-lazy handler) req)
+  (define t0 (current-milliseconds))
+  (define resp (handler req))
+
+  (struct-copy response resp (output
+    (lambda (fd)
+      (define tmp ((response-output resp) fd))
+      (define t1 (current-milliseconds))
+      (define dur (- t1 t0))
+
+      ;; Let's use "structured logging" here to make it easier to search,
+      ;; and do things like create CloudWatch metrics from CloudWatch Logs
+      ;; filters (they have a syntax to extract things from JSON.)
+      (displayln
+        (jsexpr->string
+          (hasheq 'request  (hasheq 'method  (~a (request-method req))
+                                    'ip      (request-client-ip req)
+                                    'path    (url->string (request-uri req))
+                                    'headers (headers->hasheq (request-headers/raw req)))
+                  'response (hasheq 'code     (response-code resp)
+                                    'headers  (headers->hasheq (response-headers resp))
+                                    'duration dur))))
+      tmp))))
+
+
 (define (accepts-gzip? req)
   (member "gzip" (map string-trim
                       (string-split (alist-ref (request-headers req)
@@ -552,7 +585,9 @@ EOS
      (("health")               #:method "get" /health)
 
      (else                                     not-found)))
-  (serve/servlet dispatch
+
+
+  (serve/servlet (logwrap-lazy dispatch)
                  ;; none-manager for better performance:
                  ;; only possible because we're not using web continuations.
                  #:manager (create-none-manager #f)
