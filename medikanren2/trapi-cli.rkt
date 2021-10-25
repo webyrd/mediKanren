@@ -51,8 +51,10 @@
         (define l (read-line fd 'any))
         (if (eof-object? l)
             inouts
-            (let* (
-                    (fn (string-trim l))
+            (let ((fn (string-trim l)))
+            (if (or (<= (string-length fn) 1) (not (file-exists? fn)))
+                '()
+                (let* (
                     (in (file->string fn))
                     (jsexpr (string->jsexpr in))
                     (trapimsg (hash-ref jsexpr 'message))
@@ -60,7 +62,7 @@
                     (out (call-trapi fn trapimsg))
                     (dt (exact->inexact (/ (- (current-milliseconds) t0) 1000)))
                     (inout `((fn . ,fn) (dt . ,dt) (in . ,in) (out . ,out))))
-                (iter (cons inout inouts)))))
+                (iter (cons inout inouts)))))))
     (iter '()))
 
 (define (num-results-from-out a1)
