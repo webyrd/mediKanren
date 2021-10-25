@@ -22,6 +22,7 @@
   json
 )
 
+(define seconds-per-query (make-parameter 60))
 
 (define (with-timeout seconds thunk)
   (define ach (make-async-channel))
@@ -37,11 +38,10 @@
             (async-channel-put ach '()))) ; empty list indicates timeout
   (sync ach))
 
-(define seconds-timeout 60)
 (define (call-trapi fn msg)
     (printf "starting fn=~a\n" fn)
     (flush-output (current-output-port))
-    (define out (with-timeout seconds-timeout (lambda () (trapi-response msg (current-seconds)))))
+    (define out (with-timeout (seconds-per-query) (lambda () (trapi-response msg (current-seconds)))))
     (printf "completed fn=~a\n" fn)
     (flush-output (current-output-port))
     out)
@@ -68,18 +68,33 @@
         -1                               ; -1 indicates timeout
         (length (hash-ref (car a1) 'results))))
 
-(let ((inouts (read-and-run-by-filename (current-input-port))))
-    (for ((inout inouts))
-        (let* (
-                (n (num-results-from-out (dict-ref inout 'out))))
-            (printf "num-answers=~a dt=~a for ~a\n"
-                n
-                (dict-ref inout 'dt)
-                (dict-ref inout 'fn)))))
-            
+(define (run-main)
+    (let ((inouts (read-and-run-by-filename (current-input-port))))
+        (for ((inout inouts))
+            (let* (
+                    (n (num-results-from-out (dict-ref inout 'out))))
+                (printf "num-answers=~a dt=~a for ~a\n"
+                    n
+                    (dict-ref inout 'dt)
+                    (dict-ref inout 'fn)))))
+)
 
+(define (parse-configuration)
+  (command-line
+   #:program "trapi-cli.rkt"
+   #:usage-help "trapi-cli.rkt <options>"
+   #:once-each
+   [("--seconds-per-query") sec
+                    "Number of seconds to allow for each query"
+                    (seconds-per-query (string->number (string-trim #:left? #f sec)))]
+   #:args ()
+   '())
+   ;""  ; We don't care about the return value because configuration lives in mutatable racket parameters
+  )
 
-
-
+(module+ main
+  (parse-configuration)
+  (run-main)
+  )
 
 
