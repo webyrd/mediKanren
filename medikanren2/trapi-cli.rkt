@@ -110,10 +110,13 @@
         (for ((inout inouts))
             (let* (
                     (n (num-results-from-out (dict-ref inout 'out))))
-                (printf "num-answers=~a dt=~a for ~a\n"
-                    n
-                    (dict-ref inout 'dt)
-                    (dict-ref inout 'fn)))))
+                (displayln
+                    (jsexpr->string
+                        (hasheq
+                            'event "summary"
+                            'num-answers n
+                            'dt (dict-ref inout 'dt)
+                            'fn (dict-ref inout 'fn)))))))
 )
 
 (define (parse-configuration)
