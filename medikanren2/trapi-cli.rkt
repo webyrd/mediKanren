@@ -19,10 +19,13 @@
   racket/runtime-path
   racket/dict
   racket/async-channel
+  http/request
   json
 )
 
 (define seconds-per-query (make-parameter 60))
+(define seconds-idle-between-queries (make-parameter 15))
+(define uri-trapi (make-parameter #f))
 
 (define (with-timeout seconds thunk)
   (define ach (make-async-channel))
@@ -38,20 +41,45 @@
             (async-channel-put ach '()))) ; empty list indicates timeout
   (sync ach))
 
-(define (call-trapi fn msg)
+(define (run-query-without-network-impl fn msg)
     (printf "starting fn=~a\n" fn)
     (flush-output (current-output-port))
-    (define out (with-timeout (seconds-per-query) (lambda () (trapi-response msg (current-seconds)))))
+    (define maybe-out (with-timeout (seconds-per-query) (lambda () (trapi-response msg (current-seconds)))))
     (printf "completed fn=~a\n" fn)
     (flush-output (current-output-port))
-    out)
+    (if (null? maybe-out)
+        (hasheq 'results '())
+        (let* ((out (car maybe-out))
+                (r (dict-ref out 'results)))
+            (dict-set out 'results r))))
 
 
 (define (run-query-without-network fn json1)
     (define jsexpr (string->jsexpr json1))
     (define trapimsg (hash-ref jsexpr 'message))
-    (call-trapi fn trapimsg))
+    (define out (run-query-without-network-impl fn trapimsg))
+    (hasheq 'message out))
 
+(define http-version "1.1")
+(define (run-query-with-network fn json1)
+    (define uri (format "~a~a" (uri-trapi) "/query"))
+    (define headers '((#"Content-Type" . "application/json")))
+    (define bytes-out (call/output-request http-version
+                            "POST"
+                            uri
+                            (string->bytes/utf-8 json1)
+                            #f
+                            headers
+                            read-entity/bytes
+                            #:redirects 0))
+    (define tmp (bytes->jsexpr bytes-out))
+    (sleep (seconds-idle-between-queries))
+    tmp)
+
+(define (run-query fn json1)
+    (if (uri-trapi)
+        (run-query-with-network fn json1)
+        (run-query-without-network fn json1)))
 
 (define (read-and-run-by-filename fd)
     (define (iter inouts)
@@ -64,16 +92,18 @@
                 (let* (
                     (t0 (current-milliseconds))
                     (json1 (file->string fn))
-                    (out (run-query-without-network fn json1))
+                    (out (run-query fn json1))
                     (dt (exact->inexact (/ (- (current-milliseconds) t0) 1000)))
                     (inout `((fn . ,fn) (dt . ,dt) (json . ,json1) (out . ,out))))
                 (iter (cons inout inouts)))))))
     (iter '()))
 
 (define (num-results-from-out a1)
+;    (printf "a1=\n")
+;    (pretty-write a1)
     (if (null? a1)
         -1                               ; -1 indicates timeout
-        (length (hash-ref (car a1) 'results))))
+        (length (dict-ref (dict-ref a1 'message) 'results))))
 
 (define (run-main)
     (let ((inouts (read-and-run-by-filename (current-input-port))))
@@ -94,6 +124,9 @@
    [("--seconds-per-query") sec
                     "Number of seconds to allow for each query"
                     (seconds-per-query (string->number (string-trim #:left? #f sec)))]
+   [("--uri-trapi") adir
+                    "A URI to a TRAPI service"
+                    (uri-trapi (string-trim #:left? #f adir))]
    #:args ()
    '())
    ;""  ; We don't care about the return value because configuration lives in mutatable racket parameters
