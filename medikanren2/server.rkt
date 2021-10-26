@@ -394,6 +394,11 @@ EOS
   (for/hasheq ([h (in-list hs)])
     (values (string->symbol (~a (header-field h)))
             (~a (header-value h)))))
+(define (dict-request-fields req)
+    (hasheq 'method  (~a (request-method req))
+            'ip      (request-client-ip req)
+            'path    (url->string (request-uri req))
+            'headers (headers->hasheq (request-headers/raw req))))
 (define ((logwrap-lazy handler) req)
   (define t0 (current-milliseconds))
   (define resp (handler req))
@@ -409,10 +414,7 @@ EOS
       ;; filters (they have a syntax to extract things from JSON.)
       (displayln
         (jsexpr->string
-          (hasheq 'request  (hasheq 'method  (~a (request-method req))
-                                    'ip      (request-client-ip req)
-                                    'path    (url->string (request-uri req))
-                                    'headers (headers->hasheq (request-headers/raw req)))
+          (hasheq 'request  (dict-request-fields req)
                   'response (hasheq 'code     (response-code resp)
                                     'headers  (headers->hasheq (response-headers resp))
                                     'duration dur))))
