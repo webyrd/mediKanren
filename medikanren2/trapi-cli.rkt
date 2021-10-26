@@ -46,6 +46,13 @@
     (flush-output (current-output-port))
     out)
 
+
+(define (run-query-without-network fn json1)
+    (define jsexpr (string->jsexpr json1))
+    (define trapimsg (hash-ref jsexpr 'message))
+    (call-trapi fn trapimsg))
+
+
 (define (read-and-run-by-filename fd)
     (define (iter inouts)
         (define l (read-line fd 'any))
@@ -55,13 +62,11 @@
             (if (or (<= (string-length fn) 1) (not (file-exists? fn)))
                 '()
                 (let* (
-                    (in (file->string fn))
-                    (jsexpr (string->jsexpr in))
-                    (trapimsg (hash-ref jsexpr 'message))
                     (t0 (current-milliseconds))
-                    (out (call-trapi fn trapimsg))
+                    (json1 (file->string fn))
+                    (out (run-query-without-network fn json1))
                     (dt (exact->inexact (/ (- (current-milliseconds) t0) 1000)))
-                    (inout `((fn . ,fn) (dt . ,dt) (in . ,in) (out . ,out))))
+                    (inout `((fn . ,fn) (dt . ,dt) (json . ,json1) (out . ,out))))
                 (iter (cons inout inouts)))))))
     (iter '()))
 
