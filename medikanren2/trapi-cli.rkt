@@ -42,10 +42,8 @@
   (sync ach))
 
 (define (run-query-without-network-impl fn msg)
-    (printf "starting fn=~a\n" fn)
     (flush-output (current-output-port))
     (define maybe-out (with-timeout (seconds-per-query) (lambda () (trapi-response msg (current-seconds)))))
-    (printf "completed fn=~a\n" fn)
     (flush-output (current-output-port))
     (if (null? maybe-out)
         (hasheq 'results '())
@@ -77,9 +75,19 @@
     tmp)
 
 (define (run-query fn json1)
-    (if (uri-trapi)
-        (run-query-with-network fn json1)
-        (run-query-without-network fn json1)))
+    (displayln (jsexpr->string (hasheq
+        'event "request"
+        'fn fn)))
+    (define out
+        (if (uri-trapi)
+            (run-query-with-network fn json1)
+            (run-query-without-network fn json1)))
+    (displayln (jsexpr->string (hasheq
+        'event "response"
+        'fn fn
+        'out out
+    )))
+    out)
 
 (define (read-and-run-by-filename fd)
     (define (iter inouts)
