@@ -11,6 +11,7 @@
   racket/port
   racket/pretty
   racket/format
+  racket/date
   racket/runtime-path
   racket/string
   json
@@ -24,6 +25,8 @@
   )
 
 (define query-time-limit (make-parameter 600))
+
+(date-display-format 'iso-8601)
 
 (define (alist-ref alist key default)
   (define kv (assoc key alist))
@@ -402,6 +405,10 @@ EOS
 (define ((logwrap-lazy handler) req)
   (define t0 (current-milliseconds))
   (define resp (handler req))
+  (displayln
+    (jsexpr->string
+      (hasheq 't (date->string (seconds->date (/ t0 1000) #f) #t)
+              'request  (dict-request-fields req))))
 
   (struct-copy response resp (output
     (lambda (fd)
@@ -414,7 +421,8 @@ EOS
       ;; filters (they have a syntax to extract things from JSON.)
       (displayln
         (jsexpr->string
-          (hasheq 'request  (dict-request-fields req)
+          (hasheq 't (date->string (seconds->date (/ t0 1000)) #t)
+                  'request  (dict-request-fields req)
                   'response (hasheq 'code     (response-code resp)
                                     'headers  (headers->hasheq (response-headers resp))
                                     'duration dur))))
@@ -452,7 +460,6 @@ EOS
     (OK req '() mime:json (jsexpr->string result))))
 
 (define (/index req)
-  (pretty-print `(request-headers: ,(request-headers req)))
   (OK req '() mime:html (xexpr->html-string index.html)))
 
 (define (/schema.json  req) (OK req '() mime:text schema.json.txt))
