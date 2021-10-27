@@ -43,7 +43,7 @@
 
 (define (run-query-without-network-impl fn msg)
     (flush-output (current-output-port))
-    (define maybe-out (with-timeout (seconds-per-query) (lambda () (trapi-response msg (current-seconds)))))
+    (define maybe-out (with-timeout (seconds-per-query) (lambda () (trapi-response msg))))
     (flush-output (current-output-port))
     (if (null? maybe-out)
         (hasheq 'results '())
