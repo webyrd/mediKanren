@@ -43,9 +43,14 @@
 
 (define synonyms-preds '("biolink:same_as"
                          ;; "biolink:close_match"   ; too risky un-constrained
-                         "biolink:has_gene_product"))
+                         "biolink:gene_product_of"))
 
-(define rtx2-drug-categories '("biolink:ChemicalSubstance"
+(define rtx2-drug-categories '("biolink:ChemicalEntity"
+                              "biolink:ChemicalMixture"
+                              "biolink:MolecularEnity"
+                              "biolink:SmallMolecule"
+                              "biolink:Protein"
+                              "biolink:SmallMolecule"
                                "biolink:ClinicalIntervention"
                                "biolink:ClinicalModifier"
                                "biolink:Drug"
