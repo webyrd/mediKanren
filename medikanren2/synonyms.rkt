@@ -76,7 +76,6 @@
 
 (define gene-or-protein '("biolink:Gene"
                           "biolink:GeneFamily"
-                          "biolink:GeneProduct"
                           "biolink:GenomicEntity"
                           "biolink:MacromolecularComplex"
                           "biolink:MolecularEntity"
