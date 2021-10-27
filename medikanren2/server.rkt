@@ -2,7 +2,7 @@
 (require
  "common.rkt"   
   "trapi.rkt"
-  "logging.rkt"
+  "logging2.rkt"
   "lw-reasoning.rkt"
   "open-api/api-query.rkt"
   "ingest-pipeline-status.rkt"
