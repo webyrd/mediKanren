@@ -25,6 +25,7 @@
   )
 
 (define query-time-limit (make-parameter 600))
+(define requestid (make-parameter -1))
 
 (date-display-format 'iso-8601)
 
@@ -308,8 +309,11 @@ EOS
   
   ;; (with-handlers ((exn:fail? (lambda (exn) 
   ;;                              (hash 'error (exn-message exn)))))
-  (pretty-print (format "Query received: ~a" (jsexpr->string msg)))
-  (log-info log-key (format "Query received: ~a" (jsexpr->string msg)))
+  (displayln
+    (jsexpr->string
+      (hasheq 'event "query_received"
+              'requestid (requestid)
+              'msg msg)))
 
   (with-handlers ((exn:fail:resource?
                    (lambda (exn) 
@@ -379,7 +383,7 @@ EOS
 ;; (define predicates-cached (string->bytes/utf-8 (jsexpr->string (predicates))))
 ;; (define predicates-cached-gzip (gzip/bytes predicates-cached))
 
-(define (query jsdata)
+(define (query-impl jsdata)
   (cond ((or (eof-object? jsdata) (not (hash? jsdata))) 'null)
         (else (let* ((data (olift jsdata))
                      (request-msg (olift (hash-ref data 'message hash-empty))))
@@ -390,6 +394,10 @@ EOS
                           'status "Success"
                           'description (format "Success. ~s result~a." length-local (if (= length-local 1) "" "s"))
                           'logs logs)))))))
+(define ((query requestid0) jsdata)
+  (parameterize ((requestid requestid0))
+    (query-impl jsdata)))
+
 
 ; Loosely adapted from:
 ;   https://stackoverflow.com/questions/53911162/how-to-show-http-status-code-in-web-server-logs
@@ -402,17 +410,21 @@ EOS
             'ip      (request-client-ip req)
             'path    (url->string (request-uri req))
             'headers (headers->hasheq (request-headers/raw req))))
-(define ((logwrap-lazy handler) req)
-  (define t0 (current-milliseconds))
-  (define resp (handler req))
+(define (logwrap-lazy-impl handler req t0 requestid0)
+  (define resp
+    (parameterize ((requestid requestid0))
+      (handler req)))
   (displayln
     (jsexpr->string
       (hasheq 't (date->string (seconds->date (/ t0 1000) #f) #t)
+              'requestid requestid0
               'request  (dict-request-fields req))))
 
   (struct-copy response resp (output
     (lambda (fd)
-      (define tmp ((response-output resp) fd))
+      (define tmp
+        (parameterize ((requestid requestid0))
+          ((response-output resp) fd)))
       (define t1 (current-milliseconds))
       (define dur (- t1 t0))
 
@@ -422,11 +434,17 @@ EOS
       (displayln
         (jsexpr->string
           (hasheq 't (date->string (seconds->date (/ t0 1000)) #t)
+                  'requestid requestid0
                   'request  (dict-request-fields req)
                   'response (hasheq 'code     (response-code resp)
                                     'headers  (headers->hasheq (response-headers resp))
                                     'duration dur))))
       tmp))))
+
+(define ((logwrap-lazy handler) req)
+  (define t0 (current-milliseconds))
+  (define requestid0 (+ (* t0 1000) (random 1000)))
+  (logwrap-lazy-impl handler req t0 requestid0))
 
 
 (define (accepts-gzip? req)
@@ -520,8 +538,7 @@ EOS
 (define (/index.js req)  (OK req '() mime:js index.js))
 ;; (define (/health req)    (OK health                        req))
 (define (/query req)
-  (pretty-print `(request-headers: ,(request-headers req)))
-  (OK/jsexpr query                        req))
+  (OK/jsexpr (query (requestid))                        req))
 ;; (define (/v2/find-concepts   req) (OK/jsexpr find-concepts/any            req))
 ;; (define (/v2/find-categories req) (OK/jsexpr (find/db-id find-categories) req))
 ;; (define (/v2/find-predicates req) (OK/jsexpr (find/db-id find-predicates) req))
