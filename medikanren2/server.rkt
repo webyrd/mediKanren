@@ -29,6 +29,32 @@
 
 (date-display-format 'iso-8601)
 
+(define (log-message level msg)
+  (define t (current-seconds))
+  (define st-t (date->string (seconds->date t #f) #t))
+  (define jsexpr
+    (if (hash? msg)
+      (hash-set
+        (hash-set
+          (hash-set msg
+            'level (symbol->string level))
+          'requestid (requestid))
+        't st-t)
+      (hasheq
+        'msg msg
+        't st-t
+        'requestid (requestid)
+        'level (symbol->string level))))
+  (displayln
+    (jsexpr->string jsexpr))
+  (flush-output (current-output-port)))
+
+(define (log-info msg)
+  (log-message 'info msg))
+
+(define (log-error msg)
+  (log-message 'error msg))
+
 (define (alist-ref alist key default)
   (define kv (assoc key alist))
   (if kv (cdr kv) default))
@@ -288,7 +314,6 @@ EOS
 
 
 (define (message->response msg)
-  (define log-key (current-seconds))
   (define broad-response (if (or
                                 (hash-ref msg 'disable_external_requests #f)
                                 (not (cfg:config-ref 'trapi-enable-external-requests?)))
@@ -298,36 +323,36 @@ EOS
   (define broad-results (hash-ref broad-response 'response))
   (define broad-results-count (length (hash-ref (hash-ref broad-results 'message hash-empty) 'results '())))
   (define broad-error-message (hash-ref broad-results 'detail #f)) ; not sure if this is stable - it isn't TRAPI
-  (pretty-print (format "Broad response:\n~s\n" (hash-ref broad-response 'status)))
-  (log-info log-key (format "Broad response:\n~s\n" (hash-ref broad-response 'status)))
-  (pretty-print (format "Headers: ~s\n" (hash-ref broad-response 'headers)))
-  (log-info log-key (format "Headers: ~s\n" (hash-ref broad-response 'headers)))
-  (pretty-print (format "Broad result size: ~s\n" broad-results-count))
-  (log-info log-key (format "Broad result size: ~s\n" broad-results-count))
+  (log-info
+    (hasheq
+      'event "broad-response"
+      'status (hash-ref broad-response 'status)
+      'headers (hash-ref broad-response 'headers)
+      'result-size broad-results-count))
 
   ;; (log-info log-key (format "Broad results: ~s" broad-results))
   
   ;; (with-handlers ((exn:fail? (lambda (exn) 
   ;;                              (hash 'error (exn-message exn)))))
-  (displayln
-    (jsexpr->string
+  (log-info
       (hasheq 'event "query_received"
-              'requestid (requestid)
-              'msg msg)))
+              'msg msg))
 
   (with-handlers ((exn:fail:resource?
                    (lambda (exn) 
-                     (log-error log-key (format "Error: ~a" exn))
+                     (log-error (format "Error: ~a" exn))
                      (error "Max query time exceded"))))
     (call-with-limits (query-time-limit) #f
       (lambda ()
-        (let-values (((result cpu real gc) (time-apply (lambda () (trapi-response msg log-key)) '())))
+        (let-values (((result cpu real gc) (time-apply (lambda () (trapi-response msg)) '())))
           (let* ((local-results (car result))
                  (length-local (length (hash-ref  local-results 'results '()))))
-            (pretty-print (format "Query time [cpu time: ~s real time: ~s]" cpu real))
-            (log-info log-key (format "Query time [cpu time: ~s real time: ~s]" cpu real))
-            (pretty-print (format "Local results size: ~s" length-local))
-            (log-info log-key (format "Local results size: ~s" length-local))
+            (log-info
+              (hasheq
+                'event "query_finished"
+                'cpu-time cpu
+                'real-time real
+                'num-results length-local))
             (values (hash-set*
                      (merge-results
                       (list (hash-ref (olift broad-results) 'message hash-empty)
@@ -414,11 +439,8 @@ EOS
   (define resp
     (parameterize ((requestid requestid0))
       (handler req)))
-  (displayln
-    (jsexpr->string
-      (hasheq 't (date->string (seconds->date (/ t0 1000) #f) #t)
-              'requestid requestid0
-              'request  (dict-request-fields req))))
+  (log-info
+      (hasheq 'request  (dict-request-fields req)))
 
   (struct-copy response resp (output
     (lambda (fd)
@@ -431,14 +453,11 @@ EOS
       ;; Let's use "structured logging" here to make it easier to search,
       ;; and do things like create CloudWatch metrics from CloudWatch Logs
       ;; filters (they have a syntax to extract things from JSON.)
-      (displayln
-        (jsexpr->string
-          (hasheq 't (date->string (seconds->date (/ t0 1000)) #t)
-                  'requestid requestid0
-                  'request  (dict-request-fields req)
+      (log-info
+          (hasheq 'request  (dict-request-fields req)
                   'response (hasheq 'code     (response-code resp)
                                     'headers  (headers->hasheq (response-headers resp))
-                                    'duration dur))))
+                                    'duration dur)))
       tmp))))
 
 (define ((logwrap-lazy handler) req)

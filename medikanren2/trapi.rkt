@@ -78,7 +78,8 @@
         ((symbol? v) (symbol->string v))
         (error (format "Must be a number, string or symbol: ~s" v))))
 
-(define (trapi-response msg (log-key "[query]"))
+(define (trapi-response msg)
+  (define log-key "[query]")
   (define max-results (hash-ref msg 'max_results #f))
   (define qgraph (hash-ref msg 'query_graph #f))
   (define kgraph (hash-ref msg 'knowledge_graph #f))
