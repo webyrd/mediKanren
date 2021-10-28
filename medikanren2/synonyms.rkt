@@ -11,11 +11,15 @@
   json
   memoize)
 
-(provide direct-synonym direct-synonym* direct-synonym+ synonym close-match-synonym
+(provide (all-defined-out)
+         #|
+         direct-synonym direct-synonym* direct-synonym+ synonym close-match-synonym
          synonyms/step synonym-of/step synonyms/breadth synonym-of/breadth
          synonym synonym-path kgx-synonym
          simple-synonym
-         get-synonyms-ls get-names-ls get-names-set)
+         get-synonyms-ls get-names-ls get-names-set
+         |#
+         )
 
 (define (equivalence-relation node link)
   (define-relation (equiv=/= a b)
@@ -119,6 +123,7 @@
 (define (non-empty-intersection set1 set2)
   (not (set-empty? (set-intersect set1 set2))))
 
+
 (define-relation (close-match-synonym a b)
   (fresh (id cat-a cat-b)
     (edge id a b)
@@ -135,6 +140,7 @@
                    ((:== #t (a) (string-prefix? a "NCBIGene:")))
                    ((:== #t (a) (string-prefix? a "UniProtKB:")))
                    ((:== #t (a) (string-prefix? a "ENSEMBL:"))))))))
+#|
 
 (define-relation (direct-synonym* a b)
   (conde ((== a b))
@@ -215,6 +221,7 @@
   (let ((synonyms (set->list (synonyms/step term n))))
     (relation synonym-of/step^ (s)
       (membero s synonyms))))
+|#
 
 (define (synonyms/breadth term (n 2) (categories '()))
   (let loop ((n (- n 1)) (synonyms (set term)) (terms (list term)) )
@@ -242,10 +249,12 @@
 ;; relation for use in mk queries
 ;; n is required
 ;; (run* s ((synonym-of/breadth autism 2) s)))
+#|
 (define/memo* (synonym-of/breadth term n)
   (let ((synonyms (synonyms/breadth term n)))
     (relation synonym-of/breadth^ (s)
       (membero s synonyms))))
+|#
 
 ;; used in TRAPI interpreter
 ;; implements basic logic: KGX-syn for genes/proteins, and KGs for others
@@ -260,6 +269,7 @@
                                (run* s (kgx-synonym curie s)))))
                        curies)))))
 
+#|
 ; get-names-ls function takes a list of curies and return the curies with their coresponding names
 (define (get-names-ls curie-ls)
   (run* (curie name)
@@ -268,6 +278,6 @@
 
 (define (get-names-set curie-set)
   (get-names-ls (set->list curie-set)))
-
+|#
 
   
