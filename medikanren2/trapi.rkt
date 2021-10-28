@@ -90,9 +90,16 @@
           'knowledge_graph
           (hash 'nodes '#hash()
                 'edges '#hash()))
-    (let ((results (if max-results
+    (let* ((_1 (printf "run trapi 1,2 max-results=~a\n" max-results))
+          (_2 (pretty-write `(
+              (qgraph . ,qgraph)
+              (kgraph . ,kgraph)
+              (log-key . ,log-key)
+              )))
+          (results (if max-results
                           (run max-results bindings (trapi-query qgraph kgraph bindings log-key))
-                          (run* bindings (trapi-query qgraph kgraph bindings log-key)))))
+                          (run* bindings (trapi-query qgraph kgraph bindings log-key))))
+          (_3 (printf "run trapi 1,2 done num-results=~a\n" (length results))))
       (hash 'results (trapi-response-results results qgraph)
             'knowledge_graph
             (hash 'nodes (trapi-response-knodes results)
@@ -101,6 +108,7 @@
 (define (trapi-query qgraph kgraph bindings log-key)
   (define nodes  (hash->list (olift (hash-ref qgraph 'nodes hash-empty))))
   (define edges  (hash->list (olift (hash-ref qgraph 'edges hash-empty))))
+  (printf "trapi-query num-nodes=~a num-edges=~a\n" (length nodes) (length edges))
 
   ;; Interpret included KnowledgeGraph element
   (define knodes (and kgraph
@@ -395,10 +403,12 @@
    ;;       (== `(,k . ,v) prop)
    ;;       (cprop node k v))))
    (lambda (node)
+     (printf "run trapi 2,3\n")
      `(("name" . ,(car (run 1 v (cprop node "name" v)))) ; hack: only gets 1!
        ("categories" . ,(remove-duplicates
                          (map biolinkify/category (run* v (cprop node "category" v)))))))
    (lambda (node)
+     (printf "run trapi 4\n")
      (run* attribute
        (fresh (k v)
          (membero k (map car trapi-response-node-attributes))
@@ -410,7 +420,8 @@
   (trapi-response-knodes/edges 
    results 'edge_bindings (compose symlift edge-id/reported)
    (lambda (node) 
-     (let ((properties
+     (let ((_ (printf "run trapi 5\n"))
+           (properties
             (run* prop
               (fresh (k v)
                 (membero k trapi-response-edge-properties)
@@ -419,11 +430,13 @@
        (if (and (memf (lambda (k+v) (eq? (car k+v) "subject")) properties)
                 (memf (lambda (k+v) (eq? (car k+v) "object")) properties))
            properties
-           (let ((s+p (car (run 1 (s o) (edge node s o)))))
+           (let ((_ (printf "run trapi 6\n"))
+                 (s+p (car (run 1 (s o) (edge node s o)))))
              `(("subject" . ,(car s+p))
                ("object" . ,(cadr s+p))
                . ,properties)))))
    (lambda (node)
+     (printf "run trapi 7\n")
      (run* attribute
        (fresh (k v)
          (membero k (map car trapi-response-edge-attributes))
