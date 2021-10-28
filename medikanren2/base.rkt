@@ -2,10 +2,12 @@
 (provide cfg:config-ref cfg:load-config cfg:override-config
          path-for-database source-path-for-database
          (all-from-out "dbk.rkt") load-config
+         (rename-out (runi run) (runi* run*) (runi*/set run*/set))
          relation-name relation-definition-info relation-missing-data?
          tagged-relation dynamic-relation relation-extensions database-extend-relations! database-load! database-unload!)
 (require
-  "dbk.rkt"
+  (except-in "dbk.rkt" run run* run*/set)
+  "inspect.rkt"
   racket/list (except-in racket/match ==) racket/runtime-path racket/set
   racket/dict racket/string
   (prefix-in cfg: "mkconfigref.rkt"))
