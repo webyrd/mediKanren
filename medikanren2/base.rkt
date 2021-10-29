@@ -1,6 +1,7 @@
 #lang racket/base
 (provide cfg:config-ref cfg:load-config cfg:override-config
          path-for-database source-path-for-database
+         source-stream-by-lines-from-strelpath
          (all-from-out "dbk.rkt") load-config
          (rename-out (runi run) (runi* run*) (runi*/set run*/set))
          relation-name relation-definition-info relation-missing-data?
@@ -59,7 +60,27 @@
     (if filename
       (string-join `("upstream" ,(symbol->string kgid) ,(symbol->string ver) ,filename) "/")
       (string-join `("upstream" ,(symbol->string kgid) ,(symbol->string ver)) "/")))
+  (printf "source-path-for-database path=~a\n" path)
   path)
+
+(define-runtime-path path:db ".")
+;;; Build an absolute racket path in the data directory from an strelpath.
+;;; strelpath is a string relative path in the same form at as define-relation/table 'path.
+(define (path-data-from-strelpath strelpath)
+  (define p1 (simplify-path (build-path path:db "data")))
+  (apply build-path (cons p1 (explode-path strelpath))))
+
+;;; Prepares a stream from a line-split file for define-relation/table.
+;;; strelpath is a string relative path in the same form at as define-relation/table 'path.
+;;; define-relation/table 'source-stream is not a racket sequence or stream, it is a dbKanren stream.
+;;; See dbk/stream.rkt s->list for details.
+(define (source-stream-by-lines-from-strelpath strelpath)
+  (define fd (open-input-file (path-data-from-strelpath strelpath)))
+  (let loop ()
+    (let ((l (read-line fd 'any)))
+      (if (eof-object? l)
+        '()
+        (cons l loop)))))
 
 (define (relation-name            r) (hash-ref (relations-ref r)            'name))
 (define (relation-definition-info r) (hash-ref (relations-ref r)            'definition-info))
