@@ -14,6 +14,7 @@
   'path                 (if (cfg:config-ref 'migrated-to-new-db-versioning)
                           (path-for-database kgid 'synonym)
                           "kgx-synonym/010")
+  'source-file-path   (source-path-for-database kgid "KGX_NN_data_edges.jsonl")
   'attribute-names edge-keys
   'attribute-types '(string string string string string)
   'indexes '((object subject))
@@ -26,6 +27,13 @@
                              (define row-edge (string->jsexpr line))
                              (cons (map (lambda (k) (hash-ref row-edge k)) edge-keys)
                                    (loop)))))))|#
+  'attribute-names    edge-keys
+  'map                (value/syntax
+                        (lambda (row)
+                          (define js (list-ref row 0))
+                          (define jsexpr (string->jsexpr js))
+                          (map (lambda (k) (hash-ref jsexpr k)) edge-keys)))
+
   )
 
 (database-extend-relations!
