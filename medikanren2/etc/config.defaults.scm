@@ -31,6 +31,7 @@
  (version-for-database . (
      (rtx-kg2 . "20210204")
     ))
+ (log-dbkanren-runs . #f)
 
  ;; Add new configuration options as new association pairs.
  )

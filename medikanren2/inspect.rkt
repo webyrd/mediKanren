@@ -1,5 +1,6 @@
 #lang racket
 (require "dbk.rkt")
+(require (only-in "mkconfigref.rkt" (config-ref cfg:config-ref)))
 (provide runi runi* runi*/set)
 
 ;; When a subquery runs, increment this number.
@@ -10,7 +11,8 @@
     (syntax-case stx ()
         [(_ n formals expr)
             #'(begin
-                (pretty-write (list 'run n (list 'level (i-level)) (query formals expr)))
+                (when (cfg:config-ref 'log-dbkanren-runs)
+                    (pretty-write (list 'run n (list 'level (i-level)) (query formals expr))))
                 (parameterize ((i-level (+ 1 (i-level))))
                     (run n formals expr)))]
     ))
@@ -19,7 +21,8 @@
     (syntax-case stx ()
         [(_ formals expr)
             #'(begin
-                (pretty-write (list 'run* (list 'level (i-level)) (query formals expr)))
+                (when (cfg:config-ref 'log-dbkanren-runs)
+                    (pretty-write (list 'run* (list 'level (i-level)) (query formals expr))))
                 (parameterize ((i-level (+ 1 (i-level))))
                     (run* formals expr)))]
     ))
@@ -28,7 +31,8 @@
     (syntax-case stx ()
         [(_ formals expr)
             #'(begin
-                (pretty-write (list 'run*/set (list 'level (i-level)) (query formals expr)))
+                (when (cfg:config-ref 'log-dbkanren-runs)
+                    (pretty-write (list 'run*/set (list 'level (i-level)) (query formals expr))))
                 (parameterize ((i-level (+ 1 (i-level))))
                     (run*/set formals expr)))]
     ))
