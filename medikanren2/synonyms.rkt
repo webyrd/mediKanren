@@ -95,8 +95,8 @@
 (define (kgx-synonym a b)
   (fresh (predicate id source_database)
     (conde
-      [(kgx:synonym a b predicate id source_database)]
-      [(kgx:synonym b a predicate id source_database)])))
+      [(kgx:synonym a b)]
+      [(kgx:synonym b a)])))
 
 ;; Query synonyms from loaded graphs
 (define-relation (direct-synonym a b)
