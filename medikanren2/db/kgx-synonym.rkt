@@ -26,7 +26,6 @@
   ;*** consume like this (points to nonexistent upstream file) ***
   ;    (able to test nonexistence and move on, but not able to build)
   'source-file-path (source-path-for-database kgid "KGX_NN_data_edges.jsonl")
-  'attribute-names    edge-keys
   'map                (value/syntax
                         (lambda (js)
                           (define jsexpr (string->jsexpr js))
