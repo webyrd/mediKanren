@@ -17,7 +17,7 @@
   'indexes '((object subject))
   ;*** cook like this ***
   ;    (able to open stream but not able to test existence)
-  ;'source-stream   (value/syntax (source-stream-by-lines-from-strelpath (source-path-for-database kgid "KGX_NN_data_edges.jsonl")))
+  'source-stream   (value/syntax (source-stream-by-lines-from-strelpath (source-path-for-database kgid "KGX_NN_data_edges.jsonl")))
 
   ;*** experiments ***
   ;'source-file-path (in:file (source-path-for-database kgid "KGX_NN_data_edges.jsonl") 'format 'jsonl)
@@ -25,12 +25,11 @@
 
   ;*** consume like this (points to nonexistent upstream file) ***
   ;    (able to test nonexistence and move on, but not able to build)
-  'source-file-path (source-path-for-database kgid "KGX_NN_data_edges.jsonl")
+  ;'source-file-path (source-path-for-database kgid "KGX_NN_data_edges.jsonl")
   'map                (value/syntax
                         (lambda (js)
                           (define jsexpr (string->jsexpr js))
                           (map (lambda (k) (hash-ref jsexpr k)) edge-keys)))
-
   )
 
 (database-extend-relations!

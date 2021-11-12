@@ -75,12 +75,13 @@
 ;;; define-relation/table 'source-stream is not a racket sequence or stream, it is a dbKanren stream.
 ;;; See dbk/stream.rkt s->list for details.
 (define (source-stream-by-lines-from-strelpath strelpath)
-  (define fd (open-input-file (path-data-from-strelpath strelpath)))
-  (let loop ()
-    (let ((l (read-line fd 'any)))
-      (if (eof-object? l)
-        '()
-        (cons l loop)))))
+  (lambda ()
+    (define fd (open-input-file (path-data-from-strelpath strelpath)))
+    (let loop ()
+      (let ((l (read-line fd 'any)))
+        (if (eof-object? l)
+          '()
+          (cons l loop))))))
 
 (define (relation-name            r) (hash-ref (relations-ref r)            'name))
 (define (relation-definition-info r) (hash-ref (relations-ref r)            'definition-info))
