@@ -7,5 +7,9 @@
 /code/a.out
 /biolink/pieces-parts/etl_for_new_KGs/NCT000sample
 /biolink/pieces-parts/etl_for_new_KGs/NCT000sample/*.xml
+medikanren/config.scm
+medikanren2/config.scm
+medikanren2/etc/config.scm
+medikanren2/etc/config.installer.scm
 *.dep
 *.zo
