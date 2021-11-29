@@ -637,6 +637,127 @@ Multi-way joins are not wasteful when all relations share the same join attribut
 Multi-way joins may improve over binary joins whose expected result cardinality is greater than the max cardinality of either input.
 
 
+### Database construction and management
+
+A string dictionary (domain) on disk could involve 3 data files (with metadata in a separate file):
+- metadata:
+  - names of constituent files
+  - number of strings in this dictionary
+- id=>str
+  - str.data: data file containing N variable-length strings
+    - hello|world|more
+    - N items
+    - not sorted
+    - no need to store string lengths (this is covered by the position file)
+  - str.data.pos: position file for referencing data file (N + 1 positions)
+    - 0|5|10|14
+    - N+1 items
+- str=>id
+  - id.data: data file containing N ids, sorted alphabetically by the strings they refer to
+  - N items
+  - sorted indirectly by id => str.data.pos =interval=> str.data
+    - lookup via binary search through this same indirection
+- instead of this logical id format, we could save an indirection by using file positions as ids
+
+- domains for variable-length-or-large-data
+  - lazy merging of domains
+  - write-ahead blocks maintain local domains until merged
+
+- fixed-width data does not need a domain
+  - null (but why?), bool, fixnat, fixint, fixrat, pair/fixed, tuple, fixarray (behaves like a tuple)
+
+- atomic batch updates
+  - single metadata file for entire database, providing a consistent view of the current state
+    - batch updates will commit to this metadata file (at the next checkpoint)
+  - not quite transactions, but good enough for now
+  - inserted/deleted tuples based on a consistent database snapshot
+  - insertion/deletion of single-relation blocks and domain+relation(s) write-ahead blocks
+    - file path, file size, (file checksum?), block layout
+    - garbage collection / export-of-current-db-state-snapshot
+
+- initial domain insertion
+  - should returned ids be the logical or the file positions?
+    - if we load into RAM, file positions will still work on bytevectors
+    - logical ids can save ~20% of single column memory if there are fewer than 4 billion strings
+      - relatively small savings given small size of data?
+      - may still be able to use other forms of compression on the non-logical ids
+      - but may be worth it if queries tend to not cross databases, and new string data is not frequently inserted
+  - domain sorting and possibly re-mapping ids
+    - can either index ids based on string order
+    - or maintain id assignment in string order directly
+      - provides monotonic ids, which are more efficient when crossing dbs or emitting sorted string output
+      - requires re-mapping the insertion ids to resulting monotonic ids in the original tuple data
+
+- merge-unioning domain blocks
+  - each block uses a different id basis, requiring id translation during merge
+  - first index or monotonize ids block-locally
+  - perform bisect/2-or-k-way merge-union, producing new domain column file
+    - insert new logical or file position into remapping hashes for each original block
+  - map the remapping tuple columns, producing new column files for each
+    - if monotonic ids are used, indexes should not need to be re-sorted
+
+- ideas for domain caching during block production, to minimize redundancy during sort and remap
+  - maintain two datum=>id hash tables for these two pools: multiple-refs and single-ref-so-far
+    - maybe parameterize a more general version: less-than-N-refs-so-far
+      - in this case, treat as LRU, where seeing a new ref pushes a datum back onto the queue to
+        preserve it for a little longer
+      - maybe also give special treatment to small datums, which are less expensive to preserve?
+  - treat single-ref-so-far as a fixed-size queue, where each datum&id pair is thrown away if
+    a second ref isn't found before it rolls off the end
+  - if a second ref is found for a datum in single-ref-so-far, it is promoted to multiple-refs, and
+    stored for the rest of the production
+
+- write-ahead block directory files:
+  - one data file per domain (e.g., variable-length bytes for text, bigint, bigrat, or fixed-width pair/any)
+    - pair/any is a 4-column table, where the car and cdr are annotated with type tags
+    - more generally, a logical column type of "any" is itself 2 physical columns, one for the type tag
+  - one position file per domain
+    - potentially-segregated starting positions + one final ending position
+  - one tuple file per update direction (insert or delete) per relation participating in update
+    - if only inserting or deleting, that means one file, and if both, then two files for that relation
+    - potentially-segregated fixed-width tuples that reference data positions
+    - any segregations are due to mistakes in column-byte-width-guessing
+  - metadata describing the contents of each of the other files
+    - particularly the byte-widths of the position and tuple files, for each segregation, along with the
+      segregation division locations
+
+- once the initial write-ahead block is complete, it is committed to the database metadata, to avoid losing progress
+  - each update is a transaction that either completely succeeds or fails
+
+- sort domains
+  - for each domain, this means producing a new file of sorted logical ids, which are themselves data file positions
+    - the sorted order of these ids is implicitly an id remapping table
+    - for each domain sorted, apply a checkpoint after that sorting process is finished
+      - if the domain is large enough to require external sorting, apply finer-grained checkpoints as well
+  - for each domain, merge into the database's main domain
+    - merging domains produces 3 files:
+      - new domain data file
+      - old position remapping file
+      - new (from the write-ahead block) position remapping file
+        - for full write-ahead remapping, compose this with the remapping table produced by write-ahead domain sorting
+    - checkpoint after each merge
+- for each relation-delete and relation-insert file, remap its ids
+  - checkpoint each of these
+- remap each main db relation table not participating in update
+  - checkpoint each of these remappings
+- remap-merge each main db relation table participating in update
+  - each of these is a 3-way merge between these sets: original, delete, insert
+    - the delete and insert sets have already been remapped
+    - tuples from the original set are remapped just-in-time
+      - just-in-time will make bisection harder, so maybe not a good idea? remap ahead of time instead?
+        - nah, this is probably fine
+  - checkpoint each of these remapping-merges
+- rebuild indexes for updated relations
+  - checkpoint each of these
+
+- to avoid manual code-commenting to deal with interrupted batch jobs, can also support a brute force insertion process
+  - this way a small update-history relation can be used to describe and check the progress of a job
+  - still single db consolidation, just brute-force read from the update-history relation
+
+- for simplicity, let's start with relation-creation-time-single-insertion with errors and manual code-commenting for checkpoints
+  - and single db consolidation, because the domains are shared
+
+
 ## Naming conventions
 
 ```

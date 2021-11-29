@@ -18,7 +18,7 @@
 (define relation-index-remove! #f)
 (define relation-index-build!  #f)
 
-(define db (database 'path                   "path/to/example/db"
+(define db (database "path/to/example/db"
                      'immediate-checkpoint?  #f
                      'immediate-index-build? #f
                      'immediate-compact?     #f))
@@ -31,18 +31,15 @@
 (database-checkpoint! db)
 
 (define cprop (database-relation
-                db
-                'name       '(example cprop)
+                db '(example cprop)
                 'attributes '(curie  key    value)
                 'type       '(string string string)))
 (define eprop (database-relation
-                db
-                'name       '(example eprop)
+                db '(example eprop)
                 'attributes '(eid key    value)
                 'type       '(nat string string)))
 (define edge  (database-relation
-                db
-                'name       '(example edge)
+                db '(example edge)
                 'attributes '(eid subject object)
                 'type       '(nat string  string)))
 (relation-index-add! cprop

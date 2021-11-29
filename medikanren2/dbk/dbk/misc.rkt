@@ -6,7 +6,10 @@
          hash-remove*
          call/files let/files
          map/merge map/append
-         min-bits min-bytes min-bytes-power2 nat->bytes)
+         min-bits min-bytes min-bytes-power2 nat?
+         bytes-nat-ref bytes-nat-set! nat->bytes bytes->nat
+         sum
+         normalize-path)
 (require (for-syntax racket/base) racket/fixnum racket/list racket/match racket/set)
 
 (define-syntax simple-match-lambda
@@ -254,10 +257,30 @@
         ((<= c 4) 4)
         (else     8)))
 
-(define (nat->bytes size n)
-  ;(integer->integer-bytes n size #f #t)
-  (define bs (make-bytes size 0))
-  (let loop ((i 0) (shift (* 8 (- size 1))))
-    (cond ((< i size) (bytes-set! bs i (bitwise-and 255 (fxrshift n shift)))
-                      (loop (+ i 1) (- shift 8)))
-          (else       bs))))
+(define (nat? x) (and (number? x) (exact? x) (integer? x) (<= 0 x)))
+
+(define (bytes-nat-set! bs size offset n)
+  ;(integer->integer-bytes n size #f #t bs offset) (void)
+  (let ((end (+ offset size)))
+    (let loop ((i offset) (shift (* 8 (- size 1))))
+      (cond ((< i end) (bytes-set! bs i (bitwise-and 255 (fxrshift n shift)))
+                       (loop (+ i 1) (- shift 8)))
+            (else      bs)))))
+
+(define (bytes-nat-ref bs size offset)
+  ;(integer-bytes->integer bs #f #t offset (+ offset size))
+  (let ((end (+ offset size)))
+    (let loop ((i offset) (n 0))
+      (cond ((< i end) (loop (+ i 1) (+ (fxlshift n 8)
+                                        (bytes-ref bs i))))
+            (else      n)))))
+
+(define (nat->bytes size n)  (let ((bs (make-bytes size 0)))
+                               (bytes-nat-set! bs size 0 n)
+                               bs))
+
+(define (bytes->nat bs size) (bytes-nat-ref bs size 0))
+
+(define (sum xs) (foldl + 0 xs))
+
+(define (normalize-path path) (path->string (simplify-path (resolve-path (simplify-path path)))))

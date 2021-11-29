@@ -21,6 +21,8 @@
 ;; Names
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; TODO: this might belong in abstract-syntax.rkt
+
 (define fresh-name-count (make-parameter #f))
 
 (define (call-with-fresh-names thunk)
@@ -105,6 +107,50 @@
 (define (relation-properties-set! r k v) ((relation-method r) 'properties-set! k v))
 (define (relation-dirty!          r)     ((relation-method r) 'dirty!))
 (define (relation-clean!          r)     ((relation-method r) 'clean!))
+
+;; TODO: maybe normalize definitions (axioms) to clausal form first, for stronger assumptions when analyzing safety
+
+;; TODO: Datalog safety check
+;; Due to mutual recursion, this will have to be run across multiple relations simultaneously, not individually.
+;(define (relation-finite? r)
+  ;(or (not (eq? 'rule (relation-kind r)))
+      ;(match-let (((f:all (f:imply f.body (f:relate _ vars.head))) ((relation-method r) 'formula)))
+        ;;; TODO:
+        ;;; all vars.head must be mentioned at least once in a positive position
+        ;;; all dependency relations must be finite (or the particular call to its args must be total)
+        ;;; all relations mentioned in subqueries must be stratified
+        ;;; all terms in recursive calls or assigned to head vars are non-function literals
+        ;;;   head vars can be function terms if this relation isn't recursive
+        ;(let loop ((f f.body) (fs.pending '()) (vars.pending (list->set vars.head)))
+          ;(match f
+            ;((f:relate r.f args.f)
+             ;;; TODO: also try totality checking
+             ;;; TODO: recognize mutual recursion
+             ;;; TODO: primitives need special handling
+             ;(and (relation-finite? r.f)
+                  ;;; TODO: what about compound/function literals?  these can violate safety
+                  ;;; TODO: look for subqueries and verify stratification
+                  ;(continue (set-subtract vars.pending (t-free-vars-positive* args.f)))))
+            ;((f:or f.1 f.2)
+             ;;; TODO: instead, reorganize finiteness checking to avoid redundant work
+             ;;; instead, we could determine what head vars are positively referenced in each of f.1 and f.2
+             ;;; taking their intersection, and subtracting that from the total
+             ;;; and if either fails to be finite locally, it can return #f to signal combined failure
+             ;(and (loop f.1 fs.pending vars.pending)
+                  ;(loop f.2 fs.pending vars.pending)))
+            ;((f:and f.1 f.2) (loop f.1 (cons f.2 fs.pending) vars.pending))
+            ;((f:not f)
+             ;;; TODO: negative polarity
+
+             ;)
+            ;((f:exist params.f body.f)
+             ;;; TODO: shadow? or is this not necessary?
+             ;(loop body.f fs.pending vars.pending))
+            ;(_ (error "TODO: finiteness check for unhandled formula type:" f)))))))
+
+;; TODO: should also return info about any change in arg groundness after this relation runs?
+;(define (relate-total? relation args)
+  ;)
 
 (struct relation (method)
         #:methods gen:custom-write
@@ -291,6 +337,7 @@
                                         (x      (t:var      name.x)))
                                    (f:query result name.x (conj body ...))))))
 
+;; TODO: can we auto-lift these terms via anonymous vars?
 (define-syntax query
   (syntax-rules ()
     ((_ (x ...) body ...) (query x.0 (exist (x ...)
