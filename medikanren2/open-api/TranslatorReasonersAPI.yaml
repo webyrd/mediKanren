@@ -1,8 +1,8 @@
 openapi: 3.0.1
 info:
-  description: OpenAPI for NCATS Biomedical Translator Reasoners
-  version: 1.0.0-beta
-  title: OpenAPI for NCATS Biomedical Translator Reasoners
+  description: Translator API for Unsecret Agent ARA
+  version: 1.0.1-beta
+  title: Translator API for Unsecret Agent ARA
   contact:
     email: webyrd@gmail.com
     name: William E. Byrd
@@ -21,6 +21,7 @@ info:
         external JSON schema. See schema and examples at url
       url: https://github.com/NCATSTranslator/translator_extensions/blob/\
         production/x-translator/
+    infores: infores:unsecret-agent
   x-trapi:
     version: 1.1.0
     externalDocs:
@@ -30,8 +31,12 @@ info:
       url: https://github.com/NCATSTranslator/translator_extensions/blob/\
         production/x-trapi/
 servers:
-  - url: https://unsecret.ncats.io/v2
-    description: Service endpoint for TRAPI 1.1
+  - url: https://medikanren-trapi.ci.transltr.io/v2
+    description: Service endpoint for TRAPI
+    x-maturity: production
+  - url: https://medikanren-trapi.ci.transltr.io/v2
+    description: Service endpoint for TRAPI
+    x-maturity: development
 externalDocs:
   description: >-
     Documentation for the NCATS Biomedical Translator Reasoners web services

@@ -2,11 +2,12 @@
 (provide simple-match simple-match-lambda record
          method-lambda method-choose method-unknown method-except method-only
          foldl/and let*/and define-variant
-         plist->alist alist-ref alist-remove alist-update alist-set
+         plist->alist plist-ref alist->plist alist-ref alist-remove alist-update alist-set
          hash-remove*
          call/files let/files
-         map/merge map/append)
-(require (for-syntax racket/base) racket/list racket/match racket/set)
+         map/merge map/append
+         min-bits min-bytes min-bytes-power2 nat->bytes)
+(require (for-syntax racket/base) racket/fixnum racket/list racket/match racket/set)
 
 (define-syntax simple-match-lambda
   (syntax-rules ()
@@ -166,9 +167,25 @@
                 (_                        #f)))
             (struct struct-name (fields ...) #:prefab) ...))))
 
-(define (plist->alist kvs) (if (null? kvs) '()
-                             (cons (cons (car kvs) (cadr kvs))
-                                   (plist->alist (cddr kvs)))))
+(define (plist->alist plist)
+  (match plist
+    ('()                     '())
+    ((cons k (cons v plist)) (cons (cons k v) (plist->alist plist)))))
+
+(define (plist-ref plist key (default (void)))
+  (let loop ((kvs plist))
+    (match kvs
+      ('()                   (if (void? default)
+                               (error "missing key in property list:" key plist)
+                               default))
+      ((cons k (cons v kvs)) (if (equal? k key)
+                               v
+                               (loop kvs))))))
+
+(define (alist->plist alist)
+  (match alist
+    ('()                     '())
+    ((cons (cons k v) alist) (cons k (cons v (alist->plist alist))))))
 
 (define (alist-ref alist key (default (void)))
   (define kv (assoc key alist))
@@ -219,3 +236,28 @@
     (foldl merge (car ys) (cdr ys))))
 
 (define (map/append f xs) (append* (map f xs)))
+
+(define (min-bits n)
+  (if (< 0 n)
+    (+ 1 (min-bits (fxrshift n 1)))
+    0))
+
+(define (min-bytes n)
+  (let ((min-bits (min-bits n)))
+    (+ (quotient min-bits 8)
+       (if (= 0 (remainder min-bits 8)) 0 1))))
+
+(define (min-bytes-power2 n)
+  (define c (min-bytes n))
+  (cond ((<= c 1) 1)
+        ((<= c 2) 2)
+        ((<= c 4) 4)
+        (else     8)))
+
+(define (nat->bytes size n)
+  ;(integer->integer-bytes n size #f #t)
+  (define bs (make-bytes size 0))
+  (let loop ((i 0) (shift (* 8 (- size 1))))
+    (cond ((< i size) (bytes-set! bs i (bitwise-and 255 (fxrshift n shift)))
+                      (loop (+ i 1) (- shift 8)))
+          (else       bs))))

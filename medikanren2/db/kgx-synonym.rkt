@@ -8,9 +8,12 @@
 
 ;(define in-edge (open-input-file "../data/KGX_NN_data_2021-03-11_edges.jsonl"))
 
+(define kgid 'kgx-synonym)
 
 (define-relation/table synonym
-  'path "kgx-synonym/010"
+  'path                 (if (cfg:config-ref 'migrated-to-new-db-versioning)
+                          (path-for-database kgid 'synonym)
+                          "kgx-synonym/010")
   'attribute-names edge-keys
   'attribute-types '(string string string string string)
   'indexes '((object subject))
@@ -27,4 +30,4 @@
 
 (database-extend-relations!
   'kgx-synonym
-  '???synonym synonym)
+  'synonym synonym)

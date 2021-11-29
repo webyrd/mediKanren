@@ -992,6 +992,124 @@
   (run/set 10 (x y) (path/cycle* x y))
   (list->set '((1 1) (1 2) (1 3) (5 2) (3 6) (6 4) (2 4) (5 1) (3 5) (2 6))))
 
+
+;; Equivalence class tests
+
+;; fast version
+(define-relation/table (uedge a b)
+  'source-stream '((0  15)
+                   (10 15)
+                   (15 20)
+                   (17 18)
+                   (17 20)
+                   (20  0)))
+
+(define-relation (node x)
+  (fresh (y)
+    (conde ((uedge x y)) ((uedge y x)))))
+
+(define-relation (equiv=/= a b)
+  (=/= a b)
+  (fresh (x)
+    (conde ((uedge a x))
+           ((uedge x a)))
+    (conde ((==       x b))
+           ((equiv=/= x b)))))
+
+(define-relation (equiv a b)
+  (node a)
+  (node b)
+  (conde ((==       a b))
+         ((equiv=/= a b))))
+
+;; cpu time: 1440 real time: 1466 gc time: 74
+(test 'equiv.0
+  (time (run*/set (x y) (equiv x y)))
+  (list->set
+    '((20 20) (10 20) (15 15) (20 10) (15 0) (0 15) (0 0) (15 17) (17 15)
+      (17 0) (15 18) (0 17) (18 15) (17 17) (0 18) (18 0) (20 15) (18 17)
+      (15 20) (17 18) (10 10) (18 18) (0 20) (20 0) (17 20) (20 17) (20 18)
+      (18 20) (10 15) (15 10) (0 10) (10 0) (10 17) (17 10) (10 18) (18 10))))
+
+;; cpu time: 298 real time: 319 gc time: 5
+(test 'equiv.1
+  (time (run*/set x (equiv 0 x)))
+  (set 0 17 18 20 10 15))
+
+;; cpu time: 459 real time: 485 gc time: 12
+(test 'equiv.2
+  (time (run*/set x (equiv x 0)))
+  (set 0 17 18 20 10 15))
+
+;; much more expensive version
+(define-relation/table (uedge.slow a b)
+  'source-stream '((0   5)
+                   (2   3)
+                   (2   5)
+                   (5   8)
+                   (5  10)
+                   (7  10)
+                   (10 13)
+                   (10 15)
+                   (12 15)
+                   (15 18)
+                   (17 18)
+                   (15 20)
+                   (17 20)
+                   (20  0)))
+
+(define-relation (node.slow x)
+  (fresh (y)
+    (conde ((uedge.slow x y)) ((uedge.slow y x)))))
+
+(define-relation (equiv=/=.slow a b)
+  (=/= a b)
+  (fresh (x)
+    (conde ((uedge.slow a x))
+           ((uedge.slow x a)))
+    (conde ((==            x b))
+           ((equiv=/=.slow x b)))))
+
+(define-relation (equiv.slow a b)
+  (node.slow a)
+  (node.slow b)
+  (conde ((==            a b))
+         ((equiv=/=.slow a b))))
+
+#|
+;; cpu time: 94756 real time: 97248 gc time: 3523
+(test 'equiv.0.slow
+  (time (run*/set (x y) (equiv.slow x y)))
+  (list->set
+    '((10 20) (12 18) (20 10) (2 12) (18 12) (7 7) (12 2) (13 17) (15 15) (17 13)
+      (10 5) (13 2) (15 0) (0 15) (3 12) (2 13) (7 8) (8 7) (12 3) (13 18) (18 13)
+      (5 10) (13 3) (12 20) (0 0) (8 8) (15 17) (17 15) (3 13) (20 12) (10 7) (15 18)
+      (0 17) (20 13) (2 15) (7 10) (12 5) (13 20) (15 2) (17 0) (18 15) (5 12) (10 8)
+      (13 5) (15 3) (17 17) (0 2) (0 18) (18 0) (5 13) (8 10) (2 0) (3 15) (12 7)
+      (17 2) (0 3) (3 0) (20 15) (2 17) (18 17) (7 12) (15 20) (17 18) (10 10) (13 7)
+      (12 8) (7 13) (8 12) (15 5) (17 3) (0 20) (20 0) (2 2) (3 17) (2 18) (18 2)
+      (18 18) (5 15) (13 8) (17 20) (0 5) (3 2) (8 13) (2 3) (3 18) (20 17) (18 3)
+      (5 0) (10 12) (12 10) (20 18) (2 20) (7 15) (15 7) (17 5) (3 3) (20 2) (18 20)
+      (5 17) (10 13) (13 10) (15 8) (0 7) (20 3) (5 18) (7 0) (8 15) (2 5) (3 20)
+      (18 5) (5 2) (12 12) (17 7) (0 8) (3 5) (20 20) (5 3) (7 17) (8 0) (10 15)
+      (13 12) (12 13) (20 5) (2 7) (18 7) (5 20) (7 2) (7 18) (8 17) (15 10) (17 8)
+      (13 13) (0 10) (3 7) (2 8) (7 3) (8 2) (8 18) (10 0) (18 8) (5 5) (10 17)
+      (12 15) (7 20) (8 3) (15 12) (17 10) (3 8) (20 7) (10 18) (15 13) (0 12)
+      (20 8) (2 10) (7 5) (8 20) (10 2) (12 0) (13 15) (18 10) (5 7) (13 0) (12 17)
+      (17 12) (0 13) (3 10) (5 8) (8 5) (10 3))))
+
+;; cpu time: 4520 real time: 4675 gc time: 123
+(test 'equiv.1.slow
+  (time (run*/set x (equiv.slow 0 x)))
+  (set 0 17 3 20 5 7 8 10 12 13 15 2 18))
+
+;; cpu time: 10254 real time: 10618 gc time: 370
+(test 'equiv.2.slow
+  (time (run*/set x (equiv.slow x 0)))
+  (set 0 17 3 20 5 7 8 10 12 13 15 2 18))
+;|#
+
+
 ;; Simple relational interpreter tests
 
 (define-relation (eval-expo expr env value)

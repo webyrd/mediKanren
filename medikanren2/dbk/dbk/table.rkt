@@ -38,7 +38,8 @@
 ;; TODO: support multiple sorted columns using tables that share key columns
 ;;       (wait until column-oriented tables are implemented for simplicity?)
 
-(define (table ixs)
+(define ((table ix-thunks))
+  (define ixs (map (lambda (thunk.ix) (thunk.ix)) ix-thunks))
   (and (not (ormap not ixs))
        (let table ((ixs         (filter (lambda (ix) (not (ix 'done?))) ixs))
                    (col=>bounds (foldl (lambda (ix c=>b)
@@ -167,30 +168,35 @@
 (define (table-length t key)       (statistics-cardinality (hash-ref (t 'statistics) key)))
 (define (table-ref    t key i col) (bounds-lb (hash-ref ((t 'update (hash key (bounds i #t i #t))) 'bounds) col)))
 
-(define (table/port/offsets table.offsets key-col cols types in)
+(define (table/port/offsets table.offsets key-col cols types thunk.in)
   (define type `#(tuple ,@types))
-  (define (ref i)
-    (file-position in (table-ref table.offsets #t i 'offset))
-    (decode in type))
-  (and table.offsets
-       (tabular-trie ref key-col cols types (table-length table.offsets #t))))
+  (lambda ()
+    (define offsets (table.offsets))
+    (and offsets
+         (let ((in (thunk.in)))
+           (define (ref i)
+             (file-position in (table-ref offsets #t i 'offset))
+             (decode in type))
+           (tabular-trie ref key-col cols types (table-length offsets #t))))))
 
 (define (table/bytes/offsets table.offsets key-col cols types bs)
-  (define in (open-input-bytes bs))
-  (table/port/offsets table.offsets key-col cols types in))
+  (define (thunk.in) (open-input-bytes bs))
+  (table/port/offsets table.offsets key-col cols types thunk.in))
 
-(define (table/port len key-col cols types in)
+(define (table/port len key-col cols types thunk.in)
   (define type `#(tuple ,@types))
   (define width (sizeof type (void)))
-  (define (ref i) (file-position in (* i width)) (decode in type))
-  (tabular-trie ref key-col cols types len))
+  (lambda ()
+    (define in (thunk.in))
+    (define (ref i) (file-position in (* i width)) (decode in type))
+    (tabular-trie ref key-col cols types len)))
 
 (define (table/bytes key-col cols types bs)
-  (define in (open-input-bytes bs))
+  (define (thunk.in) (open-input-bytes bs))
   (table/port (quotient (bytes-length bs) (sizeof types (void)))
-              key-col cols types in))
+              key-col cols types thunk.in))
 
-(define (table/vector key-col cols types v)
+(define ((table/vector key-col cols types v))
   (tabular-trie (lambda (i) (vector-ref v i)) key-col cols types (vector-length v)))
 
 (define (vector-table? types v)
@@ -242,13 +248,20 @@
       (error "offset file stats do not match metadata:" fname.offset
              'file: fstat.offset 'metadata: (hash-ref info 'offset-file))))
   (case retrieval-type
-    ((disk) (define in.value (open-input-file fname.value))
+    ((disk) (define (open-input-file/memoize fname)
+              (define cell.port (make-thread-cell #f))
+              (lambda ()
+                (or (thread-cell-ref cell.port)
+                    (let ((in (open-input-file fname)))
+                      (thread-cell-set! cell.port in)
+                      in))))
+            (define thunk.in.value (open-input-file/memoize fname.value))
             (if offset-type
               (table/port/offsets
                 (table/port len #t '(offset) `(,offset-type)
-                            (open-input-file fname.offset))
-                key-name column-names column-types in.value)
-              (table/port len key-name column-names column-types in.value)))
+                            (open-input-file/memoize fname.offset))
+                key-name column-names column-types thunk.in.value)
+              (table/port len key-name column-names column-types thunk.in.value)))
     ((bytes) (define bs.value (file->bytes2 fname.value))
              (if offset-type
                (table/bytes/offsets

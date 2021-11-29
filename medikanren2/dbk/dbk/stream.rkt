@@ -4,12 +4,19 @@
          s-each s-foldr s-foldl s-scan
          s-append/interleaving s-append*/interleaving
          s-append s-append* s-map/append s-map s-filter s-group s-memo s-lazy
-         s-length s-enumerate s-dedup s-limit)
+         s-length s-enumerate s-dedup s-skip s-limit
+         s->list list->s)
 (require racket/function racket/match racket/set)
 
 (define (s-next  s) (if (procedure? s)          (s)  s))
 (define (s-force s) (if (procedure? s) (s-force (s)) s))
 
+;; lazy variant of s-drop
+(define (s-skip n s)
+  (cond ((= n 0)   s)
+        ((pair? s) (s-skip (- n 1) (cdr s)))
+        (else      (thunk (s-skip n (s))))))
+;; lazy variant of s-take
 (define (s-limit n s)
   (cond ((or (= n 0) (null? s)) '())
         ((pair? s)              (cons (car s) (s-limit (- n 1) (cdr s))))
@@ -44,6 +51,17 @@
 (define (s-take/set n s) (s-take/set/steps #f n s))
 (define (s-take     n s) (s-take/steps #f n s))
 (define (s-drop     n s) (cdr (s-foldl n (lambda (_ acc) #t) #t s)))
+
+;; equivalent to (s-take #f s)
+(define (s->list s)
+  (cond ((null? s) '())
+        ((pair? s) (cons (car s) (s->list (cdr s))))
+        (else      (s->list (s)))))
+;; equivalent to s-lazy for a list
+(define (list->s xs)
+  (thunk (if (null? xs)
+           '()
+           (cons (car xs) (list->s (cdr xs))))))
 
 ;; TODO: generalize to multiple streams
 (define (s-foldr f acc s)

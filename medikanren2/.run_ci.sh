@@ -12,7 +12,12 @@ rfileTests=$(cd "$adirMk" && \
 bash "$adirMk/.clean.sh"
 . "$adirMk/.compile.sh"
 
-if (cd "$adirMk" && raco test ${rfileTests} )
+find "$adirMk" -name config\*.scm
+
+echo "$adirMk/etc/config.installer.scm:"
+cat "$adirMk/etc/config.installer.scm"
+
+if (cd "$adirMk" && env MK_STAGE=prod raco test ${rfileTests} )
 then
     echo medikanren_run_ci > "$adirArtifacts/status/pass/medikanren2_run_ci"
 else

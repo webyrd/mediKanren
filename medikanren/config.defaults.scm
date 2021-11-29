@@ -74,5 +74,11 @@
    ;; "decreases_metabolic_processing_of"
    ))
 
+  ;; Disable this flag to prevent translator-web-server.rkt
+  ;; and open-api/ from making downstream HTTP requests.  Useful
+  ;; for functional CI tests, and for offline development.
+  (trapi-enable-external-requests?  . #f)
+
  ;; Add configuration options as new association pairs.
  )
+

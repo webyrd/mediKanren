@@ -10,11 +10,16 @@
          write-list-to-tsv)
 
 (require "base.rkt"
+         racket/dict
          (prefix-in semmed: "db/semmed.rkt")
          (prefix-in rtx:    "db/rtx2-20210204.rkt")
          (prefix-in kgx:    "db/kgx-synonym.rkt"))
 
-(for-each database-load! (hash-ref (current-config) 'databases))
+(printf "Configuration says to load these databases: ~s\n" (cfg:config-ref 'databases))
+(for ((kgid (cfg:config-ref 'databases)))
+  (unless (dict-has-key? (cfg:config-ref 'version-for-database) kgid)
+    (printf "Warning: no version-for-database information for ~a (check etc/config.installer.scm)\n" kgid)))
+(for-each database-load! (cfg:config-ref 'databases))
 
 ;; TODO: define higher-level relations over the db-specific relations
 
@@ -41,7 +46,7 @@
 
 (define-relation (quad graph s p o)
   (fresh (id)
-    (conde ((== graph 'rtx2-20210204)
+    (conde ((== graph rtx:kgid)
             (rtx:triple s p o))
            ((== graph 'semmed)
             (semmed:triple s p o)))))
@@ -49,7 +54,7 @@
 (define-relation (triple/eid eid s p o)
   (fresh (id graph)
     (== eid `(,graph . ,id))
-    (conde ((== graph 'rtx2-20210204)
+    (conde ((== graph rtx:kgid)
             (rtx:eprop id "predicate" p)
             (rtx:edge id s o))
            ((== graph 'semmed)
@@ -60,7 +65,7 @@
   (cprop s "category" c))
 
 (define-relation (is-a/quad graph s c)
-  (conde ((== graph 'rtx2-20210204)
+  (conde ((== graph rtx:kgid)
           (rtx:cprop s "category" c))
          ((== graph 'semmed)
           (semmed:cprop s "category" c))))
@@ -68,7 +73,7 @@
 (define-relation (triple-property s p o k v)
   (fresh (eid id graph)
     (== eid `(,graph . ,id))
-    (conde ((== graph 'rtx2-20210204)
+    (conde ((== graph rtx:kgid)
             (rtx:eprop id "predicate" p)
             (rtx:edge id s o)
             (rtx:eprop id k v))

@@ -1,5 +1,6 @@
 #lang racket/base
-(provide log-time log-info log-error log-once log-length)
+(provide
+  log-time log-info log-error log-once log-length)
 (require
   racket/file racket/function racket/list racket/hash
   (except-in racket/match ==)
@@ -12,8 +13,6 @@
   racket/format
   racket/date
   )
-
-(date-display-format 'iso-8601)
 
 (define-syntax log-time
   (syntax-rules ()

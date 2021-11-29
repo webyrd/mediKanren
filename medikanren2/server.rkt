@@ -2,13 +2,16 @@
 (require
  "common.rkt"   
   "trapi.rkt"
-  "logging.rkt"
+  "logging2.rkt"
   "lw-reasoning.rkt"
   "open-api/api-query.rkt"
+  "ingest-pipeline-status.rkt"
   racket/file racket/function racket/list racket/hash
   (except-in racket/match ==)
   racket/port
   racket/pretty
+  racket/format
+  racket/date
   racket/runtime-path
   racket/string
   json
@@ -32,9 +35,9 @@
 (define argv (current-command-line-arguments))
 (define argv-optional '#(CONFIG_FILE))
 (when (not (<= (vector-length argv) (vector-length argv-optional)))
-  (error "optional arguments ~s; given ~s" argv-optional argv))
+  (error (format "optional arguments ~s; given ~s" argv-optional argv)))
 ;; Loading will occur at first use if not explicitly forced like this.
-(load-config #t (and (<= 1 (vector-length argv)) (vector-ref argv 0)))
+(load-config #t)
 ;; (load-databases #t)
 
 (define-runtime-path path:root ".")
@@ -233,12 +236,12 @@ EOS
                (div (pre ((id "query-result")) "Result will appear here.")))))
 
 (define hash-empty (hash))
-(define (str   v) (if (string? v) v (error "invalid string:" v)))
-(define (olift v) (if (hash?   v) v (error "invalid object:" v)))
+(define (str   v) (if (string? v) v (error (format "invalid string:" v))))
+(define (olift v) (if (hash?   v) v (error (format "invalid object:" v))))
 (define (slift v) (cond ((pair?   v) v)
                         ((string? v) (list v))
                         ((null?   v) '())
-                        (else        (error "invalid string or list of strings:" v))))
+                        (else        (error (format "invalid string or list of strings:" v)))))
 
 (define (alist->attributes alist)
   ;; TODO: provide standard types for
@@ -282,36 +285,45 @@ EOS
 
 
 (define (message->response msg)
-  (define log-key (current-seconds))
-  (define broad-response (if (hash-ref msg 'disable_external_requests #f) 
+  (define broad-response (if (or
+                                (hash-ref msg 'disable_external_requests #f)
+                                (not (cfg:config-ref 'trapi-enable-external-requests?)))
                              (hash 'response hash-empty 'status "disabled" 'headers '())
                              (time (api-query (string-append url.broad path.query)
                                               (hash 'message msg)))))
   (define broad-results (hash-ref broad-response 'response))
   (define broad-results-count (length (hash-ref (hash-ref broad-results 'message hash-empty) 'results '())))
   (define broad-error-message (hash-ref broad-results 'detail #f)) ; not sure if this is stable - it isn't TRAPI
-  (log-info log-key (format "Broad response:\n~s\n" (hash-ref broad-response 'status)))
-  (log-info log-key (format "Headers: ~s\n" (hash-ref broad-response 'headers)))
-  (log-info log-key (format "Broad result size: ~s\n" broad-results-count))
+  (lognew-info
+    (hasheq
+      'event "broad-response"
+      'status (hash-ref broad-response 'status)
+      'headers (hash-ref broad-response 'headers)
+      'result-size broad-results-count))
 
   ;; (log-info log-key (format "Broad results: ~s" broad-results))
   
   ;; (with-handlers ((exn:fail? (lambda (exn) 
   ;;                              (hash 'error (exn-message exn)))))
-
-  (log-info log-key (format "Query received: ~a" (jsexpr->string msg )))
+  (lognew-info
+      (hasheq 'event "query_received"
+              'msg msg))
 
   (with-handlers ((exn:fail:resource?
                    (lambda (exn) 
-                     (log-error log-key (format "Error: ~a" exn))
+                     (lognew-error (format "Error: ~a" exn))
                      (error "Max query time exceded"))))
     (call-with-limits (query-time-limit) #f
       (lambda ()
-        (let-values (((result cpu real gc) (time-apply (lambda () (trapi-response msg log-key)) '())))
+        (let-values (((result cpu real gc) (time-apply (lambda () (trapi-response msg)) '())))
           (let* ((local-results (car result))
                  (length-local (length (hash-ref  local-results 'results '()))))
-            (log-info log-key (format "Query time [cpu time: ~s real time: ~s]" cpu real))
-            (log-info log-key (format "Local results size: ~s" length-local))
+            (lognew-info
+              (hasheq
+                'event "query_finished"
+                'cpu-time cpu
+                'real-time real
+                'num-results length-local))
             (values (hash-set*
                      (merge-results
                       (list (hash-ref (olift broad-results) 'message hash-empty)
@@ -367,17 +379,64 @@ EOS
 ;; (define predicates-cached (string->bytes/utf-8 (jsexpr->string (predicates))))
 ;; (define predicates-cached-gzip (gzip/bytes predicates-cached))
 
-(define (query jsdata)
+(define (query-impl jsdata)
   (cond ((or (eof-object? jsdata) (not (hash? jsdata))) 'null)
         (else (let* ((data (olift jsdata))
                      (request-msg (olift (hash-ref data 'message hash-empty))))
                 (let-values (((message logs) (message->response request-msg)))
                   (let ((length-local (length (hash-ref message 'results))))
                     (hash 'message message
-                          'query_graph (hash-ref request-msg 'query_graph)
+                          'query_graph (hash-ref request-msg 'query_graph '#hash())
                           'status "Success"
                           'description (format "Success. ~s result~a." length-local (if (= length-local 1) "" "s"))
                           'logs logs)))))))
+(define ((query requestid0) jsdata)
+  (parameterize ((requestid requestid0))
+    (query-impl jsdata)))
+
+
+; Loosely adapted from:
+;   https://stackoverflow.com/questions/53911162/how-to-show-http-status-code-in-web-server-logs
+(define (headers->hasheq hs)
+  (for/hasheq ([h (in-list hs)])
+    (values (string->symbol (~a (header-field h)))
+            (~a (header-value h)))))
+(define (dict-request-fields req)
+    (hasheq 'method  (~a (request-method req))
+            'ip      (request-client-ip req)
+            'path    (url->string (request-uri req))
+            'headers (headers->hasheq (request-headers/raw req))))
+(define (logwrap-lazy-impl handler req t0 requestid0)
+  (define resp
+    (parameterize ((requestid requestid0))
+      (handler req)))
+  (lognew-info
+      (hasheq 'request  (dict-request-fields req)))
+
+  (struct-copy response resp (output
+    (lambda (fd)
+      (define tmp
+        (parameterize ((requestid requestid0))
+          ((response-output resp) fd)))
+      (define t1 (current-milliseconds))
+      (define dur (- t1 t0))
+
+      ;; Let's use "structured logging" here to make it easier to search,
+      ;; and do things like create CloudWatch metrics from CloudWatch Logs
+      ;; filters (they have a syntax to extract things from JSON.)
+      (lognew-info
+          (hasheq 'request  (dict-request-fields req)
+                  'response (hasheq 'code     (response-code resp)
+                                    'headers  (headers->hasheq (response-headers resp))
+                                    'duration dur)))
+      tmp))))
+
+(define ((logwrap-lazy handler) req)
+  (define t0 (current-milliseconds))
+  (define requestid0 (+ (* t0 1000) (random 1000)))
+  (logwrap-lazy-impl handler req t0 requestid0))
+
+
 (define (accepts-gzip? req)
   (member "gzip" (map string-trim
                       (string-split (alist-ref (request-headers req)
@@ -409,8 +468,7 @@ EOS
     (OK req '() mime:json (jsexpr->string result))))
 
 (define (/index req)
-  (pretty-print `(request-headers: ,(request-headers req)))
-   (OK req '() mime:html (xexpr->html-string index.html)))
+  (OK req '() mime:html (xexpr->html-string index.html)))
 
 (define (/schema.json  req) (OK req '() mime:text schema.json.txt))
 (define (/schema.yaml  req) (OK req '() mime:text schema.yaml.txt))
@@ -454,7 +512,8 @@ EOS
 ;; (define ((find/db-id find) data)
 ;;   (group-by-db (map (lambda (x) (cons (car x) (cddr x))) (find (list data)))))
 (define (/health req)
-  (let-values (((result cpu real gc) (time-apply (lambda () (run 1 () (triple "NCIT:C18585" "biolink:actively_involved_in" "NCIT:C45399"))) '())))
+  (OK req '() mime:json (jsexpr->string '#hasheq()))
+  #;(let-values (((result cpu real gc) (time-apply (lambda () (run 1 () (triple "NCIT:C18585" "biolink:actively_involved_in" "NCIT:C45399"))) '())))
     (let ((response
            (if (null? result)
                (hash 'status "corrupt"
@@ -468,13 +527,39 @@ EOS
 
 (define (/index.js req)  (OK req '() mime:js index.js))
 ;; (define (/health req)    (OK health                        req))
-(define (/query req)     (OK/jsexpr query                        req))
+(define (/query req)
+  (OK/jsexpr (query (requestid))                        req))
 ;; (define (/v2/find-concepts   req) (OK/jsexpr find-concepts/any            req))
 ;; (define (/v2/find-categories req) (OK/jsexpr (find/db-id find-categories) req))
 ;; (define (/v2/find-predicates req) (OK/jsexpr (find/db-id find-predicates) req))
 
+
 (struct job-failure (message))
 
+(define (work-safely work)
+  (define custodian.work (make-custodian))
+  (define result
+    ;; current-custodian will collect all file handles opened during work
+    (parameterize ((current-custodian custodian.work))
+      (with-handlers ((exn:fail?
+                        (lambda (v)
+                          ((error-display-handler) (exn-message v) v)
+                          (job-failure (exn-message v))))
+                      ((lambda _ #t)
+                       (lambda (v)
+                         (define message
+                           (string-append "unknown error: "
+                                          (with-output-to-string (thunk (write v)))))
+                         (pretty-write message)
+                         (job-failure message))))
+        (work))))
+  (custodian-shutdown-all custodian.work) ; close all file handles opened during work
+  result)
+
+;; Run multiple jobs concurrently
+;(define (job work) (work-safely work))
+
+;; Run multiple jobs sequentially
 (define (job work)
   (define job-response (make-channel))
   (channel-put job-request (cons job-response work))
@@ -486,19 +571,7 @@ EOS
   (thread
     (thunk (let loop ()
              (match-define (cons job-response work) (channel-get job-request))
-             (channel-put job-response
-                          (with-handlers ((exn:fail?
-                                            (lambda (v)
-                                              ((error-display-handler) (exn-message v) v)
-                                              (job-failure (exn-message v))))
-                                          ((lambda _ #t)
-                                           (lambda (v)
-                                             (define message
-                                               (string-append "unknown error: "
-                                                              (with-output-to-string (thunk (write v)))))
-                                             (pretty-write message)
-                                             (job-failure message))))
-                            (work)))
+             (channel-put job-response (work-safely work))
              (loop)))))
 
 (define (start)
@@ -523,10 +596,14 @@ EOS
      ;; (("pmi" "v2" "query" "find-categories") #:method "post" /v2/find-categories)
      ;; (("pmi" "v2" "query" "find-predicates") #:method "post" /v2/find-predicates)
 
+     (("pmi" "v2" "ingest-pipeline" "status") #:method "get" /ingest-pipeline-status)
+
      (("health")               #:method "get" /health)
 
      (else                                     not-found)))
-  (serve/servlet dispatch
+
+
+  (serve/servlet (logwrap-lazy dispatch)
                  ;; none-manager for better performance:
                  ;; only possible because we're not using web continuations.
                  #:manager (create-none-manager #f)
@@ -534,8 +611,79 @@ EOS
                  #:listen-ip #f  ;; comment this to disable external connection
                  #:port 8384
                  #:launch-browser? #f
-                 #:safety-limits (make-safety-limits #:response-send-timeout 6000
-                                                     #:response-timeout 6000)
+                 #:safety-limits (make-safety-limits #:response-send-timeout (* 2 (query-time-limit))
+                                                     #:response-timeout (* 2 (query-time-limit)))
+                                                     ;; Avoid (query-time-limit) getting enforced
+                                                     ;; in multiple locations.
                  ))
 
 (module+ main (start))
+
+;; Notes for exercising multi-threaded file handle usage to stress-test work-safely:
+;; Start a long query, then repeatedly run short queries while the long query runs.
+;; Query results should be deterministic and produce no errors.
+
+;; A long query for semmed:
+#|
+{
+  "message": {
+    "query_graph": {
+      "nodes": {
+        "n0": {
+          "ids": [
+            "UMLS:C0520909"
+          ]
+        },
+        "n1": {
+          "categories": [
+            "disease_or_phenotypic_feature"
+          ]
+        },
+        "n2": {
+          "categories": [
+            "gene"
+          ]
+        }
+      },
+      "edges": {
+        "e01": {
+          "subject": "n0",
+          "object": "n1"
+        },
+        "e21": {
+          "subject": "n2",
+          "object": "n1"
+        }
+      }
+    }
+  }
+}
+|#
+
+;; A short query for semmed:
+#|
+{
+  "message": {
+    "query_graph": {
+      "nodes": {
+        "n0": {
+          "ids": [
+            "UMLS:C0520909"
+          ]
+        },
+        "n1": {
+          "categories": [
+            "disease_or_phenotypic_feature"
+          ]
+        }
+      },
+      "edges": {
+        "e01": {
+          "subject": "n0",
+          "object": "n1"
+        }
+      }
+    }
+  }
+}
+|#

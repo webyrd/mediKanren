@@ -103,14 +103,14 @@
 (define (ensure-name-index-built absd-index fn-concept-name-index)
   (let* (
          (absf-index (path->string (simplify-path (build-path absd-index fn-concept-name-index)))))
-    (printf "checking for index ~a\n" absf-index)
+    ; (printf "checking for index ~a\n" absf-index)
     (unless (file-exists? absf-index)
       (build-string-index-via-codec-and-write fn-cprop-primary fn-concept-name-index absd-index))))
 
 (define (assert-name-index-built absd-index fn-concept-name-index)
   (let* (
          (absf-index (path->string (simplify-path (build-path absd-index fn-concept-name-index)))))
-    (printf "checking for index ~a\n" absf-index)
+    ; (printf "checking for index ~a\n" absf-index)
     (unless (file-exists? absf-index)
       (error (format "Use of string search requires index preparation.  Call string-search-init-rel: ~a" absf-index)))))
 

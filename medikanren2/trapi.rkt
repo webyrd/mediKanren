@@ -16,7 +16,7 @@
   racket/dict
   racket/set
   )
-
+ 
 
 ;; QUESTION
 ;; - Do we return all attributes, or only specified ones?
@@ -51,16 +51,17 @@
                                          ("publications" . "miscellaneous")))
 
 (define (alist-ref alist key default)
+  ;; WEB  FIXME unchecked 'assoc' result
   (define kv (assoc key alist))
   (if kv (cdr kv) default))
 
 (define hash-empty (hash))
-(define (str   v) (if (string? v) v (error "invalid string:" v)))
-(define (olift v) (if (hash?   v) v (error "invalid object:" v)))
+(define (str   v) (if (string? v) v (error (format "invalid string: ~s" v))))
+(define (olift v) (if (hash?   v) v (error (format "invalid object: ~s" v))))
 (define (slift v) (cond ((pair?   v) v)
                         ((string? v) (list v))
                         ((null?   v) '())
-                        (else        (error "invalid string or list of strings:" v))))
+                        (else        (error (format "invalid string or list of strings: ~s" v)))))
 (define (alist-of-hashes->lists v)
   (map (lambda (pair)
          (cons (car pair) (hash->list (olift (cdr pair)))))
@@ -69,26 +70,33 @@
   (cond ((number? v) (string->symbol (number->string v)))
         ((string? v) (string->symbol v))
         ((symbol? v) v)
-        (else (error "Must be a number, string or symbol: ~s." v))))
+        (else (error (format "Must be a number, string or symbol: ~s." v)))))
 
 (define (strlift v)
   (cond ((number? v) (number->string v))
         ((string? v) v)
         ((symbol? v) (symbol->string v))
-        (error "Must be a number, string or symbol: ~s" v)))
+        (error (format "Must be a number, string or symbol: ~s" v))))
 
-(define (trapi-response msg (log-key "[query]"))
+(define (trapi-response msg)
+  (define log-key "[query]")
   (define max-results (hash-ref msg 'max_results #f))
-  (define qgraph (hash-ref msg 'query_graph))
+  (define qgraph (hash-ref msg 'query_graph #f))
   (define kgraph (hash-ref msg 'knowledge_graph #f))
+  (define request-valid? (not (not qgraph)))
 
-  (define results (if max-results
-                      (run max-results bindings (trapi-query qgraph kgraph bindings log-key))
-                      (run* bindings (trapi-query qgraph kgraph bindings log-key))))
-  (hash 'results (trapi-response-results results qgraph)
-        'knowledge_graph
-        (hash 'nodes (trapi-response-knodes results)
-              'edges (trapi-response-kedges results))))
+  (if (not request-valid?)
+    (hash 'results '()
+          'knowledge_graph
+          (hash 'nodes '#hash()
+                'edges '#hash()))
+    (let ((results (if max-results
+                          (run max-results bindings (trapi-query qgraph kgraph bindings log-key))
+                          (run* bindings (trapi-query qgraph kgraph bindings log-key)))))
+      (hash 'results (trapi-response-results results qgraph)
+            'knowledge_graph
+            (hash 'nodes (trapi-response-knodes results)
+                  'edges (trapi-response-kedges results))))))
 
 (define (trapi-query qgraph kgraph bindings log-key)
   (define nodes  (hash->list (olift (hash-ref qgraph 'nodes hash-empty))))
@@ -122,54 +130,84 @@
 
 (define (trapi-nodes nodes k-is-a full-reasoning? log-key)
   (relation trapi-nodes-o (bindings)
-    (let loop ((nodes nodes)
-               (bindings bindings))
-      (if (null? nodes)
-          (== bindings '())
-          (let* ((id+n        (car nodes))
-                 (id          (car id+n))
-                 (n           (cdr id+n))
-                 (curie       (hash-ref n 'id #f)) ; deprecated v1.1
-                 (curies      (hash-ref n 'ids (and curie 
-                                                    (if (pair? curie) curie
-                                                        (list curie)))))
-                 (category   (hash-ref n 'category #f)) ; deprecated v1.1
-                 (categories  (hash-ref n 'categories (and category 
-                                                           (if (pair? category) category
-                                                               (list category)))))
-                 (constraints (hash-ref n 'constraints '()))
-                 (is-set?     (hash-ref n 'is_set #f))
-                 (reasoning?  (hash-ref n 'use_reasoning #f)))
-            (if curies
-                (if (pair? curies)
-                    (let ((curies
-                           (if (or reasoning? full-reasoning?)
-                               (log-time log-once log-key 
-                                         (format "Subclasses/synonyms of ~s" curies)
-                                         (get-synonyms-ls (subclasses/set curies)))
-                               curies)))
+    (begin
+      (printf "entering trapi-nodes loop...\n")
+      (let loop ((nodes nodes)
+                 (bindings bindings))
+        (if (null? nodes)
+            (== bindings '())
+            (let* ((id+n        (car nodes))
+                   (id          (car id+n))
+                   (n           (cdr id+n))
+                   (curie       (hash-ref n 'id #f)) ; deprecated v1.1
+                   (curies      (hash-ref n 'ids (and curie 
+                                                      (if (pair? curie) curie
+                                                          (list curie)))))
+                   (category   (hash-ref n 'category #f)) ; deprecated v1.1
+                   (categories  (hash-ref n 'categories (and category 
+                                                             (if (pair? category) category
+                                                                 (list category)))))
+                   (constraints (hash-ref n 'constraints '()))
+                   (is-set?     (hash-ref n 'is_set #f))
+                   (reasoning?  (hash-ref n 'use_reasoning #f)))
+              (printf "--------------\n")
+              (printf "id: ~s\n" id)
+              (printf "n: ~s\n" n)
+              (printf "curie (deprecated): ~s\n" curie)
+              (printf "curies: ~s\n" curies)
+              (printf "category (deprecated): ~s\n" category)
+              (printf "categories: ~s\n" categories)
+              (printf "constraints: ~s\n" constraints)
+              (printf "is-set?: ~s\n" is-set?)
+              (printf "reasoning?: ~s\n" reasoning?)
+              (printf "--------------\n")
+              (if curies
+                  (if (pair? curies)
+                      ;; WEB TODO FIXME Shouldn't we be
+                      ;; simulataneously checking for subclasses of
+                      ;; categories (as in the code below, for when no
+                      ;; curies are specified), if categories are
+                      ;; present for the node, and reasoning? or
+                      ;; full-reasoning? is true?
+                      (let ((curies
+                             (if (or reasoning? full-reasoning?)
+                                 (log-time log-once log-key 
+                                           (format "Subclasses/synonyms of ~s" curies)
+                                           (get-synonyms-ls (subclasses/set curies)))
+                                 curies)))
+                        (fresh (curie k+v bindings-rest)
+                          (== bindings `(,k+v . ,bindings-rest))
+                          (== k+v `(,id . ,curie))
+                          (membero curie curies)
+                          ((trapi-constraints constraints) curie)
+                          (loop (cdr nodes) bindings-rest)))
+                      (error (format
+                              "Field: 'QNode/ids' must be array of CURIEs (TRAPI 1.1), but given ~s\n"
+                              curies)))
+                  (if categories
+                      (if (pair? categories)
+                          (let ((categories (if (or reasoning? full-reasoning?)
+                                                (log-time log-once log-key 
+                                                          (format "Subclasses of ~s" categories)
+                                                          (subclasses/set categories))
+                                                categories)))
+                            (fresh (cat curie k+v bindings-rest)
+                              (== k+v `(,id . ,curie))
+                              (== bindings `(,k+v . ,bindings-rest))
+                              ((trapi-constraints constraints) curie)
+                              (membero cat categories)
+                              (conde ((is-a curie cat))
+                                     ((k-is-a curie cat)))
+                              (loop (cdr nodes) bindings-rest)))
+                          (error (format
+                                  "Field: 'QNode/categories' must be array of CURIEs (TRAPI 1.1), but given ~s\n"
+                                  categories)))
+                      ;; No ids (CURIEs) or categories specified for the node:
                       (fresh (curie k+v bindings-rest)
-                        (== bindings `(,k+v . ,bindings-rest))
-                        (== k+v `(,id . ,curie))
-                        (membero curie curies)
-                        ((trapi-constraints constraints) curie)
-                        (loop (cdr nodes) bindings-rest)))
-                    (error "Field: 'QNode/ids' must be array of CURIEs (TRAPI 1.1)."))
-                (if (pair? categories)
-                    (let ((categories (if (or reasoning? full-reasoning?)
-                                          (log-time log-once log-key 
-                                                    (format "Subclasses of ~s" categories)
-                                                    (subclasses/set categories))
-                                          categories)))
-                      (fresh (cat curie k+v bindings-rest)
-                        (== k+v `(,id . ,curie))
-                        (== bindings `(,k+v . ,bindings-rest))
-                        ((trapi-constraints constraints) curie)
-                        (membero cat categories)
-                        (conde ((is-a curie cat))
-                               ((k-is-a curie cat)))
-                        (loop (cdr nodes) bindings-rest)))
-                    (error "Field: 'QNode/categories' must be array of CURIESs (TRAPI 1.1)."))))))))
+                          (== bindings `(,k+v . ,bindings-rest))
+                          (== k+v `(,id . ,curie))
+                          ((trapi-constraints constraints) curie)
+                          (loop (cdr nodes) bindings-rest))))))))))
 
 (define (trapi-edges edges k-triple full-reasoning? log-key)
   (relation trapi-edges-o (node-bindings edge-bindings)
@@ -183,13 +221,21 @@
                  (predicates  (hash-ref e 'predicates (and predicate
                                                            (if (pair? predicate) predicate
                                                                (list predicate)))))
-                 (subject     (string->symbol (hash-ref e 'subject #f)))
+                 (subject-symbol (hash-ref e 'subject #f))
+                 (subject     (if subject-symbol
+                                  (string->symbol subject-symbol)
+                                  (error (format "subject not found in e:\n~s" e))))
                  (relation    (hash-ref e 'relation #f))
-                 (object      (string->symbol (hash-ref e 'object #f)))
+                 (object-symbol (hash-ref e 'object #f))
+                 (object      (if object-symbol
+                                  (string->symbol object-symbol)
+                                  (error (format "object not found in e:\n~s" e))))
                  (constraints (hash-ref e 'constraints '()))
                  (reasoning?  (hash-ref e 'use_reasoning #f)))
             (if (and predicates (not (pair? predicates)))
-                (error "Field: 'QEdge/predicates' must be an array of CURIEs (TRAPI 1.1).")
+                (error (format
+                         "Field: 'QEdge/predicates' must be an array of CURIEs (TRAPI 1.1).  Given ~s\n"
+                         predicates))
                 (let ((predicates (if (and (or reasoning? full-reasoning?) predicates)
                                       (log-time log-once log-key 
                                                 (format "Subclasses of ~s" predicates)
@@ -246,7 +292,7 @@
 
 (define (trapi-response-results results qgraph)
   (let-values (((is-set-nodes singleton-nodes)
-                (partition (lambda (node) (hash-ref (cdr node) 'is_set #f)) 
+                (partition (lambda (node) (hash-ref (cdr node) 'is_set #f))
                            (hash->list (hash-ref qgraph 'nodes)))))
     (if (null? is-set-nodes) 
         (transform-trapi-results results)
@@ -389,6 +435,7 @@
   (define (get-nodes result)
     (sort (filter (lambda (node)
                     (member (car node) singleton-nodes))
+                  ;; WEB  FIXME taking 'cdr' of unchecked 'assoc' result
                   (cdr (assoc 'node_bindings result)))
           string<?
           #:key (lambda (e) (symbol->string (car e)))))
@@ -402,6 +449,7 @@
                            (cons id (cons curie (alist-ref rst id '())))))))
      '()
      (map (lambda (result)
+            ;; WEB  FIXME taking 'cdr' of unchecked 'assoc' result
             (cdr (assoc key result)))
           results)))
   (map (lambda (results)

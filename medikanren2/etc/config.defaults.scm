@@ -11,11 +11,26 @@
  ;; biased-interleaving (default), depth-first
  (search-strategy            . #f)
 
+ ;; These keys have to be in the file to let the configref.rkt library know
+ ;; that the keys exist so they can be populated at runtime.
+ (relation-root-path . relation-root-path-placeholder)
+ (temporary-root-path . temporary-root-path-placeholder)
+
  ;; Specify installed databases as a list of symbols, e.g.:
  ;;   (databases                  . (rtx2-20210204))
  ;;
  ;; Unless more specifically configured, we assume no databases have been installed:
  (databases                  . ())
+
+ ;; Disable this flag to prevent translator-web-server.rkt
+ ;; and open-api/ from making downstream HTTP requests.  Useful
+ ;; for functional CI tests, and for offline development.
+ (trapi-enable-external-requests?  . #t)
+
+ (migrated-to-new-db-versioning . #f)
+ (version-for-database . (
+     (rtx-kg2 . "20210204")
+    ))
 
  ;; Add new configuration options as new association pairs.
  )

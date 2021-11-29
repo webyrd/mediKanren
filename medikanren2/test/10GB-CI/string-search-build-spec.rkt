@@ -14,7 +14,7 @@
     (#:do
         (let* (
                 (relp-index (hash-ref (relation-definition-info nodes) 'path))
-                (absd-index (current-config-relation-path relp-index))
+                (absd-index (dbk:current-config-relation-path relp-index))
                 (name-corpus (test:read-name-corpus fn-cprop-primary absd-index))
                 (nbytes-total
                     (time (for/sum ((v name-corpus))
@@ -30,7 +30,7 @@
 (define (absf-perftest rel)
     (let* (
             (relp-index (hash-ref (relation-definition-info nodes) 'path))
-            (absd-index (current-config-relation-path relp-index)))
+            (absd-index (dbk:current-config-relation-path relp-index)))
         (path->string (simplify-path (build-path absd-index fn-perftest)))))
 
 (chk

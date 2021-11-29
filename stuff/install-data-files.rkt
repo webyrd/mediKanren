@@ -4,6 +4,11 @@
 (require racket/cmdline)
 (require yaml)
 (require shell/pipeline)
+(require net/url-string)
+(require "run-shell-pipelines.rkt")
+(require (prefix-in cmd: "cmd-helpers.rkt"))
+(require "symlink-tree.rkt")
+(require racket/pretty)
 (require chk)
 
 ;; logging approach 1: Actually try to make a log receiver and make it work.  AFAICT
@@ -11,81 +16,41 @@
 ;; logging approach 2: KISS but abuse the API.
 ;;
 ;; This is approach 2:
-(define log-warning displayln)
+(define (log-warning . args)
+  (apply displayln args)
+  (flush-output))
 
 ;; *** generic utilities ***
 
-;; TODO: see if dynamic-wind preserves crash stacktraces better than with-handlers.
 (define (with-finally thunk-cleanup thunk-run)
   (dynamic-wind
     (lambda () #f)
     thunk-run
     thunk-cleanup))
 
-;; shell/pipelines can represent a pipeline step without
-;; running it, via pipeline-member-spec.  However, it seems to
-;; lack ability to represent a whole pipeline without running it.
-;; So as a workaround we'll use a list of lists to be able
-;; to test command generation without running commands.
-
-;;; Run a list of prepared pipelines
-(define (run-pipelines pipelines)
-  (define ret #f)
-  (for* ((pipeline pipelines))
-    (let* (
-           (ks (car pipeline))
-           (vs (cadr pipeline))
-           (fout (if (and
-                      (not (null? ks))
-                      (equal? (last ks) '#:out)
-                      (equal? (- (length ks) 1) (length vs)))
-                     (open-output-string)
-                     #f))
-           (vs (if fout
-                   (append vs (list fout))
-                   vs))
-           (p (keyword-apply run-subprocess-pipeline
-                             ks
-                             vs
-                             (pipeline-member-spec (caddr pipeline))
-                             (map (lambda (cmd) (pipeline-member-spec cmd)) (cdddr pipeline)))))
-      (if (not (equal? 0 (pipeline-status p)))
-          (raise (format "status ~a attempting to run ~s" (pipeline-status p) pipeline))
-          (printf "status ok\n"))
-      (when fout (set! ret (get-output-string fout)))))
-  ret)
-
-(define (dorash #:dry-run dry-run cmds)
-  (unless (equal? dry-run 'quiet)
-    (printf "~s\n" cmds))
-  (unless dry-run
-    (run-pipelines cmds)))
-
-
 ;; *** application configuration ***
-(struct config
-  (
-   afile-yaml
-   uri-remote-archive
-   adir-local-archive
-   adir-storage
-   adir-install
-   do-config-scm
-   omit-aws-workaround
-   dry-run
-   (adir-temp #:mutable)
-   (ardbs #:mutable)
-   ) #:transparent
-  #:name config-t
-  #:constructor-name config-new
-  )
+
+(define afile-yaml (make-parameter #f))
+(define uri-yaml (make-parameter #f))
+(define uri-remote-archive (make-parameter #f))
+(define adir-local-archive (make-parameter #f))
+(define adir-storage (make-parameter #f))
+(define adir-install (make-parameter #f))
+(define do-config-scm (make-parameter #f))
+(define delete-data-cache (make-parameter #f))
+(define omit-aws-workaround (make-parameter #f))
+(define config-ardbs (make-parameter #f))     ; mutable
+(define config-adir-temp (make-parameter #f)) ; mutable
 
 ;;; Mnemonic: "ARchive of DataBase"
 (struct ardb 
   (
+   kgid
+   versionOfKg
    configkey             ; For --write-config-scm.  Leave configkey blank
    ; to prevent the ardb from adding to config.scm.
    reldir
+   isUpstream
    sha1sum
    versionOfMedikanren
    filename
@@ -95,20 +60,31 @@
   #:constructor-name ardb-new
   )
 
+(define (prefer-string v)
+  (cond
+    ((number? v) (number->string v))
+    (else v)))
+
 ;; wow lots of work to have the file be yaml
 (define (construct-ardb node)
   (define mapping (construct-mapping node))
   (ardb-new
+   (hash-ref mapping "kgid" (lambda () 'null))
+   (prefer-string (hash-ref mapping "versionOfKg" (lambda () 'null)))
    (hash-ref mapping "configkey" (lambda () 'null))
-   (hash-ref mapping "reldir")
+   (hash-ref mapping "reldir" (lambda () 'null))
+   (hash-ref mapping "isUpstream" (lambda () #f))
    (hash-ref mapping "sha1sum")
    (hash-ref mapping "versionOfMedikanren")
    (hash-ref mapping "filename")
    (hash-ref mapping "format")))
 (define (represent-ardb p)
   (define mapping (make-hash))
+  (hash-set! mapping "kgid" (ardb-kgid p))
+  (hash-set! mapping "versionOfKg" (ardb-versionOfKg p))
   (hash-set! mapping "configkey" (ardb-configkey p))
   (hash-set! mapping "reldir" (ardb-reldir p))
+  (hash-set! mapping "isUpstream" (ardb-isUpstream p))
   (hash-set! mapping "sha1sum" (ardb-sha1sum p))
   (hash-set! mapping "versionOfMedikanren" (ardb-versionOfMedikanren p))
   (hash-set! mapping "filename" (ardb-filename p))
@@ -126,142 +102,210 @@
                  )
     (yaml->string ardb)))
 
-(define (styaml->ardb styaml)
+(define (styaml->ardbs styaml)
   (parameterize (
                  [yaml-representers (list ardb-representer)]
                  [yaml-constructors (list ardb-constructor)]
                  )
     (string->yaml* styaml #:allow-undefined? #t)))
 
-(define (yamlfile->ardb absfile)
+(define (yamlfile->ardbs absfile)
   (parameterize (
                  [yaml-representers (list ardb-representer)]
                  [yaml-constructors (list ardb-constructor)]
                  )
-    (file->yaml* absfile)))
+    (append-map (lambda (x) x)
+      (file->yaml* absfile))))
 
-(define (dataconfig config)
-  (yamlfile->ardb (config-afile-yaml config)))
+(define (sturl-dirname sturl)
+  (define url1 (string->url sturl))
+  (define path1 (url-path url1))
+  (define path2 (take path1 (- (length path1) 1)))
+  (url->string (struct-copy url url1 (path path2))))
 
+(define (implicit-uri-remote?)
+  (and (not (uri-remote-archive))
+          (uri-yaml)))
+
+(define (uri-remote)
+  (if (implicit-uri-remote?)
+    (sturl-dirname (uri-yaml))
+    (uri-remote-archive)))
+
+(define (yamluri->ardbs uri-yaml)
+  (define afile-yaml-temp (path->string (build-path (string->path (config-adir-temp)) "tmp.yaml")))
+  (parameterize
+      ((cmd:dry-run #f))
+    (cmd:run-cmds
+    `(((#:out) () (,@(prefix-for-aws-workaround)
+              "aws" "s3" "cp" "--quiet"
+              ,uri-yaml
+              ,afile-yaml-temp
+              ))))
+    (yamlfile->ardbs afile-yaml-temp)))
+
+(define (dataconfig)
+  (cond
+    ((afile-yaml) (yamlfile->ardbs (afile-yaml)))
+    ((uri-yaml) (yamluri->ardbs (uri-yaml)))
+    (else (error "internal error"))))
 
 (define (path-ver-from-st v)
-  (cond
-    ((string-prefix? v "v1.") "medikanren1")
-    ((string-prefix? v "v2.") "medikanren2")
+  (match (map string->number (string-split (string-trim v "v") "."))
+    (`(1 . ,_) "medikanren1")
+    (`(2 . ,_) "medikanren2")
     (else (error (format "unknown versionOfMedikanren: ~a" v)))))
 
 (define (path-ver ardb)
   (let ((v (ardb-versionOfMedikanren ardb)))
     (path-ver-from-st v)))
 
-(define (adir-temp-prefix uri-remote-archive ardb)
-  (format "~a/~a/~a" uri-remote-archive (path-ver ardb)
-          (ardb-filename ardb)))
+(define (dir-cat-temp dir-archive ardb)
+  (if (implicit-uri-remote?)
+    (format "~a/~a" dir-archive (ardb-filename ardb))
+    (format "~a/~a/~a" dir-archive (path-ver ardb)
+            (ardb-filename ardb))))
 
-(define (adir-temp-prefix-* uri-remote-archive ardb)
-  (format "~a*" (adir-temp-prefix uri-remote-archive ardb)))
+(define (dir-cat-temp-* dir-archive ardb)
+  (format "~a*" (dir-cat-temp dir-archive ardb)))
 
 ;; *** commands for extracting, checking, and installing ***
-(define (cmd-to-cat ardb dir-archive config)
+(define (cmd-to-cat ardb dir-archive)
   (cond
     ((member "split" (ardb-format ardb))
-     `("sh" "-c" ,(format "cat ~a" (adir-temp-prefix-* dir-archive ardb))))
-    (else `("cat" ,(adir-temp-prefix dir-archive ardb)))))
+     `("sh" "-c" ,(format "cat ~a" (dir-cat-temp-* dir-archive ardb))))
+    (else `("cat" ,(dir-cat-temp dir-archive ardb)))))
 
-(define (cmds-to-sha1 ardb dir-archive config)
+(define (cmds-to-sha1 ardb dir-archive)
   `(((#:out) ()
-             ,(cmd-to-cat ardb dir-archive config)
+             ,(cmd-to-cat ardb dir-archive)
              ("sha1sum")
              ("cut" "-c1-40")
              )))
 
-(define (cmds-to-extract sha1 ardb dir-archive config)
-  (let* ((adir-target (format "~a/~a" (config-adir-storage config) sha1))
-         (adir-target-temp (format "~a/~a-temp" (config-adir-storage config) sha1)))
+(define (dirname afile)
+  (path->string (simplify-path (build-path (string->path afile) 'up))))
+
+(define (cmds-to-extract sha1 ardb dir-archive)
+  (let* ((adir-target (format "~a/~a" (adir-storage) sha1))
+         (adir-target-parent (dirname adir-target))
+         (adir-target-temp (format "~a/~a-temp" (adir-storage) sha1)))
     `((() ()
           ("rm" "-rf" ,adir-target-temp))
       (() ()
           ("mkdir" "-p" ,adir-target-temp))
       (() ()
-          ,(cmd-to-cat ardb dir-archive config)
+          ,(cmd-to-cat ardb dir-archive)
           ("tar" "xzf" "-" "-C" ,adir-target-temp)
           )
       (() ()
+          ("mkdir" "-p" ,adir-target-parent))
+      (() ()
           ("mv" ,adir-target-temp ,adir-target)))))
 
-(define (cmds-to-symlink sha1 ardb config)
-  (let* (
-         (pathOwned (build-path (config-adir-install config) (path-ver ardb) "data" (ardb-reldir ardb)))
-         (adirOwned (path->string pathOwned))
-         (adirParent (path->string (simplify-path (build-path pathOwned 'up)))))
-    `((() () ("mkdir" "-p"
-                      ,adirParent))
-      (() () ("rm" "-f"
-                   ,adirOwned))
-      (() () ("ln" "-s"
-                   ,(path->string (build-path (config-adir-storage config) sha1 (ardb-reldir ardb)))
-                   ,adirOwned)))))
+(define (label-sha1-dir sha1 ardb dir-archive)
+  (when (new-format? ardb)
+    (let* ((afile-kgid (build-path (adir-storage) sha1 "kgid" (ardb-kgid ardb)))
+          (afile-ver (build-path (adir-storage) sha1 "ver" (ardb-versionOfKg ardb))))
+      (make-parent-directory* afile-kgid)
+      (display-to-file "" afile-kgid)
+      (make-parent-directory* afile-ver)
+      (display-to-file "" afile-ver))))
 
-(define (ardb-already-installed? config ardb)
+(define dr-label-sha1-dir (cmd:dry-runify label-sha1-dir 'label-sha1-dir))
+
+(define (reldir-from-ardb ardb)
+  (if (not (new-format? ardb))
+    `(,(ardb-reldir ardb)) ; This is now the only bona fide usage of ardb-reldir
+    (if (ardb-isUpstream ardb)
+      `("upstream" ,(ardb-kgid ardb) ,(ardb-versionOfKg ardb))
+      `(,(ardb-kgid ardb) ,(ardb-versionOfKg ardb)))))
+
+(define (append-path path patels)
+  (apply build-path (cons path patels)))
+
+(define (do-symlink-impl path-src path-dest)
+  (make-directory* path-dest)
+  (make-directory* path-src)
+  (symlink-tree path-src path-dest))
+
+(define dr-do-symlink-impl (cmd:dry-runify do-symlink-impl 'do-symlink))
+
+(define (do-symlink sha1 ardb)
+  (let* (
+         (path-dest (append-path (build-path (adir-install) (path-ver ardb) "data") (reldir-from-ardb ardb)))
+         (path-src (build-path (adir-storage) sha1)))
+    (dr-do-symlink-impl path-src path-dest)))
+
+(define (ardb-already-installed? ardb)
   ;; cmds-to-extract owns adir-ardb-storage and writes atomically.  Manual
   ;; manipulation of adir-storage is not supported.  Therefore,
   ;; if we find that adir-ardb-storage already exists, it must have been
   ;; the byproduct of a previous successful sha1 verification and install.
   ;; Therefore, we may "short circuit" by not repeating the installation.
   ;; Instead, we run an echo command to signal to the user.
-  (let* ((adir (path->string (build-path (config-adir-storage config) (ardb-sha1sum ardb)))))
+  (let* ((adir (path->string (build-path (adir-storage) (ardb-sha1sum ardb)))))
     (directory-exists? adir)))
 
-(define (cmds-echo-already-installed config ardb)
-  (let* ((adir (path->string (build-path (config-adir-storage config) (ardb-sha1sum ardb)))))
+(define (cmds-echo-already-installed ardb)
+  (let* ((adir (path->string (build-path (adir-storage) (ardb-sha1sum ardb)))))
     `((() () ("echo" ,adir " appears to be already installed, skipping")))))
 
-(define (run-check-extract-link dir-archive config #:dry-run dry-run)
-  (for ((ardb (config-ardbs config)))
+(define (run-check-extract-link dir-archive)
+  (for ((ardb (config-ardbs)))
     (let* ((sha1-expected (ardb-sha1sum ardb)))
       (cond 
-        ((ardb-already-installed? config ardb)
+        ((ardb-already-installed? ardb)
          (begin
-           (dorash #:dry-run dry-run (cmds-echo-already-installed config ardb))
-           (dorash #:dry-run dry-run (cmds-to-symlink sha1-expected ardb config))))
-        (dry-run
+           (cmd:run-cmds (cmds-echo-already-installed ardb))
+           (do-symlink sha1-expected ardb)))
+        ((cmd:dry-run)
          (let ((sha1 (ardb-sha1sum ardb)))
-           (dorash #:dry-run dry-run (cmds-to-extract sha1-expected ardb dir-archive config))
-           (dorash #:dry-run dry-run (cmds-to-symlink sha1-expected ardb config))))
+           (cmd:run-cmds (cmds-to-extract sha1-expected ardb dir-archive))
+           (do-symlink sha1-expected ardb)))
         (else
          (let ((sha1 (string-trim
                       #:left? #f
-                      (dorash #:dry-run dry-run (cmds-to-sha1 ardb dir-archive config)))))
+                      (cmd:run-cmds (cmds-to-sha1 ardb dir-archive)))))
            (if (equal? sha1 sha1-expected)
                (begin
-                 (dorash #:dry-run dry-run (cmds-to-extract sha1 ardb dir-archive config))
-                 (dorash #:dry-run dry-run (cmds-to-symlink sha1 ardb config)))
+                 (cmd:run-cmds (cmds-to-extract sha1 ardb dir-archive))
+                 (dr-label-sha1-dir sha1 ardb dir-archive)
+                 (do-symlink sha1 ardb))
                (error (format "sha1 ~a != expected ~a" sha1 sha1-expected)))))))))
 
 ;; *** commands for syncing from a remote source ***
-(define (include-for-sync config ardb)
-  (if (ardb-already-installed? config ardb)
+(define (include-for-sync ardb)
+  (if (ardb-already-installed? ardb)
       '()
-      `("--include" ,(format "*~a/~a*" (path-ver ardb) (ardb-filename ardb)))))
+      (if (implicit-uri-remote?)
+        `("--include" ,(format "*~a*" (ardb-filename ardb)))
+        `("--include" ,(format "*~a/~a*" (path-ver ardb) (ardb-filename ardb))))))
 
-(define (includes-for-sync config)
-  (append-map (lambda (ardb) (include-for-sync config ardb)) (config-ardbs config)))
+(define (includes-for-sync)
+  (append-map (lambda (ardb) (include-for-sync ardb)) (config-ardbs)))
 
-(define (prefix-for-aws-workaround config)
-  (if (config-omit-aws-workaround config)
+(define (prefix-for-aws-workaround)
+  (if (omit-aws-workaround)
     '()
     '("env" "AWS_EC2_METADATA_DISABLED=true")
         ;; fix: "<botocore.awsrequest.AWSRequest object at 0x7f623ae5b040>"
         ;; https://github.com/aws/aws-cli/issues/5262
   ))
 
-(define (cmds-to-sync config)
-  `((() () (,@(prefix-for-aws-workaround config)
-            "aws" "s3" "sync" "--quiet"
+;; interpret --write-config-scm to indicate unattended installation, otherwise show progress for the user
+(define (verbosity-options)
+  (if (do-config-scm)
+    '("--quiet")
+    '()))
+
+(define (cmds-to-sync)
+  `((() () (,@(prefix-for-aws-workaround)
+            "aws" "s3" "sync" ,@(verbosity-options)
             "--exclude" "*"
-            ,@(includes-for-sync config)
-            ,(config-uri-remote-archive config)
-            ,(config-adir-temp config)
+            ,@(includes-for-sync)
+            ,(uri-remote)
+            ,(config-adir-temp)
             ))))
 
 (define (path-remove-wildcards path)
@@ -271,6 +315,30 @@
 (define (cmds-rm-r absd)
   `((() () ("rm" "-rf" ,(path-remove-wildcards absd)))))
 
+;;; TEMPORARY: migrated-to-new-db-versioning
+;;; BEGIN functions that do compatibility between the new kgid based config keys and the
+;;; older configkey field.
+
+(define (new-format? ardb)
+  (cond
+    ((equal? (ardb-kgid ardb) 'null) #f)
+    ((equal? (ardb-versionOfKg ardb) 'null) #f)
+    (else #t)))
+
+(define (get-configkey ardb)
+  (cond
+    ((not (ardb-configkey ardb)) #f)
+    ((eq? (ardb-configkey ardb) 'null) #f)
+    ((new-format? ardb) (ardb-kgid ardb))
+    (else (ardb-configkey ardb))))
+
+(define (idver-from-ardb ardb)
+  (if (new-format? ardb)
+    (values (ardb-kgid ardb) (ardb-versionOfKg ardb))
+    (values #f #f)))
+
+;;; END compatibility
+
 (define (gen-config-scm ver ardbs)
   (let* (
          (ardbs1
@@ -278,77 +346,105 @@
            (lambda (ardb) (string-prefix? (ardb-versionOfMedikanren ardb) ver))
            ardbs)))
     `((databases ,@(append-map (lambda (ardb)
-                                 (if (equal? (ardb-configkey ardb) 'null) '() (list (string->symbol (ardb-configkey ardb)))))
+                                 (if (get-configkey ardb) (list (string->symbol (get-configkey ardb))) '()))
                                ardbs1)))))
 
 ;; *** commands to automatically populate config.scm ***
-(define (write-config-scm ver config)
-  (let* (
-         (absf (format "~a/~a/config.scm" (config-adir-install config) (path-ver-from-st ver)))
-         (_ (make-parent-directory* absf))
-         (fout1 (open-output-file absf #:exists 'replace))
-         (cfg (gen-config-scm ver (config-ardbs config))))
-    (writeln cfg fout1)
-    (close-output-port fout1)))
+(define (write-config-scm ver)
+  (define cfg (gen-config-scm ver (config-ardbs)))
+  (pretty-write `((generated-config-scm . ,cfg)))
+  (unless (cmd:dry-run)
+    (let* (
+          (absf (format "~a/~a/etc/config.scm" (adir-install) (path-ver-from-st ver)))
+          (_ (make-parent-directory* absf))
+          (fout1 (open-output-file absf #:exists 'replace)))
+      (writeln cfg fout1)
+      (close-output-port fout1))))
 
-(define (write-configs-scm config)
-  (write-config-scm "v1." config)
-  (write-config-scm "v2." config))
+(define (write-configs-scm)
+  (write-config-scm "v1.")
+  (write-config-scm "v2."))
+
+(define (update-vfd vfd ardbs)
+  (if (null? ardbs)
+    vfd
+    (let-values (((id ver) (idver-from-ardb (car ardbs))))
+      (update-vfd
+        (if id
+          (dict-set vfd (string->symbol id) (string->symbol ver))
+          vfd)
+        (cdr ardbs)))))
+
+(define (rewrite-config-installer-scm)
+  (let* ((ver "v2.")
+         (absf (format "~a/~a/etc/config.installer.scm" (adir-install) (path-ver-from-st ver)))
+         (_ (make-parent-directory* absf))
+         (fin1 (if (file-exists? absf) (open-input-file absf) (open-input-string "()")))
+         (h (read fin1))
+         (vfd (dict-ref h 'version-for-database '()))
+         (vfd2 (update-vfd vfd (config-ardbs)))
+         (h3 (dict-set h 'version-for-database vfd2)))
+    (if (cmd:dry-run)
+      (begin
+        (pretty-write `((rewrite-config-installer-scm . ,h)))
+        (newline))
+      (let ((fout1 (open-output-file absf #:exists 'replace)))
+        (pretty-write `((rewrite-config-installer-scm . ,h3)))
+        (pretty-write h3 fout1)
+        (newline fout1)
+        (close-output-port fout1)))))
+
+(define (cmds-delete-data-cache)
+  `((() ()
+        ("rm" "-rf" ,(adir-storage)))))
 
 ;; *** main program ***
-(define (validate-env config)
+(define (validate-env )
   (define s3-id (getenv "ncats_s3_id"))
   (define s3-secret (getenv "ncats_s3_secret"))
 
   (unless s3-id (log-warning "environment variable ncats_s3_id is missing.  awscli may be confused."))
   (unless s3-secret (log-warning "environment variable ncats_s3_secret is missing.  awscli may be confused.")))
 
-(define (setup-teardown-run-install config)
-  (validate-env config)
-  (let* (
-         (dry-run (config-dry-run config))
-         (adir-temp (path->string (make-temporary-file "medikanren_~a" 'directory #f))))
-    (set-config-adir-temp! config adir-temp)
-    (with-finally
-      (lambda () (dorash #:dry-run dry-run (cmds-rm-r adir-temp)))
-      (lambda ()
-        (dorash #:dry-run dry-run (cmds-to-sync config))
-        (run-check-extract-link (config-adir-temp config) config #:dry-run dry-run)))))
+(define (setup-teardown-run-install)
+  (validate-env)
+  (cmd:run-cmds (cmds-to-sync))
+  (run-check-extract-link (config-adir-temp)))
 
-(define (run-from-local-archive config)
-  (let* (
-         (dry-run (config-dry-run config))
-         )
-    (run-check-extract-link (config-adir-local-archive config) config #:dry-run dry-run)))
+;; TODO: inline
+(define (run-from-local-archive)
+  (run-check-extract-link (adir-local-archive)))
 
+(define (run-main)
+  (cmd:with-adir-temp-root
+    (lambda ()
+      (run-main-impl))))
 
-(define (run-main config)
+(define (run-main-impl)
   (cond
-    ((not (config-afile-yaml config)) (error "--dir-root required"))
-    ((not (config-adir-install config)) (error "--dir-install required"))
-    ((not (config-adir-storage config)) (error "--dir-storage required"))
-    ((not (or (config-uri-remote-archive config) (config-adir-local-archive config))) 
+    ((not (or (afile-yaml) (uri-yaml))) (error "--dir-root required"))
+    ((not (adir-install)) (error "--dir-install required"))
+    ((not (adir-storage)) (error "--dir-storage required"))
+    ((not (or (uri-remote-archive) (implicit-uri-remote?) (adir-local-archive)))
      (error "either --uri-remote-archive or --dir-local-archive is required"))
     (else
-     (set-config-ardbs! config (append-map (lambda (x) x) (dataconfig config)))
+     (config-adir-temp (cmd:adir-temp)) ; parameter set!
+     (config-ardbs (dataconfig)) ; parameter set!
+     (when (delete-data-cache)
+       (cmd:run-cmds (cmds-delete-data-cache)))
      (cond
-       ((config-uri-remote-archive config) (setup-teardown-run-install config))
-       ((config-adir-local-archive config) (run-from-local-archive config))
+       ((implicit-uri-remote?) (setup-teardown-run-install))
+       ((uri-remote-archive) (setup-teardown-run-install))
+       ((adir-local-archive) (run-from-local-archive))
        (else (error "Nothing to do.  Pass --help for usage.")))
-     (when (config-do-config-scm config)
-       (write-configs-scm config))
+     (when (do-config-scm)
+       (write-configs-scm))
+     (rewrite-config-installer-scm)
      )))
 
 ;; *** CLI parsing ***
 (define (parse-configuration)
-  (define afile-yaml (make-parameter #f))
-  (define uri-remote-archive (make-parameter #f))
-  (define adir-local-archive (make-parameter #f))
-  (define adir-storage (make-parameter #f))
-  (define adir-install (make-parameter #f))
-  (define do-config-scm (make-parameter #f))
-  (define omit-aws-workaround (make-parameter #f))
-  (define dry-run (make-parameter #f))
+  (cmd:dry-run #f)
   (command-line
    #:program "install-data-files.rkt"
    #:usage-help "install-data-files.rkt <options>"
@@ -356,6 +452,9 @@
    [("--file-yaml") adir
                     "The absolute path to a data.yaml file"
                     (afile-yaml (string-trim #:left? #f adir))]
+   [("--uri-yaml") adir
+                    "An S3 URI to a data.yaml file with data accessible at a relative path"
+                    (uri-yaml (string-trim #:left? #f adir))]
    [("--uri-remote-archive") uri
                              "The base URI of the remote data repository"
                              (uri-remote-archive (string-trim #:left? #f uri))]
@@ -374,64 +473,58 @@
    [("--omit-aws-workaround")
     "Generate and overwrite config.scm files for extracted data"
     (omit-aws-workaround #t)]
+   [("--delete-data-cache")
+    "In case of full disk or invalid state, delete existing cache"
+    (delete-data-cache #t)]
    [("--dry-run")
     "Print commands to run.  Do not run."
-    (dry-run #t)]
+    (cmd:dry-run #t)]
    #:args ()
    '())
-  (config-new
-   (afile-yaml)
-   (uri-remote-archive)
-   (adir-local-archive)
-   (adir-storage)
-   (adir-install)
-   (do-config-scm)
-   (omit-aws-workaround)
-   (dry-run)
-   #f
-   '()))
+   ;""  ; We don't care about the return value because configuration lives in mutatable racket parameters
+  )
 
 (module+ main
-  (run-main (parse-configuration))
+  (parse-configuration)
+  (run-main)
   )
 
 (module+ test
-  (define ardb-sample (ardb-new "rtx2-20210204" "rtx2"
+  (define ardb-sample (ardb-new "rtx" "1.0-kge"
+                                "rtx2-20210204" "rtx2"
                                 "d56c1a0507b4e2c16f941214576af052f1279500" 
                                 "v2.0"
                                 "rtx2_2021_02_04.tar.gz"
                                 '()))
-  (define config-sample-1 (config-new
-                           "/home/foo/root"
-                           "s3://bucket"
-                           #f
-                           "/path/to/storage"
-                           "/path/to/install"
-                           #f
-                           #f
-                           #t
-                           "/tmp/dir"
-                           (list ardb-sample)))
+
+  (define (with-config-sample-1 thunk)
+    (uri-remote-archive "s3://bucket")
+    (adir-storage "/path/to/storage")
+    (adir-install "/path/to/install")
+    (config-ardbs (list ardb-sample))
+    (thunk))
+
   (chk
-   #:=
-   (ardb->yaml ardb-sample)
-   "!ardb\nsha1sum: d56c1a0507b4e2c16f941214576af052f1279500\nformat: []\nversionOfMedikanren: v2.0\nfilename: rtx2_2021_02_04.tar.gz\nreldir: rtx2\nconfigkey: rtx2-20210204\n"
+   (#:do (ardb->yaml ardb-sample))
+   (#:t #t)
    )
   (chk
    #:=
-   (styaml->ardb (ardb->yaml ardb-sample))
+   (styaml->ardbs (ardb->yaml ardb-sample))
    (list ardb-sample)
    )
 
   (chk
    (#:do
-    (define ardb (car (styaml->ardb
+    (define ardb (car (styaml->ardbs
                        (string-join '(
                                       "!ardb"
                                       "sha1sum: d56c1a0507b4e2c16f941214576af052f1279500"
                                       "format: []"
                                       "versionOfMedikanren: v2.0"
                                       "filename: rtx2_2021_02_04.tar.gz"
+                                      "kgid: rtx"
+                                      "versionOfKg: 1.0-kge"
                                       "reldir: rtx2")
                                     "\n"
                                     )))))
@@ -441,7 +534,7 @@
   (chk
    (#:do
     (define configscm
-      (gen-config-scm "v2." (car (styaml->ardb
+      (gen-config-scm "v2." (car (styaml->ardbs
                                   (string-join '(
                                                  "---"
                                                  "- !ardb"
@@ -451,6 +544,8 @@
                                                  "  sha1sum: nonempty"
                                                  "  size: 0"
                                                  "  filename: nonempty"
+                                                 "  kgid: rtx"
+                                                 "  versionOfKg: 1.0-kge"
                                                  "  format:")
                                                "\n"
                                                ))))))
@@ -461,7 +556,7 @@
   (chk
    (#:do
     (define configscm
-      (gen-config-scm "v2." (car (styaml->ardb
+      (gen-config-scm "v2." (car (styaml->ardbs
                                   (string-join '(
                                                  "---"
                                                  "- !ardb"
@@ -470,6 +565,8 @@
                                                  "  sha1sum: nonempty"
                                                  "  size: 0"
                                                  "  filename: nonempty"
+                                                 "  kgid: rtx"
+                                                 "  versionOfKg: 1.0-kge"
                                                  "  format:")
                                                "\n"
                                                ))))))
@@ -480,7 +577,7 @@
   (chk
    (#:do
     (define configscm
-      (gen-config-scm "v2." (car (styaml->ardb
+      (gen-config-scm "v2." (car (styaml->ardbs
                                   (string-join '(
                                                  "---"
                                                  "- !ardb"
@@ -490,6 +587,8 @@
                                                  "  sha1sum: nonempty"
                                                  "  size: 0"
                                                  "  filename: nonempty"
+                                                 "  kgid: rtx"
+                                                 "  versionOfKg: 1.0-kge"
                                                  "  format:")
                                                "\n"
                                                ))))))
@@ -499,7 +598,10 @@
 
   (chk
    #:=
-   (cmds-to-sync config-sample-1)
+   (with-config-sample-1
+    (lambda ()
+      (config-adir-temp "/tmp/dir")
+      (cmds-to-sync)))
    `((() () (
              "env" "AWS_EC2_METADATA_DISABLED=true"
              "aws" "s3" "sync" "--quiet"
@@ -533,10 +635,20 @@
    #:= st "hello")
 
   (chk
-   #:do (run-check-extract-link (config-adir-temp config-sample-1) config-sample-1 #:dry-run 'quiet)
+   #:do (with-config-sample-1
+    (lambda ()
+      (run-check-extract-link (config-adir-temp))))
    #:t #t)
 
   (chk
    #:= (path-remove-wildcards "/foo/*bar*") "/foo/bar"
    #:= (path-remove-wildcards "/foo/?bar?") "/foo/bar")
+
+  (chk
+    (#:= (dirname "/foo/bar/baz")
+      "/foo/bar/"))
+
+  (chk
+    (#:= (dirname "/foo/bar/baz/")
+      "/foo/bar/"))
   )
