@@ -1,6 +1,8 @@
 #lang racket/base
 (provide
   column:const
+  column:identity
+  column:offset
   column:vector
   column:table
   column:indirect
@@ -132,11 +134,12 @@
 ;;
 ;;desc.column
 ;;(hash
-;;  'type  'nat|'text
-;;  'count num-elements
-;;  'size  nat-bytes
-;;  'min   _
-;;  'max   _
+;;  'type   'int|'text
+;;  'count  num-elements
+;;  'size   nat-bytes
+;;  'min    _
+;;  'max    _
+;;  'offset _
 ;;  )
 ;;
 ;;desc.table
@@ -553,12 +556,18 @@
                                          (define (descs->cols fnsuffix descs.col)
                                            (map (lambda (j desc.col)
                                                   (and desc.col
-                                                       (let* ((fname (string-append "column." (number->string j) fnsuffix))
-                                                              (apath (build-path (data-path lpath.ti) fname)))
-                                                         (column:port (open-input-file apath) `#(nat ,(hash-ref desc.col 'size)))
-                                                         ;; Optionally load index columns into memory instead
-                                                         ;(time (column:bytes:nat (file->bytes apath) (hash-ref desc.col 'size)))
-                                                         )))
+                                                       (let ((size   (hash-ref desc.col 'size))
+                                                             (offset (hash-ref desc.col 'offset 0))) ; TODO: later, require this
+                                                         (column:offset
+                                                           (if (< 0 size)
+                                                             (let* ((fname (string-append "column." (number->string j) fnsuffix))
+                                                                    (apath (build-path (data-path lpath.ti) fname)))
+                                                               (column:port (open-input-file apath) `#(nat ,size))
+                                                               ;; Optionally load index columns into memory instead
+                                                               ;(time (column:bytes:nat (file->bytes apath) (hash-ref desc.col 'size)))
+                                                               )
+                                                             column:identity)
+                                                           offset))))
                                                 (range (length descs.col)) descs.col))
                                          (define desc.ti       (hash-ref data lpath.ti))
                                          (define descs.col.key (hash-ref desc.ti 'columns.key))
@@ -595,6 +604,7 @@
                                         (define col.pos      (column:port (open-input-file (build-path apath.dt "position")) `#(nat ,size.pos)))
                                         ;; Optionally load positions into memory instead
                                         ;(define col.pos      (time (column:bytes:nat (file->bytes (build-path apath.dt "position")) size.pos)))
+                                        ;; TODO: properly support all text types: bytes, string, symbol
                                         (define id->str      (column:port-string col.pos (open-input-file (build-path apath.dt "value"))))
                                         (define dict.str=>id (dict:ordered id->str (lambda (id) id) 0 count))
                                         (define dict.id=>str (dict:integer 0       id->str          0 count))
@@ -611,10 +621,9 @@
   (define path.current       (db-path "current"))
   (define path.previous      (db-path "previous"))
   (define path.trash         (db-path "trash"))
-  (define path.pending       (db-path "pending"))
   (define path.metadata      (db-path fn.metadata))
   (define path.metadata.next (string-append path.metadata fnsuffix.next))
-  (for-each make-directory* (list path.db path.current path.previous path.trash path.pending))
+  (for-each make-directory* (list path.db path.current path.previous path.trash))
   (define metadata
     (cond ((file-exists? path.metadata)      (call-with-input-file path.metadata read))
           ((file-exists? path.metadata.next) (pretty-log '(checkpointing metadata after interrupted swap))
@@ -646,7 +655,7 @@
                                                   (map (lambda (a t) `(,a : ,t)) attrs type))
                                            (new-relation?! name)
                                            (valid-attributes?! attrs)
-                                           (for-each (lambda (t) (unless (member t '(nat bytes string symbol))
+                                           (for-each (lambda (t) (unless (member t '(nat int bytes string symbol))
                                                                    (error "invalid attribute type" t 'in type)))
                                                      type)
                                            (unless (= (length attrs) (length type))
@@ -733,7 +742,7 @@
 (define (relation-compact!            r)              ((wrapped-relation-controller r) 'compact!))
 
 ;; TODO: in-place sorting of multiple columns
-(define (nat-tuple<? a b)
+(define (int-tuple<? a b)
   (let loop ((a a) (b b))
     (and (not (null? a))
          (or (< (car a) (car b))
@@ -741,17 +750,17 @@
                   (loop (cdr a) (cdr b)))))))
 
 (define (sorted-tuples count.tuples columns)
-    (pretty-log `(building ,count.tuples tuples from ,(length columns) columns))
-    (define tuples (make-vector count.tuples))
-    (time/pretty-log
-      (let loop ((i 0))
-        (when (< i count.tuples)
-          (vector-set! tuples i (map (lambda (col) (vector-ref col i))
-                                     columns))
-          (loop (+ i 1)))))
-    (pretty-log '(sorting tuples))
-    (time/pretty-log (vector-sort! tuples nat-tuple<?))
-    tuples)
+  (pretty-log `(building ,count.tuples tuples from ,(length columns) columns))
+  (define tuples (make-vector count.tuples))
+  (time/pretty-log
+    (let loop ((i 0))
+      (when (< i count.tuples)
+        (vector-set! tuples i (map (lambda (col) (vector-ref col i))
+                                   columns))
+        (loop (+ i 1)))))
+  (pretty-log '(sorting tuples))
+  (time/pretty-log (vector-sort! tuples int-tuple<?))
+  tuples)
 
 (define (min-nat-bytes nat.max) (max (min-bytes nat.max) 1))
 
@@ -769,9 +778,6 @@
   (define apath*.column         (column-paths (build-path apath.root lpath.table) (range (length type))))
   (define apath*.column.initial (map (lambda (p.c) (string-append p.c fnsuffix.initial))
                                      apath*.column))
-  ;; TODO: can store (null)/bools/ints too, which will be physically shifted into min/max range
-  ;; if min/max range is singleton (guaranteed for null), nothing needs to be stored for that column
-  (define type.tuple           (map (lambda (_) 'nat) type))
   (define (insert-bytes! b)
     (or (hash-ref bytes=>id b #f)
         (let ((id (hash-count bytes=>id)))
@@ -781,6 +787,9 @@
   (define row->tuple
     (let ((col->num* (map (lambda (i t.col)
                             (match t.col
+                              ('int    (lambda (x)
+                                         (unless (int?    x) (error "invalid int"    `(column: ,i) x))
+                                         x))
                               ('nat    (lambda (x)
                                          (unless (nat?    x) (error "invalid nat"    `(column: ,i) x))
                                          x))
@@ -808,8 +817,9 @@
   (call/files
     '() apath*.column.initial
     (lambda outs.column.initial
+      (define type.tuple (map (lambda (_) 'int) type))
       (time/pretty-log
-        (s-each (lambda (row) (map encode outs.column.initial type.tuple (row->tuple row)))
+        (s-each (lambda (row) (for-each encode outs.column.initial type.tuple (row->tuple row)))
                 s.in))))
 
   (define size.pos  (min-nat-bytes size.bytes))
@@ -846,9 +856,9 @@
     (map (lambda (t.col apath.in)
            (define col->col
              (match t.col
-               ('nat                        (lambda (n)  n))
+               ((or 'nat 'int)              (lambda (n)  n))
                ((or 'bytes 'string 'symbol) (lambda (id) (vector-ref id=>id id)))))
-           (define (read-element in) (col->col (decode in 'nat)))
+           (define (read-element in) (col->col (decode in 'int)))
            (match-define (list vec.col min.col max.col)
              (read-column/bounds apath.in count.tuples.initial read-element))
            (pretty-log `(deleting ,apath.in))
@@ -877,14 +887,16 @@
 
   (define column-descriptions
     (map (lambda (t.col vec.col min.col max.col apath.out)
-           (define size.col (write-column apath.out count.tuples.unique vec.col min.col max.col))
-           (hash 'type  (match t.col
-                          ('nat                        'nat)
-                          ((or 'bytes 'string 'symbol) 'text))
-                 'count count.tuples.unique
-                 'size  size.col
-                 'min   min.col
-                 'max   max.col))
+           (match-define (cons size.col offset.col)
+             (write-column apath.out count.tuples.unique vec.col min.col max.col))
+           (hash 'type   (match t.col
+                           ((or 'nat 'int)              'int)
+                           ((or 'bytes 'string 'symbol) 'text))
+                 'count  count.tuples.unique
+                 'size   size.col
+                 'offset offset.col
+                 'min    min.col
+                 'max    max.col))
          type columns (map cadr column-vmms) (map caddr column-vmms) apath*.column))
   (define desc.table
     (hash 'direction 'insert
@@ -1024,11 +1036,12 @@
   (define size.pos        (min-nat-bytes (- count.tuples 1)))
   (define i=>desc.col     (make-immutable-hash
                             (append (if key-used?
-                                      (list (cons #t (hash 'type  'nat
-                                                           'count count.tuples
-                                                           'size  size.pos
-                                                           'min   0
-                                                           'max   (- count.tuples 1))))
+                                      (list (cons #t (hash 'type   'int
+                                                           'count  count.tuples
+                                                           'size   size.pos
+                                                           'offset 0
+                                                           'min    0
+                                                           'max    (- count.tuples 1))))
                                       '())
                                     (map cons (range count.columns) desc*.column))))
   (define i=>col          (make-immutable-hash
@@ -1041,18 +1054,18 @@
                                                        column.key)))
                                       '())
                                     (map (lambda (i.col apath.in)
-                                           (define desc.col (hash-ref i=>desc.col i.col))
-                                           (define size.in  (hash-ref desc.col    'size))
-                                           (define (read-element in)
-                                             (bytes-nat-ref (read-bytes size.in in) size.in 0))
-                                           (cons i.col (read-column apath.in count.tuples read-element)))
+                                           (cons i.col (read-column apath.in (hash-ref i=>desc.col i.col))))
                                          column-ids.used
                                          (column-paths apath.root.table column-ids.used)))))
   (map (lambda (apath.root.index ordering)
          (pretty-log '(building index) apath.root.index '(with ordering) ordering)
-         (define columns.used        (map (lambda (i.col) (hash-ref i=>col      i.col)) ordering))
-         (define descs.used          (map (lambda (i.col) (hash-ref i=>desc.col i.col)) ordering))
-         (define sizes.used          (map (lambda (desc)  (hash-ref desc        'size)) descs.used))
+         (define columns.used        (map (lambda (i.col) (hash-ref i=>col      i.col))   ordering))
+         (define descs.used          (map (lambda (i.col) (hash-ref i=>desc.col i.col))   ordering))
+         (define s&o*.used           (map (lambda (desc) (ideal-size-and-offset (hash-ref desc 'min)
+                                                                                (hash-ref desc 'max)))
+                                          descs.used))
+         (define sizes.used          (map car s&o*.used))
+         (define offsets.used        (map cdr s&o*.used))
          (define tuples              (sorted-tuples count.tuples columns.used))
          (define apath*.col.key      (map (lambda (apath.col) (string-append apath.col fnsuffix.key))
                                           (column-paths apath.root.index (range    (length ordering)))))
@@ -1074,15 +1087,19 @@
                                  out*.indirect)
                        (let loop.keys ((i*.key        (range (length ordering)))
                                        (size*.key     sizes.used)
+                                       (offset*.key   offsets.used)
                                        (out*.key      out*.key)
                                        (out*.indirect out*.indirect)
                                        (pos*          (make-list (length out*.key) 0))
                                        (start         0)
                                        (end           count.tuples))
-                         (let ((i.key (car i*.key)) (i*.key (cdr i*.key)) (size.key (car size*.key)))
+                         (let ((i.key      (car i*.key))
+                               (i*.key     (cdr i*.key))
+                               (size.key   (car size*.key))
+                               (offset.key (car offset*.key)))
                            (define (key-ref i) (list-ref (vector-ref tuples i) i.key))
                            (let ((out.key (car out*.key)))
-                             (define (write-key key) (write-bytes (nat->bytes size.key key) out.key))
+                             (define (write-key key) (write-bytes (nat->bytes size.key (- key offset.key)) out.key))
                              (if (null? i*.key)
                                (let loop.final ((i start))
                                  (cond ((< i end) (write-key (key-ref i))
@@ -1096,6 +1113,7 @@
                                        (let ((start.new (bisect-next start end (lambda (i) (<= (key-ref i) key)))))
                                          (let ((pos* (loop.keys i*.key
                                                                 (cdr size*.key)
+                                                                (cdr offset*.key)
                                                                 (cdr out*.key)
                                                                 (cdr out*.indirect)
                                                                 pos*
@@ -1104,14 +1122,22 @@
                                            (write-bytes (nat->bytes size.pos (car pos*)) out.indirect)
                                            (loop.key (+ pos 1) pos* start.new end))))
                                      (cons pos pos*)))))))))))))))
-         (define descs.column.key      (map (lambda (desc count) (hash-set desc 'count count))
-                                            descs.used counts))
+         (define descs.column.key      (map (lambda (apath desc count size offset)
+                                              (let* ((desc (hash-set* desc 'count count 'size size 'offset offset)))
+                                                (cond ((column-consecutive? (lambda () (read-column apath desc))
+                                                                            count
+                                                                            (hash-ref desc 'min)
+                                                                            (hash-ref desc 'max))
+                                                       (delete-file apath)
+                                                       (hash-set* desc 'size 0 'offset (hash-ref desc 'min)))
+                                                      (else desc))))
+                                            apath*.col.key descs.used counts sizes.used offsets.used))
          (define descs.column.indirect (map (lambda (apath.indirect count.current count.next)
                                               (cond ((= count.current count.next)
                                                      (pretty-log '(deleting identity indirection) apath.indirect)
                                                      (delete-file apath.indirect)
                                                      #f)
-                                                    (else (hash 'type  'nat
+                                                    (else (hash 'type  'int
                                                                 'count count.current
                                                                 'size  size.pos
                                                                 'min   0
@@ -1128,6 +1154,7 @@
        apath*.root.index orderings))
 
 (define (read-column/bounds apath.in count read-element)
+  ;; TODO: consider specialized vectors: https://docs.racket-lang.org/foreign/homogeneous-vectors.html
   (define vec.col (make-vector count))
   (pretty-log `(reading ,count elements and computing min/max from) apath.in)
   (let/files ((in apath.in)) ()
@@ -1141,30 +1168,60 @@
                      (max max.col value)))
               (else (list vec.col (or min.col 0) max.col)))))))
 
-(define (read-column apath.in count read-element)
+(define (read-column apath.in desc.in)
+  (define count   (hash-ref desc.in 'count))
+  (define size    (hash-ref desc.in 'size))
+  (define offset  (hash-ref desc.in 'offset 0)) ; TODO: later, require this
+  ;; TODO: consider specialized vectors: https://docs.racket-lang.org/foreign/homogeneous-vectors.html
   (define vec.col (make-vector count))
-  (pretty-log `(reading ,count elements from) apath.in)
-  (let/files ((in apath.in)) ()
-    (time/pretty-log
-      (let loop ((i 0))
-        (cond ((< i count) (vector-set! vec.col i (read-element in))
-                           (loop (+ i 1)))
-              (else        vec.col))))))
+  (cond ((< 0 size) (pretty-log `(reading ,count elements from) apath.in)
+                    (let/files ((in apath.in)) ()
+                      (time/pretty-log
+                        (let loop ((i 0))
+                          (cond ((< i count) (define v.in (bytes-nat-ref (read-bytes size in) size 0))
+                                             (vector-set! vec.col i (+ offset v.in))
+                                             (loop (+ i 1)))
+                                (else        vec.col))))))
+        (else       (pretty-log `(building ,count consecutive integers starting at ,offset)
+                                '(instead of reading from) apath.in)
+                    (let loop ((i 0))
+                      (cond ((< i count) (vector-set! vec.col i (+ offset i))
+                                         (loop (+ i 1)))
+                            (else        vec.col))))))
 
 (define (write-column apath.out count vec.col min.col max.col)
-  ;; TODO: consider offseting column values
-  ;; - if storing ints
-  ;; - if (- max.col min.col) supports a smaller nat size
-  (define size.col (min-nat-bytes max.col))
-  (pretty-log `(writing ,count elements to) apath.out
-              `(nat-size: ,size.col min: ,min.col max: ,max.col))
-  (let/files () ((out apath.out))
-    (time/pretty-log
-      (let loop ((i 0))
-        (when (< i count)
-          (write-bytes (nat->bytes size.col (vector-ref vec.col i)) out)
-          (loop (+ i 1))))))
-  size.col)
+  (if (column-consecutive? (lambda () vec.col) count min.col max.col)
+    (begin (pretty-log '(not writing column to file because column is consecutive)
+                       `(would have written ,count elements to) apath.out
+                       `(nat-size: ,0 offset: ,min.col min: ,min.col max: ,max.col))
+           (cons 0 min.col))
+    (match-let (((cons size.col offset.col) (ideal-size-and-offset min.col max.col)))
+      (pretty-log `(writing ,count elements to) apath.out
+                  `(nat-size: ,size.col offset: ,offset.col min: ,min.col max: ,max.col))
+      (let/files () ((out apath.out))
+        (time/pretty-log
+          (let loop ((i 0))
+            (when (< i count)
+              (write-bytes (nat->bytes size.col (- (vector-ref vec.col i) offset.col)) out)
+              (loop (+ i 1))))))
+      (cons size.col offset.col))))
+
+(define (ideal-size-and-offset min.col max.col)
+  (define diff.col  (- max.col min.col))
+  (define size.diff (min-nat-bytes diff.col))
+  (define size.max  (min-nat-bytes max.col))
+  (if (or (< min.col   0)
+          (< size.diff size.max))
+    (cons size.diff min.col)
+    (cons size.max  0)))
+
+(define (column-consecutive? ->vec count.col min.col max.col)
+  (and (= count.col (+ 1 (- max.col min.col)))
+       (let ((vec.col (->vec)))
+         (let loop ((i 0) (expected min.col))
+           (or (= i count.col)
+               (and (= expected (vector-ref vec.col i))
+                    (loop (+ i 1) (+ expected 1))))))))
 
 (define (remap-column?      desc.col   type=>id=>id) (not (not (hash-ref type=>id=>id (hash-ref desc.col 'type) #f))))
 (define (remap-table?       desc.table type=>id=>id) (ormap (lambda (desc.col) (remap-column? desc.col type=>id=>id))
@@ -1177,17 +1234,26 @@
   (define type    (hash-ref desc.in 'type))
   (define count   (hash-ref desc.in 'count))
   (define size.in (hash-ref desc.in 'size))
+  (define offset  (hash-ref desc.in 'offset 0)) ; TODO: later, require this
   (define id=>id  (hash-ref type=>id=>id type #f))
   (cond (id=>id (match-define (list vec.col min.col max.col)
-                  (read-column/bounds apath.in count
-                                      (lambda (in)
-                                        (define v.in (bytes-nat-ref (read-bytes size.in in) size.in 0))
-                                        (vector-ref id=>id v.in))))
-                (define size.col (write-column apath.out (vector-length vec.col) vec.col min.col max.col))
-                (hash-set* desc.in 'size size.col 'min min.col 'max max.col))
-        (else (pretty-log '(copying verbatim due to identity remapping))
-              (time/pretty-log (copy-file apath.in apath.out))
-              desc.in)))
+                  (if (< 0 size.in)
+                    (read-column/bounds apath.in count
+                                        (lambda (in)
+                                          (define v.in (bytes-nat-ref (read-bytes size.in in) size.in 0))
+                                          (vector-ref id=>id (+ offset v.in))))
+                    (let loop ((i 0))
+                      (cond ((< i count) (vector-set! vec.col i (+ offset i))
+                                         (loop (+ i 1)))
+                            (else        (list vec.col offset (+ offset (- count 1))))))))
+                (match-define (cons size.col offset.col)
+                  (write-column apath.out (vector-length vec.col) vec.col min.col max.col))
+                (hash-set* desc.in 'size size.col 'offset offset.col 'min min.col 'max max.col))
+        ((= 0 size.in) (pretty-log '(identity remapping on a consecutive integer sequence: nothing to do))
+                       desc.in)
+        (else          (pretty-log '(copying verbatim due to identity remapping))
+                       (time/pretty-log (copy-file apath.in apath.out))
+                       desc.in)))
 
 (define (remap-table apath.in apath.out desc.table.in desc.domain.new type=>id=>id)
   (pretty-log `(remapping ,apath.in to ,apath.out) desc.table.in)
@@ -1332,13 +1398,20 @@
 (define (table-sort     t)                              (t 'sort))
 (define (table-sort!    t)                              (t 'sort!))
 
+;; TODO: support a direct-scanning operator, rather than scanning via column indices
+;; TODO: columns with methods: 'ref for what it does now, and 'enumerator for efficient scanning?
+;; TODO: more flexible/efficient method-lambda
+
+(define (column:identity                           i) i)
 (define ((column:const     c)                      _) c)
+(define ((column:offset    column offset)          i) (+ (column i) offset))
 (define ((column:vector    rows)                   i) (vector-ref rows i))
 (define ((column:table     columns)                i) (map (lambda (col) (col i)) columns))
 (define ((column:indirect  column.pos column)      i) (column (column.pos i)))
 (define ((column:interval  column.pos interval->x) i) (interval->x (column.pos i) (column.pos (+ i 1))))
 (define ((column:bytes:nat bs size)                i) (bytes-nat-ref bs size (* i size)))
 
+;; TODO: specialize to fixed-size nat
 (define (column:port                     in type) (let ((size.type (sizeof type (void))))
                                                     (lambda (i)
                                                       (file-position in (* i size.type))
@@ -1346,6 +1419,7 @@
 (define (column:port-indirect column.pos in type)   (lambda (i)
                                                       (file-position in (column.pos i))
                                                       (decode        in type)))
+;; TODO: generalize to bytes
 (define (column:port-string   column.pos in)      (column:interval
                                                     column.pos
                                                     (lambda (pos.0 pos.1)

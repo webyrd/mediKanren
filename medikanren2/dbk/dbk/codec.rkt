@@ -98,6 +98,7 @@
     (`#(tuple ,@ts)    (encode-tuple  out ts    v))
     (`(,ta . ,td)      (encode-pair   out ta td v))
     ('nat              (encode-nat    out #f    v))
+    ('int              (encode-int    out       v))
     ('string           (encode-string out #f    v))
     ('symbol           (encode-symbol out #f    v))
     ('bytes            (encode-bytes  out #f    v))
@@ -131,6 +132,8 @@
         ((< n (<< 1 56)) (enc 7))
         ((< n (<< 1 64)) (enc 8))
         (else (error "encode-nat; too large:" n))))
+(define (encode-int out v)
+  (encode-nat out #f (+ (<< v 1) (if (< v 0) 1 0))))
 ;; TODO: consider exponent representations, which may be more compact
 (define (encode-number out n) (encode-string out #f (number->string n)))
 (define (encode-bytes out len bs)
@@ -162,6 +165,7 @@
     (`#(tuple ,@ts)    (decode-tuple  in ts))
     (`(,ta . ,td)      (decode-pair   in ta td))
     ('nat              (decode-nat    in #f))
+    ('int              (decode-int    in))
     ('string           (decode-string in #f))
     ('symbol           (decode-symbol in #f))
     ('bytes            (decode-bytes  in #f))
@@ -189,6 +193,9 @@
              (if (= sz 0) n
                (loop (+ (<< n 8) (read-byte in)) (- sz 1))))
     (let ((size (decode-nat in 1))) (decode-nat in size))))
+(define (decode-int in)
+  (define nat (decode-nat in #f))
+  (* (if (odd? nat) -1 1) (>> nat 1)))
 ;; TODO: consider exponent representations, which may be more compact
 (define (decode-number in)      (string->number (decode-string in #f)))
 (define (decode-bytes in l)     (if l (read-bytes l in)

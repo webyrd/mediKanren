@@ -6,7 +6,7 @@
          hash-remove*
          call/files let/files
          map/merge map/append
-         min-bits min-bytes min-bytes-power2 nat?
+         min-bits min-bytes min-bytes-power2 int? nat?
          bytes-nat-ref bytes-nat-set! nat->bytes bytes->nat
          sum
          normalize-path)
@@ -257,7 +257,8 @@
         ((<= c 4) 4)
         (else     8)))
 
-(define (nat? x) (and (number? x) (exact? x) (integer? x) (<= 0 x)))
+(define (int? x) (and (number? x) (exact? x) (integer? x)))
+(define (nat? x) (and (int? x) (<= 0 x)))
 
 (define (bytes-nat-set! bs size offset n)
   ;(integer->integer-bytes n size #f #t bs offset) (void)
