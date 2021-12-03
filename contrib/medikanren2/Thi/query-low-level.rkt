@@ -1,11 +1,11 @@
 #lang racket/base
-(provide query-one-hop)
+(provide query:X->Known)
 (require
   "../../../medikanren2/dbk/dbk/data.rkt"
   "../../../medikanren2/dbk/dbk/enumerator.rkt"
   racket/runtime-path)
 
-;; query-one-hop is analogous to a miniKanren-style query with this shape:
+;; query:X->Known is analogous to a miniKanren-style query with this shape:
 ; (run* (s sname p o oname)
 ;   (fresh (id category)
 ;     (edge id s o)
@@ -17,44 +17,39 @@
 ;     (membero p predicates)
 ;     (membero category subject-categories)))
 
-(define (query-one-hop subject-categories predicates object-synonyms)
+(define (query:X->Known categories.X predicates.X->K synonyms.K)
   (define (query yield)
     (define ekey.predicate.id         (dict-select dict.string=>id "predicate"))
     (define ckey.category.id          (dict-select dict.string=>id "category"))
     (define ckey.name.id              (dict-select dict.string=>id "name"))
-    (define dict.object-synonyms      (strings->dict object-synonyms))
-    (define dict.predicates           (strings->dict predicates))
-    (define dict.subject-categories   (strings->dict subject-categories))
+    (define dict.categories.X         (strings->dict categories.X))
+    (define dict.predicates.X->K      (strings->dict predicates.X->K))
+    (define dict.synonyms.K           (strings->dict synonyms.K))
     (define dict.eprop.eid.predicate  (dict-select dict.eprop.eid.value.key   ekey.predicate.id))
     (define dict.cprop.curie.category (dict-select dict.cprop.curie.value.key ckey.category.id))
-    ((merge-join dict.object-synonyms dict.edge.subject.eid.object)
-     (lambda (id.o __ dict.edge.subject.eid)
-       ;; TODO: try dict-join-ordered with dict.cprop.value.key.curie to retrieve oname
-       (define id.oname ((dict-select (dict-select dict.cprop.value.key.curie id.o) ckey.name.id) 'min))
-       ;; TODO: try dict-join-ordered with dict.id=>string
-       (define oname (dict-select dict.id=>string id.oname))
-       ;; TODO: try dict-join-ordered with dict.id=>string
-       (define o (dict-select dict.id=>string id.o))
-       ((merge-join dict.predicates dict.eprop.eid.predicate)
-        (lambda (id.p __ dict.eprop.eid)
-          ;; TODO: try dict-join-ordered with dict.id=>string
-          (define p (dict-select dict.id=>string id.p))
-          ((merge-join dict.eprop.eid dict.edge.subject.eid)
-           (lambda (eid __ dict.edge.subject)
-             ((merge-join dict.subject-categories dict.cprop.curie.category)
-              (lambda (__ ___ dict.cprop.curie)
+    ((merge-join dict.synonyms.K dict.edge.subject.eid.object)
+     (lambda (id.K __ dict.edge.X.eid)
+       (define id.name.K ((dict-select (dict-select dict.cprop.value.key.curie id.K) ckey.name.id) 'min))
+       (define name.K    (dict-select dict.id=>string id.name.K))
+       (define K         (dict-select dict.id=>string id.K))
+       ((merge-join dict.predicates.X->K dict.eprop.eid.predicate)
+        (lambda (id.predicate.X->K __ dict.eprop.X->K)
+          (define predicate.X->K (dict-select dict.id=>string id.predicate.X->K))
+          ((merge-join dict.eprop.X->K dict.edge.X.eid)
+           (lambda (eid.X->K __ dict.edge.X)
+             ((merge-join dict.categories.X dict.cprop.curie.category)
+              (lambda (__ ___ dict.cprop.X)
                 ((dict-join-ordered
                    (lambda (yield)
-                     ((merge-join dict.cprop.curie dict.edge.subject)
-                      (lambda (id.s __ ___)
-                        (yield id.s '()))))
+                     ((merge-join dict.cprop.X dict.edge.X)
+                      (lambda (id.X __ ___)
+                        (yield id.X '()))))
                    dict.cprop.value.key.curie)
-                 (lambda (id.s __ dict.cprop.value.key)
-                   (define id.sname ((dict-select dict.cprop.value.key ckey.name.id) 'min))
-                   (define sname    (dict-select dict.id=>string      id.sname))
-                   ;; TODO: try dict-join-ordered with dict.id=>string
-                   (define s        (dict-select dict.id=>string      id.s))
-                   (yield (list s sname p o oname)))))))))))))
+                 (lambda (id.X __ dict.cprop.value.key)
+                   (define id.name.X ((dict-select dict.cprop.value.key ckey.name.id) 'min))
+                   (define name.X    (dict-select dict.id=>string id.name.X))
+                   (define X         (dict-select dict.id=>string id.X))
+                   (yield (list X name.X predicate.X->K K name.K)))))))))))))
   (time (enumerator->rlist query)))
 
 ;;;;;;;;;;;;;;;

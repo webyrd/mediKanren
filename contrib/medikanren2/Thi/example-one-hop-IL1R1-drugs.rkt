@@ -29,7 +29,7 @@
                          "HGNC:5993"
                          "ENSEMBL:ENSG00000115594"))
 
-;; This use of query-one-hop is analogous to this miniKanren query:
+;; This use of query:X->Known is analogous to this miniKanren query:
 ;(run* (s sname p o oname)
 ;  (fresh (id drug)
 ;    (edge id s o)
@@ -42,7 +42,7 @@
 ;    (membero drug drug-categories)))))
 
 (newline)
-(define IL1R1-drugs (query-one-hop drug-categories inhibit-preds IL1R1-synonyms))
+(define IL1R1-drugs (query:X->Known drug-categories inhibit-preds IL1R1-synonyms))
 
 (pretty-write `(IL1R1-drugs count: ,(length IL1R1-drugs)))
 (pretty-write IL1R1-drugs)
@@ -129,7 +129,7 @@
                                  "UniProtKB:P45983"
                                  "NCBIGene:5599"))
 
-;; This use of query-one-hop is analogous to this miniKanren query:
+;; This use of query:X->Known is analogous to this miniKanren query:
 ;(run* (s sname p o oname)
 ;  (fresh (id drug)
 ;    (edge id s o)
@@ -142,7 +142,7 @@
 ;    (membero drug drug-categories)))))
 
 (newline)
-(define IL1R1-pathway-drugs (query-one-hop drug-categories inhibit-preds IL1R1-pathway-synonyms))
+(define IL1R1-pathway-drugs (query:X->Known drug-categories inhibit-preds IL1R1-pathway-synonyms))
 
 (pretty-write `(IL1R1-pathway-drugs count: ,(length IL1R1-pathway-drugs)))
 (pretty-write IL1R1-pathway-drugs)
