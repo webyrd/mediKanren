@@ -1,6 +1,6 @@
 #lang racket/base
 (require
-  "query-one-hop.rkt"
+  "query-low-level.rkt"
   racket/pretty)
 
 (define drug-categories '("biolink:ChemicalSubstance"
