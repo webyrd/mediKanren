@@ -1,8 +1,10 @@
 #lang racket/base
-(provide query:X->Known)
+(provide query:X->Known query:Known<-X->Known)
 (require
   "../../../medikanren2/dbk/dbk/data.rkt"
   "../../../medikanren2/dbk/dbk/enumerator.rkt"
+  "../../../medikanren2/dbk/dbk/stream.rkt"
+  racket/match
   racket/runtime-path)
 
 ;; query:X->Known is analogous to a miniKanren-style query with this shape:
@@ -51,6 +53,44 @@
                    (define X         (dict-select dict.id=>string id.X))
                    (yield (list X name.X predicate.X->K K name.K)))))))))))))
   (time (enumerator->rlist query)))
+
+;; query:Known<-X->Known is analogous to a miniKanren-style query with this shape:
+;(run* (K1 name.K1 predicates.K1<-X X name.X predicates.X->K1 K2 name.K2)
+;  (fresh (id1 id2 category.X)
+;    (edge id1 X K1)
+;    (edge id2 X K2)
+;    (cprop X   "category" category.X)
+;    (cprop X   "name" name.X)
+;    (cprop K1  "name" name.K1)
+;    (cprop K2  "name" name.K2)
+;    (eprop id1 "predicate" K1<-X)
+;    (eprop id2 "predicate" X->K2)
+;    (membero category.X categories.X)
+;    (membero K1         synonyms.K1)
+;    (membero K1<-X      predicates.K1<-X)
+;    (membero K2         synonyms.K2)
+;    (membero X->K2      predicates.X->K2)))
+
+(define (query:Known<-X->Known synonyms.K1 predicates.K1<-X categories.X predicates.X->K2 synonyms.K2)
+  (define (candidates->dict candidates)
+    (define ordered (sort candidates (lambda (a b) (string<? (car a) (car b)))))
+    (define groups  (s-group ordered equal? car))
+    (dict:ordered:vector (list->vector groups) caar))
+  (define candidates.X&name&X->K1&K1&name (query:X->Known categories.X predicates.K1<-X synonyms.K1))
+  (define candidates.X&name&X->K2&K2&name (query:X->Known categories.X predicates.X->K2 synonyms.K2))
+  (define dict.XK1s.X                     (candidates->dict candidates.X&name&X->K1&K1&name))
+  (define dict.XK2s.X                     (candidates->dict candidates.X&name&X->K2&K2&name))
+  (time (enumerator->list
+          (lambda (yield)
+            ((merge-join dict.XK1s.X dict.XK2s.X)
+             (lambda (X XK1s XK2s)
+               (for-each (lambda (XK1)
+                           (match-define (list _ name.X X->K1 K1 name.K1) XK1)
+                           (for-each (lambda (XK2)
+                                       (match-define (list _ _ X->K2 K2 name.K2) XK2)
+                                       (yield (list K1 name.K1 X->K1 X name.X X->K2 K2 name.K2)))
+                                     XK2s))
+                         XK1s)))))))
 
 ;;;;;;;;;;;;;;;
 ;; Utilities ;;
