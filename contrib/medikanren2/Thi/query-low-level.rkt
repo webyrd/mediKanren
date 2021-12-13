@@ -1,11 +1,62 @@
 #lang racket/base
-(provide query:X->Known query:Known<-X->Known)
+(provide
+  query:Known->X
+  query:X->Known
+  query:Known<-X->Known
+  )
 (require
   "../../../medikanren2/dbk/dbk/data.rkt"
   "../../../medikanren2/dbk/dbk/enumerator.rkt"
   "../../../medikanren2/dbk/dbk/stream.rkt"
   racket/match
   racket/runtime-path)
+
+;; query:Known->X is analogous to a miniKanren-style query with this shape:
+; (run* (s sname p o oname)
+;   (fresh (id category)
+;     (edge id s o)
+;     (cprop o "category" category)
+;     (cprop s "name" sname)
+;     (cprop o "name" oname)
+;     (eprop id "predicate" p)
+;     (membero s subject-curies)
+;     (membero p predicates)
+;     (membero category object-categories)))
+
+(define (query:Known->X curies.K predicates.K->X categories.X)
+  (define (query yield)
+    (define ekey.predicate.id         (dict-select dict.string=>id "predicate"))
+    (define ckey.category.id          (dict-select dict.string=>id "category"))
+    (define ckey.name.id              (dict-select dict.string=>id "name"))
+    (define dict.curies.K             (strings->dict curies.K))
+    (define dict.predicates.K->X      (strings->dict predicates.K->X))
+    (define dict.categories.X         (strings->dict categories.X))
+    (define dict.eprop.eid.predicate  (dict-select dict.eprop.eid.value.key   ekey.predicate.id))
+    (define dict.cprop.curie.category (dict-select dict.cprop.curie.value.key ckey.category.id))
+    ((merge-join dict.curies.K dict.edge.object.eid.subject)
+     (lambda (id.K __ dict.edge.X.eid)
+       (define id.name.K ((dict-select (dict-select dict.cprop.value.key.curie id.K) ckey.name.id) 'min))
+       (define name.K    (dict-select dict.id=>string id.name.K))
+       (define K         (dict-select dict.id=>string id.K))
+       ((merge-join dict.predicates.K->X dict.eprop.eid.predicate)
+        (lambda (id.predicate.K->X __ dict.eprop.K->X)
+          (define predicate.K->X (dict-select dict.id=>string id.predicate.K->X))
+          ((merge-join dict.eprop.K->X dict.edge.X.eid)
+           (lambda (eid.X->K __ dict.edge.X)
+             ((merge-join dict.categories.X dict.cprop.curie.category)
+              (lambda (__ ___ dict.cprop.X)
+                ((dict-join-ordered
+                   (lambda (yield)
+                     ((merge-join dict.cprop.X dict.edge.X)
+                      (lambda (id.X __ ___)
+                        (yield id.X '()))))
+                   dict.cprop.value.key.curie)
+                 (lambda (id.X __ dict.cprop.value.key)
+                   (define id.name.X ((dict-select dict.cprop.value.key ckey.name.id) 'min))
+                   (define name.X    (dict-select dict.id=>string id.name.X))
+                   (define X         (dict-select dict.id=>string id.X))
+                   (yield (list K name.K predicate.K->X X name.X)))))))))))))
+  (time (enumerator->rlist query)))
 
 ;; query:X->Known is analogous to a miniKanren-style query with this shape:
 ; (run* (s sname p o oname)
@@ -117,6 +168,7 @@
 (define dict.string=>id              (car (hash-ref (car domain-dicts) 'text)))
 (define dict.id=>string              (car (hash-ref (cdr domain-dicts) 'text)))
 
+(define dict.edge.object.eid.subject (relation-index-dict r.edge  '(subject eid object)))
 (define dict.edge.subject.eid.object (relation-index-dict r.edge  '(object eid subject)))
 (define dict.eprop.eid.value.key     (relation-index-dict r.eprop '(key value eid)))
 (define dict.cprop.curie.value.key   (relation-index-dict r.cprop '(key value curie)))
