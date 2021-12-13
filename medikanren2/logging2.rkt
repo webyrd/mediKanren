@@ -25,8 +25,16 @@
         't st-t
         'requestid (requestid)
         'level (symbol->string level))))
-  (displayln
-    (jsexpr->string jsexpr))
+  (with-handlers ([exn:fail?
+                   (λ (e)
+                     (printf
+                      "Caught exception in lognew-message when converting/printing jsexpr->string.\nlevel:\n~s\nmsg:\n~s\njsexpr:\n~s\nexception:\n~s\n"
+                      level
+                      msg
+                      jsexpr
+                      e))])
+    (displayln
+     (jsexpr->string jsexpr)))
   (flush-output (current-output-port)))
 
 (define (lognew-info msg)
