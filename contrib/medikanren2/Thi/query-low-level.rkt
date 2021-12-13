@@ -1,15 +1,19 @@
 #lang racket/base
 (provide
+  query:Known->Known
   query:Known->X
   query:X->Known
   query:Known<-X->Known
+  query:Prefix->Prefix
   )
 (require
   "../../../medikanren2/dbk/dbk/data.rkt"
   "../../../medikanren2/dbk/dbk/enumerator.rkt"
   "../../../medikanren2/dbk/dbk/stream.rkt"
   racket/match
-  racket/runtime-path)
+  racket/runtime-path
+  racket/string
+  )
 
 ;; query:Known->X is analogous to a miniKanren-style query with this shape:
 ; (run* (s sname p o oname)
@@ -42,7 +46,7 @@
         (lambda (id.predicate.K->X __ dict.eprop.K->X)
           (define predicate.K->X (dict-select dict.id=>string id.predicate.K->X))
           ((merge-join dict.eprop.K->X dict.edge.X.eid)
-           (lambda (eid.X->K __ dict.edge.X)
+           (lambda (__ ___ dict.edge.X)
              ((merge-join dict.categories.X dict.cprop.curie.category)
               (lambda (__ ___ dict.cprop.X)
                 ((dict-join-ordered
@@ -89,7 +93,7 @@
         (lambda (id.predicate.X->K __ dict.eprop.X->K)
           (define predicate.X->K (dict-select dict.id=>string id.predicate.X->K))
           ((merge-join dict.eprop.X->K dict.edge.X.eid)
-           (lambda (eid.X->K __ dict.edge.X)
+           (lambda (__ ___ dict.edge.X)
              ((merge-join dict.categories.X dict.cprop.curie.category)
               (lambda (__ ___ dict.cprop.X)
                 ((dict-join-ordered
@@ -143,6 +147,42 @@
                                      XK2s))
                          XK1s)))))))
 
+(define (query:Known->Known curies.S predicates.S->O curies.O)
+  (define dict.curies.S (strings->dict curies.S))
+  (define dict.curies.O (strings->dict curies.O))
+  (query:dict.Known->dict.Known dict.curies.S predicates.S->O dict.curies.O))
+
+(define (query:Prefix->Prefix prefix.S predicates.S->O prefix.O)
+  (define dict.curies.S (dict-string-prefix prefix.S))
+  (define dict.curies.O (dict-string-prefix prefix.O))
+  (query:dict.Known->dict.Known dict.curies.S predicates.S->O dict.curies.O))
+
+(define (query:dict.Known->dict.Known dict.curies.S predicates.S->O dict.curies.O)
+  (define (query yield)
+    (define ekey.predicate.id         (dict-select dict.string=>id "predicate"))
+    (define ckey.category.id          (dict-select dict.string=>id "category"))
+    (define ckey.name.id              (dict-select dict.string=>id "name"))
+    (define dict.predicates.S->O      (strings->dict predicates.S->O))
+    (define dict.eprop.eid.predicate  (dict-select dict.eprop.eid.value.key   ekey.predicate.id))
+    (define dict.cprop.curie.category (dict-select dict.cprop.curie.value.key ckey.category.id))
+    ((merge-join dict.curies.S dict.edge.object.eid.subject)
+     (lambda (id.S __ dict.edge.O.eid)
+       (define id.name.S ((dict-select (dict-select dict.cprop.value.key.curie id.S) ckey.name.id) 'min))
+       (define name.S    (dict-select dict.id=>string id.name.S))
+       (define S         (dict-select dict.id=>string id.S))
+       ((merge-join dict.predicates.S->O dict.eprop.eid.predicate)
+        (lambda (id.predicate.S->O __ dict.eprop.S->O)
+          (define predicate.S->O (dict-select dict.id=>string id.predicate.S->O))
+          ((merge-join dict.eprop.S->O dict.edge.O.eid)
+           (lambda (__ ___ dict.edge.O)
+             ((merge-join dict.curies.O dict.edge.O)
+              (lambda (id.O __ ___)
+                (define id.name.O ((dict-select (dict-select dict.cprop.value.key.curie id.O) ckey.name.id) 'min))
+                (define name.O    (dict-select dict.id=>string id.name.O))
+                (define O         (dict-select dict.id=>string id.O))
+                (yield (list S name.S predicate.S->O O name.O)))))))))))
+  (time (enumerator->rlist query)))
+
 ;;;;;;;;;;;;;;;
 ;; Utilities ;;
 ;;;;;;;;;;;;;;;
@@ -157,6 +197,18 @@
                         ((merge-join dict.strs dict.string=>id)
                          (lambda (__ ___ id) (yield id))))))
   (dict:ordered (column:vector vec.ids) (column:const '()) 0 (vector-length vec.ids)))
+
+(define (dict-string-prefix prefix)
+  (define d.string=>id
+    ((dict.string=>id 'after (lambda (str) (string<? str prefix)))
+     'before (lambda (str) (and (string<? prefix str)
+                                (not (string-prefix? str prefix))))))
+  (displayln `(prefix: ,prefix ,(length (enumerator->rlist (d.string=>id 'enumerator)))))
+  (read-line)
+
+  (define start (d.string=>id 'top))
+  (define end   (+ start (d.string=>id 'count)))
+  ((dict.id=>string '>= start) '< end))
 
 (define-runtime-path path.here ".")
 (define db      (database (path->string (build-path path.here "rtx-kg2_20210204.db"))))
