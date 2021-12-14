@@ -4,6 +4,7 @@
   query:Known->X
   query:X->Known
   query:Known<-X->Known
+  query:X->Y->Known
   query:Prefix->Prefix
   )
 (require
@@ -146,6 +147,28 @@
                                        (yield (list K1 name.K1 X->K1 X name.X X->K2 K2 name.K2)))
                                      XK2s))
                          XK1s)))))))
+
+(define (query:X->Y->Known categories.X predicates.X->Y categories.Y predicates.Y->K curies.K)
+  (define (results->dict key results)
+    (define ordered (sort results (lambda (a b) (string<? (key a) (key b)))))
+    (define groups  (s-group ordered equal? key))
+    (dict:ordered:vector (list->vector groups) (lambda (x) (key (car x)))))
+  (define results.Y->K (query:X->Known categories.Y predicates.Y->K curies.K))
+  (define dict.Y->K.Y  (results->dict car results.Y->K))
+  (define curies.Y     (enumerator->list (dict.Y->K.Y 'enumerator)))
+  (define results.X->Y (query:X->Known categories.X predicates.X->Y curies.Y))
+  (define dict.X->Y.Y  (results->dict cadddr results.X->Y))
+  (time (enumerator->list
+          (lambda (yield)
+            ((merge-join dict.X->Y.Y dict.Y->K.Y)
+             (lambda (Y XYs YKs)
+               (for-each (lambda (XY)
+                           (match-define (list X name.X X->Y _ name.Y) XY)
+                           (for-each (lambda (YK)
+                                       (match-define (list _ _ Y->K K name.K) YK)
+                                       (yield (list X name.X X->Y Y name.Y Y->K K name.K)))
+                                     YKs))
+                         XYs)))))))
 
 (define (query:Known->Known curies.S predicates.S->O curies.O)
   (define dict.curies.S (strings->dict curies.S))
