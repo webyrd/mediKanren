@@ -6,6 +6,11 @@
   query:Known<-X->Known
   query:X->Y->Known
   query:Prefix->Prefix
+  query:Concept
+  edge-properties
+  edge-property-values
+  concept-properties
+  concept-property-values
   )
 (require
   "../../../medikanren2/dbk/dbk/data.rkt"
@@ -211,6 +216,40 @@
                 (define O         (dict-select dict.id=>string id.O))
                 (yield (list* S name.S predicate.S->O O name.O props)))))))))))
   (time (enumerator->rlist query)))
+
+(define (query:Concept curies)
+  (define (query yield)
+    (define dict.curie (strings->dict curies))
+    ((merge-join dict.curie dict.cprop.value.key.curie)
+     (lambda (id.curie _ dict.cprop.value.key)
+       (define curie (dict-select dict.id=>string id.curie))
+       ((dict.cprop.value.key 'enumerator/2)
+        (lambda (id.key dict.cprop.value)
+          (define key   (dict-select dict.id=>string id.key))
+          (define value (dict-select dict.id=>string (dict.cprop.value 'min)))
+          (yield (list curie key value)))))))
+  (time (enumerator->list query)))
+
+(define (concept-properties)          (enumerator->list
+                                        (lambda (yield)
+                                          ((merge-join dict.cprop.curie.value.key dict.id=>string)
+                                           (lambda (_ __ key)
+                                             (yield key))))))
+(define (edge-properties)             (enumerator->list
+                                        (lambda (yield)
+                                          ((merge-join dict.eprop.eid.value.key dict.id=>string)
+                                           (lambda (_ __ key)
+                                             (yield key))))))
+(define (concept-property-values key) (enumerator->list
+                                        (lambda (yield)
+                                          ((merge-join (dict-select dict.cprop.curie.value.key (dict-select dict.string=>id key))
+                                                       dict.id=>string)
+                                           (lambda (_ __ value) (yield value))))))
+(define (edge-property-values    key) (enumerator->list
+                                        (lambda (yield)
+                                          ((merge-join (dict-select dict.eprop.eid.value.key   (dict-select dict.string=>id key))
+                                                       dict.id=>string)
+                                           (lambda (_ __ value) (yield value))))))
 
 ;;;;;;;;;;;;;;;
 ;; Utilities ;;
