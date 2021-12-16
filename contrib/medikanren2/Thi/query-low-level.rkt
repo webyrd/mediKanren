@@ -13,6 +13,7 @@
   "../../../medikanren2/dbk/dbk/stream.rkt"
   racket/match
   racket/runtime-path
+  racket/set
   racket/string
   )
 
@@ -218,7 +219,7 @@
 
 ;; TODO: build small in-memory relations more easily
 (define (strings->dict strs)
-  (define vec.strs  (list->vector (sort strs string<?)))
+  (define vec.strs  (list->vector (sort (set->list (list->set strs)) string<?)))
   (define dict.strs (dict:ordered (column:vector vec.strs) (column:const '()) 0 (vector-length vec.strs)))
   (define vec.ids   (enumerator->vector
                       (lambda (yield)
