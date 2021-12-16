@@ -226,9 +226,6 @@
     ((dict.string=>id 'after (lambda (str) (string<? str prefix)))
      'before (lambda (str) (and (string<? prefix str)
                                 (not (string-prefix? str prefix))))))
-  (displayln `(prefix: ,prefix ,(length (enumerator->rlist (d.string=>id 'enumerator)))))
-  (read-line)
-
   (define start (d.string=>id 'top))
   (define end   (+ start (d.string=>id 'count)))
   ((dict.id=>string '>= start) '< end))
