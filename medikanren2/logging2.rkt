@@ -28,7 +28,7 @@
   (with-handlers ([exn:fail?
                    (λ (e)
                    #|
-                      Racket json is very strict about what it accepts as json.  For example, this succeeds:
+                      Racket json is very strict about what it accepts as a jsexpr.  For example, this succeeds:
                         (jsexpr->string (hasheq 'foo "bar"))
 
                       but these both consider their input to be ill-formed and throw:
