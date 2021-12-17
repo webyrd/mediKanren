@@ -297,8 +297,8 @@ EOS
   (lognew-info
     (hasheq
       'event "broad-response"
-      'status (hash-ref broad-response 'status)
-      'headers (hash-ref broad-response 'headers)
+      'status (bytes->string/utf-8 (hash-ref broad-response 'status))
+      'headers (map bytes->string/utf-8 (hash-ref broad-response 'headers))
       'result-size broad-results-count))
 
   ;; (log-info log-key (format "Broad results: ~s" broad-results))

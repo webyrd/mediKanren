@@ -27,6 +27,15 @@
         'level (symbol->string level))))
   (with-handlers ([exn:fail?
                    (λ (e)
+                   #|
+                      Racket json is very strict about what it accepts as json.  For example, this succeeds:
+                        (jsexpr->string (hasheq 'foo "bar"))
+
+                      but these both consider their input to be ill-formed and throw:
+                        (jsexpr->string (hasheq "foo" "bar"))
+
+                        (jsexpr->string (hasheq 'foo '#"bar"))
+                   |#
                      (printf
                       "Caught exception in lognew-message when converting/printing jsexpr->string.\nlevel:\n~s\nmsg:\n~s\njsexpr:\n~s\nexception:\n~s\n"
                       level
