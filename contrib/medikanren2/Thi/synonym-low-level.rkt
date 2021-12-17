@@ -12,28 +12,33 @@
   (define (ids->dict ids)
     (define vec.ids (list->vector (sort (set->list ids) <)))
     (dict:ordered (column:vector vec.ids) (column:const '()) 0 (vector-length vec.ids)))
-  (define (step dict.curie dict.edge.Y.X)
-    (enumerator->rlist
-      (lambda (yield)
-        ((merge-join dict.curie dict.edge.Y.X)
-         (lambda (id.curie _ dict.edge.Y)
-           ((dict.edge.Y 'enumerator) yield))))))
-  (let loop ((current (set))
-             (next    (list->set (enumerator->rlist ((strings->dict curies) 'enumerator)))))
-    (let ((new (set-subtract next current)))
-      (if (set-empty? new)
-        (enumerator->list
-          (lambda (yield)
-            ((merge-join (ids->dict current) dict.id=>string)
-             (lambda (_ __ curie) (yield curie)))))
-        (let ((dict.new (ids->dict new)))
-          (loop (set-union current new)
-                (list->set (append (step dict.new dict.edge.object.subject)
-                                   (step dict.new dict.edge.subject.object)))))))))
+  (define (step new)
+    (define (step/dict dict.edge.Y.X) (enumerator->rlist
+                                        (lambda (yield)
+                                          ((merge-join dict.new dict.edge.Y.X)
+                                           (lambda (id.curie _ dict.edge.Y)
+                                             ((dict.edge.Y 'enumerator) yield))))))
+    (define dict.new (ids->dict new))
+    (list->set (append (step/dict dict.edge.object.subject)
+                       (step/dict dict.edge.subject.object))))
+  (define ids.final (set-fixed-point (list->set (strings->ids curies)) step))
+  (enumerator->list
+    (lambda (yield)
+      ((merge-join (ids->dict ids.final) dict.id=>string)
+       (lambda (_ __ curie) (yield curie))))))
 
 ;;;;;;;;;;;;;;;
 ;; Utilities ;;
 ;;;;;;;;;;;;;;;
+(define (set-fixed-point xs.initial step)
+  (let loop ((current (set))
+             (next    xs.initial))
+    (let ((new (set-subtract next current)))
+      (if (set-empty? new)
+        current
+        (loop (set-union current new)
+              (step      new))))))
+
 (define (dict-select d key) (d 'ref key (lambda (v) v) (lambda () (error "dict ref failed" key))))
 
 ;; TODO: build small in-memory relations more easily
@@ -45,6 +50,8 @@
                         ((merge-join dict.strs dict.string=>id)
                          (lambda (__ ___ id) (yield id))))))
   (dict:ordered (column:vector vec.ids) (column:const '()) 0 (vector-length vec.ids)))
+
+(define (strings->ids strs) (enumerator->rlist ((strings->dict strs) 'enumerator)))
 
 (define-runtime-path path.here ".")
 (define db     (database (path->string (build-path path.here "kgx-synonym.db"))))
