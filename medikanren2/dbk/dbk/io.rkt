@@ -4,7 +4,6 @@
          out:port out:file
          in:transform in:procedure in:port in:file
          in:stream in:pop-header
-         json->scm scm->json jsexpr->scm scm->jsexpr
          jsonl:read jsonl:write json:read json:write
          tsv:read tsv:write csv:read csv:write csv:escape)
 (require "codec.rkt" "enumerator.rkt" "misc.rkt" "stream.rkt"
@@ -130,42 +129,16 @@
 ;; JSON and JSONL formats
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (json->scm s) (jsexpr->scm    (string->jsexpr s)))
-(define (scm->json x) (jsexpr->string (scm->jsexpr    x)))
-
-(define (jsexpr->scm j)
-  (cond ((hash?     j) (define kvs (hash->list j))
-                       (make-immutable-hash
-                         (map cons
-                              (map symbol->string (map car kvs))
-                              (map jsexpr->scm    (map cdr kvs)))))
-        ((pair?     j) (list->vector (map jsexpr->scm j)))
-        ((eq? 'null j) '())
-        (else          j)))
-
-(define (scm->jsexpr x)
-  (cond ((hash?   x) (define kvs (hash->list x))
-                     (make-immutable-hash
-                       (map cons
-                            (map string->symbol (map car kvs))
-                            (map scm->jsexpr (map cdr kvs)))))
-        ((vector? x) (map scm->jsexpr (vector->list x)))
-        ((null?   x) 'null)
-        (else        x)))
-
 (define (jsonl:read in)
   (define s (read-line in 'any))
-  (if (eof-object? s) s (json->scm s)))
+  (if (eof-object? s) s (string->jsexpr s)))
 
 (define (jsonl:write out x)
-  (write-string (scm->json x) out)
+  (write-string (jsexpr->string x) out)
   (write-char #\newline out))
 
-(define (json:read in)
-  (json->scm (port->string in)))
-
-(define (json:write out x)
-  (write-string (scm->json x) out))
+(define (json:read  in)    (string->jsexpr (port->string in)))
+(define (json:write out x) (write-string (jsexpr->string x) out))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; TSV format
