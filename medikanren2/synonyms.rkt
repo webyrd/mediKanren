@@ -43,9 +43,14 @@
 
 (define synonyms-preds '("biolink:same_as"
                          ;; "biolink:close_match"   ; too risky un-constrained
-                         "biolink:has_gene_product"))
+                         "biolink:gene_product_of"))
 
-(define rtx2-drug-categories '("biolink:ChemicalSubstance"
+(define rtx2-drug-categories '("biolink:ChemicalEntity"
+                              "biolink:ChemicalMixture"
+                              "biolink:MolecularEnity"
+                              "biolink:SmallMolecule"
+                              "biolink:Protein"
+                              "biolink:SmallMolecule"
                                "biolink:ClinicalIntervention"
                                "biolink:ClinicalModifier"
                                "biolink:Drug"
@@ -66,9 +71,8 @@
 (define inhibit-preds '("biolink:decreases_activity_of"
                         "biolink:decreases_expression_of"
                         "biolink:disrupts"
-                        "biolink:negatively_regulates"
-                        "biolink:negatively_regulates,_entity_to_entity"
-                        "biolink:negatively_regulates,_process_to_process"
+                        "biolink:entity_negatively_regulates_entity"
+                        "biolink:process_negatively_regulates_process"
                         "biolink:treats"
                         "negatively_regulates" ; semmed
                         "treats" ; semmed
@@ -76,7 +80,6 @@
 
 (define gene-or-protein '("biolink:Gene"
                           "biolink:GeneFamily"
-                          "biolink:GeneProduct"
                           "biolink:GenomicEntity"
                           "biolink:MacromolecularComplex"
                           "biolink:MolecularEntity"
