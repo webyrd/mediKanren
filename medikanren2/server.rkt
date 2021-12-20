@@ -394,6 +394,12 @@ EOS
   (parameterize ((requestid requestid0))
     (query-impl jsdata)))
 
+;; Load balancer health checks can be very numerous and drown out useful logs
+(define (squelch-noisy-request-log? req)
+  (define path (url->string (request-uri req)))
+  (cond
+    ((equal? path "/health") #t)
+    (else #f)))
 
 ; Loosely adapted from:
 ;   https://stackoverflow.com/questions/53911162/how-to-show-http-status-code-in-web-server-logs
@@ -410,8 +416,9 @@ EOS
   (define resp
     (parameterize ((requestid requestid0))
       (handler req)))
-  (lognew-info
-      (hasheq 'request  (dict-request-fields req)))
+  (unless (squelch-noisy-request-log? req)
+    (lognew-info
+        (hasheq 'request  (dict-request-fields req))))
 
   (struct-copy response resp (output
     (lambda (fd)
@@ -424,11 +431,12 @@ EOS
       ;; Let's use "structured logging" here to make it easier to search,
       ;; and do things like create CloudWatch metrics from CloudWatch Logs
       ;; filters (they have a syntax to extract things from JSON.)
-      (lognew-info
-          (hasheq 'request  (dict-request-fields req)
-                  'response (hasheq 'code     (response-code resp)
-                                    'headers  (headers->hasheq (response-headers resp))
-                                    'duration dur)))
+      (unless (squelch-noisy-request-log? req)
+        (lognew-info
+            (hasheq 'request  (dict-request-fields req)
+                    'response (hasheq 'code     (response-code resp)
+                                      'headers  (headers->hasheq (response-headers resp))
+                                      'duration dur))))
       tmp))))
 
 (define ((logwrap-lazy handler) req)
