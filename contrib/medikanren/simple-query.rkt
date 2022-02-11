@@ -2,18 +2,18 @@
 
 (provide
   (all-from-out "../../medikanren/mk.rkt")
-  (all-from-out "../../medikanren/pieces-parts/db.rkt")
-  (all-from-out "../../medikanren/pieces-parts/mk-db.rkt")
-  (all-from-out "../../medikanren/pieces-parts/common.rkt")  
+  (all-from-out "../../medikanren/db.rkt")
+  (all-from-out "../../medikanren/mk-db.rkt")
+  (all-from-out "../../medikanren/common.rkt")
   (all-from-out racket/date)
   (all-defined-out))
 
 (require
-  "mk.rkt"
-  "db.rkt"
-  "mk-db.rkt"
-  "common.rkt"
-  "create-all-hashtables.rkt"
+  "../../medikanren/mk.rkt"
+  "../../medikanren/db.rkt"
+  "../../medikanren/mk-db.rkt"
+  "../../medikanren/common.rkt"
+  "../../attic/medikanren/create-all-hashtables.rkt"
   racket/date
   (except-in racket/match ==))
 
@@ -42,25 +42,10 @@ edge format, with dbname at front (as used in edgeo):
 
 
 (displayln "loading semmed knowledge graph")
-(define semmed (make-db "data/semmed"))
-(displayln "loading rtx knowledge graph")
-(define rtx (make-db "data/rtx"))
-(displayln "loading robokop knowledge graph")
-(define robokop (make-db "data/robokop"))
-(displayln "loading orange knowledge graph")
-(define orange (make-db "data/orange"))
+(define semmed (make-db "../../medikanren/data/semmed"))
 
 (printf "\n\nfull semmed edge:\n")
 (run 1 (edge) (db:edgeo semmed edge))
-
-(printf "\n\nfull robokop edge:\n")
-(run 1 (edge) (db:edgeo robokop edge))
-
-(printf "\n\nfull rtx edge:\n")
-(run 1 (edge) (db:edgeo rtx edge))
-
-(printf "\n\nfull orange edge:\n")
-(run 1 (edge) (db:edgeo robokop edge))
 
 (printf "\n\nTyped query 1:\n")
 (run 1 (q)
