@@ -1,20 +1,20 @@
 #lang racket
 
 (provide
- (all-from-out "mk.rkt")
- (all-from-out "db.rkt")
- (all-from-out "mk-db.rkt")
+ (all-from-out "../../medikanren/mk.rkt")
+ (all-from-out "../../medikanren/db.rkt")
+ (all-from-out "../../medikanren/mk-db.rkt")
  
  (all-defined-out))
 
 (require
-  "mk.rkt"
-  "db.rkt"
-  "mk-db.rkt"
+  "../../medikanren/mk.rkt"
+  "../../medikanren/db.rkt"
+  "../../medikanren/mk-db.rkt"
   (except-in racket/match ==))
 
 (displayln "loading semmed")
-(define semmed (time (make-db "data/semmed")))
+(define semmed (time (make-db "../../medikanren/data/semmed")))
 ;; (displayln "loading monarch-lite")
 ;; (define monarch (time (make-db "data/monarch-lite")))
 ;; (displayln "loading rtx")
@@ -123,7 +123,7 @@
                        e)
                    (edgeo e)
                    (project (eprops)
-                     (let ((pmid-pr (assoc "pmids" eprops)))
+                     (let ((pmid-pr (assoc "pmids" (car eprops))))
                        (cond
                          [pmid-pr
                           (let ((pmid-str* (string-split (cdr pmid-pr) ";")))
