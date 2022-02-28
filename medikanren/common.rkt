@@ -296,7 +296,7 @@ edge = `(,dbname ,eid (,scid ,scui ,sname (,scatid . ,scat) ,sprops)
           (define pubs (cdr pr))
           (if (not (string? pubs))
             '()
-            (regexp-match* #rx"([0-9]+)" pubs #:match-select cadr)))]
+            (regexp-match* #rx"PMID:([0-9]+)" pubs #:match-select cadr)))]
     [else '()]))
 (define (pubmed-ids-from-edge edge)
   (remove-duplicates
