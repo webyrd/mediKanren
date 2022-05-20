@@ -27,24 +27,24 @@ servers:
   description: Production server
   x-maturity: production
 tags:
-- name: meta_knowledge_graph
+#- name: meta_knowledge_graph
 - name: query
 - name: translator
 - name: trapi
 paths:
-  /meta_knowledge_graph:
-    get:
-      tags:
-        - meta_knowledge_graph
-      summary: Meta knowledge graph representation of this TRAPI web service.
-      description: Returns meta knowledge graph representation of this TRAPI web service.
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MetaKnowledgeGraph'
+#  /meta_knowledge_graph:
+#    get:
+#      tags:
+#        - meta_knowledge_graph
+#      summary: Meta knowledge graph representation of this TRAPI web service.
+#      description: Returns meta knowledge graph representation of this TRAPI web service.
+#      responses:
+#        '200':
+#          description: Successful Response
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/MetaKnowledgeGraph'
   /query:
     post:
       tags:
