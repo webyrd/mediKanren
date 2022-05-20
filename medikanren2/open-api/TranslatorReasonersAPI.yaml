@@ -21,7 +21,7 @@ info:
     biolink-version: "2.2.11"
     component: ARA
     team:
-      - Exploring Agent
+      - Unsecret Agent
 servers:
 - url: https://medikanren-trapi.ci.transltr.io/v2
   description: Production server
