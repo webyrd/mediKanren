@@ -8,7 +8,7 @@
          cprop edge eprop
          triple quad triple/eid is-a is-a/quad triple-property
          write-list-to-tsv)
-
+ 
 (require "base.rkt"
          racket/dict
          (prefix-in semmed: "db/semmed.rkt")
