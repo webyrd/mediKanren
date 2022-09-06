@@ -590,9 +590,9 @@
 (define (schema.json query headers request-fk)
   (printf "received GET request for schema.json:\n~s\n" query)
   (list
-    'json
+    'text
     200_OK_STRING
-    (string->jsexpr schema.json.txt)))
+    schema.json.txt))
 
 (define (schema.yaml query headers request-fk)
   (printf "received GET request for schema.yaml:\n~s\n" query)
