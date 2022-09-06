@@ -16,6 +16,8 @@
   dict:integer
   dict:ordered
   dict:ordered:vector
+  dict:ordered:union
+  dict:ordered:subtraction
   dict:hash
   enumerator-project
   enumerator-filter
@@ -27,6 +29,7 @@
   group-fold
   group-fold-ordered
   merge-key-union
+  merge-union
   merge-antijoin
   merge-join
   dict-join-unordered
@@ -37,6 +40,8 @@
   hash-antijoin
   dict-key-union-unordered
   dict-key-union-ordered
+  dict-union-unordered
+  dict-union-ordered
   dict-subtract-unordered
   dict-subtract-ordered
 
@@ -64,34 +69,19 @@
   relation-domain-dicts
   relation-compact!
   )
-(require "codec.rkt" "enumerator.rkt" "heap.rkt" "misc.rkt" "order.rkt" "stream.rkt"
-         racket/file racket/list racket/match racket/pretty racket/set racket/struct racket/vector)
+(require "codec.rkt" "enumerator.rkt" "heap.rkt" "logging.rkt" "misc.rkt" "order.rkt" "stream.rkt"
+         racket/file racket/fixnum racket/list racket/match racket/pretty racket/set racket/struct
+         racket/vector racket/unsafe/ops)
 
 ;; TODO:
 ;bscm.rkt
 ;bscm:read bscm:write ?
 ;or favor a bytes-ref/bytes-set! style interface with bscm types?
 
-;; TODO: use these definitions to replace the logging defined in config.rkt
-(define (pretty-log/port out . args)
-  (define seconds (current-seconds))
-  (define d       (seconds->date seconds #f))
-  (define d-parts (list seconds 'UTC
-                        (date-year d) (date-month  d) (date-day    d)
-                        (date-hour d) (date-minute d) (date-second d)))
-  (pretty-write (cons d-parts args) out))
 
-(define (pretty-logf/port out message . args) (pretty-log/port out (apply format message args)))
 
-(define current-log-port (make-parameter (current-error-port)))
 
-(define (pretty-log  . args) (apply pretty-log/port  (current-log-port) args))
-(define (pretty-logf . args) (apply pretty-logf/port (current-log-port) args))
 
-(define-syntax-rule (time/pretty-log body ...)
-  (let-values (((results time.cpu time.real time.gc) (time-apply (lambda () body ...) '())))
-    (pretty-log `(time cpu ,time.cpu real ,time.real gc ,time.gc))
-    (apply values results)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Metadata format ;;;
@@ -745,19 +735,19 @@
 (define (int-tuple<? a b)
   (let loop ((a a) (b b))
     (and (not (null? a))
-         (or (< (car a) (car b))
-             (and (= (car a) (car b))
-                  (loop (cdr a) (cdr b)))))))
+         (or (unsafe-fx< (unsafe-car a) (unsafe-car b))
+             (and (unsafe-fx= (unsafe-car a) (unsafe-car b))
+                  (loop (unsafe-cdr a) (unsafe-cdr b)))))))
 
 (define (sorted-tuples count.tuples columns)
   (pretty-log `(building ,count.tuples tuples from ,(length columns) columns))
   (define tuples (make-vector count.tuples))
   (time/pretty-log
     (let loop ((i 0))
-      (when (< i count.tuples)
-        (vector-set! tuples i (map (lambda (col) (vector-ref col i))
-                                   columns))
-        (loop (+ i 1)))))
+      (when (unsafe-fx< i count.tuples)
+        (unsafe-vector*-set! tuples i (map (lambda (col) (unsafe-vector*-ref col i))
+                                           columns))
+        (loop (unsafe-fx+ i 1)))))
   (pretty-log '(sorting tuples))
   (time/pretty-log (vector-sort! tuples int-tuple<?))
   tuples)
@@ -770,7 +760,7 @@
        column-ids))
 
 (define (ingest-relation-source apath.root lpath.domain-text lpath.table type s.in)
-  (define bytes=>id             (make-hash))
+  (define bytes=>id             (make-btree))
   (define size.bytes            0)
   (define count.tuples.initial  0)
   (define apath.domain.value    (path->string (build-path apath.root lpath.domain-text fn.value)))
@@ -779,57 +769,34 @@
   (define apath*.column.initial (map (lambda (p.c) (string-append p.c fnsuffix.initial))
                                      apath*.column))
   (define (insert-bytes! b)
-    (or (hash-ref bytes=>id b #f)
-        (let ((id (hash-count bytes=>id)))
-          (hash-set! bytes=>id b id)
-          (set! size.bytes (+ size.bytes (bytes-length b)))
-          id)))
+    (let* ((count.0 (btree-count bytes=>id))
+           (id      (btree-ref-or-set! bytes=>id b)))
+      (unless (unsafe-fx= count.0 (btree-count bytes=>id))
+        (set! size.bytes (unsafe-fx+ size.bytes (bytes-length b))))
+      id))
   (define row->tuple
-    (let ((col->num* (map
-                      (lambda (i t.col)
-
-                        #;(match t.col
-                          ('int    (lambda (x)
-                                     (unless (int?    x) (error "invalid int"    `(column: ,i) x))
-                                     x))
-                          ('nat    (lambda (x)
-                                     (unless (nat?    x) (error "invalid nat"    `(column: ,i) x))
-                                     x))
-                          ('bytes  (lambda (x)
-                                     (unless (bytes?  x) (error "invalid bytes"  `(column: ,i) x))
-                                     (insert-bytes!                                      x)))
-                          ('string (lambda (x)
-                                     (unless (string? x) (error "invalid string" `(column: ,i) x))
-                                     (insert-bytes! (string->bytes/utf-8                 x))))
-                          ('symbol (lambda (x)
-                                     (unless (symbol? x) (error "invalid symbol" `(column: ,i) x))
-                                     (insert-bytes! (string->bytes/utf-8 (symbol->string x)))))
-                          (_ (error "(currently) unsupported type"                `(column: ,i) t.col)))
-
-                        (case t.col
-                          ((int)    (lambda (x)
-                                     (unless (int?    x) (error "invalid int"    `(column: ,i) x))
-                                     x))
-                          ((nat)    (lambda (x)
-                                     (unless (nat?    x) (error "invalid nat"    `(column: ,i) x))
-                                     x))
-                          ((bytes)  (lambda (x)
-                                     (unless (bytes?  x) (error "invalid bytes"  `(column: ,i) x))
-                                     (insert-bytes!                                      x)))
-                          ((string) (lambda (x)
-                                     (unless (string? x) (error "invalid string" `(column: ,i) x))
-                                     (insert-bytes! (string->bytes/utf-8                 x))))
-                          ((symbol) (lambda (x)
-                                     (unless (symbol? x) (error "invalid symbol" `(column: ,i) x))
-                                     (insert-bytes! (string->bytes/utf-8 (symbol->string x)))))
-                          (else (error "(currently) unsupported type"                `(column: ,i) t.col)))
-
-                        )
-                      
+    (let ((col->num* (map (lambda (i t.col)
+                            (match t.col
+                              ('int    (lambda (x)
+                                         (unless (int?    x) (error "invalid int"    `(column: ,i) x))
+                                         x))
+                              ('nat    (lambda (x)
+                                         (unless (nat?    x) (error "invalid nat"    `(column: ,i) x))
+                                         x))
+                              ('bytes  (lambda (x)
+                                         (unless (bytes?  x) (error "invalid bytes"  `(column: ,i) x))
+                                         (insert-bytes!                                      x)))
+                              ('string (lambda (x)
+                                         (unless (string? x) (error "invalid string" `(column: ,i) x))
+                                         (insert-bytes! (string->bytes/utf-8                 x))))
+                              ('symbol (lambda (x)
+                                         (unless (symbol? x) (error "invalid symbol" `(column: ,i) x))
+                                         (insert-bytes! (string->bytes/utf-8 (symbol->string x)))))
+                              (_ (error "(currently) unsupported type"                `(column: ,i) t.col))))
                           (range (length type))
                           type)))
       (lambda (row)
-        (set! count.tuples.initial (+ count.tuples.initial 1))
+        (set! count.tuples.initial (unsafe-fx+ count.tuples.initial 1))
         (let loop ((col* row) (col->num* col->num*))
           (match* (col* col->num*)
             (((cons col col*) (cons col->num col->num*)) (cons (col->num col) (loop col* col->num*)))
@@ -841,39 +808,31 @@
     '() apath*.column.initial
     (lambda outs.column.initial
       (define type.tuple (map (lambda (_) 'int) type))
-      (define *row-num* 0)
       (time/pretty-log
-        (s-each (lambda (row)
-                  (when (zero? (modulo *row-num* 100000))
-                    (printf "processing row ~s\n" *row-num*))
-                  (set! *row-num* (add1 *row-num*))
-                  (for-each encode outs.column.initial type.tuple (row->tuple row)))
+        (s-each (lambda (row) (for-each encode outs.column.initial type.tuple (row->tuple row)))
                 s.in))))
 
   (define size.pos  (min-nat-bytes size.bytes))
-  (define count.ids (hash-count bytes=>id))
-  (define id=>id    (make-vector count.ids))
+  (define count.ids (btree-count bytes=>id))
+  (define id=>id    (make-fxvector count.ids))
   (pretty-log `(ingested ,count.tuples.initial tuples))
-  (pretty-log `(sorting ,(hash-count bytes=>id) strings -- ,size.bytes bytes total))
-  (let ((bytes&id*.sorted (time/pretty-log (sort (hash->list bytes=>id)
-                                                 (lambda (a b) (bytes<? (car a) (car b)))))))
-    (pretty-log '(writing sorted strings to) apath.domain.value
-                '(writing positions to) apath.domain.pos)
-    (let/files () ((out.bytes.value apath.domain.value)
-                   (out.bytes.pos   apath.domain.pos))
-      (define (write-pos)
-        (write-bytes (nat->bytes size.pos (file-position out.bytes.value)) out.bytes.pos))
-      (write-pos)
-      (time/pretty-log
-        (let loop ((i 0) (b&id* bytes&id*.sorted))
-          (unless (null? b&id*)
-            (let* ((b&id (car b&id*))
-                   (b    (car b&id))
-                   (id   (cdr b&id)))
-              (write-bytes b out.bytes.value)
-              (write-pos)
-              (vector-set! id=>id id i)
-              (loop (+ i 1) (cdr b&id*))))))))
+  (pretty-log `(enumerating ,(btree-count bytes=>id) strings -- ,size.bytes bytes total))
+  (pretty-log '(writing sorted strings to) apath.domain.value
+              '(writing positions to) apath.domain.pos)
+  (let/files () ((out.bytes.value apath.domain.value)
+                 (out.bytes.pos   apath.domain.pos))
+    (define (write-pos)
+      (write-bytes (nat->bytes size.pos (file-position out.bytes.value)) out.bytes.pos))
+    (write-pos)
+    (time/pretty-log
+      (let ((i 0))
+        (btree-enumerate
+          bytes=>id
+          (lambda (b id)
+            (write-bytes b out.bytes.value)
+            (write-pos)
+            (unsafe-fxvector-set! id=>id id i)
+            (set! i (unsafe-fx+ i 1)))))))
   (define desc.domain-text
     (hash 'count         count.ids
           'size.position size.pos))
@@ -885,7 +844,7 @@
            (define col->col
              (match t.col
                ((or 'nat 'int)              (lambda (n)  n))
-               ((or 'bytes 'string 'symbol) (lambda (id) (vector-ref id=>id id)))))
+               ((or 'bytes 'string 'symbol) (lambda (id) (unsafe-fxvector-ref id=>id id)))))
            (define (read-element in) (col->col (decode in 'int)))
            (match-define (list vec.col min.col max.col)
              (read-column/bounds apath.in count.tuples.initial read-element))
@@ -898,19 +857,19 @@
   (define tuples  (sorted-tuples count.tuples.initial columns))
   (pretty-log '(deduplicating tuples))
   (define (columns-set! j tuple) (for-each (lambda (vec.col value.col)
-                                             (vector-set! vec.col j value.col))
+                                             (unsafe-vector*-set! vec.col j value.col))
                                            columns tuple))
   (define count.tuples.unique
     (time/pretty-log
-      (when (< 0 count.tuples.initial)
-        (define t0 (vector-ref tuples 0))
+      (when (unsafe-fx< 0 count.tuples.initial)
+        (define t0 (unsafe-vector*-ref tuples 0))
         (columns-set! 0 t0)
         (let loop ((prev t0) (i 1) (j 1))
-          (if (< i count.tuples.initial)
-            (let ((next (vector-ref tuples i)))
-              (cond ((equal? prev next) (loop prev (+ i 1) j))
+          (if (unsafe-fx< i count.tuples.initial)
+            (let ((next (unsafe-vector*-ref tuples i)))
+              (cond ((equal? prev next) (loop prev (unsafe-fx+ i 1) j))
                     (else (columns-set! j next)
-                          (loop next (+ i 1) (+ j 1)))))
+                          (loop next (unsafe-fx+ i 1) (unsafe-fx+ j 1)))))
             j)))))
 
   (define column-descriptions
@@ -942,10 +901,10 @@
   (heap! <? h end)
   (define (re-insert end gen)
     (cond ((gen-empty? gen) (heap-remove!  <? h end)
-                            (- end 1))
+                            (unsafe-fx- end 1))
           (else             (heap-replace! <? h end gen)
                             end)))
-  (if (< 0 end)
+  (if (unsafe-fx< 0 end)
     (let ((g.top (heap-top h)))
       (let loop.new ((g.top g.top)
                      (x     (gen-first g.top))
@@ -953,13 +912,13 @@
                      (end   end))
         (yield x)
         (let loop.duplicate ((end (re-insert end (gen-rest g.top i))))
-          (if (< 0 end)
+          (if (unsafe-fx< 0 end)
             (let* ((g.top (heap-top h))
                    (y     (gen-first g.top)))
               (if (equal? x y)
                 (loop.duplicate (re-insert end (gen-rest g.top i)))
-                (loop.new       g.top y (+ i 1) end)))
-            (+ i 1)))))
+                (loop.new       g.top y (unsafe-fx+ i 1) end)))
+            (unsafe-fx+ i 1)))))
     0))
 
 (define (compact-text-domains apath.domain-text.new apaths.domain-text descs.domain-text)
@@ -968,7 +927,7 @@
   (define size.bytes   (sum (map (lambda (apath.in) (file-size (build-path apath.in fn.value)))
                                  apaths.domain-text)))
   (define size.pos     (min-nat-bytes size.bytes))
-  (define id=>ids      (map (lambda (desc.in) (make-vector (hash-ref desc.in 'count)))
+  (define id=>ids      (map (lambda (desc.in) (make-fxvector (hash-ref desc.in 'count)))
                             descs.domain-text))
   (define custodian.gs (make-custodian))
   (define gs           (parameterize ((current-custodian custodian.gs))
@@ -977,7 +936,7 @@
                                 (define size.pos    (hash-ref desc.in 'size.position))
                                 (define apath.value (build-path apath.in fn.value))
                                 (define apath.pos   (build-path apath.in fn.pos))
-                                (and (< 0 count)
+                                (and (unsafe-fx< 0 count)
                                      (let ((in.value (open-input-file apath.value))
                                            (in.pos   (open-input-file apath.pos)))
                                        (define (read-pos) (bytes-nat-ref (read-bytes size.pos in.pos)
@@ -985,11 +944,11 @@
                                                                          0))
                                        (let loop ((id 0) (pos.current (read-pos)))
                                          (let ((pos.next (read-pos)))
-                                           (cons (read-bytes (- pos.next pos.current) in.value)
+                                           (cons (read-bytes (unsafe-fx- pos.next pos.current) in.value)
                                                  (lambda (i)
-                                                   (vector-set! id=>id id i)
-                                                   (and (< (+ id 1) count)
-                                                        (loop (+ id 1) pos.next)))))))))
+                                                   (unsafe-fxvector-set! id=>id id i)
+                                                   (and (unsafe-fx< (unsafe-fx+ id 1) count)
+                                                        (loop (unsafe-fx+ id 1) pos.next)))))))))
                               apaths.domain-text descs.domain-text id=>ids)))
   (pretty-log '(merging domains) (map cons apaths.domain-text descs.domain-text)
               '(writing merge-sorted strings to) apath.value
@@ -1001,21 +960,21 @@
                                                           out.pos))
                          (write-pos)
                          (time/pretty-log
-                           ((multi-merge (lambda (g.0 g.1) (bytes<? (car g.0) (car g.1)))
+                           ((multi-merge (lambda (g.0 g.1) (bytes<? (unsafe-car g.0) (unsafe-car g.1)))
                                          (filter-not not gs)
                                          not
-                                         car
-                                         (lambda (g i) ((cdr g) i)))
+                                         unsafe-car
+                                         (lambda (g i) ((unsafe-cdr g) i)))
                             (lambda (bs)
                               (write-bytes bs out.value)
                               (write-pos))))))
   (custodian-shutdown-all custodian.gs)
   ;; replace identity mappings with #f, indicating no remapping is necessary
   (define remappings   (map (lambda (id=>id)
-                              (let loop ((i (- (vector-length id=>id) 1)))
-                                (and (<= 0 i)
-                                     (if (= i (vector-ref id=>id i))
-                                       (loop (- i 1))
+                              (let loop ((i (unsafe-fx- (unsafe-fxvector-length id=>id) 1)))
+                                (and (unsafe-fx<= 0 i)
+                                     (if (unsafe-fx= i (unsafe-fxvector-ref id=>id i))
+                                       (loop (unsafe-fx- i 1))
                                        id=>id))))
                             id=>ids))
   (define desc.domain-text
@@ -1076,9 +1035,9 @@
                             (append (if key-used?
                                       (list (cons #t (let ((column.key (make-vector count.tuples)))
                                                        (let loop ((i 0))
-                                                         (when (< i count.tuples)
-                                                           (vector-set! column.key i i)
-                                                           (loop (+ i 1))))
+                                                         (when (unsafe-fx< i count.tuples)
+                                                           (unsafe-vector*-set! column.key i i)
+                                                           (loop (unsafe-fx+ i 1))))
                                                        column.key)))
                                       '())
                                     (map (lambda (i.col apath.in)
@@ -1125,20 +1084,20 @@
                                (i*.key     (cdr i*.key))
                                (size.key   (car size*.key))
                                (offset.key (car offset*.key)))
-                           (define (key-ref i) (list-ref (vector-ref tuples i) i.key))
+                           (define (key-ref i) (unsafe-list-ref (unsafe-vector*-ref tuples i) i.key))
                            (let ((out.key (car out*.key)))
-                             (define (write-key key) (write-bytes (nat->bytes size.key (- key offset.key)) out.key))
+                             (define (write-key key) (write-bytes (nat->bytes size.key (unsafe-fx- key offset.key)) out.key))
                              (if (null? i*.key)
                                (let loop.final ((i start))
-                                 (cond ((< i end) (write-key (key-ref i))
-                                                  (loop.final (+ i 1)))
-                                       (else      (list (+ (car pos*) (- i start))))))
+                                 (cond ((unsafe-fx< i end) (write-key (key-ref i))
+                                                           (loop.final (unsafe-fx+ i 1)))
+                                       (else               (list (unsafe-fx+ (car pos*) (unsafe-fx- i start))))))
                                (let ((out.indirect (car out*.indirect)))
                                  (let loop.key ((pos (car pos*)) (pos* (cdr pos*)) (start start) (end end))
-                                   (if (< start end)
+                                   (if (unsafe-fx< start end)
                                      (let ((key (key-ref start)))
                                        (write-key key)
-                                       (let ((start.new (bisect-next start end (lambda (i) (<= (key-ref i) key)))))
+                                       (let ((start.new (bisect-next start end (lambda (i) (unsafe-fx<= (key-ref i) key)))))
                                          (let ((pos* (loop.keys i*.key
                                                                 (cdr size*.key)
                                                                 (cdr offset*.key)
@@ -1148,7 +1107,7 @@
                                                                 start
                                                                 start.new)))
                                            (write-bytes (nat->bytes size.pos (car pos*)) out.indirect)
-                                           (loop.key (+ pos 1) pos* start.new end))))
+                                           (loop.key (unsafe-fx+ pos 1) pos* start.new end))))
                                      (cons pos pos*)))))))))))))))
          (define descs.column.key      (map (lambda (apath desc count size offset)
                                               (let* ((desc (hash-set* desc 'count count 'size size 'offset offset)))
@@ -1188,12 +1147,12 @@
   (let/files ((in apath.in)) ()
     (time/pretty-log
       (let loop ((i 0) (min.col #f) (max.col 0))
-        (cond ((< i count)
+        (cond ((unsafe-fx< i count)
                (define value (read-element in))
-               (vector-set! vec.col i value)
-               (loop (+ i 1)
-                     (if min.col (min min.col value) value)
-                     (max max.col value)))
+               (unsafe-vector*-set! vec.col i value)
+               (loop (unsafe-fx+ i 1)
+                     (if min.col (unsafe-fxmin min.col value) value)
+                     (unsafe-fxmax max.col value)))
               (else (list vec.col (or min.col 0) max.col)))))))
 
 (define (read-column apath.in desc.in)
@@ -1206,16 +1165,16 @@
                     (let/files ((in apath.in)) ()
                       (time/pretty-log
                         (let loop ((i 0))
-                          (cond ((< i count) (define v.in (bytes-nat-ref (read-bytes size in) size 0))
-                                             (vector-set! vec.col i (+ offset v.in))
-                                             (loop (+ i 1)))
-                                (else        vec.col))))))
+                          (cond ((unsafe-fx< i count) (define v.in (bytes-nat-ref (read-bytes size in) size 0))
+                                                      (unsafe-vector*-set! vec.col i (unsafe-fx+ offset v.in))
+                                                      (loop (unsafe-fx+ i 1)))
+                                (else                 vec.col))))))
         (else       (pretty-log `(building ,count consecutive integers starting at ,offset)
                                 '(instead of reading from) apath.in)
                     (let loop ((i 0))
-                      (cond ((< i count) (vector-set! vec.col i (+ offset i))
-                                         (loop (+ i 1)))
-                            (else        vec.col))))))
+                      (cond ((unsafe-fx< i count) (unsafe-vector*-set! vec.col i (unsafe-fx+ offset i))
+                                                  (loop (unsafe-fx+ i 1)))
+                            (else                 vec.col))))))
 
 (define (write-column apath.out count vec.col min.col max.col)
   (if (column-consecutive? (lambda () vec.col) count min.col max.col)
@@ -1229,9 +1188,9 @@
       (let/files () ((out apath.out))
         (time/pretty-log
           (let loop ((i 0))
-            (when (< i count)
-              (write-bytes (nat->bytes size.col (- (vector-ref vec.col i) offset.col)) out)
-              (loop (+ i 1))))))
+            (when (unsafe-fx< i count)
+              (write-bytes (nat->bytes size.col (unsafe-fx- (unsafe-vector*-ref vec.col i) offset.col)) out)
+              (loop (unsafe-fx+ i 1))))))
       (cons size.col offset.col))))
 
 (define (ideal-size-and-offset min.col max.col)
@@ -1244,12 +1203,12 @@
     (cons size.max  0)))
 
 (define (column-consecutive? ->vec count.col min.col max.col)
-  (and (= count.col (+ 1 (- max.col min.col)))
+  (and (unsafe-fx= count.col (unsafe-fx+ 1 (unsafe-fx- max.col min.col)))
        (let ((vec.col (->vec)))
          (let loop ((i 0) (expected min.col))
-           (or (= i count.col)
-               (and (= expected (vector-ref vec.col i))
-                    (loop (+ i 1) (+ expected 1))))))))
+           (or (unsafe-fx= i count.col)
+               (and (unsafe-fx= expected (unsafe-vector*-ref vec.col i))
+                    (loop (unsafe-fx+ i 1) (unsafe-fx+ expected 1))))))))
 
 (define (remap-column?      desc.col   type=>id=>id) (not (not (hash-ref type=>id=>id (hash-ref desc.col 'type) #f))))
 (define (remap-table?       desc.table type=>id=>id) (ormap (lambda (desc.col) (remap-column? desc.col type=>id=>id))
@@ -1265,23 +1224,26 @@
   (define offset  (hash-ref desc.in 'offset 0)) ; TODO: later, require this
   (define id=>id  (hash-ref type=>id=>id type #f))
   (cond (id=>id (match-define (list vec.col min.col max.col)
-                  (if (< 0 size.in)
+                  (if (unsafe-fx< 0 size.in)
                     (read-column/bounds apath.in count
                                         (lambda (in)
                                           (define v.in (bytes-nat-ref (read-bytes size.in in) size.in 0))
-                                          (vector-ref id=>id (+ offset v.in))))
-                    (let loop ((i 0))
-                      (cond ((< i count) (vector-set! vec.col i (+ offset i))
-                                         (loop (+ i 1)))
-                            (else        (list vec.col offset (+ offset (- count 1))))))))
+                                          (unsafe-fxvector-ref id=>id (unsafe-fx+ offset v.in))))
+                    (let ((vec (make-fxvector count)))
+                      (let loop ((i 0))
+                        (cond ((unsafe-fx< i count) (unsafe-fxvector-set! vec i (unsafe-fxvector-ref id=>id (unsafe-fx+ offset i)))
+                                           (loop (unsafe-fx+ i 1)))
+                              (else        (list vec
+                                                 (unsafe-fxvector-ref id=>id offset)
+                                                 (unsafe-fxvector-ref id=>id (unsafe-fx+ offset (unsafe-fx- count 1))))))))))
                 (match-define (cons size.col offset.col)
                   (write-column apath.out (vector-length vec.col) vec.col min.col max.col))
                 (hash-set* desc.in 'size size.col 'offset offset.col 'min min.col 'max max.col))
-        ((= 0 size.in) (pretty-log '(identity remapping on a consecutive integer sequence: nothing to do))
-                       desc.in)
-        (else          (pretty-log '(copying verbatim due to identity remapping))
-                       (time/pretty-log (copy-file apath.in apath.out))
-                       desc.in)))
+        ((unsafe-fx= 0 size.in) (pretty-log '(identity remapping on a consecutive integer sequence: nothing to do))
+                                desc.in)
+        (else (pretty-log '(copying verbatim due to identity remapping))
+              (time/pretty-log (copy-file apath.in apath.out))
+              desc.in)))
 
 (define (remap-table apath.in apath.out desc.table.in desc.domain.new type=>id=>id)
   (pretty-log `(remapping ,apath.in to ,apath.out) desc.table.in)
@@ -1318,6 +1280,118 @@
   (write-metadata (build-path apath.out fn.metadata.initial) desc.table-index.out)
   desc.table-index.out)
 
+;; 2-3 tree
+(define (make-btree) (vector 0 #f))
+
+(define (bytes-compare a b)
+  (let* ((len.a (unsafe-bytes-length a)) (len.b (unsafe-bytes-length b)) (end (unsafe-fxmin len.a len.b)))
+    (let loop ((i 0))
+      (if (unsafe-fx= i end)
+          (cond ((unsafe-fx< len.a len.b) -1)
+                ((unsafe-fx< len.b len.a)  1)
+                (else                      0))
+          (let ((x.a (unsafe-bytes-ref a i)) (x.b (unsafe-bytes-ref b i)))
+            (cond ((unsafe-fx< x.a x.b) -1)
+                  ((unsafe-fx< x.b x.a)  1)
+                  (else                 (loop (unsafe-fx+ i 1)))))))))
+
+(define (btree-count bt) (unsafe-vector*-ref bt 0))
+
+(define (make-btree-2 key                leaf                 l r)   (vector key                leaf                 l r))
+(define (make-btree-3 left-key right-key left-leaf right-leaf l m r) (vector left-key right-key left-leaf right-leaf l m r))
+
+(define (btree-2?      t) (unsafe-fx= (unsafe-vector*-length t) 4))
+(define (btree-2-key   t) (unsafe-vector*-ref t 0))
+(define (btree-2-leaf  t) (unsafe-vector*-ref t 1))
+(define (btree-2-left  t) (unsafe-vector*-ref t btree-2-left:i))
+(define (btree-2-right t) (unsafe-vector*-ref t btree-2-right:i))
+
+(define (btree-2-left-set!  t u) (unsafe-vector*-set! t btree-2-left:i  u))
+(define (btree-2-right-set! t u) (unsafe-vector*-set! t btree-2-right:i u))
+
+(define btree-2-left:i  2)
+(define btree-2-right:i 3)
+
+(define (btree-3-left-key   t) (unsafe-vector*-ref t 0))
+(define (btree-3-right-key  t) (unsafe-vector*-ref t 1))
+(define (btree-3-left-leaf  t) (unsafe-vector*-ref t 2))
+(define (btree-3-right-leaf t) (unsafe-vector*-ref t 3))
+(define (btree-3-left       t) (unsafe-vector*-ref t btree-3-left:i))
+(define (btree-3-middle     t) (unsafe-vector*-ref t btree-3-middle:i))
+(define (btree-3-right      t) (unsafe-vector*-ref t btree-3-right:i))
+
+(define (btree-3-left-set!   t u) (unsafe-vector*-set! t btree-3-left:i   u))
+(define (btree-3-middle-set! t u) (unsafe-vector*-set! t btree-3-middle:i u))
+(define (btree-3-right-set!  t u) (unsafe-vector*-set! t btree-3-right:i  u))
+
+(define btree-3-left:i   4)
+(define btree-3-middle:i 5)
+(define btree-3-right:i  6)
+
+(define (btree-enumerate bt yield)
+  (let loop ((t (unsafe-vector*-ref bt 1)))
+    (when t
+      (cond ((btree-2? t) (loop  (btree-2-left t))
+                          (yield (btree-2-key t) (btree-2-leaf t))
+                          (loop  (btree-2-right t)))
+            (else (loop  (btree-3-left t))
+                  (yield (btree-3-left-key t) (btree-3-left-leaf t))
+                  (loop  (btree-3-middle t))
+                  (yield (btree-3-right-key t) (btree-3-right-leaf t))
+                  (loop  (btree-3-right t)))))))
+
+;; TODO: provide an id / value that we should map x to if it's not already present
+(define (btree-ref-or-set! bt x)
+  (let loop ((t        (unsafe-vector*-ref bt 1))
+             (replace! (lambda (u)            (unsafe-vector*-set! bt 1 u)))
+             (expand!  (lambda (key leaf l r) (unsafe-vector*-set! bt 1 (vector key leaf l r)))))
+    (cond
+      ((not t) (let ((count (unsafe-vector*-ref bt 0)))
+                 (unsafe-vector*-set! bt 0 (unsafe-fx+ count 1))
+                 (expand! x count #f #f)
+                 count))
+      ((btree-2? t) (case (bytes-compare x (btree-2-key t))
+                      ((-1) (loop (btree-2-left t)
+                                  (lambda (u) (btree-2-left-set! t u))
+                                  (lambda (left-key left-leaf l m)
+                                    (replace! (make-btree-3 left-key (btree-2-key t)
+                                                            left-leaf (btree-2-leaf t)
+                                                            l m (btree-2-right t))))))
+                      (( 1) (loop (btree-2-right t)
+                                  (lambda (u) (btree-2-right-set! t u))
+                                  (lambda (right-key right-leaf m r)
+                                    (replace! (make-btree-3 (btree-2-key t) right-key
+                                                            (btree-2-leaf t) right-leaf
+                                                            (btree-2-left t) m r)))))
+                      (else (btree-2-leaf t))))
+      (else (case (bytes-compare x (btree-3-left-key t))
+              ((-1) (loop (btree-3-left t)
+                          (lambda (u) (btree-3-left-set! t u))
+                          (lambda (key leaf l r)
+                            (expand! (btree-3-left-key t)
+                                     (btree-3-left-leaf t)
+                                     (make-btree-2 key leaf l r)
+                                     (make-btree-2 (btree-3-right-key t) (btree-3-right-leaf t)
+                                                   (btree-3-middle t) (btree-3-right t))))))
+              (( 1) (case (bytes-compare x (btree-3-right-key t))
+                      ((-1) (loop (btree-3-middle t)
+                                  (lambda (u) (btree-3-middle-set! t u))
+                                  (lambda (key leaf l r)
+                                    (expand! key leaf
+                                             (make-btree-2 (btree-3-left-key t) (btree-3-left-leaf t)
+                                                           (btree-3-left t) l)
+                                             (make-btree-2 (btree-3-right-key t) (btree-3-right-leaf t)
+                                                           r (btree-3-right t))))))
+                      (( 1) (loop (btree-3-right t)
+                                  (lambda (u) (btree-3-right-set! t u))
+                                  (lambda (key leaf l r)
+                                    (expand! (btree-3-right-key t)
+                                             (btree-3-right-leaf t)
+                                             (make-btree-2 (btree-3-left-key t) (btree-3-left-leaf t)
+                                                           (btree-3-left t) (btree-3-middle t))
+                                             (make-btree-2 key leaf l r)))))
+                      (else (btree-3-right-leaf t))))
+              (else (btree-3-left-leaf t)))))))
 
 ;; TODO: benchmark a design based on streams/iterators for comparison
 
@@ -1463,6 +1537,7 @@
 
 (define dict.empty
   (method-lambda
+    ((empty?)                  #t)
     ((count)                   0)
     ((=/= _)                   dict.empty)
     ((==  _)                   dict.empty)
@@ -1484,6 +1559,7 @@
         dict.empty
         (method-lambda
           ((pop)    (loop (+ start 1) end))
+          ((empty?) (= end start))
           ((count)  (- end start))
           ((top)    (i->value start))
           ((max)    (+ offset.key (- end 1)))
@@ -1494,10 +1570,10 @@
           ((<  key) (loop start                                (min end    (- key offset.key))))
           ((== key) ((self '>= key) '<= key))
           ((has-key? key)              (let ((self (self '>= key)))
-                                         (and (< 0 (self 'count))
+                                         (and (not (self 'empty?))
                                               (equal? (self 'min) key))))
           ((ref key k.found k.missing) (let ((self (self '>= key)))
-                                         (if (or (= 0 (self 'count))
+                                         (if (or (self 'empty?)
                                                  (not (equal? (self 'min) key)))
                                            (k.missing)
                                            (k.found (self 'top)))))
@@ -1522,6 +1598,7 @@
         dict.empty
         (method-lambda
           ((pop)       (loop (+ start 1) end))
+          ((empty?)    (= end start))
           ((count)     (- end start))
           ((top)       (i->value start))
           ((max)       (i->key   (- end 1)))
@@ -1534,10 +1611,10 @@
           ((<  key)    (before (lambda (k) (any<=? key k))))
           ((== key)    ((self '>= key) '<= key))
           ((has-key? key)              (let ((self (self '>= key)))
-                                         (and (< 0 (self 'count))
+                                         (and (not (self 'empty?))
                                               (equal? (self 'min) key))))
           ((ref key k.found k.missing) (let ((self (self '>= key)))
-                                         (if (or (= 0 (self 'count))
+                                         (if (or (self 'empty?)
                                                  (not (equal? (self 'min) key)))
                                            (k.missing)
                                            (k.found (self 'top)))))
@@ -1553,6 +1630,111 @@
                                              (loop (+ i 1)))))))))
     self))
 
+(define (dict:ordered:union combined-value d.left d.right)
+  (let loop ((d.left d.left) (d.right d.right))
+    (define (shared d.left d.right)
+      (method-lambda
+        ((empty?)    #f)
+        ((min)       (d.left 'min))
+        ((max)       (let ((max.left  (d.left  'max))
+                           (max.right (d.right 'max)))
+                       (if (any<? max.left max.right) max.right max.left)))
+        ((after  k<) (loop (d.left 'after  k<) (d.right 'after  k<)))
+        ((before k>) (loop (d.left 'before k>) (d.right 'before k>)))
+        ((>= key)    (loop (d.left '>= key) (d.right '>= key)))
+        ((>  key)    (loop (d.left '>  key) (d.right '>  key)))
+        ((<= key)    (loop (d.left '<= key) (d.right '<= key)))
+        ((<  key)    (loop (d.left '<  key) (d.right '<  key)))
+        ((== key)    (loop (d.left '== key) (d.right '== key)))
+        ((has-key? key)              (or (d.left 'has-key? key) (d.right 'has-key? key)))
+        ((ref key k.found k.missing) (d.left 'ref key
+                                             (lambda (v.left)
+                                               (d.right 'ref key
+                                                        (lambda (v.right) (combined-value v.left v.right))
+                                                        (lambda ()        v.left)))
+                                             (lambda () (d.right 'ref key k.found k.missing))))
+
+        ((enumerator/2)              (merge-union combined-value d.left d.right))
+        ((enumerator)                (merge-key-union d.left d.right))))
+    (define (less d.left d.right)
+      (define super (shared d.left d.right))
+      (method-lambda
+        ((pop)   (loop (d.left 'pop) d.right))
+        ((top)   (d.left 'top))
+        ((count) (+ (d.left 'count) (d.right 'count)))
+        (else    super)))
+    (define (same d.left d.right)
+      (define super (shared d.left d.right))
+      (method-lambda
+        ((pop)   (loop (d.left 'pop) (d.right 'pop)))
+        ((top)   (combined-value (d.left 'top) (d.right 'top)))
+        ((count) (+ (d.left 'count) (d.right 'count) -1))
+        (else    super)))
+    (cond ((d.left  'empty?)                     d.right)
+          ((d.right 'empty?)                     d.left)
+          ((any<? (d.left  'min) (d.right 'min)) (less d.left  d.right))
+          ((any<? (d.right 'min) (d.left  'min)) (less d.right d.left))
+          (else                                  (same d.left  d.right)))))
+
+(define (dict:ordered:subtraction count.keys d.positive d.negative)
+  (let loop ((d.pos d.positive) (d.neg d.negative))
+    (define (shared d.pos d.neg)
+      (method-lambda
+        ((empty?)    #f)
+        ((count)     (d.pos 'count))
+        ((min)       (d.pos 'min))
+        ((max)       (error "TODO: dict:ordered:subtraction max"))
+        ((after  k<) (loop (d.pos 'after  k<) (d.neg 'after  k<)))
+        ((before k>) (loop (d.pos 'before k>) (d.neg 'before k>)))
+        ((>= key)    (loop (d.pos '>= key)    (d.neg '>= key)))
+        ((>  key)    (loop (d.pos '>  key)    (d.neg '>  key)))
+        ((<= key)    (loop (d.pos '<= key)    (d.neg '<= key)))
+        ((<  key)    (loop (d.pos '<  key)    (d.neg '<  key)))
+        ((== key)    (loop (d.pos '== key)    (d.neg '== key)))))
+    (define (less d.pos d.neg)
+      (define super (shared d.pos d.neg))
+      (method-lambda
+        ((pop) (loop (d.pos 'pop) d.neg))
+        ((top) (d.pos 'top))
+        (else  super)))
+    (define (same d.pos d.neg)
+      (if (= count.keys 1)
+        (loop (d.pos 'pop) (d.neg 'pop))
+        (let ((d.pos.top (dict:ordered:subtraction (- count.keys 1) (d.pos 'top) (d.neg 'top))))
+          (if (d.pos.top 'empty?)
+            (loop (d.pos 'pop) (d.neg 'pop))
+            (let ((super (shared d.pos d.neg)))
+              (method-lambda
+                ((pop) (loop (d.pos 'pop) (d.neg 'pop)))
+                ((top) d.pos.top)
+                (else  super)))))))
+    (define self (cond ((d.pos 'empty?) dict.empty)
+                       ((d.neg 'empty?) d.pos)
+                       (else (let ((min.pos (d.pos 'min)) (min.neg (d.neg 'min)))
+                               (cond ((any<? min.pos min.neg) (less d.pos d.neg))
+                                     ((any<? min.neg min.pos) (loop d.pos (d.neg '>= min.pos)))
+                                     (else                    (same d.pos d.neg)))))))
+    (method-lambda
+      ((has-key? key)              (let ((self (self '>= key)))
+                                     (and (not (self 'empty?))
+                                          (equal? (self 'min) key))))
+      ((ref key k.found k.missing) (let ((self (self '>= key)))
+                                     (if (or (self 'empty?)
+                                             (not (equal? (self 'min) key)))
+                                       (k.missing)
+                                       (k.found (self 'top)))))
+      ((enumerator/2)              (lambda (yield)
+                                     (let loop ((self self))
+                                       (unless (self 'empty?)
+                                         (yield (self 'min) (self 'top))
+                                         (loop (self 'pop))))))
+      ((enumerator)                (lambda (yield)
+                                     (let loop ((self self))
+                                       (unless (self 'empty?)
+                                         (yield (self 'min))
+                                         (loop (self 'pop))))))
+      (else                        self))))
+
 (define (dict:ordered:vector rows (t->key (lambda (t) t)) (start 0) (end (vector-length rows)))
   (define (i->value i) (vector-ref rows i))
   (define (i->key   i) (t->key (i->value i)))
@@ -1563,7 +1745,8 @@
     (if (= (hash-count k=>t) 0)
       dict.empty
       (method-lambda
-        ((count)                     (hash-count k=>t))
+        ((empty?)                    (hash-empty? k=>t))
+        ((count)                     (hash-count  k=>t))
         ((=/= key)                   (loop (hash-remove k=>t key)))
         ((==  key)                   (if (hash-has-key? k=>t key)
                                        (loop (hash key (hash-ref k=>t key)))
@@ -1578,26 +1761,24 @@
                                          (yield k))))))))
 
 (define ((merge-join A B) yield)
-  (when (and (< 0 (A 'count))
-             (< 0 (B 'count)))
+  (unless (or (A 'empty?) (B 'empty?))
     (let loop ((A   A)
                (k.A (A 'min))
                (B   B)
                (k.B (B 'min)))
       (case (compare-any k.A k.B)
         ((-1) (let ((A (A '>= k.B)))
-                (when (< 0 (A 'count))
+                (unless (A 'empty?)
                   (loop A (A 'min) B k.B))))
         (( 1) (let ((B (B '>= k.A)))
-                (when (< 0 (B 'count))
+                (unless (B 'empty?)
                   (loop A k.A B (B 'min)))))
         (else (let ((t.A (A 'top))
                     (t.B (B 'top))
                     (A   (A 'pop))
                     (B   (B 'pop)))
                 (yield k.A t.A t.B)
-                (when (and (< 0 (A 'count))
-                           (< 0 (B 'count)))
+                (unless (or (A 'empty?) (B 'empty?))
                   (loop A (A 'min) B (B 'min)))))))))
 
 (define ((merge-antijoin A B) yield)
@@ -1605,6 +1786,9 @@
 
 (define ((merge-key-union A B) yield)
   ((dict-key-union-ordered (A 'enumerator) B) yield))
+
+(define ((merge-union combined-value A B) yield)
+  ((dict-union-ordered combined-value (A 'enumerator/2) B) yield))
 
 (define (group-fold->hash en v.0 f)
   (define k=>v (hash))
@@ -1677,13 +1861,13 @@
    yield))
 
 (define ((dict-join-unordered en d.index) yield)
-  (when (< 0 (d.index 'count))
+  (unless (d.index 'empty?)
     (en (lambda (k v) (d.index 'ref k
                                (lambda (v.index) (yield k v v.index))
                                (lambda ()        (void)))))))
 
 (define ((dict-join-ordered en.ordered d.index) yield)
-  (when (< 0 (d.index 'count))
+  (unless (d.index 'empty?)
     (en.ordered (lambda (k v)
                   (set! d.index (d.index '>= k))
                   (d.index 'ref k
@@ -1691,13 +1875,13 @@
                            (lambda ()        (void)))))))
 
 (define ((dict-antijoin-unordered en d.index) yield)
-  (en (if (= 0 (d.index 'count))
+  (en (if (d.index 'empty?)
         yield
         (lambda (k v) (unless (d.index 'has-key? k)
                         (yield k v))))))
 
 (define ((dict-antijoin-ordered en.ordered d.index) yield)
-  (en.ordered (if (= 0 (d.index 'count))
+  (en.ordered (if (d.index 'empty?)
                 yield
                 (lambda (k v)
                   (set! d.index (d.index '>= k))
@@ -1705,13 +1889,13 @@
                     (yield k v))))))
 
 (define ((dict-subtract-unordered en d.index) yield)
-  (en (if (= 0 (d.index 'count))
+  (en (if (d.index 'empty?)
         yield
         (lambda (k) (unless (d.index 'has-key? k)
                       (yield k))))))
 
 (define ((dict-subtract-ordered en.ordered d.index) yield)
-  (en.ordered (if (= 0 (d.index 'count))
+  (en.ordered (if (d.index 'empty?)
                 yield
                 (lambda (k)
                   (set! d.index (d.index '>= k))
@@ -1729,11 +1913,11 @@
   ((d.index 'enumerator)                yield))
 
 (define ((dict-key-union-ordered en.ordered d.index) yield)
-  (en.ordered (if (= 0 (d.index 'count))
+  (en.ordered (if (d.index 'empty?)
                 yield
                 (lambda (k)
                   (let loop ()
-                    (if (= 0 (d.index 'count))
+                    (if (d.index 'empty?)
                       (yield k)
                       (let ((k.d (d.index 'min)))
                         (case (compare-any k k.d)
@@ -1742,7 +1926,38 @@
                                 (yield k.d)
                                 (loop))
                           (else (set! d.index (d.index 'pop))
-                                (yield k))))))))))
+                                (yield k)))))))))
+  ((d.index 'enumerator) yield))
+
+(define ((dict-union-ordered combined-value en.ordered d.index) yield)
+  (en.ordered (if (d.index 'empty?)
+                yield
+                (lambda (k v)
+                  (let loop ()
+                    (if (d.index 'empty?)
+                      (yield k v)
+                      (let ((k.d (d.index 'min)))
+                        (case (compare-any k k.d)
+                          ((-1) (yield k v))
+                          (( 1) (yield k.d (d.index 'top))
+                                (set! d.index (d.index 'pop))
+                                (loop))
+                          (else (yield k (combined-value v (d.index 'top)))
+                                (set! d.index (d.index 'pop))))))))))
+  ((d.index 'enumerator/2) yield))
+
+(define ((dict-union-unordered combined-value en d.index) yield)
+  (en (if (d.index 'empty?)
+        yield
+        (lambda (k v)
+          (if (d.index 'empty?)
+            (yield k v)
+            (d.index 'ref k
+                     (lambda (v.index)
+                       (yield k (combined-value v v.index))
+                       (set! d.index (d.index '=/= k)))
+                     (lambda () (yield k v)))))))
+  ((d.index 'enumerator/2) yield))
 
 
 ;; TODO: computing fixed points?
@@ -1794,7 +2009,7 @@
   (displayln 'hash-join)
   ((hash-join
      (enumerator->enumerator/2 (list->enumerator '((5 . 6) (10 . 17) (8 . 33) (1 . 5) (0 . 7) (18 . 3))))
-     (enumerator->enumerator/2 (list->enumerator '((7 . 61) (10 . 20) (18 . 33) (11 . 5) (0 . 77) (8 . 3)))))
+     (enumerator->enumerator/2 (list->enumerator '((7 . 61) (10 . 20) (18 . 33) (11 . 5) (20 . 111) (0 . 77) (8 . 3)))))
    (lambda (k a b) (pretty-write (list k a b))))
 
   (displayln 'merge-join)
@@ -1803,14 +2018,14 @@
        (list->enumerator '((5 . 6) (10 . 17) (8 . 33) (1 . 5) (0 . 7) (18 . 3)))
        car)
      (enumerator->dict:ordered:vector-group
-       (list->enumerator '((7 . 61) (10 . 20) (18 . 33) (11 . 5) (0 . 77) (8 . 3)))
+       (list->enumerator '((7 . 61) (10 . 20) (18 . 33) (11 . 5) (20 . 111) (0 . 77) (8 . 3)))
        car))
    (lambda (k a b) (pretty-write (list k a b))))
 
   (displayln 'hash-key-union)
   ((hash-key-union
      (list->enumerator (map car '((5 . 6) (10 . 17) (8 . 33) (1 . 5) (0 . 7) (18 . 3))))
-     (list->enumerator (map car '((7 . 61) (10 . 20) (18 . 33) (11 . 5) (0 . 77) (8 . 3)))))
+     (list->enumerator (map car '((7 . 61) (10 . 20) (18 . 33) (11 . 5) (20 . 111) (0 . 77) (8 . 3)))))
    pretty-write)
 
   (displayln 'merge-key-union)
@@ -1819,14 +2034,77 @@
        (list->enumerator '((5 . 6) (10 . 17) (8 . 33) (1 . 5) (0 . 7) (18 . 3)))
        car)
      (enumerator->dict:ordered:vector-group
-       (list->enumerator '((7 . 61) (10 . 20) (18 . 33) (11 . 5) (0 . 77) (8 . 3)))
+       (list->enumerator '((7 . 61) (10 . 20) (18 . 33) (11 . 5) (20 . 111) (0 . 77) (8 . 3)))
        car))
    pretty-write)
+
+  (displayln 'merge-union)
+  ((merge-union
+     append
+     (enumerator->dict:ordered:vector-group
+       (list->enumerator '((5 . 6) (10 . 17) (8 . 33) (1 . 5) (0 . 7) (18 . 3)))
+       car)
+     (enumerator->dict:ordered:vector-group
+       (list->enumerator '((7 . 61) (10 . 20) (18 . 33) (11 . 5) (20 . 111) (0 . 77) (8 . 3)))
+       car))
+   (lambda (k v) (pretty-write (list k v))))
+
+  (displayln 'dict:ordered:union)
+  (((dict:ordered:union
+      append
+      (enumerator->dict:ordered:vector-group
+        (list->enumerator '((5 . 6) (10 . 17) (8 . 33) (1 . 5) (0 . 7) (18 . 3)))
+        car)
+      (enumerator->dict:ordered:vector-group
+        (list->enumerator '((7 . 61) (10 . 20) (18 . 33) (11 . 5) (20 . 111) (0 . 77) (8 . 3)))
+        car))
+    'enumerator/2)
+   (lambda (k v) (pretty-write (list k v))))
+
+  (displayln 'dict:ordered:subtraction)
+  (let ()
+    (define (table->dict table)
+      (if (equal? table '(()))
+        '()
+        (let* ((groups (map reverse (s-group table = car)))
+               (__ (pretty-write `(groups: ,groups)))
+               (ks (list->vector (map (lambda (rows) (car (car rows)))             groups)))
+               (vs (list->vector (map (lambda (rows) (table->dict (map cdr rows))) groups))))
+          (dict:ordered (column:vector ks) (column:vector vs) 0 (vector-length ks)))))
+    (let* ((table.example.pos '((1 1 1) (1 1 2) (1 2 0) (1 2 1) (1 2 2) (1 2 3)
+                                (2 1 1) (2 1 2) (2 2 0) (2 2 1) (2 2 2) (2 2 3) (2 3 0) (2 3 1) (2 3 2) (2 3 3)
+                                (3 1 1) (3 1 2) (3 2 0) (3 2 1) (3 2 2) (3 2 3)))
+           (table.example.neg '(        (1 1 2) (1 2 0) (1 2 1)                 (1 2 4)
+                                        (2 1 2) (2 2 0) (2 2 1)                 (2 3 0) (2 3 1)                 (2 4 0) (2 4 1)
+                                                (3 2 0) (3 2 1)         (3 2 3)))
+           (table.expected    '((1 1 1)                         (1 2 2) (1 2 3)
+                                (2 1 1)                         (2 2 2) (2 2 3)                 (2 3 2) (2 3 3)
+                                (3 1 1) (3 1 2)                 (3 2 2)        ))
+           (index.example.pos (table->dict table.example.pos))
+           (index.example.neg (table->dict table.example.neg))
+           (result.0          (filter (lambda (row) (not (member row table.example.neg)) )
+                                      table.example.pos))
+           (result.1          (enumerator->list
+                                (lambda (yield)
+                                  (((dict:ordered:subtraction
+                                      3
+                                      index.example.pos
+                                      index.example.neg)
+                                    'enumerator/2)
+                                   (lambda (k1 i2)
+                                     ((i2 'enumerator/2)
+                                      (lambda (k2 i3)
+                                        ((i3 'enumerator)
+                                         (lambda (k3)
+                                           (yield (list k1 k2 k3))))))))))))
+      (pretty-write `(via set-subtract: ,result.0))
+      (pretty-write `(via dict:ordered:subtraction ,result.1))
+      (pretty-write `(equal? ,(equal? result.0 result.1) ,(equal? table.expected result.1)))))
 
   (displayln 'hash-antijoin)
   ((hash-antijoin
      (enumerator->enumerator/2 (list->enumerator '((5 . 6) (10 . 17) (8 . 33) (1 . 5) (0 . 7) (18 . 3))))
-     (enumerator->enumerator/2 (list->enumerator '((7 . 61) (10 . 20) (18 . 33) (11 . 5) (0 . 77) (8 . 3)))))
+     (enumerator->enumerator/2 (list->enumerator '((7 . 61) (10 . 20) (18 . 33) (11 . 5) (20 . 111) (0 . 77) (8 . 3)))))
    (lambda (k v) (pretty-write (list k v))))
 
   (displayln 'merge-antijoin)
@@ -1835,7 +2113,7 @@
        (list->enumerator '((5 . 6) (10 . 17) (8 . 33) (1 . 5) (0 . 7) (18 . 3)))
        car)
      (enumerator->dict:ordered:vector-group
-       (list->enumerator '((7 . 61) (10 . 20) (18 . 33) (11 . 5) (0 . 77) (8 . 3)))
+       (list->enumerator '((7 . 61) (10 . 20) (18 . 33) (11 . 5) (20 . 111) (0 . 77) (8 . 3)))
        car))
    (lambda (k v) (pretty-write (list k v))))
 

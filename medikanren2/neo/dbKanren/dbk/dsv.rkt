@@ -1,8 +1,7 @@
 #lang racket/base
 (provide tsv->stream dsv->stream csv->stream
          path->format format->header/port->stream)
-(require "../../neo/neo-data-import/transform-2tsv-to-4tsv-kgs/transform-utils.rkt"
-         racket/function racket/list racket/string)
+(require racket/function racket/list racket/string)
 
 ;; Informal grammar for tab-separated values (no escapes supported)
 ;FIELD-SEPARATOR  ::= \t
@@ -16,7 +15,7 @@
   (valid-header?! in header? "\t")
   (let loop () (thunk (define l (read-line in 'any))
                       (if (eof-object? l) '()
-                        (cons (efficient-no-trim-tab-string-split l) (loop))))))
+                        (cons (string-split l "\t" #:trim? #f) (loop))))))
 
 ;; Informal grammar for delimiter-separated values (escapes via double quote)
 ;RECORD-SEPARATOR ::= \r\n | \n | \r

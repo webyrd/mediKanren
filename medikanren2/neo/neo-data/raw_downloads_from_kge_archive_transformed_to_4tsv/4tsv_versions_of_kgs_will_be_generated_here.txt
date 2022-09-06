@@ -1,0 +1,36 @@
+Running the transformation scripts in `neo/neo-data-import/transform-2tsv-to-4tsv-kgs/` will generate directories (in this directory) containing 4 TSV files, which in turn can be processed using the scripts in `neo/neo-data-import/build-mediKanren2-kg-from-4tsv/`.
+
+
+For example, running the script
+
+neo/neo-data-import/transform-2tsv-to-4tsv-kgs/transform-rtx-kg2pre_7.6.rkt
+
+will transform the 2 TSV rtx-kg2pre_7.6 files here:
+
+neo-data/
+  raw_downloads_from_kge_archive/
+    rtx-kg2pre_7.6/
+      edges.tsv
+      nodes.tsv
+      ...
+
+into the 4 TSV files here:
+
+neo-data/
+  raw_downloads_from_kge_archive_transformed_to_4tsv/
+    rtx-kg2pre_7.6/
+      rtx-kg2pre_7.6.edge.tsv
+      rtx-kg2pre_7.6.edgeprop.tsv
+      rtx-kg2pre_7.6.node.tsv
+      rtx-kg2pre_7.6.nodeprop.tsv
+
+
+Afterwards, running the script
+
+neo/neo-data-import/build-mediKanren2-kg-from-4tsv/import-rtx-kg2pre_7.6.rkt
+
+will generate the fully-processed dbKanren database here:
+
+
+neo-data/
+  rtx-kg2pre_7.6.db/

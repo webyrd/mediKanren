@@ -1,0 +1,3 @@
+place raw 2tsv kge downloads in this directory!
+
+for example, the uncompressed `rtx-kg2pre_7.6` directory, containing `edges.tsv` and `nodes.tsv`
