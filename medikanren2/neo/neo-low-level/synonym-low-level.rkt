@@ -24,10 +24,12 @@
     (list->set (append (step/dict dict.edge.object.subject)
                        (step/dict dict.edge.subject.object))))
   (define ids.final (set-fixed-point (list->set (strings->ids curies)) step))
-  (enumerator->list
-    (lambda (yield)
-      ((merge-join (ids->dict ids.final) dict.id=>string)
-       (lambda (_ __ curie) (yield curie))))))
+  (initialize-text!)
+  (let ((dict.id=>string (thread-cell-ref tcell.id=>string)))
+    (enumerator->list
+      (lambda (yield)
+        ((merge-join (ids->dict ids.final) dict.id=>string)
+         (lambda (_ __ curie) (yield curie)))))))
 
 ;;;;;;;;;;;;;;;
 ;; Utilities ;;
@@ -47,10 +49,12 @@
 (define (strings->dict strs)
   (define vec.strs  (list->vector (sort (set->list (list->set strs)) string<?)))
   (define dict.strs (dict:ordered (column:vector vec.strs) (column:const '()) 0 (vector-length vec.strs)))
-  (define vec.ids   (enumerator->vector
+  (initialize-text!)
+  (define vec.ids (let ((dict.string=>id (thread-cell-ref tcell.string=>id)))
+                    (enumerator->vector
                       (lambda (yield)
                         ((merge-join dict.strs dict.string=>id)
-                         (lambda (__ ___ id) (yield id))))))
+                         (lambda (__ ___ id) (yield id)))))))
   (dict:ordered (column:vector vec.ids) (column:const '()) 0 (vector-length vec.ids)))
 
 (define (strings->ids strs) (enumerator->rlist ((strings->dict strs) 'enumerator)))
@@ -59,9 +63,16 @@
 (define db     (database (path->string (build-path path.here "kgx-synonym.db"))))
 (define r.edge (database-relation db '(kgx-synonym edge)))
 
-(define domain-dicts                 (relation-domain-dicts r.edge))
-(define dict.string=>id              (car (hash-ref (car domain-dicts) 'text)))
-(define dict.id=>string              (car (hash-ref (cdr domain-dicts) 'text)))
+(define tcell.string=>id (make-thread-cell #f))
+(define tcell.id=>string (make-thread-cell #f))
+
+(define (initialize-text!)
+  (unless (thread-cell-ref tcell.string=>id)
+    (let* ((domain-dicts    (relation-domain-dicts r.edge))
+           (dict.string=>id (car (hash-ref (car domain-dicts) 'text)))
+           (dict.id=>string (car (hash-ref (cdr domain-dicts) 'text))))
+      (thread-cell-set! tcell.string=>id dict.string=>id)
+      (thread-cell-set! tcell.id=>string dict.id=>string))))
 
 (define dict.edge.object.subject (relation-index-dict r.edge '(subject object)))
 (define dict.edge.subject.object (relation-index-dict r.edge '(object subject)))
