@@ -205,6 +205,23 @@
        (display "\r\n" out)])
     (flush-output out)))
 
+;; Try to get the value for a given key from the hash table of
+;; headers.  This is a little subtle, since the header keys are case
+;; insensitive, yet hash table lookup is case senstitive.  This
+;; function returns #f if no entry could be found for the given key
+;; string (in a case-insensitive manner).  Otherwise, the function
+;; returns the value.
+(define (get-key/value-from-headers key-name-str req-headers-hash)
+  (define keys (hash-keys req-headers-hash))
+  (define lowercase/original-keys
+    (map (lambda (key) (cons (string-downcase key) key)) keys))
+  (define pr (assoc (string-downcase key-name-str) lowercase/original-keys))
+  (if pr
+      (let ((actual-key (cdr pr)))
+        (let ((value (hash-ref req-headers-hash actual-key)))
+          value))
+      #f))
+
 ;; `conn-fk` is a failure continuation to be invoked upon unexpected
 ;; closing of the TCP connection, or due to a networking error.  The
 ;; failure continuation should not be invoked for request that can not
@@ -271,18 +288,16 @@
                )]
             ["POST"
              (printf "handling POST request\n")
-
-             (printf "req-headers:\n~s\n" req-headers)
-           
-             (printf "Content-Type:\n~s\n" (hash-ref req-headers "Content-Type:" #f))
-             (printf "Content-Length:\n~s\n" (hash-ref req-headers "Content-Length:" #f))
-         
-             (define content-length-string (hash-ref req-headers "Content-Length:" #f))
+             
+             (printf "req-headers:\n~s\n" req-headers)                       
+             
+             (define content-length-string
+               (get-key/value-from-headers "Content-Length:" req-headers))
 
              (unless content-length-string
                (printf "** error: POST request doesn't include 'Content-Length:'\n")
                (request-fk))
-
+             
              (define content-length (string->number content-length-string))
              (printf "Content-Length as a number:\n~s\n" content-length)
 
@@ -292,11 +307,14 @@
                (printf "** error: bad POST content length: ~s\n" content-length)
                (request-fk))
              
-             (define content-type-string (hash-ref req-headers "Content-Type:" #f))
+             (define content-type-string
+               (get-key/value-from-headers "Content-Type:" req-headers))
              
              (unless content-type-string
                (printf "** error: POST request doesn't include 'Content-Type:'\n")
                (request-fk))
+
+             (printf "Content-Type:\n~s\n" content-type-string)
              
              (define body-str (get-request-body in content-length))
              (printf "body-str:\n~s\n" body-str)
