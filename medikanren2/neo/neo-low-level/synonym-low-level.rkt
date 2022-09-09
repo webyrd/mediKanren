@@ -68,11 +68,11 @@
 
 (define (initialize-text!)
   (unless (thread-cell-ref tcell.string=>id)
-    (let* ((domain-dicts    (relation-domain-dicts r.edge))
+    (let* ((domain-dicts    (relation-domain-dicts r.edge #f))
            (dict.string=>id (car (hash-ref (car domain-dicts) 'text)))
            (dict.id=>string (car (hash-ref (cdr domain-dicts) 'text))))
       (thread-cell-set! tcell.string=>id dict.string=>id)
       (thread-cell-set! tcell.id=>string dict.id=>string))))
 
-(define dict.edge.object.subject (relation-index-dict r.edge '(subject object)))
-(define dict.edge.subject.object (relation-index-dict r.edge '(object subject)))
+(define dict.edge.object.subject (relation-index-dict r.edge '(subject object) #f))
+(define dict.edge.subject.object (relation-index-dict r.edge '(object subject) #f))

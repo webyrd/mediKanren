@@ -532,14 +532,14 @@
                                                                         (foldl (lambda (o o=>lps) (hash-remove o=>lps o))
                                                                                ordering=>lps ords.found)))))
                                         (checkpoint!))))
-        ((index-dict signature)     (let* ((desc      (description))
+        ((index-dict sig preload?)  (let* ((desc      (description))
                                            (data      (hash-ref metadata 'data))
                                            (attrs     (hash-ref desc     'attributes))
-                                           (ordering  ((attrs->signature->ordering attrs) signature))
+                                           (ordering  ((attrs->signature->ordering attrs) sig))
                                            (ordering  (car (normalize-table-index-orderings (length attrs) (list ordering))))
                                            (lpaths.ti (hash-ref (hash-ref desc 'indexes) ordering
                                                                 (lambda () (error "no relation index matches signature"
-                                                                                  name signature)))))
+                                                                                  name sig)))))
                                       (match lpaths.ti
                                         ('() dict.empty)
                                         ((list lpath.ti)
@@ -552,10 +552,9 @@
                                                            (if (< 0 size)
                                                              (let* ((fname (string-append "column." (number->string j) fnsuffix))
                                                                     (apath (build-path (data-path lpath.ti) fname)))
-                                                               (column:port (open-input-file apath) `#(nat ,size))
-                                                               ;; Optionally load index columns into memory instead
-                                                               ;(time (column:bytes:nat (file->bytes apath) (hash-ref desc.col 'size)))
-                                                               )
+                                                               (if preload?
+                                                                   (column:bytes:nat (file->bytes apath) (hash-ref desc.col 'size))
+                                                                   (column:port (open-input-file apath) `#(nat ,size))))
                                                              column:identity)
                                                            offset))))
                                                 (range (length descs.col)) descs.col))
@@ -579,7 +578,7 @@
                                         ;; TODO: multiple table-indexes, possibly with deletions
                                         (_ (error "multi-table indexes are not yet supported" name lpaths.ti)))))
         ;; TODO: share domain dicts when the domains are shared across relations
-        ((domain-dicts)             (let* ((desc         (description))
+        ((domain-dicts preload?)    (let* ((desc         (description))
                                            (data         (hash-ref metadata 'data))
                                            (lpaths.table (hash-ref desc     'tables))
                                            (descs.table  (map (lambda (lp) (hash-ref data lp)) lpaths.table))
@@ -591,9 +590,9 @@
                                         (define count        (hash-ref desc.dt     'count))
                                         (define apath.dt     (data-path lpath.dt))
                                         ;; TODO: should col.pos be shared like this, or duplicated across dicts for safety?
-                                        (define col.pos      (column:port (open-input-file (build-path apath.dt "position")) `#(nat ,size.pos)))
-                                        ;; Optionally load positions into memory instead
-                                        ;(define col.pos      (time (column:bytes:nat (file->bytes (build-path apath.dt "position")) size.pos)))
+                                        (define col.pos      (if preload?
+                                                                 (column:bytes:nat (file->bytes (build-path apath.dt "position")) size.pos)
+                                                                 (column:port (open-input-file (build-path apath.dt "position")) `#(nat ,size.pos))))
                                         ;; TODO: properly support all text types: bytes, string, symbol
                                         (define id->str      (column:port-string col.pos (open-input-file (build-path apath.dt "value"))))
                                         (define dict.str=>id (dict:ordered id->str (lambda (id) id) 0 count))
@@ -719,17 +718,17 @@
       (error "export destination already exists" path.out))
     (apply database-import! (database path.out) db relation-names.out)))
 
-(define (relation-name                r)              ((wrapped-relation-controller r) 'name))
-(define (relation-metadata            r)              ((wrapped-relation-controller r) 'metadata))
-(define (relation-copy!               r name.new)     ((wrapped-relation-controller r) 'copy!              name.new))
-(define (relation-rename!             r name.new)     ((wrapped-relation-controller r) 'rename!            name.new))
-(define (relation-delete!             r)              ((wrapped-relation-controller r) 'delete!))
-(define (relation-rename-attributes!  r attrs.new)    ((wrapped-relation-controller r) 'rename-attributes! attrs.new))
-(define (relation-index-add!          r . signatures) ((wrapped-relation-controller r) 'index-add!         signatures))
-(define (relation-index-remove!       r . signatures) ((wrapped-relation-controller r) 'index-remove!      signatures))
-(define (relation-index-dict          r signature)    ((wrapped-relation-controller r) 'index-dict         signature))
-(define (relation-domain-dicts        r)              ((wrapped-relation-controller r) 'domain-dicts))
-(define (relation-compact!            r)              ((wrapped-relation-controller r) 'compact!))
+(define (relation-name                r)                    ((wrapped-relation-controller r) 'name))
+(define (relation-metadata            r)                    ((wrapped-relation-controller r) 'metadata))
+(define (relation-copy!               r name.new)           ((wrapped-relation-controller r) 'copy!              name.new))
+(define (relation-rename!             r name.new)           ((wrapped-relation-controller r) 'rename!            name.new))
+(define (relation-delete!             r)                    ((wrapped-relation-controller r) 'delete!))
+(define (relation-rename-attributes!  r attrs.new)          ((wrapped-relation-controller r) 'rename-attributes! attrs.new))
+(define (relation-index-add!          r . signatures)       ((wrapped-relation-controller r) 'index-add!         signatures))
+(define (relation-index-remove!       r . signatures)       ((wrapped-relation-controller r) 'index-remove!      signatures))
+(define (relation-index-dict          r signature preload?) ((wrapped-relation-controller r) 'index-dict         signature preload?))
+(define (relation-domain-dicts        r preload?)           ((wrapped-relation-controller r) 'domain-dicts       preload?))
+(define (relation-compact!            r)                    ((wrapped-relation-controller r) 'compact!))
 
 ;; TODO: in-place sorting of multiple columns
 (define (int-tuple<? a b)

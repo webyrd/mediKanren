@@ -16,9 +16,9 @@
 (require "../dbk/database.rkt" "../dbk/enumerator.rkt" "../dbk/stream.rkt"
          racket/fixnum racket/match racket/pretty racket/runtime-path racket/set)
 
-;; Control whether data is preloaded from disk and kept in-memory
+;; Control whether data is preloaded from disk and kept in-memory.
+;; NOTE: without preloading, thread-safety is not guaranteed by default.
 (define preload-index? #f)
-(define preload-text?  #f)
 
 (define str.predicate "predicate")
 ;(define str.predicate "edge_label")
@@ -29,14 +29,14 @@
 (define (string*->id=>1 str*) (bytes*->id=>1 (map string->bytes/utf-8 str*)))
 (define (bytes*->id=>1 text*)
   (let* ((text* (sort (set->list (list->set text*)) bytes<?))
-         (id*   (list->vector (map (lambda (text) (dict-get text=>id text)) text*))))
+         (id*   (list->vector (map text->id text*))))
     (dict:ref (lambda (i) (vector-ref id* i)) fx<
               (lambda (_) '()) 0 (vector-length id*))))
 
 (define (string->id str) (text->id (string->bytes/utf-8 str)))
 (define (id->string id)  (bytes->string/utf-8 (id->text id)))
-(define (text->id   b)   (dict-get text=>id b))
-(define (id->text   id)  (dict-get id=>text id))
+(define (text->id   b)   (initialize-text!) (dict-get (thread-cell-ref tcell.text=>id) b))
+(define (id->text   id)  (initialize-text!) (dict-get (thread-cell-ref tcell.id=>text) id))
 
 (define (concept-properties)          (map id->string (enumerator->list
                                                         (dict-key-enumerator ckey=>cvalue=>curie=>1))))
@@ -78,7 +78,55 @@
 ;     (membero category object-categories)))
 
 (define (query:Known->X curie*.K predicate*.K->X category*.X)
-  (define (query.no-category yield)
+  (define (query. yield)
+    (let* ((ekey.predicate (string->id str.predicate))
+           (ckey.name      (string->id "name"))
+           (K=>1           (string*->id=>1 curie*.K)))
+      ((merge-join fx< K=>1 subject=>object=>eid=>1)
+       (lambda (id.K __ X=>eid=>1)
+         (let* ((id.name.K (dict-min (dict-get (dict-get curie=>ckey=>cvalue=>1 id.K) ckey.name)))
+                (name.K    (id->string id.name.K))
+                (K         (id->string id.K)))
+           ((merge-join fx< X=>eid=>1 curie=>ckey=>cvalue=>1)
+            (lambda (id.X eid=>1 ckey=>cvalue=>1)
+              (let* ((id.name.X (dict-min (dict-get ckey=>cvalue=>1 ckey.name)))
+                     (name.X    (id->string id.name.X))
+                     (X         (id->string id.X)))
+                ((dict-key-enumerator eid=>1)
+                 (lambda (eid)
+                   (let ((predicate.K->X
+                           (id->string (dict-min (dict-get (dict-get eid=>ekey=>evalue=>1 eid)
+                                                           ekey.predicate)))))
+                     (yield (list* K name.K predicate.K->X X name.X
+                                   (edge-id->properties eid))))))))))))))
+  (define (query.c yield)
+    (let* ((ekey.predicate     (string->id str.predicate))
+           (ckey.category      (string->id "category"))
+           (ckey.name          (string->id "name"))
+           (K=>1               (string*->id=>1 curie*.K))
+           (category=>1        (string*->id=>1 category*.X))
+           (category=>curie=>1 (dict-get ckey=>cvalue=>curie=>1 ckey.category)))
+      ((merge-join fx< K=>1 subject=>object=>eid=>1)
+       (lambda (id.K __ X=>eid=>1)
+         (let* ((id.name.K (dict-min (dict-get (dict-get curie=>ckey=>cvalue=>1 id.K) ckey.name)))
+                (name.K    (id->string id.name.K))
+                (K         (id->string id.K)))
+           ((merge-join fx< category=>1 category=>curie=>1)
+            (lambda (__ ___ X=>1.cprop)
+              ((merge-join fx< X=>eid=>1 X=>1.cprop)
+               (lambda (id.X eid=>1 __)
+                 (let* ((id.name.X (dict-min (dict-get (dict-get curie=>ckey=>cvalue=>1 id.X)
+                                                       ckey.name)))
+                        (name.X    (id->string id.name.X))
+                        (X         (id->string id.X)))
+                   ((dict-key-enumerator eid=>1)
+                    (lambda (eid)
+                      (let ((predicate.K->X
+                              (id->string (dict-min (dict-get (dict-get eid=>ekey=>evalue=>1 eid)
+                                                              ekey.predicate)))))
+                        (yield (list* K name.K predicate.K->X X name.X
+                                      (edge-id->properties eid))))))))))))))))
+  (define (query.p yield)
     (let* ((ekey.predicate     (string->id str.predicate))
            (ckey.name          (string->id "name"))
            (K=>1               (string*->id=>1 curie*.K))
@@ -101,7 +149,7 @@
                              (X         (id->string id.X)))
                         (yield (list* K name.K predicate.K->X X name.X
                                       (edge-id->properties eid))))))))))))))))
-  (define (query.category yield)
+  (define (query.p&c yield)
     (let* ((ekey.predicate     (string->id str.predicate))
            (ckey.category      (string->id "category"))
            (ckey.name          (string->id "name"))
@@ -134,7 +182,9 @@
                                 (X         (id->string id.X)))
                            (yield (list* K name.K predicate.K->X X name.X
                                          (edge-id->properties eid))))))))))))))))))
-  (time (enumerator->rlist (if category*.X query.category query.no-category))))
+  (time (enumerator->rlist (if predicate*.K->X
+                               (if category*.X query.p&c query.p)
+                               (if category*.X query.c   query.)))))
 
 ;; query:X->Known is analogous to a miniKanren-style query with this shape:
 ; (run* (s sname p o oname)
@@ -149,7 +199,55 @@
 ;     (membero category subject-categories)))
 
 (define (query:X->Known category*.X predicate*.X->K curie*.K)
-  (define (query.no-category yield)
+  (define (query. yield)
+    (let* ((ekey.predicate (string->id str.predicate))
+           (ckey.name      (string->id "name"))
+           (K=>1           (string*->id=>1 curie*.K)))
+      ((merge-join fx< K=>1 object=>subject=>eid=>1)
+       (lambda (id.K __ X=>eid=>1)
+         (let* ((id.name.K (dict-min (dict-get (dict-get curie=>ckey=>cvalue=>1 id.K) ckey.name)))
+                (name.K    (id->string id.name.K))
+                (K         (id->string id.K)))
+           ((merge-join fx< X=>eid=>1 curie=>ckey=>cvalue=>1)
+            (lambda (id.X eid=>1 ckey=>cvalue=>1)
+              (let* ((id.name.X (dict-min (dict-get ckey=>cvalue=>1 ckey.name)))
+                     (name.X    (id->string id.name.X))
+                     (X         (id->string id.X)))
+                ((dict-key-enumerator eid=>1)
+                 (lambda (eid)
+                   (let ((predicate.X->K
+                           (id->string (dict-min (dict-get (dict-get eid=>ekey=>evalue=>1 eid)
+                                                           ekey.predicate)))))
+                     (yield (list* X name.X predicate.X->K K name.K
+                                   (edge-id->properties eid))))))))))))))
+  (define (query.c yield)
+    (let* ((ekey.predicate     (string->id str.predicate))
+           (ckey.category      (string->id "category"))
+           (ckey.name          (string->id "name"))
+           (K=>1               (string*->id=>1 curie*.K))
+           (category=>1        (string*->id=>1 category*.X))
+           (category=>curie=>1 (dict-get ckey=>cvalue=>curie=>1 ckey.category)))
+      ((merge-join fx< K=>1 object=>subject=>eid=>1)
+       (lambda (id.K __ X=>eid=>1)
+         (let* ((id.name.K (dict-min (dict-get (dict-get curie=>ckey=>cvalue=>1 id.K) ckey.name)))
+                (name.K    (id->string id.name.K))
+                (K         (id->string id.K)))
+           ((merge-join fx< category=>1 category=>curie=>1)
+            (lambda (__ ___ X=>1.cprop)
+              ((merge-join fx< X=>eid=>1 X=>1.cprop)
+               (lambda (id.X eid=>1 __)
+                 (let* ((id.name.X (dict-min (dict-get (dict-get curie=>ckey=>cvalue=>1 id.X)
+                                                       ckey.name)))
+                        (name.X    (id->string id.name.X))
+                        (X         (id->string id.X)))
+                   ((dict-key-enumerator eid=>1)
+                    (lambda (eid)
+                      (let ((predicate.X->K
+                              (id->string (dict-min (dict-get (dict-get eid=>ekey=>evalue=>1 eid)
+                                                              ekey.predicate)))))
+                        (yield (list* X name.X predicate.X->K K name.K
+                                      (edge-id->properties eid))))))))))))))))
+  (define (query.p yield)
     (let* ((ekey.predicate     (string->id str.predicate))
            (ckey.name          (string->id "name"))
            (K=>1               (string*->id=>1 curie*.K))
@@ -172,7 +270,7 @@
                              (X         (id->string id.X)))
                         (yield (list* X name.X predicate.X->K K name.K
                                       (edge-id->properties eid))))))))))))))))
-  (define (query.category yield)
+  (define (query.p&c yield)
     (let* ((ekey.predicate     (string->id str.predicate))
            (ckey.category      (string->id "category"))
            (ckey.name          (string->id "name"))
@@ -205,7 +303,9 @@
                                 (X         (id->string id.X)))
                            (yield (list* X name.X predicate.X->K K name.K
                                          (edge-id->properties eid))))))))))))))))))
-  (time (enumerator->rlist (if category*.X query.category query.no-category))))
+  (time (enumerator->rlist (if predicate*.X->K
+                               (if category*.X query.p&c query.p)
+                               (if category*.X query.c   query.)))))
 
 ;; query:Known<-X->Known is analogous to a miniKanren-style query with this shape:
 ;(run* (K1 name.K1 predicates.K1<-X X name.X predicates.X->K1 K2 name.K2)
@@ -250,8 +350,8 @@
 
 (define (query:Known->X->Known curie*.K1 predicate*.K1->X category*.X predicate*.X->K2 curie*.K2)
   (define (KX*->dict candidate*)
-    (let* ((candidate* (sort candidate* (lambda (a b) (string<? (car a) (car b)))))
-           (group*     (list->vector (s-group candidate* equal? car)))
+    (let* ((candidate* (sort candidate* (lambda (a b) (string<? (cadddr a) (cadddr b)))))
+           (group*     (list->vector (s-group candidate* equal? cadddr)))
            (ref.value  (lambda (i) (vector-ref group* i))))
       (dict:ref (lambda (i) (cadddr (car (ref.value i)))) string<?
                 ref.value 0 (vector-length group*))))
@@ -261,11 +361,11 @@
            (ref.value  (lambda (i) (vector-ref group* i))))
       (dict:ref (lambda (i) (caar (ref.value i))) string<?
                 ref.value 0 (vector-length group*))))
-  (let* ((X=>K1X=>1 (KX*->dict (query:Known->X curie*.K1 predicate*.K1->X category*.X)))
-         (X=>XK2=>1 (XK*->dict (query:X->Known category*.X predicate*.X->K2 curie*.K2))))
+  (let* ((X=>K1X* (KX*->dict (query:Known->X curie*.K1 predicate*.K1->X category*.X)))
+         (X=>XK2* (XK*->dict (query:X->Known category*.X predicate*.X->K2 curie*.K2))))
     (time (enumerator->list
             (lambda (yield)
-              ((merge-join string<? X=>K1X=>1 X=>XK2=>1)
+              ((merge-join string<? X=>K1X* X=>XK2*)
                (lambda (X K1X* XK2*)
                  (for-each
                    (lambda (K1X)
@@ -351,10 +451,18 @@
 (define r.edge  (database-relation db 'edge))
 (define r.eprop (database-relation db 'eprop))
 
-(displayln "Loading text dictionaries")
-(define-values (text=>id id=>text) (time (relation-text-dicts r.cprop preload-text?)))
+(define tcell.text=>id (make-thread-cell #f))
+(define tcell.id=>text (make-thread-cell #f))
+
+(define (initialize-text!)
+  (unless (thread-cell-ref tcell.text=>id)
+    (define-values (text=>id id=>text) (relation-text-dicts r.cprop #f))
+    (thread-cell-set! tcell.text=>id text=>id)
+    (thread-cell-set! tcell.id=>text id=>text)))
 
 (displayln "Loading relation index dictionaries")
+(define subject=>object=>eid=>1 (time (relation-index-dict r.edge  '(subject object eid) preload-index?)))
+(define object=>subject=>eid=>1 (time (relation-index-dict r.edge  '(object subject eid) preload-index?)))
 (define subject=>eid=>object=>1 (time (relation-index-dict r.edge  '(subject eid object) preload-index?)))
 (define object=>eid=>subject=>1 (time (relation-index-dict r.edge  '(object eid subject) preload-index?)))
 (define ekey=>evalue=>eid=>1    (time (relation-index-dict r.eprop '(key value eid)      preload-index?)))

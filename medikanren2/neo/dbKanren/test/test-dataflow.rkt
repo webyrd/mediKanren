@@ -20,10 +20,13 @@
 (define r.edge  (database-relation db '(rtx-kg2 edge)))
 (define r.eprop (database-relation db '(rtx-kg2 eprop)))
 
-(define dict.eprop.eid.value.key     (relation-index-dict r.eprop '(key value eid)))
-(define dict.edge.subject.eid.object (relation-index-dict r.edge  '(object eid subject)))
-(define dict.cprop.value.key.curie   (relation-index-dict r.cprop '(curie key value)))
-(define domain-dicts                 (relation-domain-dicts r.cprop))
+(define preload-index? #f)
+(define preload-text?  #f)
+
+(define dict.eprop.eid.value.key     (time (relation-index-dict r.eprop '(key value eid)      preload-index?)))
+(define dict.edge.subject.eid.object (time (relation-index-dict r.edge  '(object eid subject) preload-index?)))
+(define dict.cprop.value.key.curie   (time (relation-index-dict r.cprop '(curie key value)    preload-index?)))
+(define domain-dicts                 (time (relation-domain-dicts r.cprop preload-text?)))
 (define dict.string=>id              (car (hash-ref (car domain-dicts) 'text)))
 (define dict.id=>string              (car (hash-ref (cdr domain-dicts) 'text)))
 
