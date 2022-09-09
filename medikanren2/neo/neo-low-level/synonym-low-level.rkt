@@ -74,5 +74,5 @@
       (thread-cell-set! tcell.string=>id dict.string=>id)
       (thread-cell-set! tcell.id=>string dict.id=>string))))
 
-(define dict.edge.object.subject (relation-index-dict r.edge '(subject object) #f))
-(define dict.edge.subject.object (relation-index-dict r.edge '(object subject) #f))
+(define dict.edge.object.subject (time (relation-index-dict r.edge '(subject object) #t)))
+(define dict.edge.subject.object (time (relation-index-dict r.edge '(object subject) #t)))
