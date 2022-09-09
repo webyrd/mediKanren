@@ -362,8 +362,8 @@
 
 (define (query:Known->X->Known curie*.K1 predicate*.K1->X category*.X predicate*.X->K2 curie*.K2)
   (define (KX*->dict candidate*)
-    (let* ((candidate* (sort candidate* (lambda (a b) (string<? (car a) (car b)))))
-           (group*     (list->vector (s-group candidate* equal? car)))
+    (let* ((candidate* (sort candidate* (lambda (a b) (string<? (cadddr a) (cadddr b)))))
+           (group*     (list->vector (s-group candidate* equal? cadddr)))
            (ref.value  (lambda (i) (vector-ref group* i))))
       (dict:ref (lambda (i) (cadddr (car (ref.value i)))) string<?
                 ref.value 0 (vector-length group*))))
@@ -373,11 +373,11 @@
            (ref.value  (lambda (i) (vector-ref group* i))))
       (dict:ref (lambda (i) (caar (ref.value i))) string<?
                 ref.value 0 (vector-length group*))))
-  (let* ((X=>K1X=>1 (KX*->dict (query:Known->X curie*.K1 predicate*.K1->X category*.X)))
-         (X=>XK2=>1 (XK*->dict (query:X->Known category*.X predicate*.X->K2 curie*.K2))))
+  (let* ((X=>K1X* (KX*->dict (query:Known->X curie*.K1 predicate*.K1->X category*.X)))
+         (X=>XK2* (XK*->dict (query:X->Known category*.X predicate*.X->K2 curie*.K2))))
     (time (enumerator->list
             (lambda (yield)
-              ((merge-join string<? X=>K1X=>1 X=>XK2=>1)
+              ((merge-join string<? X=>K1X* X=>XK2*)
                (lambda (X K1X* XK2*)
                  (for-each
                    (lambda (K1X)
