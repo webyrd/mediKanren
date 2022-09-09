@@ -60,7 +60,7 @@
 (define (strings->ids strs) (enumerator->rlist ((strings->dict strs) 'enumerator)))
 
 (define-runtime-path path.here "../neo-data")
-(define db     (database (path->string (build-path path.here "kgx-synonym.db"))))
+(define db     (database (path->string (build-path path.here "kgx-synonym/old-neo/kgx-synonym.db"))))
 (define r.edge (database-relation db '(kgx-synonym edge)))
 
 (define tcell.string=>id (make-thread-cell #f))

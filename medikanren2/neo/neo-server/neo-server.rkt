@@ -4,9 +4,9 @@
          DEFALUT_PORT)
 (require
  "../../logging2.rkt"
- ;; "../neo-low-level/query-low-level.rkt"
- ;; "../neo-reasoning/neo-biolink-reasoning.rkt"
- ;; "../neo-utils/neo-helpers.rkt" 
+ "../neo-low-level/query-low-level.rkt"
+ "../neo-reasoning/neo-biolink-reasoning.rkt"
+ "../neo-utils/neo-helpers.rkt"
  racket/file
  racket/match
  racket/set
@@ -18,7 +18,7 @@
  xml
  net/url)
 
-;; Team Unsecret Agent mediKanren 2 server
+;; Team Unsecret Agent mediKanren 2 neo server
 
 (define DEFALUT_PORT 8384)
 
@@ -637,6 +637,37 @@
                                              200_OK_STRING
                                              `(html (body "Hello, World!")))))
 
+(hash-set!
+  dispatch-table
+  '(GET "syn")
+  (lambda (query headers request-fk)
+    (printf "received syn query:\n~s\n" query)
+    (list
+      'xexpr
+      200_OK_STRING
+      `(html
+        (body
+         ,(format
+            "~s"
+            (curie->synonyms-in-db "HGNC:1101")))))))
+
+(hash-set!
+  dispatch-table
+  '(GET "simple")
+  (lambda (query headers request-fk)
+    (printf "received simple query:\n~s\n" query)
+    (list
+      'xexpr
+      200_OK_STRING
+      `(html
+        (body
+         ,(format
+            "~s"
+            (car
+              (query:X->Known
+                (set->list (get-class-descendents-in-db "biolink:ChemicalEntity"))
+                (set->list (get-predicate-descendents-in-db "biolink:treats"))
+                (set->list (get-descendent-curies*-in-db (curie->synonyms-in-db "DOID:9351")))))))))))
 
 (module+ main
   (lognew-info

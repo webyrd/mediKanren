@@ -28,15 +28,19 @@
  get-classes-from-mixin)
 (require
  racket/pretty
+ racket/runtime-path
  racket/set
  racket/string
  yaml)
 
 (define BIOLINK_YAML_FILE "../neo-biolink/biolink_2_4_8/biolink-model.yaml")
 
-(printf "loading biolink YAML file from '~s'...\n" BIOLINK_YAML_FILE)
+(define-runtime-path path.here ".")
+(define bl-path (build-path path.here BIOLINK_YAML_FILE))
 
-(define ip (open-input-file BIOLINK_YAML_FILE))
+(printf "loading biolink YAML file from '~s'...\n" bl-path)
+
+(define ip (open-input-file bl-path))
 (define biolink (time (read-yaml ip)))
 
 (define (get-biolink-version)
