@@ -22,6 +22,8 @@
 
 (define DEFALUT_PORT 8384)
 
+(define NEO_SERVER_VERSION "1.0")
+
 ;; Number of seconds before a connection times out, collecting all
 ;; resources from the connection (was 10 seconds in the original
 ;; tutorial).
@@ -104,10 +106,11 @@
   (custodian-limit-memory cust SERVELET_MEMORY_USAGE_LIMIT)
   (parameterize ([current-custodian cust])
     (define-values (in out) (tcp-accept listener))
-    (printf "tcp-accept accepted connection\n")
+    (printf "\ntcp-accept accepted connection\n")
     (thread
      (lambda ()
-       (printf "started handle thread\n")
+       (printf "\n++ started handle thread for Neo Server ~a ++\n"
+               NEO_SERVER_VERSION)
        (handle in out
                (lambda ()
                  (printf "** connection failure continuation invoked!\n")
