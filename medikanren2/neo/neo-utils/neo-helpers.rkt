@@ -15,6 +15,8 @@
  ;;
  get-descendent-curies-in-db
  get-descendent-curies*-in-db
+
+ iota
  )
 (require
  "../dbKanren/dbk/database.rkt"
@@ -75,3 +77,10 @@
             #f
             (list "biolink:subclass_of")
             (set->list new-curies)))))))
+
+(define (iota n)
+  (define (iter i)
+    (if (>= i n)
+        '()
+        (cons i (iter (+ 1 i)))))
+  (iter 0))

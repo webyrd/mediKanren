@@ -466,7 +466,8 @@
     (hash-ref res-message 'results))
 
   (define scored-results
-    (map (lambda (h) (hash-set h 'score 100)) results))
+    (let ((n (length results)))
+      (map (lambda (h i) (hash-set h 'score (- n i))) results (iota n))))
 
   (define trapi-response
     (hash-set upstream-response 'message (hash-set res-message 'results scored-results)))
