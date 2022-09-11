@@ -455,7 +455,21 @@
 
   (define trapi-response
     (if disable-external-requests
-        (make-empty-trapi-response body-json)
+        (let ()
+          ;;(make-empty-trapi-response body-json)
+
+          (define disease-ids
+            ;; TODO write a chainer in utils, and also check along
+            (hash-ref (hash-ref (hash-ref (hash-ref message 'query_graph) 'nodes) 'n0) 'ids))
+
+          (define q
+            (query:X->Known
+             (set->list (get-class-descendents-in-db "biolink:ChemicalEntity"))
+             (set->list (get-predicate-descendents-in-db "biolink:treats"))
+             (set->list (get-descendent-curies*-in-db (curies->synonyms-in-db disease-ids)))))
+
+          (format "~s" (car q))
+          )
         (let ()
           (define res (api-query (string-append url.genetics path.query) body-json))
 
