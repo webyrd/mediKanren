@@ -134,7 +134,7 @@ TODO
 ```
 
 ```
-> (define stop (serve DEFALUT_PORT))
+> (define stop (serve DEFAULT_PORT))
 ```
 
 ```

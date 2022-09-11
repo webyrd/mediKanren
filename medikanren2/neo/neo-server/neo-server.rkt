@@ -1,7 +1,7 @@
 #lang racket/base
 
 (provide serve
-         DEFALUT_PORT)
+         DEFAULT_PORT)
 (require
  "../../logging2.rkt"
  "../neo-low-level/query-low-level.rkt"
@@ -20,7 +20,7 @@
 
 ;; Team Unsecret Agent mediKanren 2 neo server
 
-(define DEFALUT_PORT 8384)
+(define DEFAULT_PORT 8384)
 
 (define NEO_SERVER_VERSION "1.0")
 
@@ -675,7 +675,7 @@
 (module+ main
   (lognew-info
     (hasheq 'event "starting_server"))
-  (define stop (serve DEFALUT_PORT))
+  (define stop (serve DEFAULT_PORT))
   (lognew-info
     (hasheq 'event "started_server"))
   (let forever ()
