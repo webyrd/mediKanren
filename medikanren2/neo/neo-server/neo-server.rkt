@@ -453,9 +453,23 @@
 
   ;; TODO get the status code from the response.  Make sure the status
   ;; is OK, etc.
-  
-  (define trapi-response
+
+  ;; TODO get back #f and handle it
+
+  (define upstream-response
     (hash-ref res 'response #f))
+
+  (define res-message
+    (hash-ref upstream-response 'message))
+
+  (define results
+    (hash-ref res-message 'results))
+
+  (define scored-results
+    (map (lambda (h) (hash-set h 'score 100)) results))
+
+  (define trapi-response
+    (hash-set upstream-response 'message (hash-set res-message 'results scored-results)))
 
   ;; TODO handle the unexpected case of getting back a `#f` from `hash-ref`
   
