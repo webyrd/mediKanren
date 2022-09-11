@@ -429,9 +429,7 @@
                                         (or (not object-categories)
                                             (and (list? object-categories)
                                                  (member "biolink:Disease" object-categories)))))))))))))]
-    [else #f])
-    
-  #f)
+    [else #f]))
 
 (define (make-empty-trapi-response body-json)
   (let* ((message (hash-ref body-json 'message #f))
@@ -440,6 +438,19 @@
          (message (hash-set message 'results '())))
     (let* ((result (hash-set body-json 'message message)))
       result)))
+
+(define (handle-mvp-creative-querydev body-json message query_graph edges nodes)
+  
+  (printf "++ handling MVP mode creative querydev\n")
+
+  (define trapi-response
+    (make-empty-trapi-response body-json))
+  
+  (list
+    'json
+    200_OK_STRING
+    trapi-response)
+  )
 
 (define (handle-mvp-creative-query body-json message query_graph edges nodes)
   
@@ -452,6 +463,52 @@
     'json
     200_OK_STRING
     trapi-response)
+  )
+
+(define (handle-trapi-querydev body-json request-fk)
+  
+  (define message (hash-ref body-json 'message #f))
+  (printf "message:\n~s\n" message)
+  (unless message
+    (printf "** missing `message` in `body-json`: ~s\n" body-json)
+    (request-fk))
+
+  (define query_graph (hash-ref message 'query_graph #f))
+  (printf "query_graph:\n~s\n" query_graph)
+  (unless query_graph
+    (printf "** missing `query_graph` in `message`: ~s\n" message)
+    (request-fk))
+
+  (define edges (hash-ref query_graph 'edges #f))
+  (printf "edges:\n~s\n" edges)
+  (unless edges
+    (printf "** missing `edges` in `query_graph`: ~s\n" query_graph)
+    (request-fk))
+
+  (define nodes (hash-ref query_graph 'nodes #f))
+  (printf "nodes:\n~s\n" nodes)
+  (unless nodes
+    (printf "** missing `nodes` in `query_graph`: ~s\n" query_graph)
+    (request-fk))
+
+  (define creative-mvp? (mvp-creative-query? edges nodes))
+  (printf "creative-mvp?: ~s\n" creative-mvp?)
+  
+  (if creative-mvp?
+      (handle-mvp-creative-querydev body-json message query_graph edges nodes)
+      (let ()
+
+        (printf "-- handling non-MVP mode query\n")
+
+        (define trapi-response
+          (make-empty-trapi-response body-json))
+  
+        (list
+          'json
+          200_OK_STRING
+          trapi-response)
+        )
+      )
   )
 
 (define (handle-trapi-query body-json request-fk)
@@ -554,6 +611,27 @@
 ;; servlet stuff
 
 ;; dispatch functions
+(define (querydev query
+                  headers
+                  request-fk
+                  ;;
+                  content-type-string
+                  content-length-string
+                  body-str)
+  (printf "received TRAPI `querydev` POST request\n")
+
+  (unless (string=? "application/json" content-type-string)
+    (printf "** unexpected content-type-string for query\nexpected 'application/json', received '~s'\n"
+            content-type-string)
+    (request-fk))
+
+  (define body-json (string->jsexpr body-str))
+  (printf "body-json:\n~s\n" body-json)
+
+  (handle-trapi-querydev body-json request-fk))
+
+
+
 (define (query query
                headers
                request-fk
@@ -628,6 +706,8 @@
 
 (hash-set! dispatch-table '(POST "query") query)
 (hash-set! dispatch-table '(POST "asyncquery") asyncquery)
+
+(hash-set! dispatch-table '(POST "querydev") querydev)
 
 (hash-set! dispatch-table '(GET "health") health)
 
