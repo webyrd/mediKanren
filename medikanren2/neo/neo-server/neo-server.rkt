@@ -440,6 +440,10 @@
     (let* ((result (hash-set body-json 'message message)))
       result)))
 
+(define (make-score-result num-results res-message)
+  (lambda (result index)
+    (- num-results index)))
+
 (define (handle-mvp-creative-querydev body-json message query_graph edges nodes)
   
   (printf "++ handling MVP mode creative querydev\n")
@@ -467,7 +471,8 @@
 
   (define scored-results
     (let ((n (length results)))
-      (map (lambda (h i) (hash-set h 'score (- n i))) results (iota n))))
+      (let ((score-one-result (make-score-result n res-message)))
+        (map (lambda (h i) (hash-set h 'score (score-one-result h i))) results (iota n)))))
 
   (define trapi-response
     (hash-set upstream-response 'message (hash-set res-message 'results scored-results)))
