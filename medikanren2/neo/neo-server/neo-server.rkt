@@ -504,9 +504,38 @@
   
   (printf "++ handling MVP mode creative query\n")
 
+  (define disable-external-requests
+    (hash-ref message 'disable_external_requests #f))
+
+  ;; TODO handle the unexpected case of getting back a `#f` from `hash-ref`
+
   (define trapi-response
-    (make-empty-trapi-response body-json))
-  
+    (if disable-external-requests
+        (make-empty-trapi-response body-json)
+        (let ()
+          (define res (api-query (string-append url.genetics path.query) body-json))
+
+          ;; TODO what happens if the `api-query` fails?  Is there an exception?
+          ;; What is the result of the call?  How do we recover nicely?
+
+          ;; TODO get the status code from the response.  Make sure the status
+          ;; is OK, etc.
+
+          (define upstream-response
+            (hash-ref res 'response #f))
+
+          (define res-message
+            (hash-ref upstream-response 'message))
+
+          (define results
+            (hash-ref res-message 'results))
+
+          (define scored-results
+            (let ((n (length results)))
+              (let ((score-one-result (make-score-result n res-message)))
+                (map (lambda (h i) (hash-set h 'score (score-one-result h i))) results (iota n)))))
+
+          (hash-set upstream-response 'message (hash-set res-message 'results scored-results)))))
   (list
     'json
     200_OK_STRING
