@@ -5,6 +5,7 @@
 (require
  "../../logging2.rkt"
  "../neo-low-level/query-low-level.rkt"
+ "../neo-open-api/neo-api-query.rkt"
  "../neo-reasoning/neo-biolink-reasoning.rkt"
  "../neo-utils/neo-helpers.rkt"
  racket/file
@@ -443,8 +444,20 @@
   
   (printf "++ handling MVP mode creative querydev\n")
 
+  ;; TODO respect "disable_external_requests":true TRAPI flag
+  
+  (define res (api-query (string-append url.genetics path.query) body-json))
+
+  ;; TODO what happens if the `api-query` fails?  Is there an exception?
+  ;; What is the result of the call?  How do we recover nicely?
+
+  ;; TODO get the status code from the response.  Make sure the status
+  ;; is OK, etc.
+  
   (define trapi-response
-    (make-empty-trapi-response body-json))
+    (hash-ref res 'response #f))
+
+  ;; TODO handle the unexpected case of getting back a `#f` from `hash-ref`
   
   (list
     'json

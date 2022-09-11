@@ -1,11 +1,8 @@
 #lang racket
-(provide (all-defined-out))
+(provide api-query
+         path.query
+         url.genetics)
 (require json net/url)
-
-(define (js-count js)
-  (cond ((pair? js) (foldl + 0 (map js-count js)))
-        ((hash? js) (foldl + 0 (hash-map js (lambda (k v) (js-count v)))))
-        (else       1)))
 
 (define url.genetics
   "https://genetics-kp.transltr.io/genetics_provider/trapi/v1.3")
