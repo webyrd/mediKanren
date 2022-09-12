@@ -21,7 +21,7 @@ info:
     team:
       - Unsecret Agent
 servers:
-- url: https://medikanren-trapi.ci.transltr.io/
+- url: https://medikanren-trapi.ci.transltr.io
   description: Production server
   x-maturity: production
 tags:
