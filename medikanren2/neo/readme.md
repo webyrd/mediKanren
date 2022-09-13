@@ -5,7 +5,7 @@ This directory contains the new, or `neo`, server for mediKanren 2, supporting t
 
 ## Racket install and raco package install
 
-Like the rest of mediKanren, the neo server requires that [DrRacket](https://racket-lang.org) be installed.
+Like the rest of mediKanren, the neo server requires that [DrRacket](https://racket-lang.org) be installed.  As of September 12, 2022, we are using Racket 8.6 on production.
 
 You may receive an error from Racket when trying to start the neo server, saying that a required package is missing.  If so, you will need to install the package using the `raco` command-line tool.  For example, to install the `yaml` package, you can run the `raco` command:
 
@@ -21,10 +21,10 @@ You can see the packages already installed using `raco pkg show`.  On Will's lap
 webyrd@Williams-MacBook-Pro neo % raco pkg show
 Installation-wide:
  Package            Checksum             Source
- main-distribution  85e547d3dea60fc6...  catalog...tribution
- racket-lib         ce8f1f745fc8c148...  catalog racket-lib
+ main-distribution  9481f7ced1cb2dea...  catalog...tribution
+ racket-lib         9019e19592f3c3fd...  catalog racket-lib
  [205 auto-installed packages not shown]
-User-specific for installation "8.5":
+User-specific for installation "8.6":
  Package         Checksum              Source
  aws             94a16a6875ac585a1...  catalog...aws/master
  chk             32fb635e19fa2dc2d...  catalog...k?path=chk
