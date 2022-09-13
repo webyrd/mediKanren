@@ -472,13 +472,35 @@
             ;; TODO write a chainer in utils, and also check along
             (hash-ref (hash-ref (hash-ref (hash-ref message 'query_graph) 'nodes) 'n0) 'ids))
 
-          (define q
+          #;(define q
             (query:X->Known
              (set->list (get-class-descendents-in-db "biolink:ChemicalEntity"))
              (set->list (get-predicate-descendents-in-db "biolink:treats"))
              (set->list (get-descendent-curies*-in-db (curies->synonyms-in-db disease-ids)))))
 
-          (format "~s" (car q))
+          ;;
+          (define q1
+            (query:X->Y->Known
+              ;; X
+              (set->list (get-class-descendents-in-db "biolink:ChemicalEntity"))
+              (set->list
+                (set-union
+                  (get-predicate-descendents-in-db "biolink:regulates")
+                  (get-predicate-descendents-in-db "biolink:entity_regulates_entity")))
+              ;; Y
+              (set->list
+                (set-union
+                  (get-class-descendents-in-db "biolink:Gene")
+                  (get-class-descendents-in-db "biolink:GeneOrGeneProduct")
+                  (get-class-descendents-in-db "biolink:Protein")))
+              (set->list
+                (set-union
+                  (get-predicate-descendents-in-db "biolink:causes")
+                  (get-predicate-descendents-in-db "biolink:gene_associated_with_condition")))
+              ;;
+              (set->list (get-descendent-curies*-in-db (curies->synonyms-in-db disease-ids)))))
+
+          (format "~s" (if (null? q1) '() (car q1)))
           )
         (let ()
           (define res (api-query (string-append url.genetics path.query) body-json))
