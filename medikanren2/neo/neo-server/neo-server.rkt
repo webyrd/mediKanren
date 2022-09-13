@@ -517,7 +517,9 @@
 
           (hash-set upstream-response 'message
                     (hash-set (hash-set res-message 'results scored-results)
-                              'knowledge-graph stamped-knowledge-graph)))))
+                              'knowledge-graph stamped-knowledge-graph))
+
+          )))
   (list
     'json
     200_OK_STRING
@@ -559,7 +561,23 @@
               (let ((score-one-result (make-score-result n res-message)))
                 (map (lambda (h i) (hash-set h 'score (score-one-result h i))) results (iota n)))))
 
-          (hash-set upstream-response 'message (hash-set res-message 'results scored-results)))))
+          (define knowledge-graph
+            (hash-ref res-message 'knowledge_graph))
+
+          (define edges
+            (hash-ref knowledge-graph 'edges))
+
+          (define stamped-edges
+            (hash-map/copy edges (lambda (k v) (values k (hash-set v 'attributes (cons unsecret-provenance-attribute (hash-ref v 'attributes)))))))
+
+          (define stamped-knowledge-graph
+            (hash-set knowledge-graph 'edges stamped-edges))
+
+          (hash-set upstream-response 'message
+                    (hash-set (hash-set res-message 'results scored-results)
+                              'knowledge-graph stamped-knowledge-graph))
+
+          )))
   (list
     'json
     200_OK_STRING
