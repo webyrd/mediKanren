@@ -452,7 +452,17 @@
    'value "infores:unsecret-agent"
    'value_type_id "biolink:InformationResource"
    'value_url "https://medikanren-trapi.ci.transltr.io"
-  ))
+   ))
+
+(define (data-attribute infores)
+  (hash
+   'attribute_source infores
+   ;; TODO: what should go here?
+   'attribute_type_id "biolink:aggregator_knowledge_source"
+   'value infores
+   ;; TODO: what should go here?
+   'value_type_id "biolink:InformationResource"
+   ))
 
 (define (get-assoc k m)
   (let ((r (assoc k m)))
@@ -531,7 +541,11 @@
             ;;       other knowledge graphs
             (let ((id (get-assoc "id" props)))
               (hash-set! edges (string->symbol id)
-                         (hash 'attributes '()
+                         (hash 'attributes
+                               (list
+                                unsecret-provenance-attribute
+                                (data-attribute (get-assoc "knowledge_source" props))
+                                )
                                'object (get-assoc "object" props)
                                'predicate (get-assoc "predicate" props)
                                'subject (get-assoc "subject" props)))
