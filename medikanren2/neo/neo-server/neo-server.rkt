@@ -587,13 +587,13 @@
                         (hash 'disease (hash 'id curie_z)
                               'drug (hash 'id curie_x)
                               'gene (hash 'id curie_y))
+                        ;; TODO: we should downvote any answer that is already in 1-hop
                         'score
                         (* (num-pubs props_xy) (num-pubs props_yz))))
                  ]))
             q1)
 
-          ;; TODO: should be sorted by score
-          (set! results (reverse results))
+          (set! results (sort results (lambda (a b) (> (hash-ref a 'score) (hash-ref b 'score)))))
 
           (hash 'message
                 (hash 'knowledge_graph
