@@ -511,7 +511,19 @@
                                  'name name)))))
           (for-each
             (lambda (e)
-              (add-node! (car e)))
+              (match e
+                [`(,curie_x
+                   ,name_x
+                   ,pred_xy
+                   ,curie_y
+                   ,name_y
+                   ,pred_yz
+                   ,curie_z
+                   ,name_z
+                   . ,props)
+                 (add-node! curie_x)
+                 (add-node! curie_y)
+                 (add-node! curie_z)]))
             q1)
 
           (hash 'message (hash 'knowledge_graph (hash 'nodes nodes))))
