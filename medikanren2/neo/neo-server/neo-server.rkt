@@ -500,8 +500,21 @@
               ;;
               (set->list (get-descendent-curies*-in-db (curies->synonyms-in-db disease-ids)))))
 
-          (format "~s" (if (null? q1) '() (car q1)))
-          )
+          (define nodes (make-hash))
+
+          (define (add-node! curie)
+            (let ((props (curie->properties curie)))
+              (let ((categories (cdr (assoc "category" props)))
+                    (name (cadr (assoc "name" props))))
+                (hash-set! nodes (string->symbol curie)
+                           (hash 'categories categories
+                                 'name name)))))
+          (for-each
+            (lambda (e)
+              (add-node! (car e)))
+            q1)
+
+          (hash 'message (hash 'knowledge_graph (hash 'nodes nodes))))
         (let ()
           (define res (api-query (string-append url.genetics path.query) body-json))
 
