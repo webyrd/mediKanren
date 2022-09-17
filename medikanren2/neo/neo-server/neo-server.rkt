@@ -454,6 +454,18 @@
    'value_url "https://medikanren-trapi.ci.transltr.io"
   ))
 
+(define (get-assoc k m)
+  (let ((r (assoc k m)))
+    (if r
+        (cadr r)
+        #f)))
+
+(define (list-assoc k m)
+  (let ((r (assoc k m)))
+    (if r
+        (cdr r)
+        '())))
+
 (define (handle-mvp-creative-querydev body-json message query_graph edges nodes)
   
   (printf "++ handling MVP mode creative querydev\n")
@@ -502,13 +514,24 @@
 
           (define nodes (make-hash))
 
+          (define edges (make-hash))
+
           (define (add-node! curie)
             (let ((props (curie->properties curie)))
-              (let ((categories (cdr (assoc "category" props)))
-                    (name (cadr (assoc "name" props))))
+              (let ((categories (list-assoc "category" props))
+                    (name (get-assoc "name" props)))
                 (hash-set! nodes (string->symbol curie)
                            (hash 'categories categories
                                  'name name)))))
+
+          (define (add-edge! props)
+            (let ((id (get-assoc "id" props)))
+              (hash-set! edges (string->symbol id)
+                         (hash 'attributes '()
+                               'object (get-assoc "object" props)
+                               'predicate (get-assoc "predicate" props)
+                               'subject (get-assoc "subject" props)))
+              id))
 
           (for-each
             (lambda (e)
@@ -526,10 +549,17 @@
                  (add-node! curie_x)
                  (add-node! curie_y)
                  (add-node! curie_z)
+                 (define edge_xy (add-edge! props_xy))
+                 (define edge_yz (add-edge! props_yz))
+                 'ok
                  ]))
             q1)
 
-          (hash 'message (hash 'knowledge_graph (hash 'nodes nodes))))
+          (hash 'message
+                (hash 'knowledge_graph
+                      (hash
+                       'edges edges
+                       'nodes nodes))))
         (let ()
           (define res (api-query (string-append url.genetics path.query) body-json))
 
