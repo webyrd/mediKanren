@@ -516,6 +516,8 @@
 
           (define edges (make-hash))
 
+          (define results '())
+
           (define (add-node! curie)
             (let ((props (curie->properties curie)))
               (let ((categories (list-assoc "category" props))
@@ -525,6 +527,8 @@
                                  'name name)))))
 
           (define (add-edge! props)
+            ;; TODO: using the id as the edge id might break with
+            ;;       other knowledge graphs
             (let ((id (get-assoc "id" props)))
               (hash-set! edges (string->symbol id)
                          (hash 'attributes '()
@@ -532,6 +536,9 @@
                                'predicate (get-assoc "predicate" props)
                                'subject (get-assoc "subject" props)))
               id))
+
+          (define (add-result! r)
+            (set! results (cons r results)))
 
           (for-each
             (lambda (e)
@@ -551,15 +558,26 @@
                  (add-node! curie_z)
                  (define edge_xy (add-edge! props_xy))
                  (define edge_yz (add-edge! props_yz))
-                 'ok
+                 (add-result!
+                  (hash 'edge_bindings
+                        (hash 'drug_gene (hash 'id edge_xy)
+                              'gene_dise (hash 'id edge_yz))
+                        'node_bindings
+                        (hash 'disease (hash 'id curie_z)
+                              'drug (hash 'id curie_x)
+                              'gene (hash 'id curie_y))))
                  ]))
             q1)
+
+          ;; TODO: should be sorted by score
+          (set! results (reverse results))
 
           (hash 'message
                 (hash 'knowledge_graph
                       (hash
                        'edges edges
-                       'nodes nodes))))
+                       'nodes nodes)
+                      'results results)))
         (let ()
           (define res (api-query (string-append url.genetics path.query) body-json))
 
