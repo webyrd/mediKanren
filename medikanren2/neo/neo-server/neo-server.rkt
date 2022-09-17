@@ -14,6 +14,7 @@
  racket/port
  racket/pretty
  racket/runtime-path
+ racket/string
  racket/tcp
  json
  xml
@@ -476,6 +477,12 @@
         (cdr r)
         '())))
 
+(define (num-pubs props)
+  (let ((pubs (get-assoc "publications" props)))
+    (if pubs
+        (length (string-split pubs "|"))
+        0)))
+
 (define (handle-mvp-creative-querydev body-json message query_graph edges nodes)
   
   (printf "++ handling MVP mode creative querydev\n")
@@ -579,7 +586,9 @@
                         'node_bindings
                         (hash 'disease (hash 'id curie_z)
                               'drug (hash 'id curie_x)
-                              'gene (hash 'id curie_y))))
+                              'gene (hash 'id curie_y))
+                        'score
+                        (* (num-pubs props_xy) (num-pubs props_yz))))
                  ]))
             q1)
 
