@@ -509,6 +509,7 @@
                 (hash-set! nodes (string->symbol curie)
                            (hash 'categories categories
                                  'name name)))))
+
           (for-each
             (lambda (e)
               (match e
@@ -520,10 +521,12 @@
                    ,pred_yz
                    ,curie_z
                    ,name_z
-                   . ,props)
+                   ,props_xy
+                   ,props_yz)
                  (add-node! curie_x)
                  (add-node! curie_y)
-                 (add-node! curie_z)]))
+                 (add-node! curie_z)
+                 ]))
             q1)
 
           (hash 'message (hash 'knowledge_graph (hash 'nodes nodes))))

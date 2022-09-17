@@ -410,8 +410,7 @@
                      (for-each
                        (lambda (YK)
                          (match-define (list* _ _ Y->K K name.K props.Y->K) YK)
-                         (yield (append (list X name.X predicate.X->Y Y name.Y Y->K K name.K)
-                                        (append props.X->Y props.Y->K))))
+                         (yield (list X name.X predicate.X->Y Y name.Y Y->K K name.K props.X->Y props.Y->K)))
                        YK*))
                    XY*))))))))
 
