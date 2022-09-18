@@ -1,0 +1,69 @@
+There is an issue with the data in `rtx-kg2pre_7.6`, and perhaps in
+other KGs.
+
+In the `nodes.tsv` file of `rtx-kg2pre_7.6`, some lines contain the
+carriage return character ^M, presumably from DOS.
+
+Alas, the mediKanren processing scripts for the KGs do not handle this
+properly, which can result in a "wrong number of columns" error during
+processing or use of the KG.
+
+So, we must remove the offending carriage return characters before
+running a script in `../neo-data-import/transform-2tsv-to-4tsv-kgs/`
+to transform the 2 TSV KG into the 4 TSV format (which then will be
+imported into a dbKanren-compatible database).
+
+These two pages describe the ^M carriage return character:
+
+https://www.atechtown.com/remove-ctrl-m-character/
+
+https://stackoverflow.com/questions/2613800/how-to-convert-dos-windows-newline-crlf-to-unix-newline-lf
+
+***
+Important: the standard `dos2unix` utility does *not* appear to process the file correctly!
+Which is why we use the `sed` approach instead.
+***
+
+
+To check if a file contains the offending carriage return character, you can run from the terminal (in the directory containing the TSV files):
+
+```
+ack ^M <file name>
+```
+
+For example, `ack ^M nodes.tsv`
+
+However, you need to enter the ^M character correctly on the command line, as control-v followed by control-m
+
+
+If the file contains the offending carriage return character, we must create a version of the TSV file without the carriage return:
+
+```
+sed  -e "s/^M//g" nodes.tsv > nodes_dos_free.tsv
+```
+
+Once again, you need to enter the ^M character correctly on the command line, as control-v followed by control-m
+
+After running the `sed` script, the command
+
+```
+ack ^M nodes_dos_free.tsv
+```
+
+should not find any lines with the offending carriage return (once again, please enter ^M as command-v followed by command-m)
+
+Also, we should check that the only difference between the two versions of the TSV files are the lines containing ^M:
+
+```
+diff nodes.tsv nodes_dos_free.tsv > out.diff.txt
+```
+
+
+The script
+
+`./transform-2tsv-to-4tsv-kgs/transform-rtx-kg2pre_7.6.rkt`
+
+looks for the file `edges.tsv`, but looks for `nodes_dos_free.tsv` rather than `nodes.tsv`.
+
+
+It would be good to automate this checking/fixing of the TSV files, as part of automated KG processing.

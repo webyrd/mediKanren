@@ -1,0 +1,9 @@
+place processed data in this directory!
+
+For example, this directory (`neo-data`) might contain:
+
+kgx-synonym.db/
+
+and
+
+rtx-kg2pre_7.6.db/

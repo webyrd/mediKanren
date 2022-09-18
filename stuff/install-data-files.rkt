@@ -36,6 +36,7 @@
 (define adir-local-archive (make-parameter #f))
 (define adir-storage (make-parameter #f))
 (define adir-install (make-parameter #f))
+(define adir-data-dir (make-parameter #f))
 (define do-config-scm (make-parameter #f))
 (define delete-data-cache (make-parameter #f))
 (define omit-aws-workaround (make-parameter #f))
@@ -232,10 +233,11 @@
 (define dr-do-symlink-impl (cmd:dry-runify do-symlink-impl 'do-symlink))
 
 (define (do-symlink sha1 ardb)
-  (let* (
-         (path-dest (append-path (build-path (adir-install) (path-ver ardb) "data") (reldir-from-ardb ardb)))
-         (path-src (build-path (adir-storage) sha1)))
-    (dr-do-symlink-impl path-src path-dest)))
+  (let ((data-dir (if (adir-data-dir) (adir-data-dir) "data")))
+    (let* (
+           (path-dest (append-path (build-path (adir-install) (path-ver ardb) data-dir) (reldir-from-ardb ardb)))
+           (path-src (build-path (adir-storage) sha1)))
+      (dr-do-symlink-impl path-src path-dest))))
 
 (define (ardb-already-installed? ardb)
   ;; cmds-to-extract owns adir-ardb-storage and writes atomically.  Manual
@@ -467,6 +469,9 @@
    [("--dir-install") adir
                       "The base absolute directory for installing data"
                       (adir-install (string-trim #:left? #f adir))]
+   [("--data-dir") adir
+                   "The remainder of the base path to the directory for installing data"
+                   (adir-data-dir (string-trim #:left? #f adir))]   
    [("--write-config-scm")
     "Generate and overwrite config.scm files for extracted data"
     (do-config-scm #t)]

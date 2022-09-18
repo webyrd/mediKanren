@@ -7,7 +7,6 @@
          jsonl:read jsonl:write json:read json:write
          tsv:read tsv:write csv:read csv:write csv:escape)
 (require "codec.rkt" "enumerator.rkt" "misc.rkt" "stream.rkt"
-         "../../neo/neo-data-import/transform-2tsv-to-4tsv-kgs/transform-utils.rkt"
          json racket/list racket/match racket/port racket/string)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -157,7 +156,7 @@
   (define l (read-line in 'any))
   (if (eof-object? l)
     l
-    (let ((fields (efficient-no-trim-tab-string-split l)))
+    (let ((fields (string-split l "\t" #:trim? #f)))
       (if (null? fields)
         '("")
         fields))))
