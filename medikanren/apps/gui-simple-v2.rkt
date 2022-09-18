@@ -1653,7 +1653,7 @@ edge format, with dbname at front (as used in edgeo):
 
   (define spreadsheet-friendly-pretty-print-X-concepts-with-edges
     (lambda (X-concepts-with-edges)
-      (printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\n"
+      (printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\n"
               "Subject Category"
               "Subject Name"
 
@@ -1663,6 +1663,10 @@ edge format, with dbname at front (as used in edgeo):
               "Object Name"
 
               "PubMed URL"
+
+              "Pub Date"
+
+              "Sentence"
 
               "KG Name")
       (for-each
@@ -1680,22 +1684,34 @@ edge format, with dbname at front (as used in edgeo):
                        (,scid ,scui ,sname (,scatid . ,scat) . ,sprops)
                        (,ocid ,ocui ,oname (,ocatid . ,ocat) . ,oprops)
                        (,pid . ,pred) ,eprops)
-                     (let ((pubmed* (pubmed-URLs-from-edge edge)))
-                       (for-each
-                         (lambda (pubmed)
-                           (printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\n"
-                                   scat
-                                   sname
 
-                                   pred
+                     (define publications-info-alist
+                       (let ((p* (publications-info-alist-from-edge edge)))
+                         (if (null? p*)
+                             (list (list "" "" "" "" ""))
+                             p*)))
+                     
+                     (for-each
+                       (lambda (pub-info)
+                         (match pub-info
+                           [`(,pub-url ,pub-date ,subj-score ,obj-score ,sentence)
+                            (printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\n"
+                                    scat
+                                    sname
 
-                                   ocat
-                                   oname
+                                    pred
 
-                                   pubmed
+                                    ocat
+                                    oname
 
-                                   dbname))
-                         pubmed*))]))
+                                    pub-url
+
+                                    pub-date
+
+                                    sentence
+                                    
+                                    dbname)]))
+                       publications-info-alist)]))
                 edges)]))
         X-concepts-with-edges
         (iota (length X-concepts-with-edges) 1))))
