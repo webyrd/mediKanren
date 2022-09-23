@@ -1684,11 +1684,24 @@ edge format, with dbname at front (as used in edgeo):
                        (,scid ,scui ,sname (,scatid . ,scat) . ,sprops)
                        (,ocid ,ocui ,oname (,ocatid . ,ocat) . ,oprops)
                        (,pid . ,pred) ,eprops)
-
+                     
+                     ;; Create list of
+                     ;;
+                     ;; (pub-url pub-date subj-score obj-score sentence)
+                     ;;
+                     ;; entries, containing as much publication
+                     ;; information as is available for the given
+                     ;; edge.
                      (define publications-info-alist
                        (let ((p* (publications-info-alist-from-edge edge)))
                          (if (null? p*)
-                             (list (list "" "" "" "" ""))
+                             (let ((pubmed* (pubmed-URLs-from-edge edge)))
+                               (if (null? pubmed*)
+                                   (list (list "" "" "" "" ""))
+                                   (map
+                                    (lambda (pub-url)
+                                      (list pub-url "" "" "" ""))
+                                    pubmed*)))
                              p*)))
                      
                      (for-each
