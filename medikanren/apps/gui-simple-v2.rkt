@@ -1654,6 +1654,8 @@ edge format, with dbname at front (as used in edgeo):
   (define spreadsheet-friendly-pretty-print-X-concepts-with-edges
     (lambda (X-concepts-with-edges)
       (printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\n"
+              "KG Name"
+              
               "Subject Category"
               "Subject Name"
 
@@ -1666,9 +1668,7 @@ edge format, with dbname at front (as used in edgeo):
 
               "Pub Date"
 
-              "Sentence"
-
-              "KG Name")
+              "Sentence")
       (for-each
         (lambda (entry index)
           (match entry
@@ -1709,6 +1709,8 @@ edge format, with dbname at front (as used in edgeo):
                          (match pub-info
                            [`(,pub-url ,pub-date ,subj-score ,obj-score ,sentence)
                             (printf "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\n"
+                                    dbname
+
                                     scat
                                     sname
 
@@ -1721,9 +1723,7 @@ edge format, with dbname at front (as used in edgeo):
 
                                     pub-date
 
-                                    sentence
-                                    
-                                    dbname)]))
+                                    sentence)]))
                        publications-info-alist)]))
                 edges)]))
         X-concepts-with-edges
