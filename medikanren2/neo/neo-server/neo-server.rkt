@@ -483,6 +483,12 @@
         (length (string-split pubs "|"))
         0)))
 
+(define (normalize-scores results)
+  (if (null? results)
+      results
+      (let ((max-score (hash-ref (car results) 'score)))
+        (map (lambda (x) (hash-set x 'score (/ (hash-ref x 'score) (* 1.0 max-score)))) results))))
+
 (define (handle-mvp-creative-querydev body-json message query_graph edges nodes)
   
   (printf "++ handling MVP mode creative querydev\n")
@@ -600,7 +606,7 @@
                       (hash
                        'edges edges
                        'nodes nodes)
-                      'results results)))
+                      'results (normalize-scores results))))
         (let ()
           (define res (api-query (string-append url.genetics path.query) body-json))
 
@@ -637,7 +643,7 @@
             (hash-set knowledge_graph 'edges stamped-edges))
 
           (hash-set upstream-response 'message
-                    (hash-set (hash-set res-message 'results scored-results)
+                    (hash-set (hash-set res-message 'results (normalize-scores scored-results))
                               'knowledge_graph stamped-knowledge_graph))
 
           )))
