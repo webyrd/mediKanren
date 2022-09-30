@@ -531,174 +531,6 @@
             'results
             (merge-list results1 results2)))))
 
-(define (handle-mvp-creative-querydev body-json message query_graph edges nodes)
-  
-  (printf "++ handling MVP mode creative querydev\n")
-
-  (define disable-external-requests
-    (hash-ref message 'disable_external_requests #f))
-
-  ;; TODO handle the unexpected case of getting back a `#f` from `hash-ref`
-
-  (define our-trapi-response
-    (let ()
-      ;;(make-empty-trapi-response body-json)
-
-      (define disease-ids
-        ;; TODO write a chainer in utils, and also check along
-        (hash-ref (hash-ref (hash-ref (hash-ref message 'query_graph) 'nodes) 'n0) 'ids))
-
-      #;(define q
-      (query:X->Known
-      (set->list (get-class-descendents-in-db "biolink:ChemicalEntity"))
-      (set->list (get-predicate-descendents-in-db "biolink:treats"))
-      (set->list (get-descendent-curies*-in-db (curies->synonyms-in-db disease-ids)))))
-
-      ;;
-      (define q1
-        (query:X->Y->Known
-         ;; X
-         (set->list (get-class-descendents-in-db "biolink:ChemicalEntity"))
-         (set->list
-          (set-union
-           (get-predicate-descendents-in-db "biolink:regulates")
-           (get-predicate-descendents-in-db "biolink:entity_regulates_entity")))
-         ;; Y
-         (set->list
-          (set-union
-           (get-class-descendents-in-db "biolink:Gene")
-           (get-class-descendents-in-db "biolink:GeneOrGeneProduct")
-           (get-class-descendents-in-db "biolink:Protein")))
-         (set->list
-          (set-union
-           (get-predicate-descendents-in-db "biolink:causes")
-           (get-predicate-descendents-in-db "biolink:gene_associated_with_condition")))
-         ;;
-         (set->list (get-descendent-curies*-in-db (curies->synonyms-in-db disease-ids)))))
-
-      (define nodes (make-hash))
-
-      (define edges (make-hash))
-
-      (define results '())
-
-      (define (add-node! curie)
-        (let ((props (curie->properties curie)))
-          (let ((categories (list-assoc "category" props))
-                (name (get-assoc "name" props)))
-            (hash-set! nodes (string->symbol curie)
-                       (hash 'categories categories
-                             'name name)))))
-
-      (define (add-edge! props)
-        ;; TODO: using the id as the edge id might break with
-        ;;       other knowledge graphs
-        (let ((id (get-assoc "id" props)))
-          (hash-set! edges (string->symbol id)
-                     (hash 'attributes
-                           (list
-                            unsecret-provenance-attribute
-                            (data-attribute (get-assoc "knowledge_source" props))
-                            )
-                           'object (get-assoc "object" props)
-                           'predicate (get-assoc "predicate" props)
-                           'subject (get-assoc "subject" props)))
-          id))
-
-      (define (add-result! r)
-        (set! results (cons r results)))
-
-      (for-each
-        (lambda (e)
-          (match e
-            [`(,curie_x
-               ,name_x
-               ,pred_xy
-               ,curie_y
-               ,name_y
-               ,pred_yz
-               ,curie_z
-               ,name_z
-               ,props_xy
-               ,props_yz)
-             (add-node! curie_x)
-             (add-node! curie_y)
-             (add-node! curie_z)
-             (define edge_xy (add-edge! props_xy))
-             (define edge_yz (add-edge! props_yz))
-             (add-result!
-              (hash 'edge_bindings
-                    (hash 'drug_gene (hash 'id edge_xy)
-                          'gene_dise (hash 'id edge_yz))
-                    'node_bindings
-                    (hash 'disease (hash 'id curie_z)
-                          'drug (hash 'id curie_x)
-                          'gene (hash 'id curie_y))
-                    ;; TODO: we should downvote any answer that is already in 1-hop
-                    'score
-                    (* (num-pubs props_xy) (num-pubs props_yz))))
-             ]))
-        q1)
-
-      (set! results (sort results (lambda (a b) (> (hash-ref a 'score) (hash-ref b 'score)))))
-
-      (hash 'message
-            (hash 'knowledge_graph
-                  (hash
-                   'edges edges
-                   'nodes nodes)
-                  'results (normalize-scores results)))))
-
-  (define gp-trapi-response
-    (if disable-external-requests
-        #f
-        (let ()
-      (define res (api-query (string-append url.genetics path.query) body-json))
-
-      ;; TODO what happens if the `api-query` fails?  Is there an exception?
-      ;; What is the result of the call?  How do we recover nicely?
-
-      ;; TODO get the status code from the response.  Make sure the status
-      ;; is OK, etc.
-
-      (define upstream-response
-        (hash-ref res 'response #f))
-
-      (define res-message
-        (hash-ref upstream-response 'message))
-
-      (define results
-        (hash-ref res-message 'results))
-
-      (define scored-results
-        (let ((n (length results)))
-          (let ((score-one-result (make-score-result n res-message)))
-            (map (lambda (h i) (hash-set h 'score (score-one-result h i))) results (iota n)))))
-
-      (define knowledge_graph
-        (hash-ref res-message 'knowledge_graph))
-
-      (define edges
-        (hash-ref knowledge_graph 'edges))
-
-      (define stamped-edges
-        (hash-map/copy edges (lambda (k v) (values k (hash-set v 'attributes (cons unsecret-provenance-attribute (hash-ref v 'attributes)))))))
-
-      (define stamped-knowledge_graph
-        (hash-set knowledge_graph 'edges stamped-edges))
-
-      (hash-set upstream-response 'message
-                (hash-set (hash-set res-message 'results (normalize-scores scored-results))
-                          'knowledge_graph stamped-knowledge_graph))
-
-      )))
-
-  (list
-    'json
-    200_OK_STRING
-    (if gp-trapi-response (merge-trapi-responses our-trapi-response gp-trapi-response) our-trapi-response))
-  )
-
 (define (handle-mvp-creative-query body-json message query_graph edges nodes)
   
   (printf "++ handling MVP mode creative query\n")
@@ -876,51 +708,6 @@
     trapi-response)
   )
 
-(define (handle-trapi-querydev body-json request-fk)
-  
-  (define message (hash-ref body-json 'message #f))
-  (printf "message:\n~s\n" message)
-  (unless message
-    (printf "** missing `message` in `body-json`: ~s\n" body-json)
-    (request-fk))
-
-  (define query_graph (hash-ref message 'query_graph #f))
-  (printf "query_graph:\n~s\n" query_graph)
-  (unless query_graph
-    (printf "** missing `query_graph` in `message`: ~s\n" message)
-    (request-fk))
-
-  (define edges (hash-ref query_graph 'edges #f))
-  (printf "edges:\n~s\n" edges)
-  (unless edges
-    (printf "** missing `edges` in `query_graph`: ~s\n" query_graph)
-    (request-fk))
-
-  (define nodes (hash-ref query_graph 'nodes #f))
-  (printf "nodes:\n~s\n" nodes)
-  (unless nodes
-    (printf "** missing `nodes` in `query_graph`: ~s\n" query_graph)
-    (request-fk))
-
-  (define creative-mvp? (mvp-creative-query? edges nodes))
-  (printf "creative-mvp?: ~s\n" creative-mvp?)
-  
-  (if creative-mvp?
-      (handle-mvp-creative-querydev body-json message query_graph edges nodes)
-      (let ()
-
-        (printf "-- handling non-MVP mode query\n")
-
-        (define trapi-response
-          (make-empty-trapi-response body-json))
-  
-        (list
-          'json
-          200_OK_STRING
-          trapi-response)
-        )
-      )
-  )
 
 (define (handle-trapi-query body-json request-fk)
   
@@ -1022,27 +809,6 @@
 ;; servlet stuff
 
 ;; dispatch functions
-(define (querydev query
-                  headers
-                  request-fk
-                  ;;
-                  content-type-string
-                  content-length-string
-                  body-str)
-  (printf "received TRAPI `querydev` POST request\n")
-
-  (unless (string=? "application/json" content-type-string)
-    (printf "** unexpected content-type-string for query\nexpected 'application/json', received '~s'\n"
-            content-type-string)
-    (request-fk))
-
-  (define body-json (string->jsexpr body-str))
-  (printf "body-json:\n~s\n" body-json)
-
-  (handle-trapi-querydev body-json request-fk))
-
-
-
 (define (query query
                headers
                request-fk
@@ -1117,8 +883,6 @@
 
 (hash-set! dispatch-table '(POST "query") query)
 (hash-set! dispatch-table '(POST "asyncquery") asyncquery)
-
-(hash-set! dispatch-table '(POST "querydev") querydev)
 
 (hash-set! dispatch-table '(GET "health") health)
 
