@@ -511,11 +511,16 @@
          (results1 (hash-ref message1 'results))
          (results2 (hash-ref message2 'results)))
     (hash 'message
-          (hash 'knowledge_graph
-                (hash
-                 'edges (merge-hash edges1 edges2)
-                 'nodes (merge-hash nodes1 nodes2))
-                'results (merge-list results1 results2)))))
+          (hash
+            ;;
+            'knowledge_graph
+            (hash
+              'edges (merge-hash edges1 edges2)
+              ;;
+              'nodes (merge-hash nodes1 nodes2))
+            ;;
+            'results
+            (merge-list results1 results2)))))
 
 (define (handle-mvp-creative-querydev body-json message query_graph edges nodes)
   
