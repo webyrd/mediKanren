@@ -435,11 +435,20 @@
 
 (define (make-empty-trapi-response body-json)
   (let* ((message (hash-ref body-json 'message #f))
-         (message (hash-set message 'knowledge_graph (hasheq 'nodes (hasheq)
-                                                             'edges (hasheq))))
-         (message (hash-set message 'results '())))
-    (let* ((result (hash-set body-json 'message message)))
-      result)))
+         (query_graph (hash-ref message 'query_graph #f)))
+    (hash
+      'message
+      (hash
+        'query_graph
+        query_graph
+        ;;
+        'knowledge_graph
+        (hash 'nodes (hash)
+              'edges (hash))
+        ;;
+        'results
+        '()
+       ))))
 
 (define (make-score-result num-results res-message)
   (lambda (result index)
@@ -802,11 +811,15 @@
       (set! results (sort results (lambda (a b) (> (hash-ref a 'score) (hash-ref b 'score)))))
 
       (hash 'message
-            (hash 'knowledge_graph
-                  (hash
-                   'edges edges
-                   'nodes nodes)
-                  'results (normalize-scores results)))))
+            (hash
+              ;;
+              'knowledge_graph
+              (hash
+               'edges edges
+               'nodes nodes)
+              ;;
+              'results
+              (normalize-scores results)))))
 
   (define gp-trapi-response
     (if disable-external-requests
@@ -852,10 +865,15 @@
 
           )))
 
+  (define trapi-response
+    (if gp-trapi-response
+        (merge-trapi-responses our-trapi-response gp-trapi-response)
+        our-trapi-response))
+  
   (list
     'json
     200_OK_STRING
-    (if gp-trapi-response (merge-trapi-responses our-trapi-response gp-trapi-response) our-trapi-response))
+    trapi-response)
   )
 
 (define (handle-trapi-querydev body-json request-fk)
