@@ -436,9 +436,11 @@
 (define (make-empty-trapi-response body-json)
   (let* ((message (hash-ref body-json 'message #f))
          (query_graph (hash-ref message 'query_graph #f)))
+    
     (hash
       'message
       (hash
+        ;;
         'query_graph
         query_graph
         ;;
@@ -508,7 +510,7 @@
   (hash-for-each h1 (lambda (k v) (set! h (hash-set h k v))))
   h)
 
-(define (merge-trapi-responses r1 r2)
+(define (merge-trapi-responses r1 r2 original-query_graph)
   (let* ((message1 (hash-ref r1 'message))
          (message2 (hash-ref r2 'message))
          (knowledge_graph1 (hash-ref message1 'knowledge_graph))
@@ -519,8 +521,17 @@
          (edges2 (hash-ref knowledge_graph2 'edges))
          (results1 (hash-ref message1 'results))
          (results2 (hash-ref message2 'results)))
+    ;; POSSIBLE TODO
+    ;; Might want to check that 'original-query_graph'
+    ;; is 'equal?' to the 'query_graph' in 'r1' and the
+    ;; 'query_graph' in 'r2' (to ensure we aren't trying
+    ;; to merge a response that modifies the 'query_graph'
+    ;; in creative mode, for example).
     (hash 'message
           (hash
+            ;;
+            'query_graph
+            original-query_graph
             ;;
             'knowledge_graph
             (hash
@@ -529,7 +540,8 @@
               'nodes (merge-hash nodes1 nodes2))
             ;;
             'results
-            (merge-list results1 results2)))))
+            (merge-list results1 results2)
+            ))))
 
 (define (handle-mvp-creative-query body-json message query_graph edges nodes)
   
@@ -538,11 +550,8 @@
   (define disable-external-requests
     (hash-ref message 'disable_external_requests #f))
 
-  ;; TODO handle the unexpected case of getting back a `#f` from `hash-ref`
-
   (define our-trapi-response
     (let ()
-      ;;(make-empty-trapi-response body-json)
 
       (define disease-ids
         ;; TODO write a chainer in utils, and also check along
@@ -642,16 +651,20 @@
 
       (set! results (sort results (lambda (a b) (> (hash-ref a 'score) (hash-ref b 'score)))))
 
-      (hash 'message
-            (hash
-              ;;
-              'knowledge_graph
-              (hash
-               'edges edges
-               'nodes nodes)
-              ;;
-              'results
-              (normalize-scores results)))))
+      (hash
+        'message
+        (hash
+          ;;
+          'query_graph
+          query_graph         
+          ;;
+          'knowledge_graph
+          (hash 'edges edges
+                'nodes nodes)
+          ;;
+          'results
+          (normalize-scores results)))
+      ))
 
   (define gp-trapi-response
     (if disable-external-requests
@@ -691,15 +704,19 @@
           (define stamped-knowledge_graph
             (hash-set knowledge_graph 'edges stamped-edges))
 
-          (hash-set upstream-response 'message
-                    (hash-set (hash-set res-message 'results (normalize-scores scored-results))
-                              'knowledge_graph stamped-knowledge_graph))
+          (hash-set upstream-response
+                    'message
+                    (hash-set (hash-set res-message
+                                        'results
+                                        (normalize-scores scored-results))
+                              'knowledge_graph
+                              stamped-knowledge_graph))
 
           )))
 
   (define trapi-response
     (if gp-trapi-response
-        (merge-trapi-responses our-trapi-response gp-trapi-response)
+        (merge-trapi-responses our-trapi-response gp-trapi-response query_graph)
         our-trapi-response))
   
   (list
@@ -929,10 +946,10 @@
 
 (module+ main
   (lognew-info
-    (hasheq 'event "starting_server"))
+    (hash 'event "starting_server"))
   (define stop (serve DEFAULT_PORT))
   (lognew-info
-    (hasheq 'event "started_server"))
+    (hash 'event "started_server"))
   (let forever ()
     (sleep 10)
     (forever)))
