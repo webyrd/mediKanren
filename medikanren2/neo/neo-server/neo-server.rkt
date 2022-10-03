@@ -729,11 +729,21 @@
     (if gp-trapi-response
         (merge-trapi-responses our-trapi-response gp-trapi-response query_graph)
         our-trapi-response))
-  
+
+  (define merged-results
+    (hash-ref (hash-ref trapi-response 'message) 'results))
+
+  (define merged-scored-results
+    (normalize-scores (score-results merged-results)))
+
+  (define scored-trapi-response
+    (hash-set trapi-response 'message
+              (hash-set (hash-ref trapi-response 'message)
+                        'results merged-scored-results)))
   (list
     'json
     200_OK_STRING
-    trapi-response)
+    scored-trapi-response)
   )
 
 
