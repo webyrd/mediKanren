@@ -456,9 +456,14 @@
         '()
        ))))
 
-(define (make-score-result num-results res-message)
+(define (make-score-result num-results)
   (lambda (result index)
     (- num-results index)))
+
+(define (score-results results)
+  (let ((n (length results)))
+    (let ((score-one-result (make-score-result n)))
+      (map (lambda (h i) (hash-set h 'score (score-one-result h i))) results (iota n)))))
 
 (define unsecret-provenance-attribute
   (hash
@@ -696,9 +701,7 @@
               (take-at-most results MAX_RESULTS_FROM_COMPONENT)))
 
           (define scored-results
-            (let ((n (length results)))
-              (let ((score-one-result (make-score-result n res-message)))
-                (map (lambda (h i) (hash-set h 'score (score-one-result h i))) results (iota n)))))
+            (score-results results))
 
           (define knowledge_graph
             (hash-ref res-message 'knowledge_graph))
