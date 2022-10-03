@@ -17,6 +17,7 @@
  get-descendent-curies*-in-db
 
  iota
+ pretty-print-json-string
  )
 (require
  "../dbKanren/dbk/database.rkt"
@@ -84,3 +85,59 @@
         '()
         (cons i (iter (+ 1 i)))))
   (iter 0))
+
+(define (pretty-print-json-string json-string port)
+  (define len (string-length json-string))
+  (define (display-indent-spaces n port)
+    (let loop ([i 0])
+      (cond
+        [(< i n)
+         (display #\space port)
+         (loop (add1 i))]
+        [else (void)])))
+  (let loop ([i 0]
+             [indent 0])
+    (cond
+      [(< i len)
+       (let ((c (string-ref json-string i)))
+         (case c
+           [(#\:)
+            (display c port)
+            (display #\space port)
+            (loop (add1 i) indent)]
+           [(#\,)
+            (display c port)
+            (newline port)
+            (display-indent-spaces indent port)
+            (loop (add1 i) indent)]
+           ;;
+           [(#\{)
+            (let ((indent (add1 indent)))
+              (display c port)
+              (newline port)
+              (display-indent-spaces indent port)
+              (loop (add1 i) indent))]
+           [(#\[)
+            (let ((indent (add1 indent)))
+              (display c port)
+              (newline port)
+              (display-indent-spaces indent port)
+              (loop (add1 i) indent))]
+           ;;
+           [(#\})
+            (let ((indent (sub1 indent)))
+              (newline port)
+              (display-indent-spaces indent port)
+              (display c port)
+              (loop (add1 i) indent))]
+           [(#\])
+            (let ((indent (sub1 indent)))
+              (newline port)
+              (display-indent-spaces indent port)
+              (display c port)
+              (loop (add1 i) indent))]
+           ;;
+           [else
+            (display c port)
+            (loop (add1 i) indent)]))]
+      [else (void)])))

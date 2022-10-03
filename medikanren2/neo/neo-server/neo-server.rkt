@@ -191,7 +191,7 @@
        (display SERVER_STRING out)
        (display "\r\n" out)
        (display "Content-Type: application/json\r\n\r\n" out)
-       (display (jsexpr->string jsexpr) out)]
+       (pretty-print-json-string (jsexpr->string jsexpr) out)]
       [`(xexpr ,respose-code ,xexpr)
        (printf "sending HTML reply\n")
        (display HTTP_VERSION_STRING out)
