@@ -28,9 +28,7 @@
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
-;; (define MAX_RESULTS_FROM_COMPONENT 500)
-;; Limit to one result for debugging TRAPI response:
-(define MAX_RESULTS_FROM_COMPONENT 1)
+(define MAX_RESULTS_FROM_COMPONENT 250)
 
 ;; Number of seconds before a connection times out, collecting all
 ;; resources from the connection (was 10 seconds in the original
