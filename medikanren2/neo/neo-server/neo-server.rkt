@@ -645,12 +645,12 @@
              (define edge_yz (add-edge! props_yz))
              (add-result!
               (hash 'edge_bindings
-                    (hash 'drug_gene (hash 'id edge_xy)
-                          'gene_dise (hash 'id edge_yz))
+                    (hash 'drug_gene (list (hash 'id edge_xy))
+                          'gene_dise (list (hash 'id edge_yz)))
                     'node_bindings
                     (hash 'disease (hash 'id curie_z)
-                          'drug (hash 'id curie_x)
-                          'gene (hash 'id curie_y))
+                          'drug (list (hash 'id curie_x))
+                          'gene (list (hash 'id curie_y)))
                     ;; TODO: we should downvote any answer that is already in 1-hop
                     'score
                     (* (num-pubs props_xy) (num-pubs props_yz))))
