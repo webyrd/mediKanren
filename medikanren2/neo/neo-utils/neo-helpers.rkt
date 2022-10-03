@@ -18,6 +18,7 @@
 
  iota
  pretty-print-json-string
+ take-at-most
  )
 (require
  "../dbKanren/dbk/database.rkt"
@@ -96,48 +97,58 @@
          (loop (add1 i))]
         [else (void)])))
   (let loop ([i 0]
-             [indent 0])
+             [indent 0]
+             [in-quote #f])
     (cond
       [(< i len)
        (let ((c (string-ref json-string i)))
          (case c
+           [(#\")
+            (display c port)
+            (loop (add1 i) indent (not in-quote))]
+           ;;
            [(#\:)
             (display c port)
-            (display #\space port)
-            (loop (add1 i) indent)]
+            (unless in-quote
+              (display #\space port))
+            (loop (add1 i) indent in-quote)]
+           ;;
            [(#\,)
             (display c port)
-            (newline port)
-            (display-indent-spaces indent port)
-            (loop (add1 i) indent)]
+            (unless in-quote
+              (newline port)
+              (display-indent-spaces indent port))
+            (loop (add1 i) indent in-quote)]
            ;;
-           [(#\{)
-            (let ((indent (add1 indent)))
-              (display c port)
-              (newline port)
-              (display-indent-spaces indent port)
-              (loop (add1 i) indent))]
-           [(#\[)
-            (let ((indent (add1 indent)))
-              (display c port)
-              (newline port)
-              (display-indent-spaces indent port)
-              (loop (add1 i) indent))]
+           [(#\{ #\[)
+            (display c port)
+            (if in-quote
+                (loop (add1 i) indent in-quote)                
+                (let ((indent (add1 indent)))
+                  (newline port)
+                  (display-indent-spaces indent port)
+                  (loop (add1 i) indent in-quote)))]
            ;;
-           [(#\})
-            (let ((indent (sub1 indent)))
-              (newline port)
-              (display-indent-spaces indent port)
-              (display c port)
-              (loop (add1 i) indent))]
-           [(#\])
-            (let ((indent (sub1 indent)))
-              (newline port)
-              (display-indent-spaces indent port)
-              (display c port)
-              (loop (add1 i) indent))]
+           [(#\} #\])
+            (if in-quote
+                (begin
+                  (display c port)
+                  (loop (add1 i) indent in-quote))
+                (let ((indent (sub1 indent)))
+                  (newline port)
+                  (display-indent-spaces indent port)
+                  (display c port)
+                  (loop (add1 i) indent in-quote)))]
            ;;
            [else
             (display c port)
-            (loop (add1 i) indent)]))]
+            (loop (add1 i) indent in-quote)]))]
       [else (void)])))
+
+(define (take-at-most ls n)
+  (cond
+    [(<= n 0) '()]
+    [(null? ls) '()]
+    [else
+     (cons (car ls)
+           (take-at-most (cdr ls) (sub1 n)))]))

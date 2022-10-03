@@ -26,12 +26,16 @@
 
 (define NEO_SERVER_VERSION "1.0")
 
+;; Maximum number of results to be returned from *each individual* KP,
+;; or from mediKanren itself.
+(define MAX_RESULTS_FROM_COMPONENT 500)
+
 ;; Number of seconds before a connection times out, collecting all
 ;; resources from the connection (was 10 seconds in the original
 ;; tutorial).
 (define CONNECTION_TIMEOUT_SECONDS (* 10 60))
 
-;; per-servelet memory limit (due to garbage collection overhead,
+;; Per-servelet memory limit (due to garbage collection overhead,
 ;; actual RAM usage can be a small multiple of this amount)
 (define SERVELET_MEMORY_USAGE_LIMIT (* 50 1024 1024))
 
@@ -565,26 +569,28 @@
 
       ;;
       (define q1
-        (query:X->Y->Known
-         ;; X
-         (set->list (get-class-descendents-in-db "biolink:ChemicalEntity"))
-         (set->list
-          (set-union
-           (get-predicate-descendents-in-db "biolink:regulates")
-           (get-predicate-descendents-in-db "biolink:entity_regulates_entity")))
-         ;; Y
-         (set->list
-          (set-union
-           (get-class-descendents-in-db "biolink:Gene")
-           (get-class-descendents-in-db "biolink:GeneOrGeneProduct")
-           (get-class-descendents-in-db "biolink:Protein")))
-         (set->list
-          (set-union
-           (get-predicate-descendents-in-db "biolink:causes")
-           (get-predicate-descendents-in-db "biolink:gene_associated_with_condition")))
-         ;;
-         (set->list (get-descendent-curies*-in-db (curies->synonyms-in-db disease-ids)))))
-
+        (let ((q1
+               (query:X->Y->Known
+                ;; X
+                (set->list (get-class-descendents-in-db "biolink:ChemicalEntity"))
+                (set->list
+                 (set-union
+                  (get-predicate-descendents-in-db "biolink:regulates")
+                  (get-predicate-descendents-in-db "biolink:entity_regulates_entity")))
+                ;; Y
+                (set->list
+                 (set-union
+                  (get-class-descendents-in-db "biolink:Gene")
+                  (get-class-descendents-in-db "biolink:GeneOrGeneProduct")
+                  (get-class-descendents-in-db "biolink:Protein")))
+                (set->list
+                 (set-union
+                  (get-predicate-descendents-in-db "biolink:causes")
+                  (get-predicate-descendents-in-db "biolink:gene_associated_with_condition")))
+                ;;
+                (set->list (get-descendent-curies*-in-db (curies->synonyms-in-db disease-ids))))))
+          (take-at-most q1 MAX_RESULTS_FROM_COMPONENT)))
+      
       (define nodes (make-hash))
 
       (define edges (make-hash))
@@ -685,7 +691,9 @@
             (hash-ref upstream-response 'message))
 
           (define results
-            (hash-ref res-message 'results))
+            (let ((results
+                   (hash-ref res-message 'results)))
+              (take-at-most results MAX_RESULTS_FROM_COMPONENT)))
 
           (define scored-results
             (let ((n (length results)))
