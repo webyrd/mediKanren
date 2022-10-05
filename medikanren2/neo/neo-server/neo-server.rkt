@@ -341,7 +341,7 @@
                                                       content-length-string
                                                       body-str)])
                (printf "dispatch-result:\n~s\n" dispatch-result)
-                     
+
                ;; Send reply:
                (send-reply dispatch-result out)
 
@@ -683,47 +683,64 @@
         (let ()
           (define res (api-query (string-append url.genetics path.query) body-json))
 
-          ;; TODO what happens if the `api-query` fails?  Is there an exception?
-          ;; What is the result of the call?  How do we recover nicely?
+          (define upstream-status
+            (hash-ref res 'status #f))
 
-          ;; TODO get the status code from the response.  Make sure the status
-          ;; is OK, etc.
+          (printf "status from API call:\n~s\n" upstream-status)
 
-          (define upstream-response
-            (hash-ref res 'response #f))
+          (define upstream-headers
+            (hash-ref res 'headers #f))
 
-          (define res-message
-            (hash-ref upstream-response 'message))
+          (printf "headers from API call:\n~s\n" upstream-headers)
 
-          (define results
-            (let ((results
-                   (hash-ref res-message 'results)))
-              (take-at-most results MAX_RESULTS_FROM_COMPONENT)))
+          (if (string-contains? (bytes->string/utf-8 upstream-status) 200_OK_STRING)
+              (let ()
+                (printf "API returned an OK status...processing results\n")
 
-          (define scored-results
-            (score-results results))
+                (define upstream-response
+                  (hash-ref res 'response #f))
 
-          (define knowledge_graph
-            (hash-ref res-message 'knowledge_graph))
+                (define res-message
+                  (hash-ref upstream-response 'message))
 
-          (define edges
-            (hash-ref knowledge_graph 'edges))
+                (define results
+                  (let ((results
+                         (hash-ref res-message 'results)))
+                    (take-at-most results MAX_RESULTS_FROM_COMPONENT)))
 
-          (define stamped-edges
-            (hash-map/copy edges (lambda (k v) (values k (hash-set v 'attributes (cons unsecret-provenance-attribute (hash-ref v 'attributes)))))))
+                (define scored-results
+                  (score-results results))
 
-          (define stamped-knowledge_graph
-            (hash-set knowledge_graph 'edges stamped-edges))
+                (define knowledge_graph
+                  (hash-ref res-message 'knowledge_graph))
 
-          (hash-set upstream-response
-                    'message
-                    (hash-set (hash-set res-message
-                                        'results
-                                        (normalize-scores scored-results))
-                              'knowledge_graph
-                              stamped-knowledge_graph))
+                (define edges
+                  (hash-ref knowledge_graph 'edges))
 
-          )))
+                (define stamped-edges
+                  (hash-map/copy
+                    edges
+                    (lambda (k v)
+                      (values
+                        k
+                        (hash-set v
+                                  'attributes
+                                  (cons unsecret-provenance-attribute
+                                        (hash-ref v 'attributes)))))))
+
+                (define stamped-knowledge_graph
+                  (hash-set knowledge_graph 'edges stamped-edges))
+
+                (hash-set upstream-response
+                          'message
+                          (hash-set (hash-set res-message
+                                              'results
+                                              (normalize-scores scored-results))
+                                    'knowledge_graph
+                                    stamped-knowledge_graph)))
+              (begin
+                (printf "API returned a non-OK status...ignoring results\n")
+                #f)))))
 
   (define trapi-response
     (if gp-trapi-response
