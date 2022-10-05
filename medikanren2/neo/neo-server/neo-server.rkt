@@ -856,7 +856,7 @@
                body-str)
   (printf "received TRAPI `query` POST request\n")
 
-  (unless (string=? "application/json" content-type-string)
+  (unless (string-contains? (string-downcase content-type-string) "application/json")
     (printf "** unexpected content-type-string for query\nexpected 'application/json', received '~s'\n"
             content-type-string)
     (request-fk))
@@ -876,7 +876,7 @@
                     body-str)
   (printf "received TRAPI `asyncquery` POST request\n")
 
-  (unless (string=? "application/json" content-type-string)
+  (unless (string-contains? (string-downcase content-type-string) "application/json")
     (printf "** unexpected content-type-string for query\nexpected 'application/json', received '~s'\n"
             content-type-string)
     (request-fk))
