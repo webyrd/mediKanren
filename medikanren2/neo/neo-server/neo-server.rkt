@@ -683,64 +683,72 @@
         (let ()
           (define res (api-query (string-append url.genetics path.query) body-json))
 
-          (define upstream-status
-            (hash-ref res 'status #f))
-
-          (printf "status from API call:\n~s\n" upstream-status)
-
-          (define upstream-headers
-            (hash-ref res 'headers #f))
-
-          (printf "headers from API call:\n~s\n" upstream-headers)
-
-          (if (string-contains? (bytes->string/utf-8 upstream-status) 200_OK_STRING)
+          (if (hash? res)
               (let ()
-                (printf "API returned an OK status...processing results\n")
+                (define upstream-status
+                  (hash-ref res 'status #f))
 
-                (define upstream-response
-                  (hash-ref res 'response #f))
+                (printf "status from API call:\n~s\n" upstream-status)
 
-                (define res-message
-                  (hash-ref upstream-response 'message))
+                (if upstream-status
+                    (let ()
+                      (define upstream-headers
+                        (hash-ref res 'headers #f))
 
-                (define results
-                  (let ((results
-                         (hash-ref res-message 'results)))
-                    (take-at-most results MAX_RESULTS_FROM_COMPONENT)))
+                      (printf "headers from API call:\n~s\n" upstream-headers)
 
-                (define scored-results
-                  (score-results results))
+                      (if (string-contains?
+                            (bytes->string/utf-8 upstream-status)
+                            200_OK_STRING)
+                          (let ()
+                            (printf "API returned an OK status...processing results\n")
 
-                (define knowledge_graph
-                  (hash-ref res-message 'knowledge_graph))
+                            (define upstream-response
+                              (hash-ref res 'response #f))
 
-                (define edges
-                  (hash-ref knowledge_graph 'edges))
+                            (define res-message
+                              (hash-ref upstream-response 'message))
 
-                (define stamped-edges
-                  (hash-map/copy
-                    edges
-                    (lambda (k v)
-                      (values
-                        k
-                        (hash-set v
-                                  'attributes
-                                  (cons unsecret-provenance-attribute
-                                        (hash-ref v 'attributes)))))))
+                            (define results
+                              (let ((results
+                                     (hash-ref res-message 'results)))
+                                (take-at-most results MAX_RESULTS_FROM_COMPONENT)))
 
-                (define stamped-knowledge_graph
-                  (hash-set knowledge_graph 'edges stamped-edges))
+                            (define scored-results
+                              (score-results results))
 
-                (hash-set upstream-response
-                          'message
-                          (hash-set (hash-set res-message
-                                              'results
-                                              (normalize-scores scored-results))
-                                    'knowledge_graph
-                                    stamped-knowledge_graph)))
-              (begin
-                (printf "API returned a non-OK status...ignoring results\n")
-                #f)))))
+                            (define knowledge_graph
+                              (hash-ref res-message 'knowledge_graph))
+
+                            (define edges
+                              (hash-ref knowledge_graph 'edges))
+
+                            (define stamped-edges
+                              (hash-map/copy
+                               edges
+                               (lambda (k v)
+                                 (values
+                                  k
+                                  (hash-set v
+                                            'attributes
+                                            (cons unsecret-provenance-attribute
+                                                  (hash-ref v 'attributes)))))))
+
+                            (define stamped-knowledge_graph
+                              (hash-set knowledge_graph 'edges stamped-edges))
+
+                            (hash-set upstream-response
+                                      'message
+                                      (hash-set (hash-set res-message
+                                                          'results
+                                                          (normalize-scores scored-results))
+                                                'knowledge_graph
+                                                stamped-knowledge_graph)))
+                          (begin
+                            (printf "API returned a non-OK status...ignoring results\n")
+                            #f)))
+                    #f))
+              #f))))
 
   (define trapi-response
     (if gp-trapi-response
