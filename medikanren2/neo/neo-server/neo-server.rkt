@@ -563,9 +563,23 @@
   (define our-trapi-response
     (let ()
 
+      (define query_graph (hash-ref message 'query_graph))
+      (define qg_nodes (hash-ref query_graph 'nodes))
+      (define qg_edges (hash-ref query_graph 'edges))
+      (define qg_edge* (hash->list qg_edges))
+
+      (define qg_edge-hash
+        (match qg_edge*
+          ;; exactly one edge
+          [`((,edge-id . ,edge-hash))
+           edge-hash]))
+      
+      (define qg_object-node-str (hash-ref qg_edge-hash 'object))
+      (define qg_object-node-id (string->symbol qg_object-node-str))
+
       (define disease-ids
-        ;; TODO write a chainer in utils, and also check along
-        (hash-ref (hash-ref (hash-ref (hash-ref message 'query_graph) 'nodes) 'n0) 'ids))
+        ;; TODO write a chainer in utils, and also check for errors
+        (hash-ref (hash-ref qg_nodes qg_object-node-id) 'ids))
 
       #;(define q
       (query:X->Known                   ;
