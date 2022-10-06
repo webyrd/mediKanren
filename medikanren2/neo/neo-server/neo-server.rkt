@@ -34,6 +34,7 @@
 ;; resources from the connection (was 10 seconds in the original
 ;; tutorial).
 (define CONNECTION_TIMEOUT_SECONDS (* 10 60))
+(define API_CALL_CONNECTION_TIMEOUT_SECONDS (* 1 60))
 
 ;; Per-servelet memory limit (due to garbage collection overhead,
 ;; actual RAM usage can be a small multiple of this amount)
@@ -129,7 +130,7 @@
        (printf "handle thread ending\n")
        (custodian-shutdown-all cust)
        ))
-    ;; watcher thread:  
+    ;; watcher thread:
     (thread (lambda ()
               (sleep CONNECTION_TIMEOUT_SECONDS)
               (printf
@@ -681,7 +682,23 @@
     (if disable-external-requests
         #f
         (let ()
-          (define res (api-query (string-append url.genetics path.query) body-json))
+
+          (define res #f)
+
+          (printf "making sync/timeout API call with timeout of ~s seconds\n"
+                  API_CALL_CONNECTION_TIMEOUT_SECONDS)
+
+          (sync/timeout
+            API_CALL_CONNECTION_TIMEOUT_SECONDS
+            (thread
+              (lambda ()
+                (set! res
+                      (api-query (string-append url.genetics path.query)
+                                 body-json)))))
+
+          (if res
+              (printf "API call returned\n")
+              (printf "API call timed out\n"))
 
           (if (hash? res)
               (let ()
