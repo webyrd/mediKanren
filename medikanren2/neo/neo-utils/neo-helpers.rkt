@@ -58,7 +58,7 @@
 (define (get-class-descendents*-in-db classes)
   (list->set
     (filter curie-in-db?
-            (set->list (get-class-descendents*-in-db classes)))))
+            (set->list (get-class-descendents* classes)))))
 
 
 (define (get-descendent-curies-in-db curie)
