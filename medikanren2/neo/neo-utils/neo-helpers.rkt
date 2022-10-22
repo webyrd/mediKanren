@@ -60,25 +60,25 @@
     (filter curie-in-db?
             (set->list (get-class-descendents* classes)))))
 
-
 (define (get-descendent-curies-in-db curie)
   (get-descendent-curies*-in-db (list curie)))
 
 (define (get-descendent-curies*-in-db curies)
-  (set-fixed-point
-   (list->set
-    (map car
-         (query:X->Known
-          #f
-          (list "biolink:subclass_of")
-          curies)))
-   (lambda (new-curies)
-     (list->set
-      (map car
-           (query:X->Known
-            #f
-            (list "biolink:subclass_of")
-            (set->list new-curies)))))))
+  (set-union (list->set curies)
+   (set-fixed-point
+    (list->set
+     (map car
+          (query:X->Known
+           #f
+           (list "biolink:subclass_of")
+           curies)))
+    (lambda (new-curies)
+      (list->set
+       (map car
+            (query:X->Known
+             #f
+             (list "biolink:subclass_of")
+             (set->list new-curies))))))))
 
 (define (iota n)
   (define (iter i)
