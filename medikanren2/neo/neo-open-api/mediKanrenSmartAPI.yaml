@@ -57,7 +57,7 @@ tags:
 paths:
   /query:
     post:
-      description: 'Query Team Unsecret Agent's mediKanren ARA API following the [NCATS Translator Reasoner Standard API](https://github.com/NCATSTranslator/ReasonerAPI).'
+      description: "Query Team Unsecret Agent's mediKanren ARA API following the [NCATS Translator Reasoner Standard API](https://github.com/NCATSTranslator/ReasonerAPI)."
       operationId: query
       requestBody:
         content:
