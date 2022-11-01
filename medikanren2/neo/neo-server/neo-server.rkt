@@ -79,9 +79,9 @@
 (define (path/root relative-path) (build-path path:root relative-path))
 
 (define schema.json.txt
-  (file->string (path/root "../neo-open-api/TranslatorReasonersAPI.json")))
+  (file->string (path/root "../neo-open-api/mediKanrenSmartAPI.json")))
 (define schema.yaml.txt
-  (file->string (path/root "../neo-open-api/TranslatorReasonersAPI.yaml")))
+  (file->string (path/root "../neo-open-api/mediKanrenSmartAPI.yaml")))
 
 
 (define (serve port-no)
