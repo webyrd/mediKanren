@@ -1,5 +1,8 @@
 #lang racket/base
 (provide
+  unsafe-car
+  unsafe-cdr
+  unsafe-fxmin
   unsafe-fx=
   unsafe-fx<=
   unsafe-fx<

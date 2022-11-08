@@ -653,10 +653,9 @@
                   `(sorting ,count.rows tuples)
                   (row-merge-sort! vec.rows vec.cols 0 count.cols count.rows))
                 (transpose-row-to-col! vec.cols vec.rows 0 count.cols count.rows)
-                (define vs.pos           (map (lambda (p) (and p (make-fxvector (+ count.rows 1))))
-                                              (cdr prefixes.needed)))
-                (for-each (lambda (v.pos) (when v.pos (unsafe-fxvector-set! v.pos 0 0)))
-                          vs.pos)
+                (define vs.pos (map (lambda (p) (and p (make-fxvector (+ count.rows 1))))
+                                    (cdr prefixes.needed)))
+                (for-each (lambda (v.pos) (when v.pos (unsafe-fxvector-set! v.pos 0 0))) vs.pos)
                 (define counts.key
                   (performance-log
                     `(grouping keys for ,count.rows tuples)
@@ -713,7 +712,8 @@
                   (range count.cols)
                   (cons #f vs.pos)
                   counts.key
-                  (cons #f (reverse (cdr (reverse counts.key)))))
+                  (cons #f (map (lambda (c) (+ c 1))
+                                (reverse (cdr (reverse counts.key))))))
                 (pretty-log `(indexed table: ,tid ordering: ,ordering))
                 (checkpoint!)))
             tids)))
@@ -1150,10 +1150,10 @@
       ((line)  (let ((step   (hash-ref desc 'step))
                      (offset (hash-ref desc 'offset)))
                  (if (unsafe-fx= step 0)
-                   (ref->monovec (lambda (_) offset))
-                   (monovec (lambda (i) (unsafe-fx+ (unsafe-fx* step i) offset))
-                            (find-next:line offset step)
-                            (find-prev:line offset step)))))
+                     (ref->monovec (lambda (_) offset))
+                     (monovec (lambda (i) (unsafe-fx+ (unsafe-fx* step i) offset))
+                              (find-next:line offset step)
+                              (find-prev:line offset step)))))
       ((block) (let* ((width  (unsafe-fxrshift (hash-ref desc 'bit-width) 3))
                       (offset (hash-ref desc 'offset)))
                  (if preload?
