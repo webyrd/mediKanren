@@ -82,6 +82,8 @@
   (file->string (path/root "../neo-open-api/mediKanrenSmartAPI.json")))
 (define schema.yaml.txt
   (file->string (path/root "../neo-open-api/mediKanrenSmartAPI.yaml")))
+(define metaKG.json.txt
+  (file->string (path/root "../neo-open-api/unsecret_metaKG.json")))
 
 
 (define (serve port-no)
@@ -163,7 +165,7 @@
                (loop))]
             [(regexp-match #px"^[[:space:]]*\r\n" current-line)
              (printf "parsed request headers:\n~s\n" request-headers)
-             request-headers]        
+             request-headers]
             [else
              (printf "** error parsing request headers: ~s\n" current-line)
              #f])))))
@@ -251,7 +253,7 @@
   (define get/post-req
     (regexp-match #rx"^(GET|POST) (.+) HTTP/[0-9]+\\.[0-9]+"
                   first-input-line))
-  
+
   (when get/post-req
     (let ((request-type (list-ref get/post-req 1))
           (str-path (list-ref get/post-req 2)))
@@ -274,7 +276,7 @@
              (let loop-forever ()
                (let ((evt (sync/timeout 1 (eof-evt in))))
                  (cond
-                   (evt 
+                   (evt
                     (displayln "Error: Detected half-closed TCP connection.")
                     (conn-fk))
                    (else
@@ -290,24 +292,24 @@
                                                       req-headers
                                                       request-fk)])
                (printf "dispatch-result:\n~s\n" dispatch-result)
-             
+
                ;; Send reply:
                (send-reply dispatch-result out)
-              
+
                (custodian-shutdown-all (current-custodian))
                )]
             ["POST"
              (printf "handling POST request\n")
-             
-             (printf "req-headers:\n~s\n" req-headers)                       
-             
+
+             (printf "req-headers:\n~s\n" req-headers)
+
              (define content-length-string
                (get-key/value-from-headers "Content-Length:" req-headers))
 
              (unless content-length-string
                (printf "** error: POST request doesn't include 'Content-Length:'\n")
                (request-fk))
-             
+
              (define content-length (string->number content-length-string))
              (printf "Content-Length as a number:\n~s\n" content-length)
 
@@ -316,23 +318,23 @@
                           (<= content-length MAX_POST_REQUEST_CONTENT_LENGTH))
                (printf "** error: bad POST content length: ~s\n" content-length)
                (request-fk))
-             
+
              (define content-type-string
                (get-key/value-from-headers "Content-Type:" req-headers))
-             
+
              (unless content-type-string
                (printf "** error: POST request doesn't include 'Content-Type:'\n")
                (request-fk))
 
              (printf "Content-Type:\n~s\n" content-type-string)
-             
+
              (define body-str (get-request-body in content-length))
              (printf "body-str:\n~s\n" body-str)
-             
+
              (unless body-str
                (printf "** error: unable to get the body of POST request\n")
                (request-fk))
-             
+
              (let ([dispatch-result (dispatch-request 'POST
                                                       str-path
                                                       req-headers
@@ -346,7 +348,7 @@
                ;; Send reply:
                (send-reply dispatch-result out)
 
-               (custodian-shutdown-all (current-custodian))                     
+               (custodian-shutdown-all (current-custodian))
                )]))))))
 
 ;; dispatch for HTTP GET and POST requests
@@ -371,11 +373,11 @@
   (printf "req-headers: ~s\n" req-headers)
   (printf "rest-args: ~s\n" rest-args)
   (newline)
-  
+
   (if h
       ;; Call a handler:
       (apply h (url-query url) req-headers request-fk rest-args)
-      ;; No handler found:      
+      ;; No handler found:
       (list
         'xexpr
         `(html (head (title "Error"))
@@ -396,7 +398,7 @@
      (define knowledge_type (hash-ref edge-hash 'knowledge_type #f))
 
      (printf "knowledge_type: ~s\n" knowledge_type)
-     
+
      (and (equal? "inferred" knowledge_type)
           (let ()
             (define predicates (hash-ref edge-hash 'predicates #f))
@@ -406,24 +408,24 @@
                  (let ()
                    (define subject-id (hash-ref edge-hash 'subject #f))
                    (define object-id (hash-ref edge-hash 'object #f))
-           
+
                    (define subject-node (hash-ref nodes (string->symbol subject-id) #f))
                    (define object-node (hash-ref nodes (string->symbol object-id) #f))
 
                    (printf "subject-node: ~s\n" subject-node)
-                   (printf "object-node: ~s\n" object-node)                   
-                   
+                   (printf "object-node: ~s\n" object-node)
+
                    (and subject-node
                         object-node
                         (let ()
 
                           (define object-ids (hash-ref object-node 'ids #f))
                           (printf "object-ids: ~s\n" object-ids)
-                          
+
                           (and (list? object-ids)
                                (not (null? object-ids))
                                (let ()
-                             
+
                                  (define subject-categories (hash-ref subject-node 'categories #f))
                                  (printf "subject-categories: ~s\n" subject-categories)
 
@@ -441,7 +443,7 @@
 (define (make-empty-trapi-response body-json)
   (let* ((message (hash-ref body-json 'message #f))
          (query_graph (hash-ref message 'query_graph #f)))
-    
+
     (hash
       'message
       (hash
@@ -554,7 +556,7 @@
             ))))
 
 (define (handle-mvp-creative-query body-json message query_graph edges nodes)
-  
+
   (printf "++ handling MVP mode creative query\n")
 
   (define disable-external-requests
@@ -573,7 +575,7 @@
           ;; exactly one edge
           [`((,edge-id . ,edge-hash))
            edge-hash]))
-      
+
       (define qg_object-node-str (hash-ref qg_edge-hash 'object))
       (define qg_object-node-id (string->symbol qg_object-node-str))
 
@@ -610,7 +612,7 @@
                 ;;
                 (set->list (get-descendent-curies*-in-db (curies->synonyms-in-db disease-ids))))))
           (take-at-most q1 MAX_RESULTS_FROM_COMPONENT)))
-      
+
       (define nodes (make-hash))
 
       (define edges (make-hash))
@@ -682,7 +684,7 @@
         (hash
           ;;
           'query_graph
-          query_graph         
+          query_graph
           ;;
           'knowledge_graph
           (hash 'edges edges
@@ -804,7 +806,7 @@
 
 
 (define (handle-trapi-query body-json request-fk)
-  
+
   (define message (hash-ref body-json 'message #f))
   (printf "message:\n~s\n" message)
   (unless message
@@ -831,7 +833,7 @@
 
   (define creative-mvp? (mvp-creative-query? edges nodes))
   (printf "creative-mvp?: ~s\n" creative-mvp?)
-  
+
   (if creative-mvp?
       (handle-mvp-creative-query body-json message query_graph edges nodes)
       (let ()
@@ -840,7 +842,7 @@
 
         (define trapi-response
           (make-empty-trapi-response body-json))
-  
+
         (list
           'json
           200_OK_STRING
@@ -850,7 +852,7 @@
   )
 
 (define (handle-trapi-asyncquery body-json request-fk)
-  
+
   (define message (hash-ref body-json 'message #f))
   (printf "message:\n~s\n" message)
   (unless message
@@ -877,7 +879,7 @@
 
   (define creative-mvp? (mvp-creative-query? edges nodes))
   (printf "creative-mvp?: ~s\n" creative-mvp?)
-  
+
   (if creative-mvp?
       (handle-mvp-creative-query body-json message query_graph edges nodes)
       (let ()
@@ -886,7 +888,7 @@
 
         (define trapi-response
           (make-empty-trapi-response body-json))
-  
+
         (list
           'json
           200_OK_STRING
@@ -946,9 +948,9 @@
 (define (meta_knowledge_graph query headers request-fk)
   (printf "received TRAPI meta knowledge graph query:\n~s\n" query)
   (list
-    'json
+    'text
     200_OK_STRING
-    (string->jsexpr "{}")))
+    metaKG.json.txt))
 
 (define (health query headers request-fk)
   (printf "received health status query:\n~s\n" query)
@@ -1030,4 +1032,3 @@
   (let forever ()
     (sleep 10)
     (forever)))
- 
