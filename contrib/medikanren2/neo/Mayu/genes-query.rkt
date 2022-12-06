@@ -12,6 +12,9 @@
 ;;
 ;; * HGNC CURIES are not normalized to UMLS or NCBI or OMIM CURIES
 
+;; Hand-curated mappings of HGNC to UMLS mappings, since there doesn't
+;; seem to currently be a way to map HGNC CURIES to UMLS CURIES
+;; through RTX-KG2 or through the node normalization knowledge graph.
 (define HGNC/symbol/UMLS*-list
   '((HGNC:6884  MAPK8IP3 C1417026 C1436798)
     (HGNC:22082 VMA21    C2681112 C2715590)
