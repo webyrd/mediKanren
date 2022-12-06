@@ -118,6 +118,6 @@
          (let ((hgnc-curie (symbol->string hgnc-curie-symbol))
                (cid-curies (map symbol->string cid-curie-symbols)))
            (let ((umls-curies (map (lambda (c) (string-append "UMLS:" c)) cid-curies)))
-             (let ((answers (map process-gene (cons hgnc-curie umls-curies))))
+             (let ((answers (apply append (map process-gene (cons hgnc-curie umls-curies)))))
                (cons `(,symbol (,hgnc-curie-symbol . ,cid-curie-symbols) ,answers)
                      (loop rest)))))]))))
