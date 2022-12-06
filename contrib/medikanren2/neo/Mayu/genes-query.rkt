@@ -122,9 +122,10 @@
                (cid-curies (map symbol->string cid-curie-symbols)))
            (let ((umls-curies (map (lambda (c) (string-append "UMLS:" c)) cid-curies)))
              (let ((answers (apply append (map process-gene (cons hgnc-curie umls-curies)))))
-               (cons `(,symbol (,hgnc-curie-symbol . ,cid-curie-symbols) ,answers)
+               (cons `(,symbol (,hgnc-curie-symbol . ,umls-curies) ,answers)
                      (loop rest)))))]))))
 
+(define answers (process-symbol/HGNC/UMLS*-list symbol/HGNC/UMLS*-list))
 
 
 
@@ -191,18 +192,29 @@
                              ((error-display-handler) (exn-message v) v)
                              '())])
             (define pubs (cadr pr))
+            ;;(printf "pubs:\n~s\n" pubs)
             (define jason-ht (string->jsexpr (python->json pubs)))
-            (hash-map jason-ht (lambda (k v)
-                                 (cons (string-append
-                                        PUBMED_URL_PREFIX
-                                        (car (regexp-match* #rx"([0-9]+)" (symbol->string k) #:match-select cadr)))
-                                       (list (hash-ref v '|publication date| #f)
-                                             (hash-ref v '|subject score| #f)
-                                             (hash-ref v '|object score| #f)
-                                             (regexp-replace*
-                                              #rx"([ ]+)"
-                                              (hash-ref v 'sentence #f)
-                                              " ")))))))]
+            ;;(printf "jason-ht:\n~s\n" jason-ht)
+            (let ((pub-info-ls
+                   (hash-map jason-ht (lambda (k v)
+                                        (let ((pubmed-num* (regexp-match* #rx"([0-9]+)"
+                                                                          (symbol->string k)
+                                                                          #:match-select cadr)))
+                                          (if (pair? pubmed-num*)
+                                              (let ((pubmed-url
+                                                     (string-append PUBMED_URL_PREFIX (car pubmed-num*))))
+                                                (cons pubmed-url
+                                                      (list (hash-ref v '|publication date| #f)
+                                                            (hash-ref v '|subject score| #f)
+                                                            (hash-ref v '|object score| #f)
+                                                            (regexp-replace*
+                                                             #rx"([ ]+)"
+                                                             (hash-ref v 'sentence #f)
+                                                             " "))))
+                                              ;; else, the JSON is malformed
+                                              #f))))))
+              ;; filter out any #f results from malformed JSON
+              (filter (lambda (v) v) pub-info-ls))))]
     [else '()]))
 (define (publications-info-alist-from-edge edge)
   ;; ((pubmed-URL . (publication-date subject-score object-score sentence)) ...)
@@ -210,3 +222,80 @@
     (match edge
       [`(,s-curie ,s-name ,pred ,o-curie ,o-name . ,eprops)
         (publications-info-alist-from-edge-props eprops)])))
+
+
+
+(define write-answer-to-TSV-file
+  (lambda (answer)
+    (match answer
+      [`(,gene-symbol (,hgnc-curie-symbol . ,umls-curies) ,answers)
+       (let ((op (open-output-file
+                  (string-append
+                    "X regulates "
+                    (symbol->string gene-symbol)
+                    " "
+                    (~a `(,hgnc-curie-symbol . ,umls-curies))
+                    ".tsv")
+                  #:mode 'text
+                  #:exists 'error)))
+         (let loop ((answers answers))
+           (match answers
+             [`() (close-output-port op)]
+             [`(,answer . ,rest)
+              (match answer
+                [`(,s-curie ,s-name ,pred ,o-curie ,o-name . ,eprops)
+                 ;;(printf "calling publications-info-alist-from-edge on:\n")
+                 ;;(printf "~s\n" `(,s-curie ,s-name ,pred ,o-curie ,o-name . ,eprops))
+                 (let ((pubs-alist (publications-info-alist-from-edge answer)))
+                   ;; ((pubmed-URL . (publication-date subject-score object-score sentence)) ...)
+                   ;;(printf "pubs-alist:\n~s\n" pubs-alist)
+                   (cond
+                     [(null? pubs-alist)
+                      (let ((pubmed-URLs (pubmed-URLs-from-edge answer)))
+                        (cond
+                          [(null? pubmed-URLs)
+                           (fprintf op
+                                    "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t\n"
+                                    s-curie
+                                    s-name
+                                    pred
+                                    o-curie
+                                    o-name
+                                    ""
+                                    ""
+                                    "")                           
+                           (loop rest)]
+                          [else
+                           (for-each
+                             (lambda (pubmed-URL)
+                               (fprintf op
+                                        "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t\n"
+                                        s-curie
+                                        s-name
+                                        pred
+                                        o-curie
+                                        o-name
+                                        pubmed-URL
+                                        ""
+                                        ""))
+                             pubmed-URLs)
+                           (loop rest)]))]
+                     [else
+                      (for-each
+                        (lambda (pub-info)
+                          (match pub-info
+                            [`(,pubmed-URL . (,publication-date ,subject-score ,object-score ,sentence))
+                             (fprintf op
+                                      "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t\n"
+                                      s-curie
+                                      s-name
+                                      pred
+                                      o-curie
+                                      o-name
+                                      pubmed-URL
+                                      publication-date
+                                      sentence)]))
+                        pubs-alist)
+                      (loop rest)]))])])))])))
+
+(for-each write-answer-to-TSV-file answers)
