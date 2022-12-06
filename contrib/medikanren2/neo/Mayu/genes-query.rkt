@@ -238,6 +238,16 @@
                     ".tsv")
                   #:mode 'text
                   #:exists 'error)))
+         (fprintf op
+                  "~a\t~a\t~a\t~a\t~a\t~a\t~a\t~a\t\n"
+                  "Subject CURIE"
+                  "Subject Name"
+                  "Predicate"
+                  "Object CURIE"
+                  "Object Name"
+                  "Pubmed URL"
+                  "Publication Date"
+                  "Sentence")
          (let loop ((answers answers))
            (match answers
              [`() (close-output-port op)]
