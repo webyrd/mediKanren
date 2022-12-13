@@ -64,7 +64,9 @@
                           "biolink:has_output"
                           "biolink:exact_match"
                           "biolink:mesh_terms"
-                          "biolink:xref"))))))
+                          ;; Beware of using 'xref', since it is a very loose predicate
+                          ;; "biolink:xref"
+                          ))))))
       (set-union
        related-curies
        (list->set
