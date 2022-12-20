@@ -8,8 +8,17 @@
   racket/runtime-path
   racket/set)
 
+#|
+Given a single CURIE, returns a list of CURIEs containing synonyms for the
+original CURIE.  The list of synonyms includes the original provided CURIE.
+|#
 (define (curie->synonyms curie) (curies->synonyms (list curie)))
 
+#|
+Given a list of CURIEs, returns a list of CURIEs containing synonyms for the
+CURIEs in the original list.  The list of synonyms includes the original
+provided list of CURIEs.
+|#
 (define (curies->synonyms curies)
   (define (ids->dict ids)
     (define vec.ids (list->vector (sort (set->list ids) <)))
@@ -26,10 +35,14 @@
   (define ids.final (set-fixed-point (list->set (strings->ids curies)) step))
   (initialize-text!)
   (let ((dict.id=>string (thread-cell-ref tcell.id=>string)))
-    (enumerator->list
-      (lambda (yield)
-        ((merge-join (ids->dict ids.final) dict.id=>string)
-         (lambda (_ __ curie) (yield curie)))))))
+    (set->list
+     (set-union
+      (list->set curies)
+      (list->set
+       (enumerator->list
+        (lambda (yield)
+          ((merge-join (ids->dict ids.final) dict.id=>string)
+           (lambda (_ __ curie) (yield curie))))))))))
 
 ;;;;;;;;;;;;;;;
 ;; Utilities ;;
