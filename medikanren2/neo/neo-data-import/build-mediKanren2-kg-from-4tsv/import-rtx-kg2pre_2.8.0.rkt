@@ -2,19 +2,25 @@
 (require "../../dbKanren/dbk/database.rkt"
          racket/list racket/pretty racket/runtime-path)
 
+(define EDGEPROP_PATH "./rtx-kg2pre_2.8.0.edgeprop.tsv")
+(define EDGE_PATH "./rtx-kg2pre_2.8.0.edge.tsv")
+(define NODEPROP_PATH "./rtx-kg2pre_2.8.0.nodeprop.tsv")
+;;
+(define OUTPUT_DATABASE_PATH "../../neo-data/rtx-kg2pre_2.8.0.db")
+
 (define-runtime-path path.here ".")
 
 (pretty-write `(current-batch-size: ,(current-batch-size)))
 
 (define relation-specs '(
                          (eprop
-                           "./rtx-kg2pre_2.8.0.edgeprop.tsv"
+                           EDGEPROP_PATH
                            (int text text)
                            (eid key value)
                            ((eid key value)
                             (key value eid)))
                          (edge
-                          "./rtx-kg2pre_2.8.0.edge.tsv"
+                           EDGE_PATH
                            (int text text)
                            (eid subject object)
                            ((eid)
@@ -23,7 +29,7 @@
                             (subject eid object)
                             (object  eid subject)))
                          (cprop
-                          "./rtx-kg2pre_2.8.0.nodeprop.tsv"
+                           NODEPROP_PATH
                            (text text text)
                            (curie key value)
                            ((curie key value)
@@ -31,7 +37,7 @@
                          ))
 (pretty-write `(relation-specs: . ,relation-specs))
 
-(define db (database (build-path path.here "../../neo-data/rtx-kg2pre_2.8.0.db")))
+(define db (database (build-path path.here OUTPUT_DATABASE_PATH)))
 
 (define relation-names   (map car             relation-specs))
 (define relation-files   (map cadr            relation-specs))
