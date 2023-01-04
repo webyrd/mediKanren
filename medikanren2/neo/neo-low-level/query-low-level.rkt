@@ -456,7 +456,8 @@
   (time (enumerator->list query)))
 
 (define-runtime-path path.here "../neo-data")
-(define db (database (build-path path.here "rtx-kg2/pre_7.6/rtx-kg2pre_7.6.db")))
+;; (define db (database (build-path path.here "rtx-kg2/pre_7.6/rtx-kg2pre_7.6.db")))
+(define db (database (build-path path.here "rtx-kg2/pre_2.8.0/rtx-kg2pre_2.8.0.db")))
 
 (define r.cprop (database-relation db 'cprop))
 (define r.edge  (database-relation db 'edge))
