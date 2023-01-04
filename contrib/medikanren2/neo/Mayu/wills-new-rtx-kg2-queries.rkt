@@ -44,3 +44,5 @@
 (length diabetes-causes)
 
 (sort (remove-duplicates (map car diabetes-causes)) string<=?)
+
+(filter (lambda (e) (string=? "water" (cadr e))) diabetes-causes)
