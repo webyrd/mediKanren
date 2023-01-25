@@ -12,15 +12,15 @@
 
 (pretty-write `(current-batch-size: ,(current-batch-size)))
 
-(define relation-specs '(
+(define relation-specs `(
                          (eprop
-                           EDGEPROP_PATH
+                           ,EDGEPROP_PATH
                            (int text text)
                            (eid key value)
                            ((eid key value)
                             (key value eid)))
                          (edge
-                           EDGE_PATH
+                           ,EDGE_PATH
                            (int text text)
                            (eid subject object)
                            ((eid)
@@ -29,7 +29,7 @@
                             (subject eid object)
                             (object  eid subject)))
                          (cprop
-                           NODEPROP_PATH
+                           ,NODEPROP_PATH
                            (text text text)
                            (curie key value)
                            ((curie key value)
