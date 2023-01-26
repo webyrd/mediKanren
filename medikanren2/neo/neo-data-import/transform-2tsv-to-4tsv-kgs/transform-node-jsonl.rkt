@@ -49,8 +49,6 @@ Output node and node-props file formats:
              (when (set-member? seen-nodes id)
                (error 'make-kg-node (format "already seen node: ~a" id)))
              (fprintf node-out "~a\n" id)
-             ;; TODO: the value of equivalent_identifiers is a list of curies '(GO:0097172)
-             ;; what does it like in the node-props.scm of rtx-kg2?
              (let loop-inner ((propnames (remove 'id (hash-keys line-json))))
                (when (not (null? propnames)) 
                  (let* ((propname (car propnames))
