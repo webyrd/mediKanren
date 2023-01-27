@@ -2,11 +2,11 @@
 (require "../../dbKanren/dbk/database.rkt"
          racket/list racket/pretty racket/runtime-path)
 
-(define EDGEPROP_PATH "./rtx-kg2pre_2.8.0.edgeprop.tsv")
-(define EDGE_PATH "./rtx-kg2pre_2.8.0.edge.tsv")
-(define NODEPROP_PATH "./rtx-kg2pre_2.8.0.nodeprop.tsv")
+(define EDGEPROP_PATH "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/text_mining/text_mining.edgeprop.tsv")
+(define EDGE_PATH "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/text_mining/text_mining.edge.tsv")
+(define NODEPROP_PATH "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/text_mining/text_mining.nodeprop.tsv")
 ;;
-(define OUTPUT_DATABASE_PATH "../../neo-data/rtx-kg2pre_2.8.0.db")
+(define OUTPUT_DATABASE_PATH "../../neo-data/text_mining.db")
 
 (define-runtime-path path.here ".")
 
