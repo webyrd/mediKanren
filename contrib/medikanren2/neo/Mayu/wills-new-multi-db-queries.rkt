@@ -11,9 +11,17 @@
  racket/pretty
  racket/string)
 
+;; RTX KG2:
 ;; (query:X->Known #f '("biolink:treats") (list "DOID:9351"))
 
+;; RTX KG2:
 ;; (query:X->Known #f '("biolink:subclass_of") (list "DOID:9351"))
+
+;; Robokop:
+;; (query:X->Known #f '("biolink:subclass_of") (list "NCBITaxon:1748027"))
+
+;; Text Mining
+;; (query:X->Known #f '("biolink:entity_negatively_regulates_entity") (list "UniProtKB:P47712"))
 
 (define diabetes-treatments
   (query:X->Known
