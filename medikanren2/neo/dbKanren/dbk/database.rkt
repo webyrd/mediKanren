@@ -58,7 +58,11 @@
 
   R.empty R+ R-
   auto-empty-trash?
-  current-batch-size)
+  current-batch-size
+
+  make-btree
+  btree-count
+  btree-ref-or-set!)
 (require "heap.rkt" "logging.rkt" "misc.rkt" "storage.rkt" "stream.rkt"
          racket/file racket/fixnum racket/hash racket/list racket/match
          racket/set racket/struct racket/unsafe/ops racket/vector)
