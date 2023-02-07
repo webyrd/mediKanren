@@ -1,25 +1,15 @@
 #lang racket/base
 
 (provide
-  query:Known->Known
   query:Known->X
-  query:X->Known
-  query:Known<-X->Known
-  query:Known->X->Known
-  query:X->Y->Known
-  query:Concept
-  concept-properties
-  concept-property-values
+  query:X->Known  
   curie-in-db?
-  curie->properties
-  edge-properties
-  edge-property-values
-  edge-id->properties)
+  )
 (require
  "make-query-low-level.rkt"
  racket/match)
 
-(define db-path-under-parent "robokop/full/january_2023/full_Robokop.db")
+(define db-path-under-parent "kgx-synonym/neo/node_normalization.db")
 
 (match-define
   (list

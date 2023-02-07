@@ -15,6 +15,8 @@
   edge-properties
   ;;edge-property-values
   ;;edge-id->properties
+  curie->synonyms
+  curies->synonyms
   )
 
 (require
@@ -69,8 +71,65 @@
             (edge-property-values edge-property-values-rtx-kg2)
             (edge-id->properties edge-id->properties-rtx-kg2)
             )
+ 
+ (rename-in "query-low-level-node-normalization.rkt"
+            (query:Known->X query:Known->X-node-normalization)
+            (query:X->Known query:X->Known-node-normalization)
+            (curie-in-db? curie-in-db?-node-normalization)
+            )
 
- racket/set)
+ racket/set
+ "../dbKanren/dbk/database.rkt")
+
+#|
+Given a single CURIE, returns a list of CURIEs containing synonyms for the
+original CURIE.  The list of synonyms includes the original provided CURIE.
+|#
+(define (curie->synonyms curie) (curies->synonyms (list curie)))
+
+#|
+Given a list of CURIEs, returns a list of CURIEs containing synonyms for the
+CURIEs in the original list.  The list of synonyms includes the original
+provided list of CURIEs.
+|#
+(define (curies->synonyms curies)
+  (set->list
+   (set-union
+    ; the original provided list of CURIEs
+    (list->set curies)
+    ; the synonyms from node normalization KG
+    (set-fixed-point
+     (list->set (filter curie-in-db?-node-normalization curies))
+     (lambda (new-curies)
+       (query:one-hop-same-as new-curies
+                              query:X->Known-node-normalization
+                              query:Known->X-node-normalization
+                              )))
+    ; the synonyms from other [rtx-kg2, text-mining, robokop] KGs
+    (set-fixed-point
+     (list->set curies)
+     (lambda (new-curies)
+       (query:one-hop-same-as new-curies
+                              query:X->Known
+                              query:Known->X
+                              )))
+    )))
+
+(define query:one-hop-same-as
+  (lambda (set-curies query:X->Known query:Known->X)
+    (set-union
+     (list->set
+      (map car
+           (query:X->Known
+            #f
+            (list "biolink:same_as")
+            (set->list set-curies))))
+     (list->set
+      (map (lambda (e) (list-ref e 3))
+           (query:Known->X
+            (set->list set-curies)
+            (list "biolink:same_as")
+            #f))))))
 
 (define (query:Known->Known curie*.S predicate*.S->O curie*.O)
   (set-union

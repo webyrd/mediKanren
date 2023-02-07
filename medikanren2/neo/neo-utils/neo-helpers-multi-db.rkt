@@ -23,7 +23,7 @@
 (require
  "../dbKanren/dbk/database.rkt"
  "../neo-low-level/query-low-level-multi-db.rkt"
- "../neo-low-level/synonym-low-level.rkt"
+ ;"../neo-low-level/synonym-low-level.rkt"
  "../neo-reasoning/neo-biolink-reasoning.rkt"
  racket/set
  "neo-helpers-without-db.rkt")
