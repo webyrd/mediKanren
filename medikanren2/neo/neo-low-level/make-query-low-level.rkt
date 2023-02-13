@@ -31,6 +31,9 @@
   (define (dict-get d key)
     (dict-ref d key (lambda (v) v) (lambda () (error "dict-get failed" key))))
 
+  (define (dict-get-safe d key not-found-value)
+    (dict-ref d key (lambda (v) v) (lambda () not-found-value)))
+
   (define (string*->id=>1 str*) (bytes*->id=>1 (map string->bytes/utf-8 str*)))
   (define (bytes*->id=>1 text*)
     (let* ((text* (sort (set->list (list->set text*)) bytes<?))
@@ -94,8 +97,9 @@
                   (K         (id->string id.K)))
              ((merge-join fx< X=>eid=>1 curie=>ckey=>cvalue=>1)
               (lambda (id.X eid=>1 ckey=>cvalue=>1)
-                (let* ((id.name.X (dict-min (dict-get ckey=>cvalue=>1 ckey.name)))
-                       (name.X    (id->string id.name.X))
+                (let* ((id.name.X? (dict-get-safe ckey=>cvalue=>1 ckey.name #f))
+                       (id.name.X (if id.name.X? (dict-min id.name.X?) #f))
+                       (name.X    (if id.name.X (id->string id.name.X) "N/A"))
                        (X         (id->string id.X)))
                   ((dict-key-enumerator eid=>1)
                    (lambda (eid)
