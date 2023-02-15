@@ -34,8 +34,9 @@
  yaml)
 
 ;; (define BIOLINK_YAML_FILE "../neo-biolink/biolink_2_4_8/biolink-model.yaml")
-(define BIOLINK_YAML_FILE "../neo-biolink/biolink_3_0_3/biolink-model.yaml")
+;; (define BIOLINK_YAML_FILE "../neo-biolink/biolink_3_0_3/biolink-model.yaml")
 ;; (define BIOLINK_YAML_FILE "../neo-biolink/biolink_3_1_1/biolink-model.yaml")
+(define BIOLINK_YAML_FILE "../neo-biolink/biolink_3_1_2/biolink-model.yaml")
 
 (define-runtime-path path.here ".")
 (define bl-path (build-path path.here BIOLINK_YAML_FILE))
