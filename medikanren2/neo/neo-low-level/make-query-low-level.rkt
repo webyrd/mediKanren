@@ -16,6 +16,11 @@
 
 (define NAME_NOT_FOUND_STRING "N/A")
 
+;; Use the second definition of 'maybe-time' to see the time use for
+;; low-level query calls.
+(define maybe-time (lambda (x) x)) ;; no-op
+;; (define maybe-time time)
+
 (define (make-query-low-level
          db-path-under-parent ;; for example, "rtx-kg2/pre_2.8.0/rtx-kg2pre_2.8.0.db"
          )
@@ -190,9 +195,9 @@
                                   (X      (id->string id.X)))
                              (yield (list* K name.K predicate.K->X X name.X
                                            (edge-id->properties eid))))))))))))))))))
-    (time (enumerator->rlist (if predicate*.K->X
-                                 (if category*.X query.p&c query.p)
-                                 (if category*.X query.c   query.)))))
+    (maybe-time (enumerator->rlist (if predicate*.K->X
+                                       (if category*.X query.p&c query.p)
+                                       (if category*.X query.c   query.)))))
 
   ;; query:X->Known is analogous to a miniKanren-style query with this shape:
   ;; (run* (s sname p o oname)
@@ -303,9 +308,9 @@
                                   (X      (id->string id.X)))
                              (yield (list* X name.X predicate.X->K K name.K
                                            (edge-id->properties eid))))))))))))))))))
-    (time (enumerator->rlist (if predicate*.X->K
-                                 (if category*.X query.p&c query.p)
-                                 (if category*.X query.c   query.)))))
+    (maybe-time (enumerator->rlist (if predicate*.X->K
+                                       (if category*.X query.p&c query.p)
+                                       (if category*.X query.c   query.)))))
 
   ;; query:Known<-X->Known is analogous to a miniKanren-style query with this shape:
   ;;(run* (K1 name.K1 predicates.K1<-X X name.X predicates.X->K1 K2 name.K2)
@@ -333,20 +338,20 @@
                   ref.value 0 (vector-length group*))))
     (let* ((X=>XK1=>1 (candidate*->dict (query:X->Known category*.X predicate*.K1<-X curie*.K1)))
            (X=>XK2=>1 (candidate*->dict (query:X->Known category*.X predicate*.X->K2 curie*.K2))))
-      (time (enumerator->list
-             (lambda (yield)
-               ((merge-join string<? X=>XK1=>1 X=>XK2=>1)
-                (lambda (X XK1* XK2*)
-                  (for-each
-                    (lambda (XK1)
-                      (match-define (list* _ name.X predicate.X->K1 K1 name.K1 props1) XK1)
-                      (for-each
-                        (lambda (XK2)
-                          (match-define (list* _ _ X->K2 K2 name.K2 props2) XK2)
-                          (yield (append (list K1 name.K1 predicate.X->K1 X name.X X->K2 K2 name.K2)
-                                         (append props1 props2))))
-                        XK2*))
-                    XK1*))))))))
+      (maybe-time (enumerator->list
+                   (lambda (yield)
+                     ((merge-join string<? X=>XK1=>1 X=>XK2=>1)
+                      (lambda (X XK1* XK2*)
+                        (for-each
+                          (lambda (XK1)
+                            (match-define (list* _ name.X predicate.X->K1 K1 name.K1 props1) XK1)
+                            (for-each
+                              (lambda (XK2)
+                                (match-define (list* _ _ X->K2 K2 name.K2 props2) XK2)
+                                (yield (append (list K1 name.K1 predicate.X->K1 X name.X X->K2 K2 name.K2)
+                                               (append props1 props2))))
+                              XK2*))
+                          XK1*))))))))
 
   (define (query:Known->X->Known curie*.K1 predicate*.K1->X category*.X predicate*.X->K2 curie*.K2)
     (define (KX*->dict candidate*)
@@ -363,20 +368,20 @@
                   ref.value 0 (vector-length group*))))
     (let* ((X=>K1X* (KX*->dict (query:Known->X curie*.K1 predicate*.K1->X category*.X)))
            (X=>XK2* (XK*->dict (query:X->Known category*.X predicate*.X->K2 curie*.K2))))
-      (time (enumerator->list
-             (lambda (yield)
-               ((merge-join string<? X=>K1X* X=>XK2*)
-                (lambda (X K1X* XK2*)
-                  (for-each
-                    (lambda (K1X)
-                      (match-define (list* K1 name.K1 predicate.X->K1 _ name.X props1) K1X)
-                      (for-each
-                        (lambda (XK2)
-                          (match-define (list* _ _ X->K2 K2 name.K2 props2) XK2)
-                          (yield (append (list K1 name.K1 predicate.X->K1 X name.X X->K2 K2 name.K2)
-                                         (append props1 props2))))
-                        XK2*))
-                    K1X*))))))))
+      (maybe-time (enumerator->list
+                   (lambda (yield)
+                     ((merge-join string<? X=>K1X* X=>XK2*)
+                      (lambda (X K1X* XK2*)
+                        (for-each
+                          (lambda (K1X)
+                            (match-define (list* K1 name.K1 predicate.X->K1 _ name.X props1) K1X)
+                            (for-each
+                              (lambda (XK2)
+                                (match-define (list* _ _ X->K2 K2 name.K2 props2) XK2)
+                                (yield (append (list K1 name.K1 predicate.X->K1 X name.X X->K2 K2 name.K2)
+                                               (append props1 props2))))
+                              XK2*))
+                          K1X*))))))))
 
   (define (query:X->Y->Known category*.X predicate*.X->Y category*.Y predicate*.Y->K curie*.K)
     (define (result*->dict key result*)
@@ -388,19 +393,19 @@
     (let* ((Y=>YK=>1 (result*->dict car    (query:X->Known category*.Y predicate*.Y->K curie*.K)))
            (curie*.Y (enumerator->list (dict-key-enumerator Y=>YK=>1)))
            (Y=>XY=>1 (result*->dict cadddr (query:X->Known category*.X predicate*.X->Y curie*.Y))))
-      (time (enumerator->list
-             (lambda (yield)
-               ((merge-join string<? Y=>XY=>1 Y=>YK=>1)
-                (lambda (Y XY* YK*)
-                  (for-each
-                    (lambda (XY)
-                      (match-define (list* X name.X predicate.X->Y _ name.Y props.X->Y) XY)
-                      (for-each
-                        (lambda (YK)
-                          (match-define (list* _ _ Y->K K name.K props.Y->K) YK)
-                          (yield (list X name.X predicate.X->Y Y name.Y Y->K K name.K props.X->Y props.Y->K)))
-                        YK*))
-                    XY*))))))))
+      (maybe-time (enumerator->list
+                   (lambda (yield)
+                     ((merge-join string<? Y=>XY=>1 Y=>YK=>1)
+                      (lambda (Y XY* YK*)
+                        (for-each
+                          (lambda (XY)
+                            (match-define (list* X name.X predicate.X->Y _ name.Y props.X->Y) XY)
+                            (for-each
+                              (lambda (YK)
+                                (match-define (list* _ _ Y->K K name.K props.Y->K) YK)
+                                (yield (list X name.X predicate.X->Y Y name.Y Y->K K name.K props.X->Y props.Y->K)))
+                              YK*))
+                          XY*))))))))
 
   (define (query:Known->Known curie*.S predicate*.S->O curie*.O)
     (query:dict.Known->dict.Known
@@ -428,7 +433,7 @@
                                (O      (id->string id.O)))
                           (yield (list* S name.S predicate.S->O O name.O
                                         (edge-id->properties eid))))))))))))))))
-    (time (enumerator->rlist query)))
+    (maybe-time (enumerator->rlist query)))
 
   (define (query:Concept curie*)
     (define (query yield)
@@ -439,7 +444,7 @@
              ((dict-enumerator ckey=>cvalue=>1)
               (lambda (id.key cvalue=>1)
                 (yield (list curie (id->string id.key) (id->string (dict-min cvalue=>1)))))))))))
-    (time (enumerator->list query)))
+    (maybe-time (enumerator->list query)))
 
   (define db (database (build-path path.here db-path-under-parent)))
 
@@ -457,14 +462,14 @@
       (thread-cell-set! tcell.id=>text id=>text)))
 
   (printf "Loading relation index dictionaries for db ~s\n" db-path-under-parent)
-  (define subject=>object=>eid=>1 (time (relation-index-dict r.edge  '(subject object eid) #t)))
-  (define object=>subject=>eid=>1 (time (relation-index-dict r.edge  '(object subject eid) #t)))
-  (define subject=>eid=>object=>1 (time (relation-index-dict r.edge  '(subject eid object) #t)))
-  (define object=>eid=>subject=>1 (time (relation-index-dict r.edge  '(object eid subject) #t)))
-  (define ekey=>evalue=>eid=>1    (time (relation-index-dict r.eprop '(key value eid)      #t)))
-  (define eid=>ekey=>evalue=>1    (time (relation-index-dict r.eprop '(eid key value)      #t)))
-  (define ckey=>cvalue=>curie=>1  (time (relation-index-dict r.cprop '(key value curie)    #t)))
-  (define curie=>ckey=>cvalue=>1  (time (relation-index-dict r.cprop '(curie key value)    #t)))
+  (define subject=>object=>eid=>1 (maybe-time (relation-index-dict r.edge  '(subject object eid) #t)))
+  (define object=>subject=>eid=>1 (maybe-time (relation-index-dict r.edge  '(object subject eid) #t)))
+  (define subject=>eid=>object=>1 (maybe-time (relation-index-dict r.edge  '(subject eid object) #t)))
+  (define object=>eid=>subject=>1 (maybe-time (relation-index-dict r.edge  '(object eid subject) #t)))
+  (define ekey=>evalue=>eid=>1    (maybe-time (relation-index-dict r.eprop '(key value eid)      #t)))
+  (define eid=>ekey=>evalue=>1    (maybe-time (relation-index-dict r.eprop '(eid key value)      #t)))
+  (define ckey=>cvalue=>curie=>1  (maybe-time (relation-index-dict r.cprop '(key value curie)    #t)))
+  (define curie=>ckey=>cvalue=>1  (maybe-time (relation-index-dict r.cprop '(curie key value)    #t)))
  
   (list
     query:Known->Known
