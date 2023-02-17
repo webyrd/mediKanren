@@ -79,7 +79,9 @@
             )
 
  racket/set
- "../dbKanren/dbk/database.rkt")
+ "../neo-utils/neo-helpers-without-db.rkt"
+ ;; "../dbKanren/dbk/database.rkt"
+ )
 
 #|
 Given a single CURIE, returns a list of CURIEs containing synonyms for the

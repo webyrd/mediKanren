@@ -1,10 +1,7 @@
 #lang racket/base
 (provide
   ;; TODO: move these
-  set-fixed-point
   build-tsv-relation
-  unsafe-bytes-split-tab
-  bytes-base10->fxnat
 
   dict-count
   dict-min
@@ -65,7 +62,8 @@
   btree-ref-or-set!)
 (require "heap.rkt" "logging.rkt" "misc.rkt" "storage.rkt" "stream.rkt"
          racket/file racket/fixnum racket/hash racket/list racket/match
-         racket/set racket/struct racket/unsafe/ops racket/vector)
+         racket/set racket/struct racket/unsafe/ops racket/vector
+         "../../neo-utils/neo-helpers-without-db.rkt")
 
 ;(define-syntax-rule (verbose-log     description)          (void))
 ;(define-syntax-rule (performance-log description body ...) (let () body ...))
@@ -73,18 +71,6 @@
 (define-syntax-rule (performance-log description body ...) (let ()
                                                              (pretty-log description)
                                                              (time/pretty-log body ...)))
-
-;; TODO: move these
-(define (bytes<=? a b) (not (bytes<? b a)))
-
-(define (set-fixed-point xs.initial step)
-  (let loop ((current (set))
-             (next    xs.initial))
-    (let ((new (set-subtract next current)))
-      (if (set-empty? new)
-        current
-        (loop (set-union current new)
-              (step      new))))))
 
 (define (build-tsv-relation db type.r file-name)
   (let-values (((insert! finish) (database-relation-builder db type.r)))
@@ -103,28 +89,6 @@
                 (tuple-loop)))))
         (time (finish))))))
 
-(define (unsafe-bytes-split-tab bs)
-  (let loop ((end    (unsafe-bytes-length bs))
-             (i      (unsafe-fx- (unsafe-bytes-length bs) 1))
-             (fields '()))
-    (cond ((unsafe-fx< i 0)                       (cons (subbytes bs 0 end) fields))
-          ((unsafe-fx= (unsafe-bytes-ref bs i) 9) (loop i   (unsafe-fx- i 1) (cons (subbytes bs (+ i 1) end) fields)))
-          (else                                   (loop end (unsafe-fx- i 1) fields)))))
-
-(define (bytes-base10->fxnat bs)
-  (define len (bytes-length bs))
-  (unless (< 0 len 19)
-    (when (= len 0)  (error "natural number must contain at least one digit" bs))
-    (when (< 18 len) (error "natural number must contain at most 18 digits (to safely fit in a fixnum)" bs)))
-  (let loop ((i 0) (n 0))
-    (if (unsafe-fx< i len)
-      (let ((b (unsafe-bytes-ref bs i)))
-        (unless (unsafe-fx<= 48 b 57)
-          (error "natural number must contain only base10 digits" bs))
-        (loop (unsafe-fx+ i 1)
-              (unsafe-fx+ (unsafe-fx* n 10)
-                          (unsafe-fx- b 48))))
-      n)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Persistent databases ;;;

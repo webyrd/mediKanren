@@ -5,6 +5,7 @@
 (require
   "../dbKanren/dbk/data.rkt"
   "../dbKanren/dbk/enumerator.rkt"
+  "../neo-utils/neo-helpers-without-db.rkt"
   racket/runtime-path
   racket/set)
 

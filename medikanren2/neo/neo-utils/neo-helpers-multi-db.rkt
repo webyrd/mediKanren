@@ -7,23 +7,18 @@
  all-predicates-in-db
  all-classes-in-db
  ;;
- get-predicate-descendents-in-db
- get-class-descendents-in-db
- ;;
- get-predicate-descendents*-in-db
- get-class-descendents*-in-db
+ get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+ get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
  ;;
  get-descendent-curies-in-db
  get-descendent-curies*-in-db
-
+ ;;
  iota
  pretty-print-json-string
  take-at-most
  )
 (require
- "../dbKanren/dbk/database.rkt"
  "../neo-low-level/query-low-level-multi-db.rkt"
- ;"../neo-low-level/synonym-low-level.rkt"
  "../neo-reasoning/neo-biolink-reasoning.rkt"
  racket/set
  "neo-helpers-without-db.rkt")
@@ -43,23 +38,17 @@
     (filter curie-in-db?
             (set->list all-classes))))
 
-(define (get-predicate-descendents-in-db pred)
+(define (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db preds)
   (list->set
     (filter curie-in-db?
-            (set->list (get-predicate-descendents pred)))))
-(define (get-class-descendents-in-db class)
-  (list->set
-    (filter curie-in-db?
-            (set->list (get-class-descendents class)))))
+            (set->list
+              (get-non-deprecated-mixed-ins-and-descendent-predicates* preds)))))
 
-(define (get-predicate-descendents*-in-db preds)
+(define (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db classes)
   (list->set
     (filter curie-in-db?
-            (set->list (get-predicate-descendents* preds)))))
-(define (get-class-descendents*-in-db classes)
-  (list->set
-    (filter curie-in-db?
-            (set->list (get-class-descendents* classes)))))
+            (set->list
+              (get-non-deprecated-mixed-ins-and-descendent-classes* classes)))))
 
 (define (get-descendent-curies-in-db curie)
   (get-descendent-curies*-in-db (list curie)))

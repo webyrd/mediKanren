@@ -27,33 +27,31 @@
   (query:X->Known
    #f
    (set->list
-    (apply set-union
-           (map get-predicate-descendents-in-db
-                '("biolink:treats"
-                  ))))
+    (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+     '("biolink:treats")))
    (set->list
     (get-descendent-curies*-in-db
      (curies->synonyms-in-db
       (list "DOID:9351"))))))
 
 (length diabetes-treatments)
-;; 17247
+;; 20042
 
 
 (define diabetes-causes
   (query:X->Known
    #f
    (set->list
-    (apply set-union
-           (map get-predicate-descendents-in-db
-                '("biolink:causes"
-                  ))))
+    (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+     '("biolink:causes")))
    (set->list
     (get-descendent-curies*-in-db
      (curies->synonyms-in-db
       (list "DOID:9351"))))))
 
 (length diabetes-causes)
+;; =>
+9297
 
 (sort (remove-duplicates (map car diabetes-causes)) string<=?)
 
