@@ -4,10 +4,10 @@
          DEFAULT_PORT)
 (require
  "../../logging2.rkt"
- "../neo-low-level/query-low-level.rkt"
+ "../neo-low-level/query-low-level-multi-db.rkt"
  "../neo-open-api/neo-api-query.rkt"
  "../neo-reasoning/neo-biolink-reasoning.rkt"
- "../neo-utils/neo-helpers.rkt"
+ "../neo-utils/neo-helpers-multi-db.rkt"
  racket/file
  racket/match
  racket/set
@@ -583,34 +583,45 @@
         ;; TODO write a chainer in utils, and also check for errors
         (hash-ref (hash-ref qg_nodes qg_object-node-id) 'ids))
 
-      #;(define q
-      (query:X->Known                   ;
-      (set->list (get-class-descendents-in-db "biolink:ChemicalEntity")) ;
-      (set->list (get-predicate-descendents-in-db "biolink:treats")) ;
-      (set->list (get-descendent-curies*-in-db (curies->synonyms-in-db disease-ids)))))
-
       ;;
       (define q1
         (let ((q1
+               ;; TODO
+               ;;
+               ;; * ensure all of the biolink curies are supported in
+               ;; the current biolink standard, or replace
+               ;;
+               ;; * use qualified predicates
                (query:X->Y->Known
                 ;; X
-                (set->list (get-class-descendents-in-db "biolink:ChemicalEntity"))
+                (set->list
+                 (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+                  '("biolink:ChemicalEntity")))
                 (set->list
                  (set-union
-                  (get-predicate-descendents-in-db "biolink:regulates")
-                  (get-predicate-descendents-in-db "biolink:entity_regulates_entity")))
+                  (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+                   '("biolink:regulates"))
+                  (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+                   '("biolink:entity_regulates_entity"))))
                 ;; Y
                 (set->list
                  (set-union
-                  (get-class-descendents-in-db "biolink:Gene")
-                  (get-class-descendents-in-db "biolink:GeneOrGeneProduct")
-                  (get-class-descendents-in-db "biolink:Protein")))
+                  (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+                   '("biolink:Gene"))
+                  (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+                   '("biolink:GeneOrGeneProduct"))
+                  (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+                   '("biolink:Protein"))))
                 (set->list
                  (set-union
-                  (get-predicate-descendents-in-db "biolink:causes")
-                  (get-predicate-descendents-in-db "biolink:gene_associated_with_condition")))
+                  (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+                   '("biolink:causes"))
+                  (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+                   '("biolink:gene_associated_with_condition"))))
                 ;;
-                (set->list (get-descendent-curies*-in-db (curies->synonyms-in-db disease-ids))))))
+                (set->list
+                 (get-descendent-curies*-in-db
+                  (curies->synonyms-in-db disease-ids))))))
           (take-at-most q1 MAX_RESULTS_FROM_COMPONENT)))
 
       (define nodes (make-hash))
@@ -708,6 +719,7 @@
             API_CALL_CONNECTION_TIMEOUT_SECONDS
             (thread
               (lambda ()
+                ;; TODO FIXME update to point to proper version of GP (CI)
                 (set! res
                       (api-query (string-append url.genetics path.query)
                                  body-json)))))
@@ -984,12 +996,15 @@
 
 (hash-set! dispatch-table '(GET "meta_knowledge_graph") meta_knowledge_graph)
 
-(hash-set! dispatch-table '(GET "hello") (lambda (query headers request-fk)
-                                           (printf "received hello query:\n~s\n" query)
-                                           (list
-                                             'xexpr
-                                             200_OK_STRING
-                                             `(html (body "Hello, World!")))))
+(hash-set!
+  dispatch-table
+  '(GET "hello")
+  (lambda (query headers request-fk)
+    (printf "received hello query:\n~s\n" query)
+    (list
+      'xexpr
+      200_OK_STRING
+      `(html (body "Hello, World!")))))
 
 (hash-set!
   dispatch-table
@@ -1019,9 +1034,15 @@
             "~s"
             (car
               (query:X->Known
-                (set->list (get-class-descendents-in-db "biolink:ChemicalEntity"))
-                (set->list (get-predicate-descendents-in-db "biolink:treats"))
-                (set->list (get-descendent-curies*-in-db (curie->synonyms-in-db "DOID:9351")))))))))))
+                (set->list
+                 (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+                  '("biolink:ChemicalEntity")))
+                (set->list
+                 (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+                  '("biolink:treats")))
+                (set->list
+                 (get-descendent-curies*-in-db
+                  (curie->synonyms-in-db "DOID:9351")))))))))))
 
 (module+ main
   (lognew-info
