@@ -1,11 +1,24 @@
 #lang racket
-(provide api-query
-         path.query
-         url.genetics)
-(require json net/url)
+(provide
+ ;;
+ api-query
+ path.query
+ ;;
+ url.genetics.prod
+ url.genetics.test
+ url.genetics.ci
+ ;;
+ )
+(require
+ json
+ net/url)
 
-(define url.genetics
+(define url.genetics.prod
   "https://genetics-kp.transltr.io/genetics_provider/trapi/v1.3")
+(define url.genetics.test
+  "https://genetics-kp.test.transltr.io/genetics_provider/trapi/v1.3")
+(define url.genetics.ci
+  "https://genetics-kp.ci.transltr.io/genetics_provider/trapi/v1.3")
 
 (define path.query
   "/query")

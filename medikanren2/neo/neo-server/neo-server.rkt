@@ -719,9 +719,12 @@
             API_CALL_CONNECTION_TIMEOUT_SECONDS
             (thread
               (lambda ()
-                ;; TODO FIXME update to point to proper version of GP (CI)
+                ;; TODO use 'url.genetics.prod', 'url.genetics.test', or 'url.genetics.ci'
+                ;; based on the environment Unsecret server is running in.
+                ;;
+                ;; Hard-code to use CI for now.
                 (set! res
-                      (api-query (string-append url.genetics path.query)
+                      (api-query (string-append url.genetics.ci path.query)
                                  body-json)))))
 
           (if res
