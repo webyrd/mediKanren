@@ -1056,3 +1056,46 @@
   (let forever ()
     (sleep 10)
     (forever)))
+
+
+
+;;; Ensure the data is loaded by running an example query:
+(define q
+  (lambda (disease)
+  (query:X->Y->Known
+   ;; X
+   (set->list
+    (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+     '("biolink:ChemicalEntity")))
+   (set->list
+    (set-union
+     (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+      '("biolink:regulates"))
+     (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+      '("biolink:entity_regulates_entity"))))
+   ;; Y
+   (set->list
+    (set-union
+     (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+      '("biolink:Gene"))
+     (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+      '("biolink:GeneOrGeneProduct"))
+     (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+      '("biolink:Protein"))))
+   (set->list
+    (set-union
+     (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+      '("biolink:causes"))
+     (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+      '("biolink:gene_associated_with_condition"))))
+   ;;
+   (set->list
+    (get-descendent-curies*-in-db
+     (curies->synonyms-in-db (list disease)))))))
+
+(define q1 (q "MONDO:0004975"))
+(define q1.1 (q "MONDO:0004975"))
+(define q2 (q "UMLS:C0020452"))
+(define q2.1 (q "UMLS:C0020452"))
+
+(length q1)
