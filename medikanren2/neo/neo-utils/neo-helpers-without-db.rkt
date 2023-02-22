@@ -5,6 +5,7 @@
  racket/unsafe/ops)
 
 (provide
+ maybe-time
  iota
  pretty-print-json-string
  take-at-most
@@ -13,6 +14,12 @@
  set-fixed-point
  unsafe-bytes-split-tab
  bytes-base10->fxnat)
+
+;; Use the second definition of 'maybe-time' to see the time use for
+;; low-level query calls.
+(define maybe-time (lambda (x) x)) ;; no-op
+;; (define maybe-time time)
+
 
 (define (iota n)
   (define (iter i)

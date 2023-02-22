@@ -10,16 +10,13 @@
  "../dbKanren/dbk/database.rkt"
  "../dbKanren/dbk/enumerator.rkt"
  "../dbKanren/dbk/stream.rkt"
+ "../neo-utils/neo-helpers-without-db.rkt"
  racket/fixnum racket/match racket/pretty racket/runtime-path racket/set)
 
 (define-runtime-path path.here "../neo-data")
 
 (define NAME_NOT_FOUND_STRING "N/A")
 
-;; Use the second definition of 'maybe-time' to see the time use for
-;; low-level query calls.
-(define maybe-time (lambda (x) x)) ;; no-op
-;; (define maybe-time time)
 
 (define (make-query-low-level
          db-path-under-parent ;; for example, "rtx-kg2/pre_2.8.0/rtx-kg2pre_2.8.0.db"
@@ -312,100 +309,15 @@
                                        (if category*.X query.p&c query.p)
                                        (if category*.X query.c   query.)))))
 
-  ;; query:Known<-X->Known is analogous to a miniKanren-style query with this shape:
-  ;;(run* (K1 name.K1 predicates.K1<-X X name.X predicates.X->K1 K2 name.K2)
-  ;;  (fresh (id1 id2 category.X)
-  ;;    (edge id1 X K1)
-  ;;    (edge id2 X K2)
-  ;;    (cprop X   "category" category.X)
-  ;;    (cprop X   "name" name.X)
-  ;;    (cprop K1  "name" name.K1)
-  ;;    (cprop K2  "name" name.K2)
-  ;;    (eprop id1 "predicate" K1<-X)
-  ;;    (eprop id2 "predicate" X->K2)
-  ;;    (membero category.X categories.X)
-  ;;    (membero K1         curies.K1)
-  ;;    (membero K1<-X      predicates.K1<-X)
-  ;;    (membero K2         curies.K2)
-  ;;    (membero X->K2      predicates.X->K2)))
 
   (define (query:Known<-X->Known curie*.K1 predicate*.K1<-X category*.X predicate*.X->K2 curie*.K2)
-    (define (candidate*->dict candidate*)
-      (let* ((candidate* (sort candidate* (lambda (a b) (string<? (car a) (car b)))))
-             (group*     (list->vector (s-group candidate* equal? car)))
-             (ref.value  (lambda (i) (vector-ref group* i))))
-        (dict:ref (lambda (i) (caar (ref.value i))) string<?
-                  ref.value 0 (vector-length group*))))
-    (let* ((X=>XK1=>1 (candidate*->dict (query:X->Known category*.X predicate*.K1<-X curie*.K1)))
-           (X=>XK2=>1 (candidate*->dict (query:X->Known category*.X predicate*.X->K2 curie*.K2))))
-      (maybe-time (enumerator->list
-                   (lambda (yield)
-                     ((merge-join string<? X=>XK1=>1 X=>XK2=>1)
-                      (lambda (X XK1* XK2*)
-                        (for-each
-                          (lambda (XK1)
-                            (match-define (list* _ name.X predicate.X->K1 K1 name.K1 props1) XK1)
-                            (for-each
-                              (lambda (XK2)
-                                (match-define (list* _ _ X->K2 K2 name.K2 props2) XK2)
-                                (yield (append (list K1 name.K1 predicate.X->K1 X name.X X->K2 K2 name.K2)
-                                               (append props1 props2))))
-                              XK2*))
-                          XK1*))))))))
+    (error 'query:Known<-X->Known "obsolete"))
 
   (define (query:Known->X->Known curie*.K1 predicate*.K1->X category*.X predicate*.X->K2 curie*.K2)
-    (define (KX*->dict candidate*)
-      (let* ((candidate* (sort candidate* (lambda (a b) (string<? (cadddr a) (cadddr b)))))
-             (group*     (list->vector (s-group candidate* equal? cadddr)))
-             (ref.value  (lambda (i) (vector-ref group* i))))
-        (dict:ref (lambda (i) (cadddr (car (ref.value i)))) string<?
-                  ref.value 0 (vector-length group*))))
-    (define (XK*->dict candidate*)
-      (let* ((candidate* (sort candidate* (lambda (a b) (string<? (car a) (car b)))))
-             (group*     (list->vector (s-group candidate* equal? car)))
-             (ref.value  (lambda (i) (vector-ref group* i))))
-        (dict:ref (lambda (i) (caar (ref.value i))) string<?
-                  ref.value 0 (vector-length group*))))
-    (let* ((X=>K1X* (KX*->dict (query:Known->X curie*.K1 predicate*.K1->X category*.X)))
-           (X=>XK2* (XK*->dict (query:X->Known category*.X predicate*.X->K2 curie*.K2))))
-      (maybe-time (enumerator->list
-                   (lambda (yield)
-                     ((merge-join string<? X=>K1X* X=>XK2*)
-                      (lambda (X K1X* XK2*)
-                        (for-each
-                          (lambda (K1X)
-                            (match-define (list* K1 name.K1 predicate.X->K1 _ name.X props1) K1X)
-                            (for-each
-                              (lambda (XK2)
-                                (match-define (list* _ _ X->K2 K2 name.K2 props2) XK2)
-                                (yield (append (list K1 name.K1 predicate.X->K1 X name.X X->K2 K2 name.K2)
-                                               (append props1 props2))))
-                              XK2*))
-                          K1X*))))))))
+    (error 'query:Known->X->Known "obsolete"))
 
   (define (query:X->Y->Known category*.X predicate*.X->Y category*.Y predicate*.Y->K curie*.K)
-    (define (result*->dict key result*)
-      (let* ((result*   (sort result* (lambda (a b) (string<? (key a) (key b)))))
-             (group*    (list->vector (s-group result* equal? key)))
-             (ref.value (lambda (i) (vector-ref group* i))))
-        (dict:ref (lambda (i) (key (car (ref.value i)))) string<?
-                  ref.value 0 (vector-length group*))))
-    (let* ((Y=>YK=>1 (result*->dict car    (query:X->Known category*.Y predicate*.Y->K curie*.K)))
-           (curie*.Y (enumerator->list (dict-key-enumerator Y=>YK=>1)))
-           (Y=>XY=>1 (result*->dict cadddr (query:X->Known category*.X predicate*.X->Y curie*.Y))))
-      (maybe-time (enumerator->list
-                   (lambda (yield)
-                     ((merge-join string<? Y=>XY=>1 Y=>YK=>1)
-                      (lambda (Y XY* YK*)
-                        (for-each
-                          (lambda (XY)
-                            (match-define (list* X name.X predicate.X->Y _ name.Y props.X->Y) XY)
-                            (for-each
-                              (lambda (YK)
-                                (match-define (list* _ _ Y->K K name.K props.Y->K) YK)
-                                (yield (list X name.X predicate.X->Y Y name.Y Y->K K name.K props.X->Y props.Y->K)))
-                              YK*))
-                          XY*))))))))
+    (error 'query:X->Y->Known "obsolete"))
 
   (define (query:Known->Known curie*.S predicate*.S->O curie*.O)
     (query:dict.Known->dict.Known
