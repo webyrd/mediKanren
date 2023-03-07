@@ -11,9 +11,112 @@
  racket/pretty
  racket/string)
 
+;; gene ->regulates-> NFIX
+(define (gene->regulates->NFIX)
+  (query:X->Known
+  
+   ;; category*.X
+   (set->list
+    (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+     (list "biolink:Gene")))
+   ;; predicate*.X->K
+   (set->list
+    (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+     '("biolink:regulates")))
+ 
+   ;; curie*.K
+   (set->list
+    (get-descendent-curies*-in-db
+     (curies->synonyms-in-db
+      (list "HGNC:7788"))))
+   ))
+
+(gene->regulates->NFIX)
+;; =>
+'(("NCBIGene:322"
+   "APBB1"
+   "biolink:regulates"
+   "NCBIGene:4784"
+   "NFIX"
+   ("id"
+    "NCBIGene:322---SEMMEDDB:stimulates---None---None---increased---NCBIGene:4784---SEMMEDDB:")
+   ("knowledge_source" "infores:semmeddb")
+   ("object" "NCBIGene:4784")
+   ("predicate" "biolink:regulates")
+   ("publications" "PMID:17170108")
+   ("publications_info"
+    "{\"PMID:17170108\": {\"publication date\": \"2007 Feb 16\", \"sentence\": \"RNAi silencing of Fe65 increased APP-CTF levels, although also decreasing Abeta levels in H4-FL-APP cells.\", \"subject score\": 1000, \"object score\": 850}}")
+   ("subject" "NCBIGene:322"))
+  ("NCBIGene:4782"
+   "NFIC"
+   "biolink:regulates"
+   "UMLS:C1417707"
+   "NFIX gene"
+   ("id"
+    "NCBIGene:4782---SEMMEDDB:stimulates---None---None---increased---UMLS:C1417707---SEMMEDDB:")
+   ("knowledge_source" "infores:semmeddb")
+   ("object" "UMLS:C1417707")
+   ("predicate" "biolink:regulates")
+   ("publications" "PMID:29106906")
+   ("publications_info"
+    "{\"PMID:29106906\": {\"publication date\": \"2017 12 15\", \"sentence\": \"Finally, we report that, in the absence of Nfia or Nfib, there is a marked reduction in the spinal cord expression of NFIX, and that NFIB can transcriptionally activate Nfix expression in vitro.\", \"subject score\": 1000, \"object score\": 888}}")
+   ("subject" "NCBIGene:4782"))
+  ("NCBIGene:2048"
+   "EPHB2"
+   "biolink:regulates"
+   "UMLS:C1417707"
+   "NFIX gene"
+   ("id"
+    "NCBIGene:2048---SEMMEDDB:stimulates---None---None---increased---UMLS:C1417707---SEMMEDDB:")
+   ("knowledge_source" "infores:semmeddb")
+   ("object" "UMLS:C1417707")
+   ("predicate" "biolink:regulates")
+   ("publications" "PMID:30266829")
+   ("publications_info"
+    "{\"PMID:30266829\": {\"publication date\": \"2018 Oct 29\", \"sentence\": \"Notably, the role of ERK in the activation of Nfix is conserved postnatally in satellite cells, which represent the canonical myogenic stem cells of adult muscle.\", \"subject score\": 1000, \"object score\": 1000}}")
+   ("subject" "NCBIGene:2048"))
+  ("NCBIGene:5594"
+   "MAPK1"
+   "biolink:regulates"
+   "UMLS:C1417707"
+   "NFIX gene"
+   ("id"
+    "NCBIGene:5594---SEMMEDDB:stimulates---None---None---increased---UMLS:C1417707---SEMMEDDB:")
+   ("knowledge_source" "infores:semmeddb")
+   ("object" "UMLS:C1417707")
+   ("predicate" "biolink:regulates")
+   ("publications" "PMID:30266829")
+   ("publications_info"
+    "{\"PMID:30266829\": {\"publication date\": \"2018 Oct 29\", \"sentence\": \"Notably, the role of ERK in the activation of Nfix is conserved postnatally in satellite cells, which represent the canonical myogenic stem cells of adult muscle.\", \"subject score\": 1000, \"object score\": 1000}}")
+   ("subject" "NCBIGene:5594")))
+
+
+(define (drug->regulates->NFIX)
+  (query:X->Known
+  
+   ;; category*.X
+   (set->list
+    (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+     (list "biolink:Drug")))
+   ;; predicate*.X->K
+   (set->list
+    (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+     '("biolink:regulates")))
+ 
+   ;; curie*.K
+   (set->list
+    (get-descendent-curies*-in-db
+     (curies->synonyms-in-db
+      (list "NCBIGene:4782"))))
+   ))
+
+(drug->regulates->NFIX)
+;; =>
+'()
+
 
 ;; drug ->regulates-> gene ->regulates-> NFIX
-(define (run-simple-2-hop)
+(define (drug->regulates->gene->regulates->NFIX)
   (query:X->Y->Known
    ;; category*.X 
    (set->list
@@ -40,7 +143,7 @@
       (list "HGNC:7788"))))
    ))
 
-(run-simple-2-hop)
+(drug->regulates->gene->regulates->NFIX)
 ;; =>
 '(("UMLS:C0017302"
    "General anesthetic drugs"
