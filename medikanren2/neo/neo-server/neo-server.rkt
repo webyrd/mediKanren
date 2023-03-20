@@ -3,22 +3,23 @@
 (provide serve
          DEFAULT_PORT)
 (require
- "../../logging2.rkt"
- "../neo-low-level/query-low-level-multi-db.rkt"
- "../neo-open-api/neo-api-query.rkt"
- "../neo-reasoning/neo-biolink-reasoning.rkt"
- "../neo-utils/neo-helpers-multi-db.rkt"
- racket/file
- racket/match
- racket/set
- racket/port
- racket/pretty
- racket/runtime-path
- racket/string
- racket/tcp
- json
- xml
- net/url)
+  "../../logging2.rkt"
+  "../neo-low-level/query-low-level-multi-db.rkt"
+  "../neo-open-api/neo-api-query.rkt"
+  "../neo-reasoning/neo-biolink-reasoning.rkt"
+  "../neo-utils/neo-helpers-multi-db.rkt"
+  racket/file
+  racket/match
+  racket/set
+  racket/port
+  racket/pretty
+  racket/runtime-path
+  racket/string
+  racket/tcp
+  json
+  xml
+  net/url
+  racket/list)
 
 ;; Team Unsecret Agent mediKanren 2 neo server
 
@@ -379,12 +380,12 @@
       (apply h (url-query url) req-headers request-fk rest-args)
       ;; No handler found:
       (list
-        'xexpr
-        `(html (head (title "Error"))
-               (body
-                (font ((color "red"))
-                      "Unknown page: "
-                      ,str-path))))))
+       'xexpr
+       `(html (head (title "Error"))
+              (body
+               (font ((color "red"))
+                     "Unknown page: "
+                     ,str-path))))))
 
 
 (define (mvp-creative-query? edges nodes)
@@ -396,48 +397,160 @@
     ;; exactly one edge
     [`((,edge-id . ,edge-hash))
      (define knowledge_type (hash-ref edge-hash 'knowledge_type #f))
-
      (printf "knowledge_type: ~s\n" knowledge_type)
 
-     (and (equal? "inferred" knowledge_type)
-          (let ()
-            (define predicates (hash-ref edge-hash 'predicates #f))
-            (printf "predicates: ~s\n" predicates)
-            (and (list? predicates)
-                 (member "biolink:treats" predicates)
-                 (let ()
-                   (define subject-id (hash-ref edge-hash 'subject #f))
-                   (define object-id (hash-ref edge-hash 'object #f))
+     (define predicates (hash-ref edge-hash 'predicates #f))
+     (printf "predicates: ~s\n" predicates)
 
-                   (define subject-node (hash-ref nodes (string->symbol subject-id) #f))
-                   (define object-node (hash-ref nodes (string->symbol object-id) #f))
+     (define subject-id (hash-ref edge-hash 'subject #f))
+     (define object-id (hash-ref edge-hash 'object #f))
 
-                   (printf "subject-node: ~s\n" subject-node)
-                   (printf "object-node: ~s\n" object-node)
+     (define subject-node (hash-ref nodes (string->symbol subject-id) #f))
+     (define object-node (hash-ref nodes (string->symbol object-id) #f))
 
-                   (and subject-node
-                        object-node
-                        (let ()
+     (printf "subject-node: ~s\n" subject-node)
+     (printf "object-node: ~s\n" object-node)
 
-                          (define object-ids (hash-ref object-node 'ids #f))
-                          (printf "object-ids: ~s\n" object-ids)
+     (cond
+       [(and (equal? "inferred" knowledge_type)
+             (list? predicates)
+             (member "biolink:treats" predicates)
+             subject-node
+             object-node
+             (let ()
+               (define object-ids (hash-ref object-node 'ids #f))
+               (printf "object-ids: ~s\n" object-ids)
+               (and (list? object-ids)
+                    (not (null? object-ids))
+                    (let ()
+                      (define subject-categories (hash-ref subject-node 'categories #f))
+                      (printf "subject-categories: ~s\n" subject-categories)
+                      (and (list? subject-categories)
+                           (member "biolink:ChemicalEntity" subject-categories)
+                           (let ()
+                             (define object-categories (hash-ref object-node 'categories #f))
+                             (printf "object-categories: ~s\n" object-categories)
 
-                          (and (list? object-ids)
-                               (not (null? object-ids))
-                               (let ()
+                             (or (not object-categories)
+                                 (and (list? object-categories)
+                                      (member "biolink:Disease" object-categories)))))))))
+        'mvp1]
+       [(and (equal? "inferred" knowledge_type)
+             (list? predicates)
+             (member "biolink:affects" predicates)
+             subject-node
+             object-node
+             (let ()
+               (define object-ids (hash-ref object-node 'ids #f))
+               (and (list? object-ids)
+                    (not (null? object-ids))
+                    (let ()
+                      (printf "object-ids: ~s\n" object-ids)
+                      (define subject-categories (hash-ref subject-node 'categories #f))
+                      (printf "subject-categories: ~s\n" subject-categories)
 
-                                 (define subject-categories (hash-ref subject-node 'categories #f))
-                                 (printf "subject-categories: ~s\n" subject-categories)
+                      (and (list? subject-categories)
+                           (member "biolink:ChemicalEntity" subject-categories)
+                           (let ()
+                             (define object-categories (hash-ref object-node 'categories #f))
+                             (printf "object-categories: ~s\n" object-categories)
+                             (and (list? object-categories)
+                                  (member "biolink:Gene" object-categories)
+                                  (let ()
+                                    (define qualifier-constraints (hash-ref edge-hash 'qualifier_constraints #f))
+                                    (and qualifier-constraints
+                                         (list? qualifier-constraints)
+                                         ; only one type of qualifier-constraints and it is the qualifer set
+                                         (eq? 1 (length qualifier-constraints))
+                                         
+                                         (let ()
+                                           (define qualifier-set (hash-ref (car qualifier-constraints) 'qualifier_set #f))
+                                           (and qualifier-set
+                                                (list? qualifier-set)
+                                                (eq? 2 (length qualifier-set))
+                                                
+                                                (let ()
+                                                  (define qualifier-a (car qualifier-set))
+                                                  (define qualifier-a-type (hash-ref qualifier-a 'qualifier_type_id #f))
+                                                  (printf "qualifier-a-type: ~s\n" qualifier-a-type)
+                                                  (define qualifier-a-value (hash-ref qualifier-a 'qualifier_value #f))
+                                                  (printf "qualifier-a-value: ~s\n" qualifier-a-value)
 
-                                 (and (list? subject-categories)
-                                      (member "biolink:ChemicalEntity" subject-categories)
-                                      (let ()
-                                        (define object-categories (hash-ref object-node 'categories #f))
-                                        (printf "object-categories: ~s\n" object-categories)
+                                                  (define qualifier-b (cadr qualifier-set))
+                                                  (define qualifier-b-type (hash-ref qualifier-b 'qualifier_type_id #f))
+                                                  (printf "qualifier-b-type: ~s\n" qualifier-b-type)
+                                                  (define qualifier-b-value (hash-ref qualifier-b 'qualifier_value #f))
+                                                  (printf "qualifier-b-value: ~s\n" qualifier-b-value)
 
-                                        (or (not object-categories)
-                                            (and (list? object-categories)
-                                                 (member "biolink:Disease" object-categories)))))))))))))]
+                                                  (and qualifier-a-type
+                                                       qualifier-a-value
+                                                       qualifier-b-type
+                                                       qualifier-b-value
+                                                       (or
+                                                        (and (equal? qualifier-a-type "biolink:object_aspect_qualifier")
+                                                             (equal? qualifier-b-type "biolink:object_direction_qualifier"))
+                                                        (and (equal? qualifier-b-type "biolink:object_aspect_qualifier")
+                                                             (equal? qualifier-a-type "biolink:object_direction_qualifier"))))))))))))))))
+        'mvp2-gene]
+       [(and (equal? "inferred" knowledge_type)
+             (list? predicates)
+             (member "biolink:affects" predicates)
+             subject-node
+             object-node
+             (let ()
+               (define subject-ids (hash-ref subject-node 'ids #f))
+               (and (list? subject-ids)
+                    (not (null? subject-ids))
+                    (let ()
+                      (printf "subject-ids: ~s\n" subject-ids)
+                      (define subject-categories (hash-ref subject-node 'categories #f))
+                      (printf "subject-categories: ~s\n" subject-categories)
+
+                      (and (list? subject-categories)
+                           (member "biolink:ChemicalEntity" subject-categories)
+                           (let ()
+                             (define object-categories (hash-ref object-node 'categories #f))
+                             (printf "object-categories: ~s\n" object-categories)
+
+                             (and (list? object-categories)
+                                  (member "biolink:Gene" object-categories)
+                                  (let ()
+                                    (define qualifier-constraints (hash-ref edge-hash 'qualifier_constraints #f))
+                                    (and qualifier-constraints
+                                         (list? qualifier-constraints)
+                                         ; only one type of qualifier-constraints and it is the qualifer set
+                                         (eq? 1 (length qualifier-constraints)) 
+                                         (let ()
+                                           (define qualifier-set (hash-ref (car qualifier-constraints) 'qualifier_set #f))
+                                           (and qualifier-set
+                                                (list? qualifier-set)
+                                                (eq? 2 (length qualifier-set))
+                                                
+                                                (let ()
+                                                  (define qualifier-a (car qualifier-set))
+                                                  (define qualifier-a-type (hash-ref qualifier-a 'qualifier_type_id #f))
+                                                  (printf "qualifier-a-type: ~s\n" qualifier-a-type)
+                                                  (define qualifier-a-value (hash-ref qualifier-a 'qualifier_value #f))
+                                                  (printf "qualifier-a-value: ~s\n" qualifier-a-value)
+
+                                                  (define qualifier-b (cadr qualifier-set))
+                                                  (define qualifier-b-type (hash-ref qualifier-b 'qualifier_type_id #f))
+                                                  (printf "qualifier-b-type: ~s\n" qualifier-b-type)
+                                                  (define qualifier-b-value (hash-ref qualifier-b 'qualifier_value #f))
+                                                  (printf "qualifier-b-value: ~s\n" qualifier-b-value)
+
+                                                  (and qualifier-a-type
+                                                       qualifier-a-value
+                                                       qualifier-b-type
+                                                       qualifier-b-value
+                                                       (or
+                                                        (and (equal? qualifier-a-type "biolink:object_aspect_qualifier")
+                                                             (equal? qualifier-b-type "biolink:object_direction_qualifier"))
+                                                        (and (equal? qualifier-b-type "biolink:object_aspect_qualifier")
+                                                             (equal? qualifier-a-type "biolink:object_direction_qualifier"))))))))))))))))
+        'mvp2-chem]
+       [else #f])]
+             
     [else #f]))
 
 (define (make-empty-trapi-response body-json)
@@ -445,19 +558,19 @@
          (query_graph (hash-ref message 'query_graph #f)))
 
     (hash
-      'message
-      (hash
-        ;;
-        'query_graph
-        query_graph
-        ;;
-        'knowledge_graph
-        (hash 'nodes (hash)
-              'edges (hash))
-        ;;
-        'results
-        '()
-       ))))
+     'message
+     (hash
+      ;;
+      'query_graph
+      query_graph
+      ;;
+      'knowledge_graph
+      (hash 'nodes (hash)
+            'edges (hash))
+      ;;
+      'results
+      '()
+      ))))
 
 (define (make-score-result num-results)
   (lambda (result index)
@@ -501,9 +614,10 @@
         '())))
 
 (define (num-pubs props)
-  (let ((pubs (get-assoc "publications" props)))
+  (let ((pubs (or (get-assoc "publications" props)
+                  (get-assoc "supporting_publications" props))))
     (if pubs
-        (length (string-split pubs "|"))
+        (max (length (string-split pubs "|")) (length (string-split pubs)))
         0)))
 
 (define (normalize-scores results)
@@ -541,21 +655,21 @@
     ;; in creative mode, for example).
     (hash 'message
           (hash
+           ;;
+           'query_graph
+           original-query_graph
+           ;;
+           'knowledge_graph
+           (hash
+            'edges (merge-hash edges1 edges2)
             ;;
-            'query_graph
-            original-query_graph
-            ;;
-            'knowledge_graph
-            (hash
-              'edges (merge-hash edges1 edges2)
-              ;;
-              'nodes (merge-hash nodes1 nodes2))
-            ;;
-            'results
-            (merge-list results1 results2)
-            ))))
+            'nodes (merge-hash nodes1 nodes2))
+           ;;
+           'results
+           (merge-list results1 results2)
+           ))))
 
-(define (handle-mvp-creative-query body-json message query_graph edges nodes)
+(define (handle-mvp-creative-query body-json message query_graph edges nodes which-mvp)
 
   (printf "++ handling MVP mode creative query\n")
 
@@ -579,50 +693,121 @@
       (define qg_object-node-str (hash-ref qg_edge-hash 'object))
       (define qg_object-node-id (string->symbol qg_object-node-str))
 
-      (define disease-ids
-        ;; TODO write a chainer in utils, and also check for errors
-        (hash-ref (hash-ref qg_nodes qg_object-node-id) 'ids))
+      (define qg_subject-node-str (hash-ref qg_edge-hash 'subject))
+      (define qg_subject-node-id (string->symbol qg_subject-node-str))
 
-      ;;
+      (define mvp2-filter
+        (lambda (q direction)
+          (filter
+           (lambda (e)
+             (let-values ([(_ eprop) (split-at e 8)])
+               (let* ((target-eprop (cadr eprop))
+                      (aspect-pr (assoc "object_aspect_qualifier" target-eprop))
+                      (direction-pr (assoc "object_direction_qualifier" target-eprop)))
+                 (and
+                  aspect-pr
+                  direction-pr
+                  (or
+                   (equal? "activity" (cadr aspect-pr))
+                   (equal? "abundance" (cadr aspect-pr))
+                   (equal? "activity_or_abundance" (cadr aspect-pr)))
+                  (equal? direction (cadr direction-pr))
+                  ))))
+           q)))
+
       (define q1
-        (let ((q1
-               ;; TODO
-               ;;
-               ;; * ensure all of the biolink curies are supported in
-               ;; the current biolink standard, or replace
-               ;;
-               ;; * use qualified predicates
-               (query:X->Y->Known
-                ;; X
-                (set->list
-                 (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
-                  '("biolink:ChemicalEntity")))
-                (set->list
-                 (set-union
-                  (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
-                   '("biolink:regulates"))
-                  (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
-                   '("biolink:entity_regulates_entity"))))
-                ;; Y
-                (set->list
-                 (set-union
-                  (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
-                   '("biolink:Gene"))
-                  (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
-                   '("biolink:GeneOrGeneProduct"))
-                  (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
-                   '("biolink:Protein"))))
-                (set->list
-                 (set-union
-                  (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
-                   '("biolink:causes"))
-                  (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
-                   '("biolink:gene_associated_with_condition"))))
-                ;;
-                (set->list
-                 (get-descendent-curies*-in-db
-                  (curies->synonyms-in-db disease-ids))))))
-          (take-at-most q1 MAX_RESULTS_FROM_COMPONENT)))
+        (cond
+          [(eq? 'mvp1 which-mvp)
+           (define disease-ids
+             ;; TODO write a chainer in utils, and also check for errors
+             (hash-ref (hash-ref qg_nodes qg_object-node-id) 'ids))
+
+           ;;
+           (let ((q
+                  ;; TODO
+                  ;;
+                  ;; * ensure all of the biolink curies are supported in
+                  ;; the current biolink standard, or replace
+                  ;;
+                  ;; * use qualified predicates
+                  (query:X->Y->Known
+                   ;; X
+                   (set->list
+                    (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+                     '("biolink:ChemicalEntity")))
+                   (set->list
+                    (set-union
+                     (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+                      '("biolink:regulates"))
+                     (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+                      '("biolink:entity_regulates_entity"))))
+                   ;; Y
+                   (set->list
+                    (set-union
+                     (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+                      '("biolink:Gene"))
+                     (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+                      '("biolink:GeneOrGeneProduct"))
+                     (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+                      '("biolink:Protein"))))
+                   (set->list
+                    (set-union
+                     (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+                      '("biolink:causes"))
+                     (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+                      '("biolink:gene_associated_with_condition"))))
+                   ;;
+                   (set->list
+                    (get-descendent-curies*-in-db
+                     (curies->synonyms-in-db disease-ids))))))
+             (take-at-most q MAX_RESULTS_FROM_COMPONENT))]
+          [(eq? 'mvp2-chem which-mvp)
+           (define chemical-ids
+             (hash-ref (hash-ref qg_nodes qg_subject-node-id) 'ids))
+           (define direction
+             (let ((qualifer-set
+                    (hash-ref (car (hash-ref qg_edge-hash 'qualifier_constraints)) 'qualifier_set)))
+               (let loop ((l qualifer-set))
+                 (if (equal? (hash-ref (car l) 'qualifier_type_id) "biolink:object_direction_qualifier")
+                     (hash-ref (car l) 'qualifier_value)
+                     (loop (cdr l))))))
+           (let* ((q
+                   (query:Known->Y->X
+                    (set->list
+                     (get-descendent-curies*-in-db
+                      (curies->synonyms-in-db chemical-ids)))
+                    '("biolink:affects" "biolink:regulates")
+                    #f
+                    '("biolink:affects")
+                    (set->list
+                     (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+                      '("biolink:Gene")))))
+                  (qualified-q (mvp2-filter q direction)))
+             (take-at-most qualified-q MAX_RESULTS_FROM_COMPONENT))]
+          [(eq? 'mvp2-gene which-mvp)
+           (define gene-ids
+             (hash-ref (hash-ref qg_nodes qg_object-node-id) 'ids))
+           (define direction
+             (let ((qualifer-set
+                    (hash-ref (car (hash-ref qg_edge-hash 'qualifier_constraints)) 'qualifier_set)))
+               (let loop ((l qualifer-set))
+                 (if (equal? (hash-ref (car l) 'qualifier_type_id) "biolink:object_direction_qualifier")
+                     (hash-ref (car l) 'qualifier_value)
+                     (loop (cdr l))))))
+           (let* ((q
+                   (query:X->Y->Known
+                    (set->list
+                     (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+                      '("biolink:ChemicalEntity")))
+                    '("biolink:affects" "biolink:regulates")
+                    #f
+                    '("biolink:affects")
+                    (set->list
+                     (get-descendent-curies*-in-db
+                      (curies->synonyms-in-db gene-ids)))))
+                  (qualified-q (mvp2-filter q direction)))
+             (take-at-most qualified-q MAX_RESULTS_FROM_COMPONENT))]
+          ))
 
       (define nodes (make-hash))
 
@@ -638,16 +823,30 @@
                        (hash 'categories categories
                              'name name)))))
 
-      (define (add-edge! props)
+      (define (add-edge! props n)
         ;; TODO: using the id as the edge id might break with
         ;;       other knowledge graphs
-        (let ((id (get-assoc "id" props)))
+        (let ((id (string-append "medik_#" (number->string n))))
+          ;; TODO: edge ids here can be medik_#0, medik_#1, ... since the
+          ;; the edge ids assigned from the process of transformation from
+          ;; 2 to 4 tsvs are lost [not in the edge prop in the returned results]
           (hash-set! edges (string->symbol id)
                      (hash 'attributes
-                           (list
-                             unsecret-provenance-attribute
-                             (data-attribute (get-assoc "knowledge_source" props))
-                             )
+                           (list*
+                            unsecret-provenance-attribute
+                            (or
+                             (and (get-assoc "json_attributes" props)
+                                  (filter
+                                   (lambda (h) (and (hash-ref h 'attribute_type_id #f)
+                                                    (member (hash-ref h 'attribute_type_id)
+                                                            '("biolink:knowledge_source"
+                                                              "biolink:primary_knowledge_source"
+                                                              "biolink:aggregator_knowledge_source"
+                                                              "biolink:supporting_data_source"))))
+                                   (string->jsexpr (get-assoc "json_attributes" props)))
+                                  )
+                             (list (data-attribute (or (get-assoc "knowledge_source" props)
+                                                       (get-assoc "biolink:primary_knowledge_source" props))))))
                            'object (get-assoc "object" props)
                            'predicate (get-assoc "predicate" props)
                            'subject (get-assoc "subject" props)))
@@ -656,53 +855,55 @@
       (define (add-result! r)
         (set! results (cons r results)))
 
+      (define n 0) ;initial number for to name the edges from the result q1
       (for-each
-        (lambda (e)
-          (match e
-            [`(,curie_x
-               ,name_x
-               ,pred_xy
-               ,curie_y
-               ,name_y
-               ,pred_yz
-               ,curie_z
-               ,name_z
-               ,props_xy
-               ,props_yz)
-             (add-node! curie_x)
-             (add-node! curie_y)
-             (add-node! curie_z)
-             (define edge_xy (add-edge! props_xy))
-             (define edge_yz (add-edge! props_yz))
-             (add-result!
-              (hash 'edge_bindings
-                    (hash 'drug_gene (list (hash 'id edge_xy))
-                          'gene_dise (list (hash 'id edge_yz)))
-                    'node_bindings
-                    (hash 'disease (list (hash 'id curie_z))
-                          'drug    (list (hash 'id curie_x))
-                          'gene    (list (hash 'id curie_y)))
-                    ;; TODO: we should downvote any answer that is already in 1-hop
-                    'score
-                    (* (num-pubs props_xy) (num-pubs props_yz))))
-             ]))
-        q1)
+       (lambda (e)
+         (match e
+           [`(,curie_x
+              ,name_x
+              ,pred_xy
+              ,curie_y
+              ,name_y
+              ,pred_yz
+              ,curie_z
+              ,name_z
+              ,props_xy
+              ,props_yz)
+            (add-node! curie_x)
+            (add-node! curie_y)
+            (add-node! curie_z)
+            (define edge_xy (add-edge! props_xy n))
+            (define edge_yz (add-edge! props_yz (+ n 1)))
+            (add-result!
+             (hash 'edge_bindings
+                   (hash (string->symbol (string-append qg_subject-node-str "_middleman")) (list (hash 'id edge_xy))
+                         (string->symbol (string-append "middleman_" qg_object-node-str)) (list (hash 'id edge_yz)))
+                   'node_bindings
+                   (hash qg_object-node-id (list (hash 'id curie_z))
+                         qg_subject-node-id    (list (hash 'id curie_x))
+                         'middleman    (list (hash 'id curie_y)))
+                   ;; TODO: we should downvote any answer that is already in 1-hop
+                   'score
+                   (* (num-pubs props_xy) (num-pubs props_yz))))
+            ])
+         (set! n (+ n 2)))
+       q1)
 
       (set! results (sort results (lambda (a b) (> (hash-ref a 'score) (hash-ref b 'score)))))
 
       (hash
-        'message
-        (hash
-          ;;
-          'query_graph
-          query_graph
-          ;;
-          'knowledge_graph
-          (hash 'edges edges
-                'nodes nodes)
-          ;;
-          'results
-          (normalize-scores results)))
+       'message
+       (hash
+        ;;
+        'query_graph
+        query_graph
+        ;;
+        'knowledge_graph
+        (hash 'edges edges
+              'nodes nodes)
+        ;;
+        'results
+        (normalize-scores results)))
       ))
 
   (define gp-trapi-response
@@ -716,16 +917,16 @@
                   API_CALL_CONNECTION_TIMEOUT_SECONDS)
 
           (sync/timeout
-            API_CALL_CONNECTION_TIMEOUT_SECONDS
-            (thread
-              (lambda ()
-                ;; TODO use 'url.genetics.prod', 'url.genetics.test', or 'url.genetics.ci'
-                ;; based on the environment Unsecret server is running in.
-                ;;
-                ;; Hard-code to use CI for now.
-                (set! res
-                      (api-query (string-append url.genetics.ci path.query)
-                                 body-json)))))
+           API_CALL_CONNECTION_TIMEOUT_SECONDS
+           (thread
+            (lambda ()
+              ;; TODO use 'url.genetics.prod', 'url.genetics.test', or 'url.genetics.ci'
+              ;; based on the environment Unsecret server is running in.
+              ;;
+              ;; Hard-code to use CI for now.
+              (set! res
+                    (api-query (string-append url.genetics.ci path.query)
+                               body-json)))))
 
           (if res
               (printf "API call returned\n")
@@ -746,8 +947,8 @@
                       (printf "headers from API call:\n~s\n" upstream-headers)
 
                       (if (string-contains?
-                            (bytes->string/utf-8 upstream-status)
-                            200_OK_STRING)
+                           (bytes->string/utf-8 upstream-status)
+                           200_OK_STRING)
                           (let ()
                             (printf "API returned an OK status...processing results\n")
 
@@ -814,9 +1015,9 @@
               (hash-set (hash-ref trapi-response 'message)
                         'results merged-scored-results)))
   (list
-    'json
-    200_OK_STRING
-    scored-trapi-response)
+   'json
+   200_OK_STRING
+   scored-trapi-response)
   )
 
 
@@ -850,7 +1051,7 @@
   (printf "creative-mvp?: ~s\n" creative-mvp?)
 
   (if creative-mvp?
-      (handle-mvp-creative-query body-json message query_graph edges nodes)
+      (handle-mvp-creative-query body-json message query_graph edges nodes creative-mvp?)
       (let ()
 
         (printf "-- handling non-MVP mode query\n")
@@ -859,9 +1060,9 @@
           (make-empty-trapi-response body-json))
 
         (list
-          'json
-          200_OK_STRING
-          trapi-response)
+         'json
+         200_OK_STRING
+         trapi-response)
         )
       )
   )
@@ -896,7 +1097,7 @@
   (printf "creative-mvp?: ~s\n" creative-mvp?)
 
   (if creative-mvp?
-      (handle-mvp-creative-query body-json message query_graph edges nodes)
+      (handle-mvp-creative-query body-json message query_graph edges nodes creative-mvp?)
       (let ()
 
         (printf "-- handling non-MVP mode query\n")
@@ -905,9 +1106,9 @@
           (make-empty-trapi-response body-json))
 
         (list
-          'json
-          200_OK_STRING
-          trapi-response)
+         'json
+         200_OK_STRING
+         trapi-response)
         )
       )
   )
@@ -963,30 +1164,30 @@
 (define (meta_knowledge_graph query headers request-fk)
   (printf "received TRAPI meta knowledge graph query:\n~s\n" query)
   (list
-    'text
-    200_OK_STRING
-    metaKG.json.txt))
+   'text
+   200_OK_STRING
+   metaKG.json.txt))
 
 (define (health query headers request-fk)
   (printf "received health status query:\n~s\n" query)
   (list
-    'json
-    200_OK_STRING
-    (string->jsexpr "{}")))
+   'json
+   200_OK_STRING
+   (string->jsexpr "{}")))
 
 (define (schema.json query headers request-fk)
   (printf "received GET request for schema.json:\n~s\n" query)
   (list
-    'text
-    200_OK_STRING
-    schema.json.txt))
+   'text
+   200_OK_STRING
+   schema.json.txt))
 
 (define (schema.yaml query headers request-fk)
   (printf "received GET request for schema.yaml:\n~s\n" query)
   (list
-    'text
-    200_OK_STRING
-    schema.yaml.txt))
+   'text
+   200_OK_STRING
+   schema.yaml.txt))
 
 
 (hash-set! dispatch-table '(GET "schema.json") schema.json)
@@ -1000,59 +1201,59 @@
 (hash-set! dispatch-table '(GET "meta_knowledge_graph") meta_knowledge_graph)
 
 (hash-set!
-  dispatch-table
-  '(GET "hello")
-  (lambda (query headers request-fk)
-    (printf "received hello query:\n~s\n" query)
-    (list
-      'xexpr
-      200_OK_STRING
-      `(html (body "Hello, World!")))))
+ dispatch-table
+ '(GET "hello")
+ (lambda (query headers request-fk)
+   (printf "received hello query:\n~s\n" query)
+   (list
+    'xexpr
+    200_OK_STRING
+    `(html (body "Hello, World!")))))
 
 (hash-set!
-  dispatch-table
-  '(GET "syn")
-  (lambda (query headers request-fk)
-    (printf "received syn query:\n~s\n" query)
-    (list
-      'xexpr
-      200_OK_STRING
-      `(html
-        (body
-         ,(format
-            "~s"
-            (curie->synonyms-in-db "HGNC:1101")))))))
+ dispatch-table
+ '(GET "syn")
+ (lambda (query headers request-fk)
+   (printf "received syn query:\n~s\n" query)
+   (list
+    'xexpr
+    200_OK_STRING
+    `(html
+      (body
+       ,(format
+         "~s"
+         (curie->synonyms-in-db "HGNC:1101")))))))
 
 (hash-set!
-  dispatch-table
-  '(GET "simple")
-  (lambda (query headers request-fk)
-    (printf "received simple query:\n~s\n" query)
-    (list
-      'xexpr
-      200_OK_STRING
-      `(html
-        (body
-         ,(format
-            "~s"
-            (car
-              (query:X->Known
-                (set->list
-                 (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
-                  '("biolink:ChemicalEntity")))
-                (set->list
-                 (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
-                  '("biolink:treats")))
-                (set->list
-                 (get-descendent-curies*-in-db
-                  (curie->synonyms-in-db "DOID:9351")))))))))))
+ dispatch-table
+ '(GET "simple")
+ (lambda (query headers request-fk)
+   (printf "received simple query:\n~s\n" query)
+   (list
+    'xexpr
+    200_OK_STRING
+    `(html
+      (body
+       ,(format
+         "~s"
+         (car
+          (query:X->Known
+           (set->list
+            (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+             '("biolink:ChemicalEntity")))
+           (set->list
+            (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+             '("biolink:treats")))
+           (set->list
+            (get-descendent-curies*-in-db
+             (curie->synonyms-in-db "DOID:9351")))))))))))
 
 (module+ main
   (lognew-info
-    (hash 'event "starting_server"))
+   (hash 'event "starting_server"))
   (define stop (serve DEFAULT_PORT))
   (lognew-info
-    (hash 'event "started_server"))
+   (hash 'event "started_server"))
   (let forever ()
     (sleep 10)
     (forever)))
@@ -1062,40 +1263,52 @@
 ;;; Ensure the data is loaded by running an example query:
 (define q
   (lambda (disease)
-  (query:X->Y->Known
-   ;; X
-   (set->list
-    (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
-     '("biolink:ChemicalEntity")))
-   (set->list
-    (set-union
-     (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
-      '("biolink:regulates"))
-     (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
-      '("biolink:entity_regulates_entity"))))
-   ;; Y
-   (set->list
-    (set-union
-     (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
-      '("biolink:Gene"))
-     (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
-      '("biolink:GeneOrGeneProduct"))
-     (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
-      '("biolink:Protein"))))
-   (set->list
-    (set-union
-     (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
-      '("biolink:causes"))
-     (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
-      '("biolink:gene_associated_with_condition"))))
-   ;;
-   (set->list
-    (get-descendent-curies*-in-db
-     (curies->synonyms-in-db (list disease)))))))
+    (query:X->Y->Known
+     ;; X
+     (set->list
+      (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+       '("biolink:ChemicalEntity")))
+     (set->list
+      (set-union
+       (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+        '("biolink:regulates"))
+       (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+        '("biolink:entity_regulates_entity"))))
+     ;; Y
+     (set->list
+      (set-union
+       (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+        '("biolink:Gene"))
+       (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+        '("biolink:GeneOrGeneProduct"))
+       (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+        '("biolink:Protein"))))
+     (set->list
+      (set-union
+       (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+        '("biolink:causes"))
+       (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+        '("biolink:gene_associated_with_condition"))))
+     ;;
+     (set->list
+      (get-descendent-curies*-in-db
+       (curies->synonyms-in-db (list disease)))))))
 
-(define q1 (q "MONDO:0004975"))
-(define q1.1 (q "MONDO:0004975"))
-(define q2 (q "UMLS:C0020452"))
-(define q2.1 (q "UMLS:C0020452"))
+(define q3 (query:X->Known
+            (set->list
+             (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+              '("biolink:ChemicalEntity")))
+            (set->list
+             (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+              '("biolink:treats")))
+            (set->list
+             (get-descendent-curies*-in-db
+              (curie->synonyms-in-db "DOID:9351")))))
 
-(length q1)
+;(define q1 (q "MONDO:0004975"))
+;(define q1.1 (q "MONDO:0004975"))
+;(define q2 (q "UMLS:C0020452"))
+;(define q2.1 (q "UMLS:C0020452"))
+
+;(length q1)
+(length q3)

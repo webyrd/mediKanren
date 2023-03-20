@@ -19,7 +19,7 @@
  "make-query-low-level.rkt"
  racket/match)
 
-(define db-path-under-parent "text_mining/january_2023/text_mining.db")
+(define db-path-under-parent "text_mining/march_20_2023/text_mining.db")
 
 (match-define
   (list
