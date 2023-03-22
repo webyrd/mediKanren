@@ -591,15 +591,38 @@
    'value_url "https://medikanren-trapi.ci.transltr.io"
    ))
 
-(define (data-attribute infores)
-  (hash
-   'attribute_source infores
-   ;; TODO: what should go here?
-   'attribute_type_id "biolink:aggregator_knowledge_source"
-   'value infores
-   ;; TODO: what should go here?
-   'value_type_id "biolink:InformationResource"
-   ))
+(define edge-has-source?
+  (lambda (props)
+    (or (get-assoc "biolink:primary_knowledge_source" props)
+        (get-assoc "knowledge_source" props)
+        (and (get-assoc "json_attributes" props)
+             (let ((attr-hl (string->jsexpr (get-assoc "json_attributes" props))))
+               (let loop ((hl attr-hl))
+                 (cond
+                   ((null? hl) #f)
+                   ((equal?
+                     (hash-ref (car hl) 'attribute_type_id #f)
+                     "biolink:primary_knowledge_source")
+                    #t)
+                   (else (loop (cdr hl))))))))))
+
+(define (data-attribute props)
+  (let ((source (or (get-assoc "biolink:primary_knowledge_source" props)
+                    (get-assoc "knowledge_source" props))) ;rkx-kg2pre2.8.0   
+        (publication (get-assoc "publications" props)))
+    (cons
+     (hash
+      'attribute_type_id "biolink:primary_knowledge_source"
+      'value source
+      'value_type_id "biolink:InformationResource"
+      'attribute_source source)
+     (if publication
+         (list 
+          (hash
+           'attribute_type_id "biolink:publications"
+           'value (string-split publication "|")
+           'value_type_id "biolink:Uriorcurie"))
+         '()))))
 
 (define (get-assoc k m)
   (let ((r (assoc k m)))
@@ -822,10 +845,8 @@
             (hash-set! nodes (string->symbol curie)
                        (hash 'categories categories
                              'name name)))))
-
-      (define (add-edge! props n)
-        ;; TODO: using the id as the edge id might break with
-        ;;       other knowledge graphs
+      
+      (define (add-edge! props n)             
         (let ((id (string-append "medik_#" (number->string n))))
           ;; TODO: edge ids here can be medik_#0, medik_#1, ... since the
           ;; the edge ids assigned from the process of transformation from
@@ -836,17 +857,8 @@
                             unsecret-provenance-attribute
                             (or
                              (and (get-assoc "json_attributes" props)
-                                  (filter
-                                   (lambda (h) (and (hash-ref h 'attribute_type_id #f)
-                                                    (member (hash-ref h 'attribute_type_id)
-                                                            '("biolink:knowledge_source"
-                                                              "biolink:primary_knowledge_source"
-                                                              "biolink:aggregator_knowledge_source"
-                                                              "biolink:supporting_data_source"))))
-                                   (string->jsexpr (get-assoc "json_attributes" props)))
-                                  )
-                             (list (data-attribute (or (get-assoc "knowledge_source" props)
-                                                       (get-assoc "biolink:primary_knowledge_source" props))))))
+                                  (string->jsexpr (get-assoc "json_attributes" props)))
+                             (data-attribute props)))
                            'object (get-assoc "object" props)
                            'predicate (get-assoc "predicate" props)
                            'subject (get-assoc "subject" props)))
@@ -855,39 +867,42 @@
       (define (add-result! r)
         (set! results (cons r results)))
 
-      (define n 0) ;initial number for to name the edges from the result q1
-      (for-each
-       (lambda (e)
-         (match e
-           [`(,curie_x
-              ,name_x
-              ,pred_xy
-              ,curie_y
-              ,name_y
-              ,pred_yz
-              ,curie_z
-              ,name_z
-              ,props_xy
-              ,props_yz)
-            (add-node! curie_x)
-            (add-node! curie_y)
-            (add-node! curie_z)
-            (define edge_xy (add-edge! props_xy n))
-            (define edge_yz (add-edge! props_yz (+ n 1)))
-            (add-result!
-             (hash 'edge_bindings
-                   (hash (string->symbol (string-append qg_subject-node-str "_middleman")) (list (hash 'id edge_xy))
-                         (string->symbol (string-append "middleman_" qg_object-node-str)) (list (hash 'id edge_yz)))
-                   'node_bindings
-                   (hash qg_object-node-id (list (hash 'id curie_z))
-                         qg_subject-node-id    (list (hash 'id curie_x))
-                         'middleman    (list (hash 'id curie_y)))
-                   ;; TODO: we should downvote any answer that is already in 1-hop
-                   'score
-                   (* (num-pubs props_xy) (num-pubs props_yz))))
-            ])
-         (set! n (+ n 2)))
-       q1)
+      (let loop ((n 0) (e q1))
+        (cond
+          ((null? e) '())
+          (else 
+           (match (car e)
+             [`(,curie_x
+                ,name_x
+                ,pred_xy
+                ,curie_y
+                ,name_y
+                ,pred_yz
+                ,curie_z
+                ,name_z
+                ,props_xy
+                ,props_yz)
+              (if (and (edge-has-source? props_xy)
+                       (edge-has-source? props_yz))
+                  (begin 
+                    (add-node! curie_x)
+                    (add-node! curie_y)
+                    (add-node! curie_z)
+                    (let ((edge_xy (add-edge! props_xy n))
+                          (edge_yz (add-edge! props_yz (+ n 1))))
+                      (add-result!
+                       (hash 'edge_bindings
+                             (hash (string->symbol (string-append qg_subject-node-str "_middleman")) (list (hash 'id edge_xy))
+                                   (string->symbol (string-append "middleman_" qg_object-node-str)) (list (hash 'id edge_yz)))
+                             'node_bindings
+                             (hash qg_object-node-id (list (hash 'id curie_z))
+                                   qg_subject-node-id    (list (hash 'id curie_x))
+                                   'middleman    (list (hash 'id curie_y)))
+                             ;; TODO: we should downvote any answer that is already in 1-hop
+                             'score
+                             (* (num-pubs props_xy) (num-pubs props_yz)))))
+                    (loop (+ n 2) (cdr e)))
+                  (loop n (cdr e)))]))))
 
       (set! results (sort results (lambda (a b) (> (hash-ref a 'score) (hash-ref b 'score)))))
 
