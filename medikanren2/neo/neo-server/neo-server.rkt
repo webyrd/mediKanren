@@ -593,36 +593,46 @@
 
 (define edge-has-source?
   (lambda (props)
-    (or (get-assoc "biolink:primary_knowledge_source" props)
-        (get-assoc "knowledge_source" props)
-        (and (get-assoc "json_attributes" props)
-             (let ((attr-hl (string->jsexpr (get-assoc "json_attributes" props))))
-               (let loop ((hl attr-hl))
-                 (cond
-                   ((null? hl) #f)
-                   ((equal?
-                     (hash-ref (car hl) 'attribute_type_id #f)
-                     "biolink:primary_knowledge_source")
-                    #t)
-                   (else (loop (cdr hl))))))))))
+    (and 
+     (or (get-assoc "biolink:primary_knowledge_source" props)
+         (get-assoc "knowledge_source" props)
+         (and (get-assoc "json_attributes" props)
+              (let ((attr-hl (string->jsexpr (get-assoc "json_attributes" props))))
+                (let loop ((hl attr-hl))
+                  (cond
+                    ((null? hl) #f)
+                    ((equal?
+                      (hash-ref (car hl) 'attribute_type_id #f)
+                      "biolink:primary_knowledge_source")
+                     #t)
+                    (else (loop (cdr hl))))))))
+     (or (get-assoc "publications" props)
+         (get-assoc "supporting_publications" props)
+         (and (get-assoc "json_attributes" props)
+              (let ((attr-hl (string->jsexpr (get-assoc "json_attributes" props))))
+                (let loop ((hl attr-hl))
+                  (cond
+                    ((null? hl) #f)
+                    ((equal?
+                      (hash-ref (car hl) 'attribute_type_id #f)
+                      "biolink:publications")
+                     #t)
+                    (else (loop (cdr hl)))))))))))
 
 (define (data-attribute props)
   (let ((source (or (get-assoc "biolink:primary_knowledge_source" props)
                     (get-assoc "knowledge_source" props))) ;rkx-kg2pre2.8.0   
         (publication (get-assoc "publications" props)))
-    (cons
+    (list
      (hash
       'attribute_type_id "biolink:primary_knowledge_source"
       'value source
       'value_type_id "biolink:InformationResource"
       'attribute_source source)
-     (if publication
-         (list 
-          (hash
-           'attribute_type_id "biolink:publications"
-           'value (string-split publication "|")
-           'value_type_id "biolink:Uriorcurie"))
-         '()))))
+     (hash
+      'attribute_type_id "biolink:publications"
+      'value (string-split publication "|")
+      'value_type_id "biolink:Uriorcurie"))))
 
 (define (get-assoc k m)
   (let ((r (assoc k m)))
@@ -759,26 +769,15 @@
                     (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
                      '("biolink:ChemicalEntity")))
                    (set->list
-                    (set-union
-                     (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
-                      '("biolink:regulates"))
-                     (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
-                      '("biolink:entity_regulates_entity"))))
+                    (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+                     '("biolink:regulates")))
                    ;; Y
                    (set->list
-                    (set-union
-                     (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
-                      '("biolink:Gene"))
-                     (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
-                      '("biolink:GeneOrGeneProduct"))
-                     (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
-                      '("biolink:Protein"))))
+                    (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+                     '("biolink:Gene" "biolink:GeneOrGeneProduct" "biolink:Protein")))
                    (set->list
-                    (set-union
-                     (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
-                      '("biolink:causes"))
-                     (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
-                      '("biolink:gene_associated_with_condition"))))
+                    (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+                     '("biolink:causes" "biolink:gene_associated_with_condition")))
                    ;;
                    (set->list
                     (get-descendent-curies*-in-db
@@ -804,7 +803,7 @@
                     '("biolink:affects")
                     (set->list
                      (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
-                      '("biolink:Gene")))))
+                      '("biolink:Gene" "biolink:Protein")))))
                   (qualified-q (mvp2-filter q direction)))
              (take-at-most qualified-q MAX_RESULTS_FROM_COMPONENT))]
           [(eq? 'mvp2-gene which-mvp)
@@ -847,7 +846,7 @@
                              'name name)))))
       
       (define (add-edge! props n)             
-        (let ((id (string-append "medik_#" (number->string n))))
+        (let ((id (string-append "medik:#" (number->string n))))
           ;; TODO: edge ids here can be medik_#0, medik_#1, ... since the
           ;; the edge ids assigned from the process of transformation from
           ;; 2 to 4 tsvs are lost [not in the edge prop in the returned results]
@@ -892,12 +891,12 @@
                           (edge_yz (add-edge! props_yz (+ n 1))))
                       (add-result!
                        (hash 'edge_bindings
-                             (hash (string->symbol (string-append qg_subject-node-str "_middleman")) (list (hash 'id edge_xy))
-                                   (string->symbol (string-append "middleman_" qg_object-node-str)) (list (hash 'id edge_yz)))
+                             (hash (string->symbol (string-append qg_subject-node-str "_medik:middleman")) (list (hash 'id edge_xy))
+                                   (string->symbol (string-append "medik:middleman_" qg_object-node-str)) (list (hash 'id edge_yz)))
                              'node_bindings
                              (hash qg_object-node-id (list (hash 'id curie_z))
                                    qg_subject-node-id    (list (hash 'id curie_x))
-                                   'middleman    (list (hash 'id curie_y)))
+                                   'medik:middleman    (list (hash 'id curie_y)))
                              ;; TODO: we should downvote any answer that is already in 1-hop
                              'score
                              (* (num-pubs props_xy) (num-pubs props_yz)))))
