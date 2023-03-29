@@ -39,7 +39,7 @@
 
 ;; Per-servelet memory limit (due to garbage collection overhead,
 ;; actual RAM usage can be a small multiple of this amount)
-(define SERVELET_MEMORY_USAGE_LIMIT (* 50 1024 1024))
+(define SERVELET_MEMORY_USAGE_LIMIT (* 200 1024 1024))
 
 
 ;; ** `tcp-listen` settings **
