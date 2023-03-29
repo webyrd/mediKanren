@@ -42,7 +42,7 @@
 (define SERVELET_MEMORY_USAGE_LIMIT (* 200 1024 1024))
 
 
-;; ** `tcp-listen` settings ** 
+;; ** `tcp-listen` settings **
 ;;
 ;; From the Racket documentation for `tcp-listen` in
 ;; https://docs.racket-lang.org/reference/tcp.html:
