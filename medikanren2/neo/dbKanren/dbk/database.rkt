@@ -986,9 +986,13 @@
   (define (open-input-block desc.col) (open-input-file (block-desc->path desc.col)))
   (define (open-input-block/cache desc.col)
     (let ((bpath (block-desc->path desc.col)))
-      (or (hash-ref bpath=>in bpath #f)
+      ;; NOTE: this caching was causing a race condition when running
+      ;; two queries simultaneously.
+      ;; The caching is to prevent running out of file descriptors
+      ;; when building large knowledge graphs.
+      (or #;(hash-ref bpath=>in bpath #f)
           (let ((in (open-input-file bpath)))
-            (hash-set! bpath=>in bpath in)
+            #;(hash-set! bpath=>in bpath in)
             in))))
   (define (clear-open-input-blocks!)
     (for-each close-input-port (hash-values bpath=>in))
