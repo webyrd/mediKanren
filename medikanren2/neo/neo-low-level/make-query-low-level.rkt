@@ -374,15 +374,17 @@
       (thread-cell-set! tcell.text=>id text=>id)
       (thread-cell-set! tcell.id=>text id=>text)))
 
+  (define PRELOAD-DICT? #f)
+  
   (printf "Loading relation index dictionaries for db ~s\n" db-path-under-parent)
-  (define subject=>object=>eid=>1 (maybe-time (relation-index-dict r.edge  '(subject object eid) #t)))
-  (define object=>subject=>eid=>1 (maybe-time (relation-index-dict r.edge  '(object subject eid) #t)))
-  (define subject=>eid=>object=>1 (maybe-time (relation-index-dict r.edge  '(subject eid object) #t)))
-  (define object=>eid=>subject=>1 (maybe-time (relation-index-dict r.edge  '(object eid subject) #t)))
-  (define ekey=>evalue=>eid=>1    (maybe-time (relation-index-dict r.eprop '(key value eid)      #t)))
-  (define eid=>ekey=>evalue=>1    (maybe-time (relation-index-dict r.eprop '(eid key value)      #t)))
-  (define ckey=>cvalue=>curie=>1  (maybe-time (relation-index-dict r.cprop '(key value curie)    #t)))
-  (define curie=>ckey=>cvalue=>1  (maybe-time (relation-index-dict r.cprop '(curie key value)    #t)))
+  (define subject=>object=>eid=>1 (maybe-time (relation-index-dict r.edge  '(subject object eid) PRELOAD-DICT?)))
+  (define object=>subject=>eid=>1 (maybe-time (relation-index-dict r.edge  '(object subject eid) PRELOAD-DICT?)))
+  (define subject=>eid=>object=>1 (maybe-time (relation-index-dict r.edge  '(subject eid object) PRELOAD-DICT?)))
+  (define object=>eid=>subject=>1 (maybe-time (relation-index-dict r.edge  '(object eid subject) PRELOAD-DICT?)))
+  (define ekey=>evalue=>eid=>1    (maybe-time (relation-index-dict r.eprop '(key value eid)      PRELOAD-DICT?)))
+  (define eid=>ekey=>evalue=>1    (maybe-time (relation-index-dict r.eprop '(eid key value)      PRELOAD-DICT?)))
+  (define ckey=>cvalue=>curie=>1  (maybe-time (relation-index-dict r.cprop '(key value curie)    PRELOAD-DICT?)))
+  (define curie=>ckey=>cvalue=>1  (maybe-time (relation-index-dict r.cprop '(curie key value)    PRELOAD-DICT?)))
  
   (list
     query:Known->Known
