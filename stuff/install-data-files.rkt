@@ -233,10 +233,34 @@
 (define dr-do-symlink-impl (cmd:dry-runify do-symlink-impl 'do-symlink))
 
 (define (do-symlink sha1 ardb)
+  (printf "*** entering do-symlink\n")
+  (printf "*** sha1: ~s\n" sha1)
+  (printf "*** ardb: ~s\n" ardb)
+  ;;
+  (printf "*** (ardb-kgid ardb): ~s\n" (ardb-kgid ardb))
+  (printf "*** (ardb-versionOfKg ardb): ~s\n" (ardb-versionOfKg ardb))
+  (printf "*** (ardb-configkey ardb): ~s\n" (ardb-configkey ardb))
+  (printf "*** (ardb-reldir ardb): ~s\n" (ardb-reldir ardb))
+  (printf "*** (ardb-isUpstream ardb): ~s\n" (ardb-isUpstream ardb))
+  (printf "*** (ardb-versionOfMedikanren ardb): ~s\n" (ardb-versionOfMedikanren ardb))
+  (printf "*** (ardb-filename ardb): ~s\n" (ardb-filename ardb))
+  (printf "*** (ardb-format ardb): ~s\n" (ardb-format ardb))
+  ;;
+  (printf "*** (adir-local-archive): ~s\n" (adir-local-archive))
+  (printf "*** (adir-storage): ~s\n" (adir-storage))
+  ;;
+  (printf "*** (adir-data-dir): ~s\n" (adir-data-dir))
+  (printf "*** (adir-install): ~s\n" (adir-install))
+  (printf "*** (path-ver ardb): ~s\n" (path-ver ardb))
   (let ((data-dir (if (adir-data-dir) (adir-data-dir) "data")))
-    (let* (
-           (path-dest (append-path (build-path (adir-install) (path-ver ardb) data-dir) (reldir-from-ardb ardb)))
-           (path-src (build-path (adir-storage) sha1)))
+    (printf "*** data-dir: ~s\n" data-dir)
+    (let* ((path-dest (append-path (build-path (adir-install) (path-ver ardb) data-dir)
+                                   (reldir-from-ardb ardb)))
+           (_ (printf "*** path-dest: ~s\n" path-dest))
+           (path-src (build-path (adir-storage) sha1 (ardb-kgid ardb) (ardb-versionOfKg ardb)))
+           (_ (printf "*** path-src: ~s\n" path-src)))
+      (printf "calling dr-do-symlink-impl:\n")
+      (printf "~s\n\n" `(dr-do-symlink-impl ,path-src ,path-dest))
       (dr-do-symlink-impl path-src path-dest))))
 
 (define (ardb-already-installed? ardb)
