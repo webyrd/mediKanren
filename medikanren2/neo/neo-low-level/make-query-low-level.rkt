@@ -374,7 +374,7 @@
       (thread-cell-set! tcell.text=>id text=>id)
       (thread-cell-set! tcell.id=>text id=>text)))
 
-  (define PRELOAD-DICT? #f)
+  (define PRELOAD-DICT? #t)
   
   (printf "Loading relation index dictionaries for db ~s\n" db-path-under-parent)
   (define subject=>object=>eid=>1 (maybe-time (relation-index-dict r.edge  '(subject object eid) PRELOAD-DICT?)))
