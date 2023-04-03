@@ -9,6 +9,7 @@
 (require
  "../dbKanren/dbk/database.rkt"
  "../dbKanren/dbk/enumerator.rkt"
+ "../dbKanren/dbk/logging.rkt"
  "../dbKanren/dbk/stream.rkt"
  "../neo-utils/neo-helpers-without-db.rkt"
  racket/fixnum racket/match racket/pretty racket/runtime-path racket/set)
@@ -22,6 +23,9 @@
          db-path-under-parent ;; for example, "rtx-kg2/pre_2.8.0/rtx-kg2pre_2.8.0.db"
          )
 
+  (pretty-log `(In make-query-low-level for)
+              db-path-under-parent)
+  
   (define str.predicate "predicate")
   ;;(define str.predicate "edge_label")
 
@@ -359,12 +363,31 @@
                 (yield (list curie (id->string id.key) (id->string (dict-min cvalue=>1)))))))))))
     (maybe-time (enumerator->list query)))
 
+  (pretty-log `(defining db for)
+              path.here
+              db-path-under-parent)
   (define db (database (build-path path.here db-path-under-parent)))
+  (pretty-log `(defined db for)
+              path.here
+              db-path-under-parent)
 
+
+  (pretty-log `(defining r.cprop for)
+              path.here
+              db-path-under-parent)
   (define r.cprop (database-relation db 'cprop))
+  (pretty-log `(defining r.edge for)
+              path.here
+              db-path-under-parent)  
   (define r.edge  (database-relation db 'edge))
+  (pretty-log `(defining r.eprop for)
+              path.here
+              db-path-under-parent)
   (define r.eprop (database-relation db 'eprop))
 
+  (pretty-log `(defining tcells for)
+              path.here
+              db-path-under-parent)
   (define tcell.text=>id (make-thread-cell #f))
   (define tcell.id=>text (make-thread-cell #f))
 
@@ -376,7 +399,9 @@
 
   (define PRELOAD-DICT? #t)
   
-  (printf "Loading relation index dictionaries for db ~s\n" db-path-under-parent)
+  (pretty-log `(loading relation index dictionaries for db)
+              path.here
+              db-path-under-parent)
   (define subject=>object=>eid=>1 (maybe-time (relation-index-dict r.edge  '(subject object eid) PRELOAD-DICT?)))
   (define object=>subject=>eid=>1 (maybe-time (relation-index-dict r.edge  '(object subject eid) PRELOAD-DICT?)))
   (define subject=>eid=>object=>1 (maybe-time (relation-index-dict r.edge  '(subject eid object) PRELOAD-DICT?)))
@@ -385,6 +410,9 @@
   (define eid=>ekey=>evalue=>1    (maybe-time (relation-index-dict r.eprop '(eid key value)      PRELOAD-DICT?)))
   (define ckey=>cvalue=>curie=>1  (maybe-time (relation-index-dict r.cprop '(key value curie)    PRELOAD-DICT?)))
   (define curie=>ckey=>cvalue=>1  (maybe-time (relation-index-dict r.cprop '(curie key value)    PRELOAD-DICT?)))
+  (pretty-log `(loaded relation index dictionaries for db)
+              path.here
+              db-path-under-parent)
  
   (list
     query:Known->Known

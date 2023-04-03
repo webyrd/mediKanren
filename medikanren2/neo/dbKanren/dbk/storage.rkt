@@ -216,6 +216,7 @@
   (define ids.new (mutable-set))
   (pretty-log `(loaded storage state ,checkpoint-count for) path.storage)
   (collect-garbage!)
+  (pretty-log `(collected garbage))
 
   (method-lambda
     ((path)                                path.storage)
