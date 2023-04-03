@@ -397,7 +397,7 @@
       (thread-cell-set! tcell.text=>id text=>id)
       (thread-cell-set! tcell.id=>text id=>text)))
 
-  (define PRELOAD-DICT? #t)
+  (define PRELOAD-DICT? #f)
   
   (pretty-log `(loading relation index dictionaries for db)
               path.here
