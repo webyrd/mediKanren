@@ -770,14 +770,15 @@
                      '("biolink:ChemicalEntity")))
                    (set->list
                     (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
-                     '("biolink:regulates")))
+                     '("biolink:affects")))
                    ;; Y
                    (set->list
                     (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
                      '("biolink:Gene" "biolink:GeneOrGeneProduct" "biolink:Protein")))
                    (set->list
                     (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
-                     '("biolink:causes" "biolink:gene_associated_with_condition")))
+                     '("biolink:gene_associated_with_condition"
+                       "biolink:contributes_to")))
                    ;;
                    (set->list
                     (get-descendent-curies*-in-db
