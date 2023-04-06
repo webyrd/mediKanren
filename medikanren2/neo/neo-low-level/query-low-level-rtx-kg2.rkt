@@ -19,7 +19,7 @@
  "make-query-low-level.rkt"
  racket/match)
 
-(define db-path-under-parent "rtx-kg2/pre_2.8.0/rtx-kg2pre_2.8.0.db")
+(define db-path-under-parent "rtx-kg2a/pre_2.8.0a/rtx-kg2pre_2.8.0a.db")
 
 (match-define
   (list
