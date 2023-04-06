@@ -56,7 +56,7 @@
              (edge-id->properties edge-id->properties-text-mining)
              )
 
-  (rename-in "query-low-level-rtx-kg2.rkt"
+  #;(rename-in "query-low-level-rtx-kg2.rkt"
              (query:Known->Known query:Known->Known-rtx-kg2)
              (query:Known->X query:Known->X-rtx-kg2)
              (query:X->Known query:X->Known-rtx-kg2)
@@ -139,7 +139,7 @@ provided list of CURIEs.
     (filter curie-in-db?-text-mining curie*.S)
     (filter curie-in-db?-text-mining predicate*.S->O)
     (filter curie-in-db?-text-mining curie*.O))
-   (query:Known->Known-rtx-kg2
+   #;(query:Known->Known-rtx-kg2
     (filter curie-in-db?-rtx-kg2 curie*.S)
     (filter curie-in-db?-rtx-kg2 predicate*.S->O)
     (filter curie-in-db?-rtx-kg2 curie*.O))))
@@ -156,7 +156,7 @@ provided list of CURIEs.
     (filter curie-in-db?-text-mining predicate*.K->X)
     (and category*.X
          (filter curie-in-db?-text-mining category*.X)))
-   (query:Known->X-rtx-kg2
+   #;(query:Known->X-rtx-kg2
     (filter curie-in-db?-rtx-kg2 curie*.K)
     (filter curie-in-db?-rtx-kg2 predicate*.K->X)
     (and category*.X
@@ -183,7 +183,7 @@ provided list of CURIEs.
          (filter curie-in-db?-text-mining category*.X))
     (filter curie-in-db?-text-mining predicate*.X->K)
     (filter curie-in-db?-text-mining curie*.K))
-   (query:X->Known-rtx-kg2
+   #;(query:X->Known-rtx-kg2
     (and category*.X
          (filter curie-in-db?-rtx-kg2 category*.X))
     (filter curie-in-db?-rtx-kg2 predicate*.X->K)
@@ -392,13 +392,13 @@ provided list of CURIEs.
   (set-union
    (query:Concept-robokop (filter curie-in-db?-robokop curie*))
    (query:Concept-text-mining (filter curie-in-db?-text-mining curie*))
-   (query:Concept-rtx-kg2 (filter curie-in-db?-rtx-kg2 curie*))))
+   #;(query:Concept-rtx-kg2 (filter curie-in-db?-rtx-kg2 curie*))))
 
 (define (concept-properties)
   (set-union
    (concept-properties-robokop)
    (concept-properties-text-mining)
-   (concept-properties-rtx-kg2)))
+   #;(concept-properties-rtx-kg2)))
 
 ;;(define (concept-property-values key) 'TODO)
 
@@ -406,7 +406,7 @@ provided list of CURIEs.
   (or
    (curie-in-db?-robokop curie)
    (curie-in-db?-text-mining curie)
-   (curie-in-db?-rtx-kg2 curie)))
+   #;(curie-in-db?-rtx-kg2 curie)))
 
 (define (curie->properties curie)
   (set-union
@@ -416,7 +416,7 @@ provided list of CURIEs.
    (if (curie-in-db?-text-mining curie)
        (curie->properties-text-mining curie)
        '())
-   (if (curie-in-db?-rtx-kg2 curie)
+   #;(if (curie-in-db?-rtx-kg2 curie)
        (curie->properties-rtx-kg2 curie)
        '())))
 
@@ -424,7 +424,7 @@ provided list of CURIEs.
   (set-union
    (edge-properties-robokop)
    (edge-properties-text-mining)
-   (edge-properties-rtx-kg2)))
+   #;(edge-properties-rtx-kg2)))
 
 ;;(define (edge-property-values key) 'TODO)
 ;;(define (edge-id->properties eid) 'TODO)
