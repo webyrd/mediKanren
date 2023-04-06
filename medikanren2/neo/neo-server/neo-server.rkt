@@ -86,6 +86,11 @@
 (define metaKG.json.txt
   (file->string (path/root "../neo-open-api/unsecret_metaKG.json")))
 
+;; Environment variables (contained in boxes)
+(define ENVIRONMENT_TAG_BOX (box #f)) ;; Should be one of "CI", "TEST", or "PROD", if not #f
+(define MK_STAGE_BOX (box #f)) ;; deprecated (5 April 2023)
+;; (should be removed, once ENVIRONMENT_TAG_BOX is shown to work)
+
 
 (define (serve port-no)
   (define main-cust (make-custodian))
@@ -935,13 +940,24 @@
            API_CALL_CONNECTION_TIMEOUT_SECONDS
            (thread
             (lambda ()
-              ;; TODO use 'url.genetics.prod', 'url.genetics.test', or 'url.genetics.ci'
-              ;; based on the environment Unsecret server is running in.
-              ;;
-              ;; Hard-code to use Prod for now.
-              (set! res
-                    (api-query (string-append url.genetics.prod path.query)
-                               body-json)))))
+              ;; use 'url.genetics.prod', 'url.genetics.test', or 'url.genetics.ci'
+              ;; based on the environment the Unsecret server is running in.
+              (let ((kp-url (case (unbox ENVIRONMENT_TAG_BOX)
+                              (("CI") url.genetics.ci)
+                              (("TEST") url.genetics.test)
+                              (("PROD") url.genetics.prod)
+                              (else
+                               (lognew-info
+                                (hash 'event
+                                      (format
+                                       "unexpected ENVIRONMENT_TAG_BOX value: '~s'"
+                                       (unbox ENVIRONMENT_TAG_BOX))))
+                               url.genetics.prod))))
+                (lognew-info
+                 (hash 'event (format "kp-url for Genetics Provider call: '~s'" kp-url)))
+                (set! res
+                      (api-query (string-append kp-url path.query)
+                                 body-json))))))
 
           (if res
               (printf "API call returned\n")
@@ -1264,6 +1280,14 @@
              (curie->synonyms-in-db "DOID:9351")))))))))))
 
 (module+ main
+  (lognew-info
+   (hash 'event "About to check server environment variables"))
+  (set-box! ENVIRONMENT_TAG_BOX (getenv "ENVIRONMENT_TAG"))
+  (lognew-info
+   (hash 'event (format "ENVIRONMENT_TAG_BOX value = '~s'" (unbox ENVIRONMENT_TAG_BOX))))
+  (set-box! MK_STAGE_BOX (getenv "MK_STAGE"))
+  (lognew-info
+   (hash 'event (format "MK_STAGE_BOX value = '~s'" (unbox MK_STAGE_BOX))))  
   (lognew-info
    (hash 'event "starting_server"))
   (define stop (serve DEFAULT_PORT))
