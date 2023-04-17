@@ -704,7 +704,7 @@
             'nodes (merge-hash nodes1 nodes2))
            ;;
            'results
-           (merge-list results1 results2)
+           (remove-duplicates (merge-list results1 results2))
            ))))
 
 (define (handle-mvp-creative-query body-json message query_graph edges nodes which-mvp)
@@ -788,7 +788,8 @@
                    (set->list
                     (get-descendent-curies*-in-db
                      (curies->synonyms-in-db disease-ids))))))
-             (take-at-most q MAX_RESULTS_FROM_COMPONENT))]
+             (let ((q (remove-duplicates q)))
+               (take-at-most q MAX_RESULTS_FROM_COMPONENT)))]
           [(eq? 'mvp2-chem which-mvp)
            (define chemical-ids
              (hash-ref (hash-ref qg_nodes qg_subject-node-id) 'ids))
@@ -811,7 +812,8 @@
                      (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
                       '("biolink:Gene" "biolink:Protein")))))
                   (qualified-q (mvp2-filter q direction)))
-             (take-at-most qualified-q MAX_RESULTS_FROM_COMPONENT))]
+             (let ((q (remove-duplicates q)))
+               (take-at-most qualified-q MAX_RESULTS_FROM_COMPONENT)))]
           [(eq? 'mvp2-gene which-mvp)
            (define gene-ids
              (hash-ref (hash-ref qg_nodes qg_object-node-id) 'ids))
@@ -834,8 +836,8 @@
                      (get-descendent-curies*-in-db
                       (curies->synonyms-in-db gene-ids)))))
                   (qualified-q (mvp2-filter q direction)))
-             (take-at-most qualified-q MAX_RESULTS_FROM_COMPONENT))]
-          ))
+             (let ((q (remove-duplicates q)))
+               (take-at-most qualified-q MAX_RESULTS_FROM_COMPONENT)))]))
 
       (define nodes (make-hash))
 
@@ -992,7 +994,8 @@
                             (define results
                               (let ((results
                                      (hash-ref res-message 'results)))
-                                (take-at-most results MAX_RESULTS_FROM_COMPONENT)))
+                                (let ((results (remove-duplicates results)))
+                                  (take-at-most results MAX_RESULTS_FROM_COMPONENT))))
 
                             (define scored-results
                               (score-results results))
