@@ -8,6 +8,7 @@
  maybe-time
  iota
  pretty-print-json-string
+ remove-duplicates-linear
  take-at-most
  ;;
  bytes<=?
@@ -86,13 +87,19 @@
             (loop (add1 i) indent in-quote)]))]
       [else (void)])))
 
+(define (remove-duplicates-linear ls)
+  ;; TODO is Racket's `remove-duplicates` more efficient?  Is
+  ;; `remove-duplicates` actually linear in the length of `ls`?
+  (set->list (list->set ls)))
+
 (define (take-at-most ls n)
-  (cond
-    [(<= n 0) '()]
-    [(null? ls) '()]
-    [else
-     (cons (car ls)
-           (take-at-most (cdr ls) (sub1 n)))]))
+  (let ((ls (remove-duplicates-linear ls)))
+    (cond
+      [(<= n 0) '()]
+      [(null? ls) '()]
+      [else
+       (cons (car ls)
+             (take-at-most (cdr ls) (sub1 n)))])))
 
 ;; copied from 'database.rkt'
 (define (bytes<=? a b) (not (bytes<? b a)))
