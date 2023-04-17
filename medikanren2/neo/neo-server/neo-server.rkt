@@ -34,7 +34,7 @@
 ;; Number of seconds before a connection times out, collecting all
 ;; resources from the connection (was 10 seconds in the original
 ;; tutorial).
-(define CONNECTION_TIMEOUT_SECONDS (* 10 60))
+(define CONNECTION_TIMEOUT_SECONDS (* 55 60))
 (define API_CALL_CONNECTION_TIMEOUT_SECONDS (* 1 60))
 
 ;; Per-servelet memory limit (due to garbage collection overhead,
