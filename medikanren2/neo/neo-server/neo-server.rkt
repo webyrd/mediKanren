@@ -992,7 +992,15 @@
                             (define results
                               (let ((results
                                      (hash-ref res-message 'results)))
-                                (take-at-most results MAX_RESULTS_FROM_COMPONENT)))
+                                ;; first, remove any duplicate
+                                ;; results, in a manner that should
+                                ;; take linear resources in the length
+                                ;; of the list
+                                ;;
+                                ;; TODO is `remove-duplicates` more efficient?
+                                ;; Or can it be quadratic in the number of elements?
+                                (let ((results (set->list (list->set results))))
+                                  (take-at-most results MAX_RESULTS_FROM_COMPONENT))))
 
                             (define scored-results
                               (score-results results))
