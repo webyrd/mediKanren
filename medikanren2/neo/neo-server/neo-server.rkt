@@ -37,10 +37,6 @@
 (define CONNECTION_TIMEOUT_SECONDS (* 55 60))
 (define API_CALL_CONNECTION_TIMEOUT_SECONDS (* 1 60))
 
-;; Per-servelet memory limit (due to garbage collection overhead,
-;; actual RAM usage can be a small multiple of this amount)
-(define SERVELET_MEMORY_USAGE_LIMIT (* 1024 1024 1024))
-
 
 ;; ** `tcp-listen` settings **
 ;;
@@ -118,7 +114,6 @@
 
 (define (accept-and-handle listener)
   (define cust (make-custodian))
-  (custodian-limit-memory cust SERVELET_MEMORY_USAGE_LIMIT)
   (parameterize ([current-custodian cust])
     (define-values (in out) (tcp-accept listener))
     (printf "\ntcp-accept accepted connection\n")
@@ -129,22 +124,22 @@
        (handle in out
                (lambda ()
                  (printf "** connection failure continuation invoked!\n")
-                 (custodian-shutdown-all cust))
+                 (custodian-shutdown-all (current-custodian)))
                (lambda ()
                  (printf "** request failure continuation invoked!\n")
-                 (custodian-shutdown-all cust)))
+                 (custodian-shutdown-all (current-custodian))))
        (close-input-port in)
        (close-output-port out)
        (printf "handle thread ending\n")
-       (custodian-shutdown-all cust)
-       ))
+       (custodian-shutdown-all (current-custodian))))
     ;; watcher thread:
-    (thread (lambda ()
-              (sleep CONNECTION_TIMEOUT_SECONDS)
-              (printf
-               "** watcher thread timed out connection after ~s seconds!\n"
-               CONNECTION_TIMEOUT_SECONDS)
-              (custodian-shutdown-all cust)))))
+    (thread
+     (lambda ()
+       (sleep CONNECTION_TIMEOUT_SECONDS)
+       (printf
+        "** watcher thread timed out connection after ~s seconds!\n"
+        CONNECTION_TIMEOUT_SECONDS)
+       (custodian-shutdown-all (current-custodian))))))
 
 (define (get-request-headers in)
   (define request-headers (make-hash))
@@ -302,8 +297,7 @@
                ;; Send reply:
                (send-reply dispatch-result out)
 
-               (custodian-shutdown-all (current-custodian))
-               )]
+               (custodian-shutdown-all (current-custodian)))]
             ["POST"
              (printf "handling POST request\n")
 
@@ -354,8 +348,7 @@
                ;; Send reply:
                (send-reply dispatch-result out)
 
-               (custodian-shutdown-all (current-custodian))
-               )]))))))
+               (custodian-shutdown-all (current-custodian)))]))))))
 
 ;; dispatch for HTTP GET and POST requests
 (define (dispatch-request request-type
