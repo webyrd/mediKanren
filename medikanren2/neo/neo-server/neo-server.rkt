@@ -34,12 +34,8 @@
 ;; Number of seconds before a connection times out, collecting all
 ;; resources from the connection (was 10 seconds in the original
 ;; tutorial).
-(define CONNECTION_TIMEOUT_SECONDS (* 10 60))
+(define CONNECTION_TIMEOUT_SECONDS (* 55 60))
 (define API_CALL_CONNECTION_TIMEOUT_SECONDS (* 1 60))
-
-;; Per-servelet memory limit (due to garbage collection overhead,
-;; actual RAM usage can be a small multiple of this amount)
-(define SERVELET_MEMORY_USAGE_LIMIT (* 200 1024 1024))
 
 
 ;; ** `tcp-listen` settings **
@@ -118,7 +114,6 @@
 
 (define (accept-and-handle listener)
   (define cust (make-custodian))
-  (custodian-limit-memory cust SERVELET_MEMORY_USAGE_LIMIT)
   (parameterize ([current-custodian cust])
     (define-values (in out) (tcp-accept listener))
     (printf "\ntcp-accept accepted connection\n")
@@ -129,22 +124,22 @@
        (handle in out
                (lambda ()
                  (printf "** connection failure continuation invoked!\n")
-                 (custodian-shutdown-all cust))
+                 (custodian-shutdown-all (current-custodian)))
                (lambda ()
                  (printf "** request failure continuation invoked!\n")
-                 (custodian-shutdown-all cust)))
+                 (custodian-shutdown-all (current-custodian))))
        (close-input-port in)
        (close-output-port out)
        (printf "handle thread ending\n")
-       (custodian-shutdown-all cust)
-       ))
+       (custodian-shutdown-all (current-custodian))))
     ;; watcher thread:
-    (thread (lambda ()
-              (sleep CONNECTION_TIMEOUT_SECONDS)
-              (printf
-               "** watcher thread timed out connection after ~s seconds!\n"
-               CONNECTION_TIMEOUT_SECONDS)
-              (custodian-shutdown-all cust)))))
+    (thread
+     (lambda ()
+       (sleep CONNECTION_TIMEOUT_SECONDS)
+       (printf
+        "** watcher thread timed out connection after ~s seconds!\n"
+        CONNECTION_TIMEOUT_SECONDS)
+       (custodian-shutdown-all (current-custodian))))))
 
 (define (get-request-headers in)
   (define request-headers (make-hash))
@@ -302,8 +297,7 @@
                ;; Send reply:
                (send-reply dispatch-result out)
 
-               (custodian-shutdown-all (current-custodian))
-               )]
+               (custodian-shutdown-all (current-custodian)))]
             ["POST"
              (printf "handling POST request\n")
 
@@ -354,8 +348,7 @@
                ;; Send reply:
                (send-reply dispatch-result out)
 
-               (custodian-shutdown-all (current-custodian))
-               )]))))))
+               (custodian-shutdown-all (current-custodian)))]))))))
 
 ;; dispatch for HTTP GET and POST requests
 (define (dispatch-request request-type
@@ -704,7 +697,7 @@
             'nodes (merge-hash nodes1 nodes2))
            ;;
            'results
-           (merge-list results1 results2)
+           (remove-duplicates (merge-list results1 results2))
            ))))
 
 (define (handle-mvp-creative-query body-json message query_graph edges nodes which-mvp)
@@ -788,7 +781,8 @@
                    (set->list
                     (get-descendent-curies*-in-db
                      (curies->synonyms-in-db disease-ids))))))
-             (take-at-most q MAX_RESULTS_FROM_COMPONENT))]
+             (let ((q (remove-duplicates q)))
+               (take-at-most q MAX_RESULTS_FROM_COMPONENT)))]
           [(eq? 'mvp2-chem which-mvp)
            (define chemical-ids
              (hash-ref (hash-ref qg_nodes qg_subject-node-id) 'ids))
@@ -811,7 +805,8 @@
                      (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
                       '("biolink:Gene" "biolink:Protein")))))
                   (qualified-q (mvp2-filter q direction)))
-             (take-at-most qualified-q MAX_RESULTS_FROM_COMPONENT))]
+             (let ((q (remove-duplicates q)))
+               (take-at-most qualified-q MAX_RESULTS_FROM_COMPONENT)))]
           [(eq? 'mvp2-gene which-mvp)
            (define gene-ids
              (hash-ref (hash-ref qg_nodes qg_object-node-id) 'ids))
@@ -834,8 +829,8 @@
                      (get-descendent-curies*-in-db
                       (curies->synonyms-in-db gene-ids)))))
                   (qualified-q (mvp2-filter q direction)))
-             (take-at-most qualified-q MAX_RESULTS_FROM_COMPONENT))]
-          ))
+             (let ((q (remove-duplicates q)))
+               (take-at-most qualified-q MAX_RESULTS_FROM_COMPONENT)))]))
 
       (define nodes (make-hash))
 
@@ -992,7 +987,8 @@
                             (define results
                               (let ((results
                                      (hash-ref res-message 'results)))
-                                (take-at-most results MAX_RESULTS_FROM_COMPONENT)))
+                                (let ((results (remove-duplicates results)))
+                                  (take-at-most results MAX_RESULTS_FROM_COMPONENT))))
 
                             (define scored-results
                               (score-results results))

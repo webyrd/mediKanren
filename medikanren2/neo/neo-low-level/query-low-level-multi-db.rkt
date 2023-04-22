@@ -99,38 +99,36 @@ Given a list of CURIEs, returns a list of CURIEs containing synonyms for the
 CURIEs in the original list.  The list of synonyms includes the original
 provided list of CURIEs.
 |#
-
 (define (curies->synonyms curies)
-  (set->list
-   (set-union
-    ; the original provided list of CURIEs
-    (list->set curies)
-    ; the synonyms from [node-normalization, rtx-kg2, text-mining, robokop] KGs
+  (append
+   ;; the original provided list of CURIEs
+   curies
+   ;; the synonyms from [node-normalization, rtx-kg2, text-mining, robokop] KGs
+   (set->list
     (set-fixed-point
      (list->set curies)
      (lambda (new-curies)
-       (query:one-hop-same-as new-curies
-                              query:X->Known-synonymizing
-                              query:Known->X-synonymizing))))))
+       (list->set
+        (query:one-hop-same-as (set->list new-curies)
+                               query:X->Known-synonymizing
+                               query:Known->X-synonymizing)))))))
 
 (define query:one-hop-same-as
-  (lambda (set-curies query:X->Known query:Known->X)
-    (set-union
-     (list->set
-      (map car
-           (query:X->Known
-            #f
-            (list "biolink:same_as")
-            (set->list set-curies))))
-     (list->set
-      (map (lambda (e) (list-ref e 3))
-           (query:Known->X
-            (set->list set-curies)
-            (list "biolink:same_as")
-            #f))))))
+  (lambda (curies query:X->Known query:Known->X)
+    (append
+     (map car
+          (query:X->Known
+           #f
+           (list "biolink:same_as")
+           curies))
+     (map (lambda (e) (list-ref e 3))
+          (query:Known->X
+           curies
+           (list "biolink:same_as")
+           #f)))))
 
 (define (query:Known->Known curie*.S predicate*.S->O curie*.O)
-  (set-union
+  (append
    (query:Known->Known-robokop
     (filter curie-in-db?-robokop curie*.S)
     (filter curie-in-db?-robokop predicate*.S->O)
@@ -145,7 +143,7 @@ provided list of CURIEs.
     (filter curie-in-db?-rtx-kg2 curie*.O))))
 
 (define (query:Known->X curie*.K predicate*.K->X category*.X)
-  (set-union
+  (append
    (query:Known->X-robokop
     (filter curie-in-db?-robokop curie*.K)
     (filter curie-in-db?-robokop predicate*.K->X)
@@ -163,7 +161,7 @@ provided list of CURIEs.
          (filter curie-in-db?-rtx-kg2 category*.X)))))
 
 (define (query:Known->X-synonymizing curie*.K predicate*.K->X category*.X)
-  (set-union
+  (append
    (query:Known->X curie*.K predicate*.K->X category*.X)
    (query:Known->X-node-normalization
     (filter curie-in-db?-node-normalization curie*.K)
@@ -172,7 +170,7 @@ provided list of CURIEs.
          (filter curie-in-db?-node-normalization category*.X)))))
 
 (define (query:X->Known category*.X predicate*.X->K curie*.K)
-  (set-union
+  (append
    (query:X->Known-robokop
     (and category*.X
          (filter curie-in-db?-robokop category*.X))
@@ -190,7 +188,7 @@ provided list of CURIEs.
     (filter curie-in-db?-rtx-kg2 curie*.K))))
 
 (define (query:X->Known-synonymizing category*.X predicate*.X->K curie*.K)
-  (set-union
+  (append
    (query:X->Known category*.X predicate*.X->K curie*.K)
    (query:X->Known-node-normalization
     (and category*.X
@@ -389,13 +387,13 @@ provided list of CURIEs.
         (else (loop (build-curie-representative-hash h (car c*)) (cdr c*)))))))
 
 (define (query:Concept curie*)
-  (set-union
+  (append
    (query:Concept-robokop (filter curie-in-db?-robokop curie*))
    (query:Concept-text-mining (filter curie-in-db?-text-mining curie*))
    (query:Concept-rtx-kg2 (filter curie-in-db?-rtx-kg2 curie*))))
 
 (define (concept-properties)
-  (set-union
+  (append
    (concept-properties-robokop)
    (concept-properties-text-mining)
    (concept-properties-rtx-kg2)))
@@ -409,7 +407,7 @@ provided list of CURIEs.
    (curie-in-db?-rtx-kg2 curie)))
 
 (define (curie->properties curie)
-  (set-union
+  (append
    (if (curie-in-db?-robokop curie)
        (curie->properties-robokop curie)
        '())
@@ -421,7 +419,7 @@ provided list of CURIEs.
        '())))
 
 (define (edge-properties)
-  (set-union
+  (append
    (edge-properties-robokop)
    (edge-properties-text-mining)
    (edge-properties-rtx-kg2)))
