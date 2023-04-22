@@ -5,24 +5,28 @@
 #|
 Output edge and edge-props file formats:
 
-<name-file>.edge.scm
+<name-file>.edge.tsv
 :ID :START :END
 
-ex-row: 1 ENSEMBL:ENSG00000004059 ENSEMBL:ENSP00000000233
-
-<name-file>.edge-props.scm
+<name-file>.edge-props.tsv
 :ID propname value
+
+<name-file>.qualifiededge.tsv
+:ID predicate object-aspect object-direction subject object
+
 |#
 
 (define transform-edge-tsv
   (lambda (edges-file-import-path
            edge-file-export-path
-           edge-props-file-export-path)
+           edge-props-file-export-path
+           qualified-edge-file-export-path)
 
     (printf "transform-edge-tsv called\n")
     (printf "input edges tsv: ~s\n" edges-file-import-path)
     (printf "output edge tsv: ~s\n" edge-file-export-path)
     (printf "output edge props tsv: ~s\n" edge-props-file-export-path)
+    (printf "output edge tsv: ~s\n" qualified-edge-file-export-path)
     
     (define edges-export-out
       (open-output-file edge-file-export-path))
@@ -30,6 +34,9 @@ ex-row: 1 ENSEMBL:ENSG00000004059 ENSEMBL:ENSP00000000233
     (define edge-props-out
       (open-output-file edge-props-file-export-path))
     (fprintf edge-props-out ":ID\tpropname\tvalue\n")
+    (define qualified-edge-out
+      (open-output-file qualified-edge-file-export-path))
+    (fprintf qualified-edge-out ":ID\tpredicate\tobject-aspect\tobject-direction\tsubject\tobject\n")
 
     (define edges-in
       (open-input-file edges-file-import-path))
@@ -46,12 +53,18 @@ ex-row: 1 ENSEMBL:ENSG00000004059 ENSEMBL:ENSP00000000233
            (close-input-port edges-in)
            (close-output-port edges-export-out)
            (close-output-port edge-props-out)
+           (close-output-port qualified-edge-out)
            (printf "finished processing edges\n\n"))
           (else
            (let ((line (efficient-no-trim-tab-string-split line-str)))
-             (let ((start (car line)) ;; subject
-                   (end (cadr line))) ;; object
-               (fprintf edges-export-out "~a\t~a\t~a\n" id start end))
+             (let ((predicate (list-ref line 1))
+                   (object-aspect (list-ref line 8))
+                   (object-direction (list-ref line 9))
+                   (subject (list-ref line 0))
+                   (object (list-ref line 2)))
+               (fprintf edges-export-out "~a\t~a\t~a\n" id subject object)
+               (fprintf qualified-edge-out "~a\t~a\t~a\t~a\t~a\t~a\n"
+                        id predicate object-aspect object-direction subject object))
              (let loop-inner ((props line) ;; all the properties, including the subject and onbject
                               (headers header))
                (when (not (null? props))
