@@ -714,7 +714,7 @@
          (define gs               (map car   *g&count&id=>id))
          (define counts           (map cadr  *g&count&id=>id))
          (define id=>ids          (map caddr *g&count&id=>id))
-         (define vec.pos          (make-fxvector (foldl + 0 counts)))
+         (define vec.pos          (make-fxvector (+ (foldl + 0 counts) 1)))
          (define cid.text.value   (fresh-column-id))
          (define cid.text         (fresh-column-id))
          (define bname.text.value (cons 'column cid.text.value))
