@@ -9,10 +9,11 @@
 (define name.equiv-class-member 'equivalence-class-member)
 
 ;; NOTE: for best performance, the left node of each edge should be the alphabetically smaller text
-(define (build-equivalence-database path s.edge*)
+(define (build-equivalence-database path en.edge*)
   (define db.equiv (database path))
-  (unless (database-relation-name? db.equiv name.equiv-edge)
-    (let ((r.equiv-edge (build-s-relation db.equiv '(text text) s.edge*)))
+  (unless (or (database-relation-name? db.equiv name.equiv-edge)
+              (database-relation-name? db.equiv name.equiv-class-member))
+    (let ((r.equiv-edge (build-enumerator-relation db.equiv '(text text) en.edge*)))
       (relation-name-set! r.equiv-edge name.equiv-edge)
       (relation-attributes-set! r.equiv-edge '(A B))
       (database-commit! db.equiv)))
@@ -46,20 +47,20 @@
                ((dict-key-enumerator B=>1) (lambda (id.B) (unify! id.B))))))
           (range-for-each walk count.id*)  ; walk performs path compression
           (let ((r.equiv-class-member
-                  (build-s-relation
+                  (build-enumerator-relation
                     db.equiv '(text text)
                     (let ((id->text (lambda (id)
                                       (dict-ref id=>text id (lambda (v) v)
                                                 (lambda () (error "invalid text id" id))))))
-                      (let loop ((i 0))
-                        (lambda ()
-                          (if (< i count.id*)
-                              (cons (list (id->text (unsafe-fxvector-ref id=>id i))
-                                          (id->text i))
-                                    (loop (unsafe-fx+ i 1)))
-                              '())))))))
+                      (lambda (yield)
+                        (let loop ((i 0))
+                          (when (< i count.id*)
+                            (yield (list (id->text (unsafe-fxvector-ref id=>id i))
+                                         (id->text i)))
+                            (loop (unsafe-fx+ i 1)))))))))
             (relation-name-set! r.equiv-class-member name.equiv-class-member)
             (relation-attributes-set! r.equiv-class-member '(representative member))
+            (relation-delete! r.equiv-edge)
             (database-commit! db.equiv)))))
     (let ((r.equiv-class-member (database-relation db.equiv name.equiv-class-member)))
       (relation-full-compact! r.equiv-class-member)
