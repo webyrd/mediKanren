@@ -1,6 +1,7 @@
 #lang racket/base
 (provide
   ;; TODO: move these
+  build-enumerator-relation
   build-s-relation
   build-tsv-relation
 
@@ -74,6 +75,10 @@
 (define-syntax-rule (performance-log description body ...) (let ()
                                                              (pretty-log description)
                                                              (time/pretty-log body ...)))
+
+(define (build-enumerator-relation db type.r en)
+  (let-values (((insert! finish) (database-relation-builder db type.r)))
+    (time (begin (en insert!) (time (finish))))))
 
 (define (build-s-relation db type.r s)
   (let-values (((insert! finish) (database-relation-builder db type.r)))
