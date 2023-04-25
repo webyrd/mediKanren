@@ -1,6 +1,8 @@
 #lang racket/base
 (provide
   ;; TODO: move these
+  build-enumerator-relation
+  build-s-relation
   build-tsv-relation
 
   dict-count
@@ -61,8 +63,10 @@
   btree-count
   btree-ref-or-set!)
 (require "heap.rkt" "logging.rkt" "misc.rkt" "storage.rkt" "stream.rkt"
+         ;"safe-unsafe.rkt"
+         racket/unsafe/ops
          racket/file racket/fixnum racket/hash racket/list racket/match
-         racket/set racket/struct racket/unsafe/ops racket/vector
+         racket/set racket/struct racket/vector
          "../../neo-utils/neo-helpers-without-db.rkt")
 
 ;(define-syntax-rule (verbose-log     description)          (void))
@@ -71,6 +75,17 @@
 (define-syntax-rule (performance-log description body ...) (let ()
                                                              (pretty-log description)
                                                              (time/pretty-log body ...)))
+
+(define (build-enumerator-relation db type.r en)
+  (let-values (((insert! finish) (database-relation-builder db type.r)))
+    (time (begin (en insert!) (time (finish))))))
+
+(define (build-s-relation db type.r s)
+  (let-values (((insert! finish) (database-relation-builder db type.r)))
+    (time (let loop ((s s))
+            (cond ((null?      s) (time (finish)))
+                  ((procedure? s) (loop (s)))
+                  (else           (insert! (car s)) (loop (cdr s))))))))
 
 (define (build-tsv-relation db type.r file-name)
   (let-values (((insert! finish) (database-relation-builder db type.r)))
@@ -714,7 +729,7 @@
          (define gs               (map car   *g&count&id=>id))
          (define counts           (map cadr  *g&count&id=>id))
          (define id=>ids          (map caddr *g&count&id=>id))
-         (define vec.pos          (make-fxvector (foldl + 0 counts)))
+         (define vec.pos          (make-fxvector (+ (foldl + 0 counts) 1)))
          (define cid.text.value   (fresh-column-id))
          (define cid.text         (fresh-column-id))
          (define bname.text.value (cons 'column cid.text.value))
@@ -1914,7 +1929,11 @@
   (method-lambda
     ((count)                   0)
     ((min-find inclusive? key) dict.empty)
-    ((max-find inclusive? key) dict.empty)))
+    ((max-find inclusive? key) dict.empty)
+    ((min)                     (error "method not supported for empty dictionary: min"))
+    ((min-value)               (error "method not supported for empty dictionary: min-value"))
+    ((min-pop)                 (error "method not supported for empty dictionary: min-pop"))
+    ((max)                     (error "method not supported for empty dictionary: max"))))
 
 (define (dict:monovec monovec.key ref.value start end)
   (match-define (monovec ref.key find-next find-prev) monovec.key)
