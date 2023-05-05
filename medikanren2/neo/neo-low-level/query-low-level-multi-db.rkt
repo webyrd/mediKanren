@@ -177,11 +177,11 @@
                     (lambda (X XK1* XK2*)
                       (for-each
                        (lambda (XK1)
-                         (match-define (list* _ name.X predicate.X->K1 K1 name.K1 props1) XK1)
+                         (match-define (list* _ predicate.X->K1 K1 props1) XK1)
                          (for-each
                           (lambda (XK2)
-                            (match-define (list* _ _ X->K2 K2 name.K2 props2) XK2)
-                            (yield (append (list K1 name.K1 predicate.X->K1 X name.X X->K2 K2 name.K2)
+                            (match-define (list* _ X->K2 K2 props2) XK2)
+                            (yield (append (list K1 predicate.X->K1 X X->K2 K2)
                                            (append props1 props2))))
                           XK2*))
                        XK1*))))))))
@@ -198,10 +198,10 @@
 
 (define (query:Known->X->Known-helper curie*.K1 predicate*.K1->X category*.X predicate*.X->K2 curie*.K2)
   (define (KX*->dict candidate*)
-    (let* ((candidate* (sort candidate* (lambda (a b) (string<? (cadddr a) (cadddr b)))))
-           (group*     (list->vector (s-group candidate* equal? cadddr)))
+    (let* ((candidate* (sort candidate* (lambda (a b) (string<? (caddr a) (caddr b)))))
+           (group*     (list->vector (s-group candidate* equal? caddr)))
            (ref.value  (lambda (i) (vector-ref group* i))))
-      (dict:ref (lambda (i) (cadddr (car (ref.value i)))) string<?
+      (dict:ref (lambda (i) (caddr (car (ref.value i)))) string<?
                 ref.value 0 (vector-length group*))))
   (define (XK*->dict candidate*)
     (let* ((candidate* (sort candidate* (lambda (a b) (string<? (car a) (car b)))))
@@ -217,11 +217,11 @@
                     (lambda (X K1X* XK2*)
                       (for-each
                        (lambda (K1X)
-                         (match-define (list* K1 name.K1 predicate.X->K1 _ name.X props1) K1X)
+                         (match-define (list* K1 predicate.X->K1 _ props1) K1X)
                          (for-each
                           (lambda (XK2)
-                            (match-define (list* _ _ X->K2 K2 name.K2 props2) XK2)
-                            (yield (append (list K1 name.K1 predicate.X->K1 X name.X X->K2 K2 name.K2)
+                            (match-define (list* _ X->K2 K2 props2) XK2)
+                            (yield (append (list K1 predicate.X->K1 X X->K2 K2)
                                            (append props1 props2))))
                           XK2*))
                        K1X*))))))))
@@ -279,18 +279,18 @@
          (Y=>YK=>1 (result*->dict car YK curie-rep-hash))
          (curie*.Y (hash-keys curie-rep-hash))
          (XY (query:X->Known category*.X predicate*.X->Y curie*.Y))
-         (Y=>XY=>1 (result*->dict cadddr XY curie-rep-hash)))
+         (Y=>XY=>1 (result*->dict caddr XY curie-rep-hash)))
     (maybe-time (enumerator->list
                  (lambda (yield)
                    ((merge-join string<? Y=>XY=>1 Y=>YK=>1)
                     (lambda (rep XY* YK*)
                       (for-each
                        (lambda (XY)
-                         (match-define (list* _ X name.X predicate.X->Y Y name.Y props.X->Y) XY)
+                         (match-define (list* _ X predicate.X->Y Y props.X->Y) XY)
                          (for-each
                           (lambda (YK)
-                            (match-define (list* _ _ _ Y->K K name.K props.Y->K) YK)
-                            (yield (list X name.X predicate.X->Y Y name.Y Y->K K name.K props.X->Y props.Y->K)))
+                            (match-define (list* _ _ Y->K K props.Y->K) YK)
+                            (yield (list X predicate.X->Y Y Y->K K props.X->Y props.Y->K)))
                           YK*))
                        XY*))))))))
 
@@ -306,8 +306,8 @@
 
 (define (query:Known->Y->X-helper curie*.K predicate*.K->Y category*.Y predicate*.Y->X category*.X )  
   (let* ((KY (query:Known->X curie*.K predicate*.K->Y category*.Y))
-         (curie-rep-hash (build-curie-representative-hash (remove-duplicates (map cadddr KY))))
-         (Y=>KY=>1 (result*->dict cadddr KY curie-rep-hash))
+         (curie-rep-hash (build-curie-representative-hash (remove-duplicates (map caddr KY))))
+         (Y=>KY=>1 (result*->dict caddr KY curie-rep-hash))
          (curie*.Y (hash-keys curie-rep-hash))
          (YX (query:Known->X curie*.Y predicate*.Y->X category*.X))
          (Y=>YX=>1 (result*->dict car YX curie-rep-hash)))
@@ -317,11 +317,11 @@
                     (lambda (rep YX* KY*)
                       (for-each
                        (lambda (YX)
-                         (match-define (list* _ Y name.Y predicate.Y->X X name.X props.Y->X) YX)
+                         (match-define (list* _ Y predicate.Y->X X props.Y->X) YX)
                          (for-each
                           (lambda (KY)
-                            (match-define (list* _ K name.K K->Y _ _ props.K->Y) KY)
-                            (yield (list K name.K K->Y Y name.Y predicate.Y->X X name.X props.K->Y props.Y->X)))
+                            (match-define (list* _ K K->Y _ props.K->Y) KY)
+                            (yield (list K K->Y Y predicate.Y->X X props.K->Y props.Y->X)))
                           KY*))
                        YX*))))))))
 

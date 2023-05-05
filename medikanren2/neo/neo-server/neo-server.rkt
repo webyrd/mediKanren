@@ -731,7 +731,7 @@
         (lambda (q direction)
           (filter
            (lambda (e)
-             (let-values ([(_ eprop) (split-at e 8)])
+             (let-values ([(_ eprop) (split-at e 5)])
                (let* ((target-eprop (cadr eprop))
                       (aspect-pr (assoc "object_aspect_qualifier" target-eprop))
                       (direction-pr (assoc "object_direction_qualifier" target-eprop)))
@@ -873,13 +873,10 @@
           (else 
            (match (car e)
              [`(,curie_x
-                ,name_x
                 ,pred_xy
                 ,curie_y
-                ,name_y
                 ,pred_yz
                 ,curie_z
-                ,name_z
                 ,props_xy
                 ,props_yz)
               (if (and (edge-has-source? props_xy)
