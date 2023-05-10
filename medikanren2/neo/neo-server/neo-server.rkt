@@ -25,7 +25,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.0")
+(define NEO_SERVER_VERSION "1.1")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -702,7 +702,7 @@
 
 (define (handle-mvp-creative-query body-json message query_graph edges nodes which-mvp)
 
-  (printf "++ handling MVP mode creative query\n")
+  (printf "++ handling MVP mode creative query for Neo Server ~s\n" NEO_SERVER_VERSION)
 
   (define disable-external-requests
     (hash-ref message 'disable_external_requests #f))
@@ -1153,7 +1153,7 @@
                content-length-string
                body-str)
   (printf "received TRAPI `query` POST request\n")
-
+  
   (unless (string-contains? (string-downcase content-type-string) "application/json")
     (printf "** unexpected content-type-string for query\nexpected 'application/json', received '~s'\n"
             content-type-string)
@@ -1232,7 +1232,7 @@
    (list
     'xexpr
     200_OK_STRING
-    `(html (body "Hello, World!")))))
+    `(html (body ,(format "Hello, World! from Neo Server ~s" NEO_SERVER_VERSION))))))
 
 (hash-set!
  dispatch-table
@@ -1283,6 +1283,8 @@
    (hash 'event (format "MK_STAGE_BOX value = '~s'" (unbox MK_STAGE_BOX))))  
   (lognew-info
    (hash 'event "starting_server"))
+  (lognew-info
+   (hash 'event (format "(Neo Server ~s)" NEO_SERVER_VERSION)))  
   (define stop (serve DEFAULT_PORT))
   (lognew-info
    (hash 'event "started_server"))
