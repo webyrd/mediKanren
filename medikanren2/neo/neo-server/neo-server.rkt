@@ -702,7 +702,7 @@
 
 (define (handle-mvp-creative-query body-json message query_graph edges nodes which-mvp)
 
-  (printf "++ handling MVP mode creative query for Neo Server ~s\n" NEO_SERVER_VERSION)
+  (printf "++ handling MVP mode creative query for Neo Server ~a\n" NEO_SERVER_VERSION)
 
   (define disable-external-requests
     (hash-ref message 'disable_external_requests #f))
@@ -1232,7 +1232,7 @@
    (list
     'xexpr
     200_OK_STRING
-    `(html (body ,(format "Hello, World! from Neo Server ~s" NEO_SERVER_VERSION))))))
+    `(html (body ,(format "Hello, World! from Neo Server ~a" NEO_SERVER_VERSION))))))
 
 (hash-set!
  dispatch-table
@@ -1284,7 +1284,7 @@
   (lognew-info
    (hash 'event "starting_server"))
   (lognew-info
-   (hash 'event (format "(Neo Server ~s)" NEO_SERVER_VERSION)))  
+   (hash 'event (format "(Neo Server ~a)" NEO_SERVER_VERSION)))  
   (define stop (serve DEFAULT_PORT))
   (lognew-info
    (hash 'event "started_server"))
