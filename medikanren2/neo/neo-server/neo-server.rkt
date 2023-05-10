@@ -919,7 +919,10 @@
       ))
 
   (define gp-trapi-response
-    (if disable-external-requests
+    ;; Disable Genetics Provider TRAPI calls for now, until Genetics
+    ;; Provider KP is handling TRAPI 1.4 Creative Mode queries.
+    #f
+    #;(if disable-external-requests
         #f
         (let ()
 
