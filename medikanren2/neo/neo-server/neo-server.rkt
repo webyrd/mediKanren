@@ -29,12 +29,12 @@
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
-(define MAX_RESULTS_FROM_COMPONENT 250)
+(define MAX_RESULTS_FROM_COMPONENT 1000)
 
 ;; Number of seconds before a connection times out, collecting all
 ;; resources from the connection (was 10 seconds in the original
 ;; tutorial).
-(define CONNECTION_TIMEOUT_SECONDS (* 55 60))
+(define CONNECTION_TIMEOUT_SECONDS (* 58 60))
 (define API_CALL_CONNECTION_TIMEOUT_SECONDS (* 1 60))
 
 
