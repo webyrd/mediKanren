@@ -31,6 +31,9 @@
 ;; or from mediKanren itself.
 (define MAX_RESULTS_FROM_COMPONENT 1000)
 
+;; Maximum number of results to score and then sort.
+(define MAX_RESULTS_TO_SCORE_AND_SORT 100000)
+
 ;; Number of seconds before a connection times out, collecting all
 ;; resources from the connection (was 10 seconds in the original
 ;; tutorial).
@@ -746,90 +749,134 @@
                   ))))
            q)))
 
-      (define q1-all-results
-        (cond
-          [(eq? 'mvp1 which-mvp)
-           (define disease-ids
-             ;; TODO write a chainer in utils, and also check for errors
-             (hash-ref (hash-ref qg_nodes qg_object-node-id) 'ids))
-
-           ;;
-           (let ((q
-                  ;; TODO
-                  ;;
-                  ;; * ensure all of the biolink curies are supported in
-                  ;; the current biolink standard, or replace
-                  ;;
-                  ;; * use qualified predicates
-                  (query:X->Y->Known
-                   ;; X
-                   (set->list
-                    (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
-                     '("biolink:ChemicalEntity")))
-                   (set->list
-                    (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
-                     '("biolink:affects")))
-                   ;; Y
-                   (set->list
-                    (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
-                     '("biolink:Gene" "biolink:GeneOrGeneProduct" "biolink:Protein")))
-                   (set->list
-                    (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
-                     '("biolink:gene_associated_with_condition"
-                       "biolink:contributes_to")))
+      (define q1-all-results-unsorted
+        (time
+         (cond
+           [(eq? 'mvp1 which-mvp)
+            (define disease-ids
+              ;; TODO write a chainer in utils, and also check for errors
+              (hash-ref (hash-ref qg_nodes qg_object-node-id) 'ids))
+            ;;
+            (let ((q
+                   ;; TODO
                    ;;
-                   (set->list
-                    (get-descendent-curies*-in-db
-                     (curies->synonyms-in-db disease-ids))))))
-             q)]
-          [(eq? 'mvp2-chem which-mvp)
-           (define chemical-ids
-             (hash-ref (hash-ref qg_nodes qg_subject-node-id) 'ids))
-           (define direction
-             (let ((qualifer-set
-                    (hash-ref (car (hash-ref qg_edge-hash 'qualifier_constraints)) 'qualifier_set)))
-               (let loop ((l qualifer-set))
-                 (if (equal? (hash-ref (car l) 'qualifier_type_id) "biolink:object_direction_qualifier")
-                     (hash-ref (car l) 'qualifier_value)
-                     (loop (cdr l))))))
-           (let* ((q
-                   (query:Known->Y->X
-                    (set->list
-                     (get-descendent-curies*-in-db
-                      (curies->synonyms-in-db chemical-ids)))
-                    '("biolink:affects" "biolink:regulates")
-                    #f
-                    '("biolink:affects")
-                    (set->list
-                     (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
-                      '("biolink:Gene" "biolink:Protein")))))
-                  (qualified-q (mvp2-filter q direction)))
-             qualified-q)]
-          [(eq? 'mvp2-gene which-mvp)
-           (define gene-ids
-             (hash-ref (hash-ref qg_nodes qg_object-node-id) 'ids))
-           (define direction
-             (let ((qualifer-set
-                    (hash-ref (car (hash-ref qg_edge-hash 'qualifier_constraints)) 'qualifier_set)))
-               (let loop ((l qualifer-set))
-                 (if (equal? (hash-ref (car l) 'qualifier_type_id) "biolink:object_direction_qualifier")
-                     (hash-ref (car l) 'qualifier_value)
-                     (loop (cdr l))))))
-           (let* ((q
+                   ;; * ensure all of the biolink curies are supported in
+                   ;; the current biolink standard, or replace
+                   ;;
+                   ;; * use qualified predicates
                    (query:X->Y->Known
+                    ;; X
                     (set->list
                      (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
                       '("biolink:ChemicalEntity")))
-                    '("biolink:affects" "biolink:regulates")
-                    #f
-                    '("biolink:affects")
+                    (set->list
+                     (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+                      '("biolink:affects")))
+                    ;; Y
+                    (set->list
+                     (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+                      '("biolink:Gene" "biolink:GeneOrGeneProduct" "biolink:Protein")))
+                    (set->list
+                     (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+                      '("biolink:gene_associated_with_condition"
+                        "biolink:contributes_to")))
+                    ;;
                     (set->list
                      (get-descendent-curies*-in-db
-                      (curies->synonyms-in-db gene-ids)))))
-                  (qualified-q (mvp2-filter q direction)))
-             qualified-q)]))
+                      (curies->synonyms-in-db disease-ids))))))
+              q)]
+           [(eq? 'mvp2-chem which-mvp)
+            (define chemical-ids
+              (hash-ref (hash-ref qg_nodes qg_subject-node-id) 'ids))
+            (define direction
+              (let ((qualifer-set
+                     (hash-ref (car (hash-ref qg_edge-hash 'qualifier_constraints)) 'qualifier_set)))
+                (let loop ((l qualifer-set))
+                  (if (equal? (hash-ref (car l) 'qualifier_type_id) "biolink:object_direction_qualifier")
+                      (hash-ref (car l) 'qualifier_value)
+                      (loop (cdr l))))))
+            (let* ((q
+                    (query:Known->Y->X
+                     (set->list
+                      (get-descendent-curies*-in-db
+                       (curies->synonyms-in-db chemical-ids)))
+                     '("biolink:affects" "biolink:regulates")
+                     #f
+                     '("biolink:affects")
+                     (set->list
+                      (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+                       '("biolink:Gene" "biolink:Protein")))))
+                   (qualified-q (mvp2-filter q direction)))
+              qualified-q)]
+           [(eq? 'mvp2-gene which-mvp)
+            (define gene-ids
+              (hash-ref (hash-ref qg_nodes qg_object-node-id) 'ids))
+            (define direction
+              (let ((qualifer-set
+                     (hash-ref (car (hash-ref qg_edge-hash 'qualifier_constraints)) 'qualifier_set)))
+                (let loop ((l qualifer-set))
+                  (if (equal? (hash-ref (car l) 'qualifier_type_id) "biolink:object_direction_qualifier")
+                      (hash-ref (car l) 'qualifier_value)
+                      (loop (cdr l))))))
+            (let* ((q
+                    (query:X->Y->Known
+                     (set->list
+                      (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+                       '("biolink:ChemicalEntity")))
+                     '("biolink:affects" "biolink:regulates")
+                     #f
+                     '("biolink:affects")
+                     (set->list
+                      (get-descendent-curies*-in-db
+                       (curies->synonyms-in-db gene-ids)))))
+                   (qualified-q (mvp2-filter q direction)))
+              qualified-q)])))
 
-      (define q1 (take-at-most q1-all-results MAX_RESULTS_FROM_COMPONENT))
+      (printf "computed a total of ~s results for MVP mode creative query\n"
+              (length q1-all-results-unsorted))
+
+      (define q1-unsorted-long (take-at-most q1-all-results-unsorted MAX_RESULTS_TO_SCORE_AND_SORT))
+
+      (printf "about to score ~s results for MVP mode creative query\n"
+              (length q1-unsorted-long))
+
+      (define (score-mvp-two-hop-edge e)
+        (match e
+          [`(,curie_x
+             ,pred_xy
+             ,curie_y
+             ,pred_yz
+             ,curie_z
+             ,props_xy
+             ,props_yz)
+           (if (and (edge-has-source? props_xy)
+                    (edge-has-source? props_yz))
+               (* (num-pubs props_xy) (num-pubs props_yz))
+               -1000000)]))
+
+      (define scored/q1-unsorted-long
+        (map
+         (lambda (e) (cons (score-mvp-two-hop-edge e) e))
+         q1-unsorted-long))
+
+      (printf "about to sort ~s results for MVP mode creative query\n"
+              (length scored/q1-unsorted-long))
+
+      (define scored/q1-sorted-long
+        (sort
+         scored/q1-unsorted-long
+         (lambda (score1/e1 score2/e2)
+           (let ((score1 (car score1/e1))
+                 (score2 (car score2/e2)))
+             (> score1 score2)))))
+
+      (printf "about to take the first ~s scored and sorted results for MVP mode creative query\n"
+              MAX_RESULTS_FROM_COMPONENT)
+
+      (define scored/q1-sorted (take-at-most scored/q1-sorted-long MAX_RESULTS_FROM_COMPONENT))
+
+      (printf "now have ~s scored and sorted results for MVP mode creative query\n"
+              (length scored/q1-sorted))
 
       (define nodes (make-hash))
 
@@ -866,11 +913,14 @@
       (define (add-result! r)
         (set! results (cons r results)))
 
-      (let loop ((n 0) (e q1))
+      (let loop ((n 0) (score*/e* scored/q1-sorted))
         (cond
-          ((null? e) '())
-          (else 
-           (match (car e)
+          ((null? score*/e*) '())
+          (else
+           (define score/e (car score*/e*))
+           (define score (car score/e))
+           (define e (cdr score/e))
+           (match e
              [`(,curie_x
                 ,pred_xy
                 ,curie_y
@@ -899,9 +949,9 @@
                                    'medik:middleman    (list (hash 'id curie_y)))
                              ;; TODO: we should downvote any answer that is already in 1-hop
                              'score
-                             (* (num-pubs props_xy) (num-pubs props_yz)))))
-                    (loop (+ n 2) (cdr e)))
-                  (loop n (cdr e)))]))))
+                             score)))
+                    (loop (+ n 2) (cdr score*/e*)))
+                  (loop n (cdr score*/e*)))]))))
 
       (set! results (sort results (lambda (a b) (> (hash-ref a 'score) (hash-ref b 'score)))))
 
