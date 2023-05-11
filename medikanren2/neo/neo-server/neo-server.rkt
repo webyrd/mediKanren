@@ -746,7 +746,7 @@
                   ))))
            q)))
 
-      (define q1
+      (define q1-all-results
         (cond
           [(eq? 'mvp1 which-mvp)
            (define disease-ids
@@ -781,8 +781,7 @@
                    (set->list
                     (get-descendent-curies*-in-db
                      (curies->synonyms-in-db disease-ids))))))
-             (let ((q (remove-duplicates q)))
-               (take-at-most q MAX_RESULTS_FROM_COMPONENT)))]
+             q)]
           [(eq? 'mvp2-chem which-mvp)
            (define chemical-ids
              (hash-ref (hash-ref qg_nodes qg_subject-node-id) 'ids))
@@ -805,8 +804,7 @@
                      (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
                       '("biolink:Gene" "biolink:Protein")))))
                   (qualified-q (mvp2-filter q direction)))
-             (let ((q (remove-duplicates q)))
-               (take-at-most qualified-q MAX_RESULTS_FROM_COMPONENT)))]
+             qualified-q)]
           [(eq? 'mvp2-gene which-mvp)
            (define gene-ids
              (hash-ref (hash-ref qg_nodes qg_object-node-id) 'ids))
@@ -829,8 +827,9 @@
                      (get-descendent-curies*-in-db
                       (curies->synonyms-in-db gene-ids)))))
                   (qualified-q (mvp2-filter q direction)))
-             (let ((q (remove-duplicates q)))
-               (take-at-most qualified-q MAX_RESULTS_FROM_COMPONENT)))]))
+             qualified-q)]))
+
+      (define q1 (take-at-most q1-all-results MAX_RESULTS_FROM_COMPONENT))
 
       (define nodes (make-hash))
 
@@ -846,7 +845,7 @@
                        (hash 'categories categories
                              'name name)))))
       
-      (define (add-edge! props n)             
+      (define (add-edge! props n)
         (let ((id (string-append "medik:#" (number->string n))))
           ;; TODO: edge ids here can be medik_#0, medik_#1, ... since the
           ;; the edge ids assigned from the process of transformation from
@@ -889,8 +888,11 @@
                           (edge_yz (add-edge! props_yz (+ n 1))))
                       (add-result!
                        (hash 'edge_bindings
-                             (hash (string->symbol (string-append qg_subject-node-str "_medik:middleman")) (list (hash 'id edge_xy))
-                                   (string->symbol (string-append "medik:middleman_" qg_object-node-str)) (list (hash 'id edge_yz)))
+                             (hash (string->symbol (string-append qg_subject-node-str "_medik:middleman"))
+                                   (list (hash 'id edge_xy))
+                                   ;;
+                                   (string->symbol (string-append "medik:middleman_" qg_object-node-str))
+                                   (list (hash 'id edge_yz)))
                              'node_bindings
                              (hash qg_object-node-id (list (hash 'id curie_z))
                                    qg_subject-node-id    (list (hash 'id curie_x))
