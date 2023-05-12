@@ -87,12 +87,16 @@
       [else (void)])))
 
 (define (take-at-most ls n)
-  (cond
-    [(<= n 0) '()]
-    [(null? ls) '()]
-    [else
-     (cons (car ls)
-           (take-at-most (cdr ls) (sub1 n)))]))
+  (if (<= (length ls) n)
+      ls
+      (let loop ((ls ls)
+                 (n n))
+        (cond
+          [(<= n 0) '()]
+          [(null? ls) '()]
+          [else
+           (cons (car ls)
+                 (loop (cdr ls) (sub1 n)))]))))
 
 ;; copied from 'database.rkt'
 (define (bytes<=? a b) (not (bytes<? b a)))

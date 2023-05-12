@@ -25,16 +25,19 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.0")
+(define NEO_SERVER_VERSION "1.1")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
-(define MAX_RESULTS_FROM_COMPONENT 250)
+(define MAX_RESULTS_FROM_COMPONENT 1000)
+
+;; Maximum number of results to score and then sort.
+(define MAX_RESULTS_TO_SCORE_AND_SORT 100000)
 
 ;; Number of seconds before a connection times out, collecting all
 ;; resources from the connection (was 10 seconds in the original
 ;; tutorial).
-(define CONNECTION_TIMEOUT_SECONDS (* 55 60))
+(define CONNECTION_TIMEOUT_SECONDS (* 58 60))
 (define API_CALL_CONNECTION_TIMEOUT_SECONDS (* 1 60))
 
 
@@ -87,59 +90,174 @@
 (define MK_STAGE_BOX (box #f)) ;; deprecated (5 April 2023)
 ;; (should be removed, once ENVIRONMENT_TAG_BOX is shown to work)
 
+(struct job-failure (message))
+
+(define job-request (make-channel))
+
+(define (work-safely work)
+  (printf "entered work-safely\n")
+  (let ((result
+         (with-handlers ((exn:fail?
+                          (lambda (v)
+                            (printf "!! exn:fail? handler called from work-safely\n")
+                            ((error-display-handler) (exn-message v) v)
+                            (job-failure (exn-message v))))
+                         ((lambda _ #t)
+                          (lambda (v)
+                            (printf "!! unknown error handler called from work-safely\n")
+                            (define message
+                              (string-append "unknown error: "
+                                             (with-output-to-string (lambda () (write v)))))
+                            (pretty-write message)
+                            (job-failure message))))
+           (printf "about to call (work)\n")
+           (work))))
+    (printf "work-safely returning result ~s\n" result)
+    result))
+
+;; Run multiple jobs concurrently
+;(define (job work) (work-safely work))
+
+;; Run multiple jobs sequentially
+(define (job work)
+  (define job-response (make-channel))
+  (printf "job is calling channel-put on job-request channel\n")
+  (channel-put job-request (cons job-response work))
+  (printf "job is calling channel-get on job-response channel\n")
+  (let ((response (channel-get job-response)))
+    (printf "job is returning response from job-reponse channel\n")
+    response))
 
 (define (serve port-no)
-  (define main-cust (make-custodian))
-  (parameterize ([current-custodian main-cust])
-    (define listener
-      (tcp-listen port-no
-                  MAX_ALLOW_WAIT
-                  REUSE_LISTENER_WHILE_IN_TIME_WAIT_STATE
-                  ONLY_ACCEPT_CONNECTIONS_FROM_GIVEN_HOSTNAME))
-    (define (loop)
-      (accept-and-handle listener)
-      (loop))
-    (thread loop))
-  (define shut-down-already-attempted #f)
-  (lambda ()
-    (when shut-down-already-attempted
-      (printf "already tried to shut down this server!  Trying again...\n")
-      (if (custodian-shut-down? main-cust)
-          (printf "main custodian already shut down.  Trying again...\n")
-          (printf "*** weird---main custodian is still active!  Trying again...\n")))
-    (printf "shutting down server...\n")
-    (custodian-shutdown-all main-cust)
-    (set! shut-down-already-attempted #t)
-    (printf "server shut down\n")))
+  (define listener
+    (tcp-listen port-no
+                MAX_ALLOW_WAIT
+                REUSE_LISTENER_WHILE_IN_TIME_WAIT_STATE
+                ONLY_ACCEPT_CONNECTIONS_FROM_GIVEN_HOSTNAME))
+  (define (worker)
+    (let loop ()
+      (printf "worker is about to call channel-get on job-request\n")
+      (match-define (cons job-response work) (channel-get job-request))
+      (printf "worker is about to call channel-put on job-response\n")
+      (channel-put job-response (work-safely work))
+      (loop)))
+  (define (loop)
+    (accept-and-handle listener)
+    (loop))
+  (thread worker)
+  (thread loop))
 
 (define (accept-and-handle listener)
-  (define cust (make-custodian))
-  (parameterize ([current-custodian cust])
+  (define cust.accept-and-handle (make-custodian))
+  (parameterize ((current-custodian cust.accept-and-handle))
     (define-values (in out) (tcp-accept listener))
     (printf "\ntcp-accept accepted connection\n")
+
+    ;; main accept-and-handle thread
     (thread
      (lambda ()
-       (printf "\n++ started handle thread for Neo Server ~a ++\n"
-               NEO_SERVER_VERSION)
-       (handle in out
+       (define start-time-ms (current-inexact-milliseconds))
+       (let ((cust.job
+              (job
                (lambda ()
-                 (printf "** connection failure continuation invoked!\n")
-                 (custodian-shutdown-all (current-custodian)))
-               (lambda ()
-                 (printf "** request failure continuation invoked!\n")
-                 (custodian-shutdown-all (current-custodian))))
-       (close-input-port in)
-       (close-output-port out)
-       (printf "handle thread ending\n")
-       (custodian-shutdown-all (current-custodian))))
-    ;; watcher thread:
-    (thread
-     (lambda ()
-       (sleep CONNECTION_TIMEOUT_SECONDS)
-       (printf
-        "** watcher thread timed out connection after ~s seconds!\n"
-        CONNECTION_TIMEOUT_SECONDS)
-       (custodian-shutdown-all (current-custodian))))))
+                 (printf "job-thunk invoked\n")
+
+                 (define cust.job (make-custodian))
+                 (parameterize ((current-custodian cust.job))
+                   (define sem (make-semaphore 0))
+
+                   (printf "job-thunk about to call handle\n")
+                   (define handler-thread
+                     (thread
+                      (lambda ()
+                        (handle in out
+                                (lambda ()
+                                  (printf "** connection failure continuation invoked!\n")
+                                  (semaphore-post sem))
+                                (lambda ()
+                                  (printf "** request failure continuation invoked!\n")
+                                  (semaphore-post sem)))
+                        (printf "finished cleanly\n")
+                        (semaphore-post sem))))
+
+                   ;; half-closed TCP connections watcher-thread
+                   (define half-closed-TCP-thread
+                     (thread
+                      (lambda ()
+                        (printf "$$$ hello from half-closed-TCP-thread\n")
+                        ;; Detect half-closed TCP connections with eof-evt on the input port
+                        (with-handlers
+                            ((exn:fail:network:errno?
+                              (lambda (ex)
+                                (cond
+                                  ((equal? '(110 . posix) (exn:fail:network:errno-errno ex))
+                                   (printf "!!! Error: TCP keepalive failed.  Presuming half-open TCP connection.\n")
+                                   (semaphore-post sem))
+                                  (else
+                                   (printf "!!! Error: Unknown network error ~a.\n" ex)
+                                   (semaphore-post sem))))))
+                          (let loop-forever ()
+                            (let ((evt (sync/timeout 1
+                                                     (eof-evt in)
+                                                     (thread-dead-evt handler-thread))))
+                              (cond
+                                (evt
+                                 (printf "$$$ half-closed TCP thread detected synchronized event: ~s\n" evt)
+                                 (cond
+                                   ((eq? (eof-evt in) evt)
+                                    (printf "!!! Error: Detected half-closed TCP connection\n")
+                                    (semaphore-post sem))
+                                   ((eq? (thread-dead-evt handler-thread) evt)
+                                    (printf
+                                     "$$$ half-closed TCP thread detected (thread-dead-evt handler-thread) event\n")
+                                    (semaphore-post sem))
+                                   (else
+                                    (printf
+                                     "!!! Error: half-closed TCP thread detected unexpected event type\n")
+                                    (semaphore-post sem))))
+                                (else
+                                 (display "." (current-output-port))
+                                 (flush-output (current-output-port))
+                                 (loop-forever)))))))))
+
+                   ;; timeout watcher-thread
+                   (define watcher-thread
+                     (thread
+                      (lambda ()
+                        (printf "@@@ hello from watcher-thread\n")
+                        (printf "@@@ computation originally had ~s seconds (walltime) until timeout\n"
+                                CONNECTION_TIMEOUT_SECONDS)
+                        (printf "@@@ computation now has ~s seconds (walltime) until timeout\n"
+                                (inexact->exact
+                                 (floor
+                                  (/ (- (+ start-time-ms (* CONNECTION_TIMEOUT_SECONDS 1000))
+                                        (current-inexact-milliseconds))
+                                     1000.0))))
+                        (let loop-forever ()
+                          (let ((evt (sync/timeout 1
+                                                   (thread-dead-evt handler-thread))))
+                            (cond
+                              (evt
+                               (printf "@@@ Watcher thread got a thread-dead-evt for handler-thread\n")
+                               (semaphore-post sem))
+                              ((> (current-inexact-milliseconds)
+                                  (+ start-time-ms (* CONNECTION_TIMEOUT_SECONDS 1000)))
+                               (printf "!!! Watcher thread timed out after ~s seconds (walltime)\n"
+                                       CONNECTION_TIMEOUT_SECONDS)
+                               (semaphore-post sem))
+                              (else (loop-forever))))))))
+
+                   (semaphore-wait sem)
+                   (printf "got past semaphore\n")
+                   cust.job)))))
+
+         (printf "job call returned cust.job ~s\n" cust.job)
+
+         (printf "main accept-and-handle thread about to shut-down cust.job\n")
+         (custodian-shutdown-all cust.job)
+
+         (printf "main accept-and-handle thread about to shut-down cust.accept-and-handle\n")
+         (custodian-shutdown-all cust.accept-and-handle))))))
 
 (define (get-request-headers in)
   (define request-headers (make-hash))
@@ -151,21 +269,21 @@
           (printf "** error parsing request headers: current line doesn't end properly\n")
           #f)
         (let ((current-line (list-ref current-line-match 0)))
-          (printf "current-line:\n~s\n" current-line)
+          ;(printf "current-line:\n~s\n" current-line)
           (cond
             [(regexp-match #rx"^([^:]+:) (.+)\r\n" current-line)
              =>
              (lambda (header)
-               (printf "== header:\n~s\n" header)
-               (printf "== (list-ref header 1):\n~s\n" (list-ref header 1))
-               (printf "== (list-ref header 2):\n~s\n" (list-ref header 1))
+               ;(printf "== header:\n~s\n" header)
+               ;(printf "== (list-ref header 1):\n~s\n" (list-ref header 1))
+               ;(printf "== (list-ref header 2):\n~s\n" (list-ref header 1))
                (hash-set! request-headers
                           (bytes->string/utf-8 (list-ref header 1))
                           (bytes->string/utf-8 (list-ref header 2)))
-               (printf "== request-headers:\n~s\n\n" request-headers)
+               ;(printf "== request-headers:\n~s\n\n" request-headers)
                (loop))]
             [(regexp-match #px"^[[:space:]]*\r\n" current-line)
-             (printf "parsed request headers:\n~s\n" request-headers)
+             ;(printf "parsed request headers:\n~s\n" request-headers)
              request-headers]
             [else
              (printf "** error parsing request headers: ~s\n" current-line)
@@ -266,25 +384,11 @@
               (lambda (ex)
                 (cond
                   ((equal? '(110 . posix) (exn:fail:network:errno-errno ex))
-                   (display "Error: TCP keepalive failed.  Presuming half-open TCP connection.\n")
+                   (printf "Error: TCP keepalive failed.  Presuming half-open TCP connection.\n")
                    (conn-fk))
                   (else
                    (printf "Error: Unknown network error ~a.\n" ex)
                    (conn-fk))))))
-          ;; watcher thread checking for half-closed TCP connection
-          (thread
-           (lambda ()
-             (let loop-forever ()
-               (let ((evt (sync/timeout 1 (eof-evt in))))
-                 (cond
-                   (evt
-                    (displayln "Error: Detected half-closed TCP connection.")
-                    (conn-fk))
-                   (else
-                    (display "." (current-output-port))
-                    (flush-output (current-output-port))
-                    (loop-forever)))))))
-
           (match request-type
             ["GET"
              ;; Dispatch GET request:
@@ -295,13 +399,11 @@
                (printf "dispatch-result:\n~s\n" dispatch-result)
 
                ;; Send reply:
-               (send-reply dispatch-result out)
-
-               (custodian-shutdown-all (current-custodian)))]
+               (send-reply dispatch-result out))]
             ["POST"
              (printf "handling POST request\n")
 
-             (printf "req-headers:\n~s\n" req-headers)
+             ;(printf "req-headers:\n~s\n" req-headers)
 
              (define content-length-string
                (get-key/value-from-headers "Content-Length:" req-headers))
@@ -329,7 +431,7 @@
              (printf "Content-Type:\n~s\n" content-type-string)
 
              (define body-str (get-request-body in content-length))
-             (printf "body-str:\n~s\n" body-str)
+             ;(printf "body-str:\n~s\n" body-str)
 
              (unless body-str
                (printf "** error: unable to get the body of POST request\n")
@@ -344,11 +446,10 @@
                                                       content-length-string
                                                       body-str)])
                ;; (printf "dispatch-result:\n~s\n" dispatch-result)
+               (printf "about to send reply\n")
 
                ;; Send reply:
-               (send-reply dispatch-result out)
-
-               (custodian-shutdown-all (current-custodian)))]))))))
+               (send-reply dispatch-result out))]))))))
 
 ;; dispatch for HTTP GET and POST requests
 (define (dispatch-request request-type
@@ -364,13 +465,13 @@
   (define dispatch-key (list request-type (car path)))
   (define h (hash-ref dispatch-table dispatch-key #f))
   (printf "dispatch-key: ~s\n" dispatch-key)
-  (printf "dispatch-table: ~s\n" dispatch-table)
+  ;(printf "dispatch-table: ~s\n" dispatch-table)
   (printf "h: ~s\n" h)
   (printf "url: ~s\n" url)
   (printf "path: ~s\n" path)
   (printf "url-query: ~s\n" (url-query url))
-  (printf "req-headers: ~s\n" req-headers)
-  (printf "rest-args: ~s\n" rest-args)
+  ;(printf "req-headers: ~s\n" req-headers)
+  ;(printf "rest-args: ~s\n" rest-args)
   (newline)
 
   (if h
@@ -702,7 +803,7 @@
 
 (define (handle-mvp-creative-query body-json message query_graph edges nodes which-mvp)
 
-  (printf "++ handling MVP mode creative query\n")
+  (printf "++ handling MVP mode creative query for Neo Server ~a\n" NEO_SERVER_VERSION)
 
   (define disable-external-requests
     (hash-ref message 'disable_external_requests #f))
@@ -731,7 +832,7 @@
         (lambda (q direction)
           (filter
            (lambda (e)
-             (let-values ([(_ eprop) (split-at e 8)])
+             (let-values ([(_ eprop) (split-at e 5)])
                (let* ((target-eprop (cadr eprop))
                       (aspect-pr (assoc "object_aspect_qualifier" target-eprop))
                       (direction-pr (assoc "object_direction_qualifier" target-eprop)))
@@ -746,91 +847,134 @@
                   ))))
            q)))
 
-      (define q1
-        (cond
-          [(eq? 'mvp1 which-mvp)
-           (define disease-ids
-             ;; TODO write a chainer in utils, and also check for errors
-             (hash-ref (hash-ref qg_nodes qg_object-node-id) 'ids))
-
-           ;;
-           (let ((q
-                  ;; TODO
-                  ;;
-                  ;; * ensure all of the biolink curies are supported in
-                  ;; the current biolink standard, or replace
-                  ;;
-                  ;; * use qualified predicates
-                  (query:X->Y->Known
-                   ;; X
-                   (set->list
-                    (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
-                     '("biolink:ChemicalEntity")))
-                   (set->list
-                    (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
-                     '("biolink:affects")))
-                   ;; Y
-                   (set->list
-                    (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
-                     '("biolink:Gene" "biolink:GeneOrGeneProduct" "biolink:Protein")))
-                   (set->list
-                    (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
-                     '("biolink:gene_associated_with_condition"
-                       "biolink:contributes_to")))
+      (define q1-all-results-unsorted
+        (time
+         (cond
+           [(eq? 'mvp1 which-mvp)
+            (define disease-ids
+              ;; TODO write a chainer in utils, and also check for errors
+              (hash-ref (hash-ref qg_nodes qg_object-node-id) 'ids))
+            ;;
+            (let ((q
+                   ;; TODO
                    ;;
-                   (set->list
-                    (get-descendent-curies*-in-db
-                     (curies->synonyms-in-db disease-ids))))))
-             (let ((q (remove-duplicates q)))
-               (take-at-most q MAX_RESULTS_FROM_COMPONENT)))]
-          [(eq? 'mvp2-chem which-mvp)
-           (define chemical-ids
-             (hash-ref (hash-ref qg_nodes qg_subject-node-id) 'ids))
-           (define direction
-             (let ((qualifer-set
-                    (hash-ref (car (hash-ref qg_edge-hash 'qualifier_constraints)) 'qualifier_set)))
-               (let loop ((l qualifer-set))
-                 (if (equal? (hash-ref (car l) 'qualifier_type_id) "biolink:object_direction_qualifier")
-                     (hash-ref (car l) 'qualifier_value)
-                     (loop (cdr l))))))
-           (let* ((q
-                   (query:Known->Y->X
-                    (set->list
-                     (get-descendent-curies*-in-db
-                      (curies->synonyms-in-db chemical-ids)))
-                    '("biolink:affects" "biolink:regulates")
-                    #f
-                    '("biolink:affects")
-                    (set->list
-                     (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
-                      '("biolink:Gene" "biolink:Protein")))))
-                  (qualified-q (mvp2-filter q direction)))
-             (let ((q (remove-duplicates q)))
-               (take-at-most qualified-q MAX_RESULTS_FROM_COMPONENT)))]
-          [(eq? 'mvp2-gene which-mvp)
-           (define gene-ids
-             (hash-ref (hash-ref qg_nodes qg_object-node-id) 'ids))
-           (define direction
-             (let ((qualifer-set
-                    (hash-ref (car (hash-ref qg_edge-hash 'qualifier_constraints)) 'qualifier_set)))
-               (let loop ((l qualifer-set))
-                 (if (equal? (hash-ref (car l) 'qualifier_type_id) "biolink:object_direction_qualifier")
-                     (hash-ref (car l) 'qualifier_value)
-                     (loop (cdr l))))))
-           (let* ((q
+                   ;; * ensure all of the biolink curies are supported in
+                   ;; the current biolink standard, or replace
+                   ;;
+                   ;; * use qualified predicates
                    (query:X->Y->Known
+                    ;; X
                     (set->list
                      (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
                       '("biolink:ChemicalEntity")))
-                    '("biolink:affects" "biolink:regulates")
-                    #f
-                    '("biolink:affects")
+                    (set->list
+                     (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+                      '("biolink:affects")))
+                    ;; Y
+                    (set->list
+                     (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+                      '("biolink:Gene" "biolink:GeneOrGeneProduct" "biolink:Protein")))
+                    (set->list
+                     (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+                      '("biolink:gene_associated_with_condition"
+                        "biolink:contributes_to")))
+                    ;;
                     (set->list
                      (get-descendent-curies*-in-db
-                      (curies->synonyms-in-db gene-ids)))))
-                  (qualified-q (mvp2-filter q direction)))
-             (let ((q (remove-duplicates q)))
-               (take-at-most qualified-q MAX_RESULTS_FROM_COMPONENT)))]))
+                      (curies->synonyms-in-db disease-ids))))))
+              q)]
+           [(eq? 'mvp2-chem which-mvp)
+            (define chemical-ids
+              (hash-ref (hash-ref qg_nodes qg_subject-node-id) 'ids))
+            (define direction
+              (let ((qualifer-set
+                     (hash-ref (car (hash-ref qg_edge-hash 'qualifier_constraints)) 'qualifier_set)))
+                (let loop ((l qualifer-set))
+                  (if (equal? (hash-ref (car l) 'qualifier_type_id) "biolink:object_direction_qualifier")
+                      (hash-ref (car l) 'qualifier_value)
+                      (loop (cdr l))))))
+            (let* ((q
+                    (query:Known->Y->X
+                     (set->list
+                      (get-descendent-curies*-in-db
+                       (curies->synonyms-in-db chemical-ids)))
+                     '("biolink:affects" "biolink:regulates")
+                     #f
+                     '("biolink:affects")
+                     (set->list
+                      (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+                       '("biolink:Gene" "biolink:Protein")))))
+                   (qualified-q (mvp2-filter q direction)))
+              qualified-q)]
+           [(eq? 'mvp2-gene which-mvp)
+            (define gene-ids
+              (hash-ref (hash-ref qg_nodes qg_object-node-id) 'ids))
+            (define direction
+              (let ((qualifer-set
+                     (hash-ref (car (hash-ref qg_edge-hash 'qualifier_constraints)) 'qualifier_set)))
+                (let loop ((l qualifer-set))
+                  (if (equal? (hash-ref (car l) 'qualifier_type_id) "biolink:object_direction_qualifier")
+                      (hash-ref (car l) 'qualifier_value)
+                      (loop (cdr l))))))
+            (let* ((q
+                    (query:X->Y->Known
+                     (set->list
+                      (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
+                       '("biolink:ChemicalEntity")))
+                     '("biolink:affects" "biolink:regulates")
+                     #f
+                     '("biolink:affects")
+                     (set->list
+                      (get-descendent-curies*-in-db
+                       (curies->synonyms-in-db gene-ids)))))
+                   (qualified-q (mvp2-filter q direction)))
+              qualified-q)])))
+
+      (printf "computed a total of ~s results for MVP mode creative query\n"
+              (length q1-all-results-unsorted))
+
+      (define q1-unsorted-long (take-at-most q1-all-results-unsorted MAX_RESULTS_TO_SCORE_AND_SORT))
+
+      (printf "about to score ~s results for MVP mode creative query\n"
+              (length q1-unsorted-long))
+
+      (define (score-mvp-two-hop-edge e)
+        (match e
+          [`(,curie_x
+             ,pred_xy
+             ,curie_y
+             ,pred_yz
+             ,curie_z
+             ,props_xy
+             ,props_yz)
+           (if (and (edge-has-source? props_xy)
+                    (edge-has-source? props_yz))
+               (* (num-pubs props_xy) (num-pubs props_yz))
+               -1000000)]))
+
+      (define scored/q1-unsorted-long
+        (map
+         (lambda (e) (cons (score-mvp-two-hop-edge e) e))
+         q1-unsorted-long))
+
+      (printf "about to sort ~s results for MVP mode creative query\n"
+              (length scored/q1-unsorted-long))
+
+      (define scored/q1-sorted-long
+        (sort
+         scored/q1-unsorted-long
+         (lambda (score1/e1 score2/e2)
+           (let ((score1 (car score1/e1))
+                 (score2 (car score2/e2)))
+             (> score1 score2)))))
+
+      (printf "about to take the first ~s scored and sorted results for MVP mode creative query\n"
+              MAX_RESULTS_FROM_COMPONENT)
+
+      (define scored/q1-sorted (take-at-most scored/q1-sorted-long MAX_RESULTS_FROM_COMPONENT))
+
+      (printf "now have ~s scored and sorted results for MVP mode creative query\n"
+              (length scored/q1-sorted))
 
       (define nodes (make-hash))
 
@@ -846,7 +990,7 @@
                        (hash 'categories categories
                              'name name)))))
       
-      (define (add-edge! props n)             
+      (define (add-edge! props n)
         (let ((id (string-append "medik:#" (number->string n))))
           ;; TODO: edge ids here can be medik_#0, medik_#1, ... since the
           ;; the edge ids assigned from the process of transformation from
@@ -867,19 +1011,19 @@
       (define (add-result! r)
         (set! results (cons r results)))
 
-      (let loop ((n 0) (e q1))
+      (let loop ((n 0) (score*/e* scored/q1-sorted))
         (cond
-          ((null? e) '())
-          (else 
-           (match (car e)
+          ((null? score*/e*) '())
+          (else
+           (define score/e (car score*/e*))
+           (define score (car score/e))
+           (define e (cdr score/e))
+           (match e
              [`(,curie_x
-                ,name_x
                 ,pred_xy
                 ,curie_y
-                ,name_y
                 ,pred_yz
                 ,curie_z
-                ,name_z
                 ,props_xy
                 ,props_yz)
               (if (and (edge-has-source? props_xy)
@@ -892,17 +1036,20 @@
                           (edge_yz (add-edge! props_yz (+ n 1))))
                       (add-result!
                        (hash 'edge_bindings
-                             (hash (string->symbol (string-append qg_subject-node-str "_medik:middleman")) (list (hash 'id edge_xy))
-                                   (string->symbol (string-append "medik:middleman_" qg_object-node-str)) (list (hash 'id edge_yz)))
+                             (hash (string->symbol (string-append qg_subject-node-str "_medik:middleman"))
+                                   (list (hash 'id edge_xy))
+                                   ;;
+                                   (string->symbol (string-append "medik:middleman_" qg_object-node-str))
+                                   (list (hash 'id edge_yz)))
                              'node_bindings
                              (hash qg_object-node-id (list (hash 'id curie_z))
                                    qg_subject-node-id    (list (hash 'id curie_x))
                                    'medik:middleman    (list (hash 'id curie_y)))
                              ;; TODO: we should downvote any answer that is already in 1-hop
                              'score
-                             (* (num-pubs props_xy) (num-pubs props_yz)))))
-                    (loop (+ n 2) (cdr e)))
-                  (loop n (cdr e)))]))))
+                             score)))
+                    (loop (+ n 2) (cdr score*/e*)))
+                  (loop n (cdr score*/e*)))]))))
 
       (set! results (sort results (lambda (a b) (> (hash-ref a 'score) (hash-ref b 'score)))))
 
@@ -922,7 +1069,10 @@
       ))
 
   (define gp-trapi-response
-    (if disable-external-requests
+    ;; Disable Genetics Provider TRAPI calls for now, until Genetics
+    ;; Provider KP is handling TRAPI 1.4 Creative Mode queries.
+    #f
+    #;(if disable-external-requests
         #f
         (let ()
 
@@ -1051,25 +1201,25 @@
 (define (handle-trapi-query body-json request-fk)
 
   (define message (hash-ref body-json 'message #f))
-  (printf "message:\n~s\n" message)
+  ;(printf "message:\n~s\n" message)
   (unless message
     (printf "** missing `message` in `body-json`: ~s\n" body-json)
     (request-fk))
 
   (define query_graph (hash-ref message 'query_graph #f))
-  (printf "query_graph:\n~s\n" query_graph)
+  ;(printf "query_graph:\n~s\n" query_graph)
   (unless query_graph
     (printf "** missing `query_graph` in `message`: ~s\n" message)
     (request-fk))
 
   (define edges (hash-ref query_graph 'edges #f))
-  (printf "edges:\n~s\n" edges)
+  ;(printf "edges:\n~s\n" edges)
   (unless edges
     (printf "** missing `edges` in `query_graph`: ~s\n" query_graph)
     (request-fk))
 
   (define nodes (hash-ref query_graph 'nodes #f))
-  (printf "nodes:\n~s\n" nodes)
+  ;(printf "nodes:\n~s\n" nodes)
   (unless nodes
     (printf "** missing `nodes` in `query_graph`: ~s\n" query_graph)
     (request-fk))
@@ -1156,14 +1306,14 @@
                content-length-string
                body-str)
   (printf "received TRAPI `query` POST request\n")
-
+  
   (unless (string-contains? (string-downcase content-type-string) "application/json")
     (printf "** unexpected content-type-string for query\nexpected 'application/json', received '~s'\n"
             content-type-string)
     (request-fk))
 
   (define body-json (string->jsexpr body-str))
-  (printf "body-json:\n~s\n" body-json)
+  ;(printf "body-json:\n~s\n" body-json)
 
   (handle-trapi-query body-json request-fk))
 
@@ -1235,7 +1385,7 @@
    (list
     'xexpr
     200_OK_STRING
-    `(html (body "Hello, World!")))))
+    `(html (body ,(format "Hello, World! from Neo Server ~a" NEO_SERVER_VERSION))))))
 
 (hash-set!
  dispatch-table
@@ -1286,7 +1436,9 @@
    (hash 'event (format "MK_STAGE_BOX value = '~s'" (unbox MK_STAGE_BOX))))  
   (lognew-info
    (hash 'event "starting_server"))
-  (define stop (serve DEFAULT_PORT))
+  (lognew-info
+   (hash 'event (format "(Neo Server ~a)" NEO_SERVER_VERSION)))  
+  (serve DEFAULT_PORT)
   (lognew-info
    (hash 'event "started_server"))
   (let forever ()

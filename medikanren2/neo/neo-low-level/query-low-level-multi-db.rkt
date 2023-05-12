@@ -72,13 +72,7 @@
              (edge-property-values edge-property-values-rtx-kg2)
              (edge-id->properties edge-id->properties-rtx-kg2)
              )
-
-  (rename-in "query-low-level-node-normalization.rkt"
-             (query:Known->X query:Known->X-node-normalization)
-             (query:X->Known query:X->Known-node-normalization)
-             (curie-in-db? curie-in-db?-node-normalization)
-             )
-
+  "query-low-level-equivalence.rkt"
   "../neo-utils/neo-helpers-without-db.rkt"
   "../dbKanren/dbk/database.rkt"
   "../dbKanren/dbk/enumerator.rkt"
@@ -86,46 +80,8 @@
   ;;racket/fixnum
   racket/match
   racket/set
+  racket/list
   )
-
-#|
-Given a single CURIE, returns a list of CURIEs containing synonyms for the
-original CURIE.  The list of synonyms includes the original provided CURIE.
-|#
-(define (curie->synonyms curie) (curies->synonyms (list curie)))
-
-#|
-Given a list of CURIEs, returns a list of CURIEs containing synonyms for the
-CURIEs in the original list.  The list of synonyms includes the original
-provided list of CURIEs.
-|#
-(define (curies->synonyms curies)
-  (append
-   ;; the original provided list of CURIEs
-   curies
-   ;; the synonyms from [node-normalization, rtx-kg2, text-mining, robokop] KGs
-   (set->list
-    (set-fixed-point
-     (list->set curies)
-     (lambda (new-curies)
-       (list->set
-        (query:one-hop-same-as (set->list new-curies)
-                               query:X->Known-synonymizing
-                               query:Known->X-synonymizing)))))))
-
-(define query:one-hop-same-as
-  (lambda (curies query:X->Known query:Known->X)
-    (append
-     (map car
-          (query:X->Known
-           #f
-           (list "biolink:same_as")
-           curies))
-     (map (lambda (e) (list-ref e 3))
-          (query:Known->X
-           curies
-           (list "biolink:same_as")
-           #f)))))
 
 (define (query:Known->Known curie*.S predicate*.S->O curie*.O)
   (append
@@ -160,15 +116,6 @@ provided list of CURIEs.
     (and category*.X
          (filter curie-in-db?-rtx-kg2 category*.X)))))
 
-(define (query:Known->X-synonymizing curie*.K predicate*.K->X category*.X)
-  (append
-   (query:Known->X curie*.K predicate*.K->X category*.X)
-   (query:Known->X-node-normalization
-    (filter curie-in-db?-node-normalization curie*.K)
-    (filter curie-in-db?-node-normalization predicate*.K->X)
-    (and category*.X
-         (filter curie-in-db?-node-normalization category*.X)))))
-
 (define (query:X->Known category*.X predicate*.X->K curie*.K)
   (append
    (query:X->Known-robokop
@@ -186,15 +133,6 @@ provided list of CURIEs.
          (filter curie-in-db?-rtx-kg2 category*.X))
     (filter curie-in-db?-rtx-kg2 predicate*.X->K)
     (filter curie-in-db?-rtx-kg2 curie*.K))))
-
-(define (query:X->Known-synonymizing category*.X predicate*.X->K curie*.K)
-  (append
-   (query:X->Known category*.X predicate*.X->K curie*.K)
-   (query:X->Known-node-normalization
-    (and category*.X
-         (filter curie-in-db?-node-normalization category*.X))
-    (filter curie-in-db?-node-normalization predicate*.X->K)
-    (filter curie-in-db?-node-normalization curie*.K))))
 
 ;; query:Known<-X->Known is analogous to a miniKanren-style query with this shape:
 ;;(run* (K1 name.K1 predicates.K1<-X X name.X predicates.X->K1 K2 name.K2)
@@ -239,11 +177,11 @@ provided list of CURIEs.
                     (lambda (X XK1* XK2*)
                       (for-each
                        (lambda (XK1)
-                         (match-define (list* _ name.X predicate.X->K1 K1 name.K1 props1) XK1)
+                         (match-define (list* _ predicate.X->K1 K1 props1) XK1)
                          (for-each
                           (lambda (XK2)
-                            (match-define (list* _ _ X->K2 K2 name.K2 props2) XK2)
-                            (yield (append (list K1 name.K1 predicate.X->K1 X name.X X->K2 K2 name.K2)
+                            (match-define (list* _ X->K2 K2 props2) XK2)
+                            (yield (append (list K1 predicate.X->K1 X X->K2 K2)
                                            (append props1 props2))))
                           XK2*))
                        XK1*))))))))
@@ -260,10 +198,10 @@ provided list of CURIEs.
 
 (define (query:Known->X->Known-helper curie*.K1 predicate*.K1->X category*.X predicate*.X->K2 curie*.K2)
   (define (KX*->dict candidate*)
-    (let* ((candidate* (sort candidate* (lambda (a b) (string<? (cadddr a) (cadddr b)))))
-           (group*     (list->vector (s-group candidate* equal? cadddr)))
+    (let* ((candidate* (sort candidate* (lambda (a b) (string<? (caddr a) (caddr b)))))
+           (group*     (list->vector (s-group candidate* equal? caddr)))
            (ref.value  (lambda (i) (vector-ref group* i))))
-      (dict:ref (lambda (i) (cadddr (car (ref.value i)))) string<?
+      (dict:ref (lambda (i) (caddr (car (ref.value i)))) string<?
                 ref.value 0 (vector-length group*))))
   (define (XK*->dict candidate*)
     (let* ((candidate* (sort candidate* (lambda (a b) (string<? (car a) (car b)))))
@@ -279,15 +217,51 @@ provided list of CURIEs.
                     (lambda (X K1X* XK2*)
                       (for-each
                        (lambda (K1X)
-                         (match-define (list* K1 name.K1 predicate.X->K1 _ name.X props1) K1X)
+                         (match-define (list* K1 predicate.X->K1 _ props1) K1X)
                          (for-each
                           (lambda (XK2)
-                            (match-define (list* _ _ X->K2 K2 name.K2 props2) XK2)
-                            (yield (append (list K1 name.K1 predicate.X->K1 X name.X X->K2 K2 name.K2)
+                            (match-define (list* _ X->K2 K2 props2) XK2)
+                            (yield (append (list K1 predicate.X->K1 X X->K2 K2)
                                            (append props1 props2))))
                           XK2*))
                        K1X*))))))))
 
+(define (result*->dict key result* curie-rep-hash)
+    (let* ((get-representative (lambda (tuple) (hash-ref curie-rep-hash (key tuple))))
+           (rep/result* (map (lambda (tuple) (cons (get-representative tuple) tuple)) result*))
+           (rep/key car)
+           (rep/result*  (sort rep/result* (lambda (a b) (string<? (rep/key a) (rep/key b)))))
+           (group*    (list->vector (s-group rep/result* equal? rep/key)))
+           (ref.value (lambda (i) (vector-ref group* i))))
+      (dict:ref (lambda (i) (rep/key (car (ref.value i)))) string<?
+                ref.value 0 (vector-length group*))))
+
+(define find-smallest-string
+  (lambda (string*)
+    (let loop ((s* (cdr string*)) (smallest (car string*)))
+      (cond
+        ((null? s*) smallest)
+        (else
+         (if (string<? (car s*) smallest)
+             (loop (cdr s*) (car s*))
+             (loop (cdr s*) smallest)))))))
+
+(define build-curie-representative-hash
+  (lambda (curie*)
+    (define build-curie-representative-hash
+      (lambda (hash curie)
+        (if (hash-has-key? hash curie)
+            hash
+            (let* ((synonyms (curie->synonyms curie))
+                   (representative (find-smallest-string synonyms)))
+              (let loop ((h hash) (s* synonyms))
+                (cond
+                  ((null? s*) h)
+                  (else (loop (hash-set h (car s*) representative) (cdr s*)))))))))
+    (let loop ((h (hash)) (c* curie*))
+      (cond
+        ((null? c*) h)
+        (else (loop (build-curie-representative-hash h (car c*)) (cdr c*)))))))
 
 (define (query:X->Y->Known category*.X predicate*.X->Y category*.Y predicate*.Y->K curie*.K)
   (query:X->Y->Known-helper
@@ -299,32 +273,24 @@ provided list of CURIEs.
    (filter curie-in-db? predicate*.Y->K)
    (filter curie-in-db? curie*.K)))
 
-(define (query:X->Y->Known-helper category*.X predicate*.X->Y category*.Y predicate*.Y->K curie*.K)
-  (define (result*->dict key result* curie*-representatives-hash)
-    (let* ((get-representative (lambda (tuple) (hash-ref curie*-representatives-hash (key tuple))))
-           (rep/result* (map (lambda (tuple) (cons (get-representative tuple) tuple)) result*))
-           (rep/key car)
-           (rep/result*  (sort rep/result* (lambda (a b) (string<? (rep/key a) (rep/key b)))))
-           (group*    (list->vector (s-group rep/result* equal? rep/key)))
-           (ref.value (lambda (i) (vector-ref group* i))))
-      (dict:ref (lambda (i) (rep/key (car (ref.value i)))) string<?
-                ref.value 0 (vector-length group*))))
-  (let* ((Y=>K (query:X->Known category*.Y predicate*.Y->K curie*.K))
-         (curie*-representative*-hash (build-curie*-representative*-hash (set->list (list->set (map car Y=>K)))))
-         (Y=>YK=>1 (result*->dict car Y=>K curie*-representative*-hash))
-         (curie*.Y (hash-keys curie*-representative*-hash))
-         (Y=>XY=>1 (result*->dict cadddr (query:X->Known category*.X predicate*.X->Y curie*.Y) curie*-representative*-hash)))
+(define (query:X->Y->Known-helper category*.X predicate*.X->Y category*.Y predicate*.Y->K curie*.K)  
+  (let* ((YK (query:X->Known category*.Y predicate*.Y->K curie*.K))
+         (curie-rep-hash (build-curie-representative-hash (remove-duplicates (map car YK))))
+         (Y=>YK=>1 (result*->dict car YK curie-rep-hash))
+         (curie*.Y (hash-keys curie-rep-hash))
+         (XY (query:X->Known category*.X predicate*.X->Y curie*.Y))
+         (Y=>XY=>1 (result*->dict caddr XY curie-rep-hash)))
     (maybe-time (enumerator->list
                  (lambda (yield)
                    ((merge-join string<? Y=>XY=>1 Y=>YK=>1)
                     (lambda (rep XY* YK*)
                       (for-each
                        (lambda (XY)
-                         (match-define (list* _ X name.X predicate.X->Y Y name.Y props.X->Y) XY)
+                         (match-define (list* _ X predicate.X->Y Y props.X->Y) XY)
                          (for-each
                           (lambda (YK)
-                            (match-define (list* _ _ _ Y->K K name.K props.Y->K) YK)
-                            (yield (list X name.X predicate.X->Y Y name.Y Y->K K name.K props.X->Y props.Y->K)))
+                            (match-define (list* _ _ Y->K K props.Y->K) YK)
+                            (yield (list X predicate.X->Y Y Y->K K props.X->Y props.Y->K)))
                           YK*))
                        XY*))))))))
 
@@ -338,53 +304,26 @@ provided list of CURIEs.
    (and category*.X
         (filter curie-in-db? category*.X))))
 
-(define (query:Known->Y->X-helper curie*.K predicate*.K->Y category*.Y predicate*.Y->X category*.X )
-  (define (result*->dict key result* curie*-representatives-hash)
-    (let* ((get-representative (lambda (tuple) (hash-ref curie*-representatives-hash (key tuple))))
-           (rep/result* (map (lambda (tuple) (cons (get-representative tuple) tuple)) result*))
-           (rep/key car)
-           (rep/result*  (sort rep/result* (lambda (a b) (string<? (rep/key a) (rep/key b)))))
-           (group*    (list->vector (s-group rep/result* equal? rep/key)))
-           (ref.value (lambda (i) (vector-ref group* i))))
-      (dict:ref (lambda (i) (rep/key (car (ref.value i)))) string<?
-                ref.value 0 (vector-length group*))))  
-  (let* ((K=>Y (query:Known->X curie*.K predicate*.K->Y category*.Y))
-         (curie*-representative*-hash (build-curie*-representative*-hash (set->list (list->set (map cadddr K=>Y)))))
-         (Y=>KY=>1 (result*->dict cadddr K=>Y curie*-representative*-hash))
-         (curie*.Y (hash-keys curie*-representative*-hash))
-         (Y=>YX=>1 (result*->dict car (query:Known->X curie*.Y predicate*.Y->X category*.X)
-                                  curie*-representative*-hash)))
+(define (query:Known->Y->X-helper curie*.K predicate*.K->Y category*.Y predicate*.Y->X category*.X )  
+  (let* ((KY (query:Known->X curie*.K predicate*.K->Y category*.Y))
+         (curie-rep-hash (build-curie-representative-hash (remove-duplicates (map caddr KY))))
+         (Y=>KY=>1 (result*->dict caddr KY curie-rep-hash))
+         (curie*.Y (hash-keys curie-rep-hash))
+         (YX (query:Known->X curie*.Y predicate*.Y->X category*.X))
+         (Y=>YX=>1 (result*->dict car YX curie-rep-hash)))
     (maybe-time (enumerator->list
                  (lambda (yield)
                    ((merge-join string<? Y=>YX=>1 Y=>KY=>1)
                     (lambda (rep YX* KY*)
                       (for-each
                        (lambda (YX)
-                         (match-define (list* _ Y name.Y predicate.Y->X X name.X props.Y->X) YX)
+                         (match-define (list* _ Y predicate.Y->X X props.Y->X) YX)
                          (for-each
                           (lambda (KY)
-                            (match-define (list* _ K name.K K->Y _ _ props.K->Y) KY)
-                            (yield (list K name.K K->Y Y name.Y predicate.Y->X X name.X props.K->Y props.Y->X)))
+                            (match-define (list* _ K K->Y _ props.K->Y) KY)
+                            (yield (list K K->Y Y predicate.Y->X X props.K->Y props.Y->X)))
                           KY*))
                        YX*))))))))
-
-(define build-curie*-representative*-hash
-  (lambda (curie*)
-    (define build-curie-representative-hash
-      (lambda (hash curie)
-        (if (hash-has-key? hash curie)
-            hash
-            (let* ((synonyms (curie->synonyms curie))
-                   (representative (car (sort synonyms string<?))))
-              (let loop ((h hash) (s* synonyms))
-                (cond
-                  ((null? s*) h)
-                  ((hash-has-key? h (car s*)) (loop h (cdr s*)))
-                  (else (loop (hash-set h (car s*) representative) (cdr s*)))))))))
-    (let loop ((h (hash)) (c* curie*))
-      (cond
-        ((null? c*) h)
-        (else (loop (build-curie-representative-hash h (car c*)) (cdr c*)))))))
 
 (define (query:Concept curie*)
   (append

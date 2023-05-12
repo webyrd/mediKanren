@@ -53,7 +53,7 @@
 
 
 (define-runtime-path path.here "../neo-data")
-(define db-path-under-parent "kgx-synonym/neo/equivalence.db")
+(define db-path-under-parent "equivalence/april_25_2023/equivalence.db")
 (pretty-log `(loading relation index dictionaries for db)
               path.here
               db-path-under-parent)
