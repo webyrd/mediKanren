@@ -90,59 +90,174 @@
 (define MK_STAGE_BOX (box #f)) ;; deprecated (5 April 2023)
 ;; (should be removed, once ENVIRONMENT_TAG_BOX is shown to work)
 
+(struct job-failure (message))
+
+(define job-request (make-channel))
+
+(define (work-safely work)
+  (printf "entered work-safely\n")
+  (let ((result
+         (with-handlers ((exn:fail?
+                          (lambda (v)
+                            (printf "!! exn:fail? handler called from work-safely\n")
+                            ((error-display-handler) (exn-message v) v)
+                            (job-failure (exn-message v))))
+                         ((lambda _ #t)
+                          (lambda (v)
+                            (printf "!! unknown error handler called from work-safely\n")
+                            (define message
+                              (string-append "unknown error: "
+                                             (with-output-to-string (lambda () (write v)))))
+                            (pretty-write message)
+                            (job-failure message))))
+           (printf "about to call (work)\n")
+           (work))))
+    (printf "work-safely returning result ~s\n" result)
+    result))
+
+;; Run multiple jobs concurrently
+;(define (job work) (work-safely work))
+
+;; Run multiple jobs sequentially
+(define (job work)
+  (define job-response (make-channel))
+  (printf "job is calling channel-put on job-request channel\n")
+  (channel-put job-request (cons job-response work))
+  (printf "job is calling channel-get on job-response channel\n")
+  (let ((response (channel-get job-response)))
+    (printf "job is returning response from job-reponse channel\n")
+    response))
 
 (define (serve port-no)
-  (define main-cust (make-custodian))
-  (parameterize ([current-custodian main-cust])
-    (define listener
-      (tcp-listen port-no
-                  MAX_ALLOW_WAIT
-                  REUSE_LISTENER_WHILE_IN_TIME_WAIT_STATE
-                  ONLY_ACCEPT_CONNECTIONS_FROM_GIVEN_HOSTNAME))
-    (define (loop)
-      (accept-and-handle listener)
-      (loop))
-    (thread loop))
-  (define shut-down-already-attempted #f)
-  (lambda ()
-    (when shut-down-already-attempted
-      (printf "already tried to shut down this server!  Trying again...\n")
-      (if (custodian-shut-down? main-cust)
-          (printf "main custodian already shut down.  Trying again...\n")
-          (printf "*** weird---main custodian is still active!  Trying again...\n")))
-    (printf "shutting down server...\n")
-    (custodian-shutdown-all main-cust)
-    (set! shut-down-already-attempted #t)
-    (printf "server shut down\n")))
+  (define listener
+    (tcp-listen port-no
+                MAX_ALLOW_WAIT
+                REUSE_LISTENER_WHILE_IN_TIME_WAIT_STATE
+                ONLY_ACCEPT_CONNECTIONS_FROM_GIVEN_HOSTNAME))
+  (define (worker)
+    (let loop ()
+      (printf "worker is about to call channel-get on job-request\n")
+      (match-define (cons job-response work) (channel-get job-request))
+      (printf "worker is about to call channel-put on job-response\n")
+      (channel-put job-response (work-safely work))
+      (loop)))
+  (define (loop)
+    (accept-and-handle listener)
+    (loop))
+  (thread worker)
+  (thread loop))
 
 (define (accept-and-handle listener)
-  (define cust (make-custodian))
-  (parameterize ([current-custodian cust])
+  (define cust.accept-and-handle (make-custodian))
+  (parameterize ((current-custodian cust.accept-and-handle))
     (define-values (in out) (tcp-accept listener))
     (printf "\ntcp-accept accepted connection\n")
+
+    ;; main accept-and-handle thread
     (thread
      (lambda ()
-       (printf "\n++ started handle thread for Neo Server ~a ++\n"
-               NEO_SERVER_VERSION)
-       (handle in out
+       (define start-time-ms (current-inexact-milliseconds))
+       (let ((cust.job
+              (job
                (lambda ()
-                 (printf "** connection failure continuation invoked!\n")
-                 (custodian-shutdown-all (current-custodian)))
-               (lambda ()
-                 (printf "** request failure continuation invoked!\n")
-                 (custodian-shutdown-all (current-custodian))))
-       (close-input-port in)
-       (close-output-port out)
-       (printf "handle thread ending\n")
-       (custodian-shutdown-all (current-custodian))))
-    ;; watcher thread:
-    (thread
-     (lambda ()
-       (sleep CONNECTION_TIMEOUT_SECONDS)
-       (printf
-        "** watcher thread timed out connection after ~s seconds!\n"
-        CONNECTION_TIMEOUT_SECONDS)
-       (custodian-shutdown-all (current-custodian))))))
+                 (printf "job-thunk invoked\n")
+
+                 (define cust.job (make-custodian))
+                 (parameterize ((current-custodian cust.job))
+                   (define sem (make-semaphore 0))
+
+                   (printf "job-thunk about to call handle\n")
+                   (define handler-thread
+                     (thread
+                      (lambda ()
+                        (handle in out
+                                (lambda ()
+                                  (printf "** connection failure continuation invoked!\n")
+                                  (semaphore-post sem))
+                                (lambda ()
+                                  (printf "** request failure continuation invoked!\n")
+                                  (semaphore-post sem)))
+                        (printf "finished cleanly\n")
+                        (semaphore-post sem))))
+
+                   ;; half-closed TCP connections watcher-thread
+                   (define half-closed-TCP-thread
+                     (thread
+                      (lambda ()
+                        (printf "$$$ hello from half-closed-TCP-thread\n")
+                        ;; Detect half-closed TCP connections with eof-evt on the input port
+                        (with-handlers
+                            ((exn:fail:network:errno?
+                              (lambda (ex)
+                                (cond
+                                  ((equal? '(110 . posix) (exn:fail:network:errno-errno ex))
+                                   (printf "!!! Error: TCP keepalive failed.  Presuming half-open TCP connection.\n")
+                                   (semaphore-post sem))
+                                  (else
+                                   (printf "!!! Error: Unknown network error ~a.\n" ex)
+                                   (semaphore-post sem))))))
+                          (let loop-forever ()
+                            (let ((evt (sync/timeout 1
+                                                     (eof-evt in)
+                                                     (thread-dead-evt handler-thread))))
+                              (cond
+                                (evt
+                                 (printf "$$$ half-closed TCP thread detected synchronized event: ~s\n" evt)
+                                 (cond
+                                   ((eq? (eof-evt in) evt)
+                                    (printf "!!! Error: Detected half-closed TCP connection\n")
+                                    (semaphore-post sem))
+                                   ((eq? (thread-dead-evt handler-thread) evt)
+                                    (printf
+                                     "$$$ half-closed TCP thread detected (thread-dead-evt handler-thread) event\n")
+                                    (semaphore-post sem))
+                                   (else
+                                    (printf
+                                     "!!! Error: half-closed TCP thread detected unexpected event type\n")
+                                    (semaphore-post sem))))
+                                (else
+                                 (display "." (current-output-port))
+                                 (flush-output (current-output-port))
+                                 (loop-forever)))))))))
+
+                   ;; timeout watcher-thread
+                   (define watcher-thread
+                     (thread
+                      (lambda ()
+                        (printf "@@@ hello from watcher-thread\n")
+                        (printf "@@@ computation originally had ~s seconds (walltime) until timeout\n"
+                                CONNECTION_TIMEOUT_SECONDS)
+                        (printf "@@@ computation now has ~s seconds (walltime) until timeout\n"
+                                (inexact->exact
+                                 (floor
+                                  (/ (- (+ start-time-ms (* CONNECTION_TIMEOUT_SECONDS 1000))
+                                        (current-inexact-milliseconds))
+                                     1000.0))))
+                        (let loop-forever ()
+                          (let ((evt (sync/timeout 1
+                                                   (thread-dead-evt handler-thread))))
+                            (cond
+                              (evt
+                               (printf "@@@ Watcher thread got a thread-dead-evt for handler-thread\n")
+                               (semaphore-post sem))
+                              ((> (current-inexact-milliseconds)
+                                  (+ start-time-ms (* CONNECTION_TIMEOUT_SECONDS 1000)))
+                               (printf "!!! Watcher thread timed out after ~s seconds (walltime)\n"
+                                       CONNECTION_TIMEOUT_SECONDS)
+                               (semaphore-post sem))
+                              (else (loop-forever))))))))
+
+                   (semaphore-wait sem)
+                   (printf "got past semaphore\n")
+                   cust.job)))))
+
+         (printf "job call returned cust.job ~s\n" cust.job)
+
+         (printf "main accept-and-handle thread about to shut-down cust.job\n")
+         (custodian-shutdown-all cust.job)
+
+         (printf "main accept-and-handle thread about to shut-down cust.accept-and-handle\n")
+         (custodian-shutdown-all cust.accept-and-handle))))))
 
 (define (get-request-headers in)
   (define request-headers (make-hash))
@@ -154,21 +269,21 @@
           (printf "** error parsing request headers: current line doesn't end properly\n")
           #f)
         (let ((current-line (list-ref current-line-match 0)))
-          (printf "current-line:\n~s\n" current-line)
+          ;(printf "current-line:\n~s\n" current-line)
           (cond
             [(regexp-match #rx"^([^:]+:) (.+)\r\n" current-line)
              =>
              (lambda (header)
-               (printf "== header:\n~s\n" header)
-               (printf "== (list-ref header 1):\n~s\n" (list-ref header 1))
-               (printf "== (list-ref header 2):\n~s\n" (list-ref header 1))
+               ;(printf "== header:\n~s\n" header)
+               ;(printf "== (list-ref header 1):\n~s\n" (list-ref header 1))
+               ;(printf "== (list-ref header 2):\n~s\n" (list-ref header 1))
                (hash-set! request-headers
                           (bytes->string/utf-8 (list-ref header 1))
                           (bytes->string/utf-8 (list-ref header 2)))
-               (printf "== request-headers:\n~s\n\n" request-headers)
+               ;(printf "== request-headers:\n~s\n\n" request-headers)
                (loop))]
             [(regexp-match #px"^[[:space:]]*\r\n" current-line)
-             (printf "parsed request headers:\n~s\n" request-headers)
+             ;(printf "parsed request headers:\n~s\n" request-headers)
              request-headers]
             [else
              (printf "** error parsing request headers: ~s\n" current-line)
@@ -269,25 +384,11 @@
               (lambda (ex)
                 (cond
                   ((equal? '(110 . posix) (exn:fail:network:errno-errno ex))
-                   (display "Error: TCP keepalive failed.  Presuming half-open TCP connection.\n")
+                   (printf "Error: TCP keepalive failed.  Presuming half-open TCP connection.\n")
                    (conn-fk))
                   (else
                    (printf "Error: Unknown network error ~a.\n" ex)
                    (conn-fk))))))
-          ;; watcher thread checking for half-closed TCP connection
-          (thread
-           (lambda ()
-             (let loop-forever ()
-               (let ((evt (sync/timeout 1 (eof-evt in))))
-                 (cond
-                   (evt
-                    (displayln "Error: Detected half-closed TCP connection.")
-                    (conn-fk))
-                   (else
-                    (display "." (current-output-port))
-                    (flush-output (current-output-port))
-                    (loop-forever)))))))
-
           (match request-type
             ["GET"
              ;; Dispatch GET request:
@@ -298,13 +399,11 @@
                (printf "dispatch-result:\n~s\n" dispatch-result)
 
                ;; Send reply:
-               (send-reply dispatch-result out)
-
-               (custodian-shutdown-all (current-custodian)))]
+               (send-reply dispatch-result out))]
             ["POST"
              (printf "handling POST request\n")
 
-             (printf "req-headers:\n~s\n" req-headers)
+             ;(printf "req-headers:\n~s\n" req-headers)
 
              (define content-length-string
                (get-key/value-from-headers "Content-Length:" req-headers))
@@ -332,7 +431,7 @@
              (printf "Content-Type:\n~s\n" content-type-string)
 
              (define body-str (get-request-body in content-length))
-             (printf "body-str:\n~s\n" body-str)
+             ;(printf "body-str:\n~s\n" body-str)
 
              (unless body-str
                (printf "** error: unable to get the body of POST request\n")
@@ -347,11 +446,10 @@
                                                       content-length-string
                                                       body-str)])
                ;; (printf "dispatch-result:\n~s\n" dispatch-result)
+               (printf "about to send reply\n")
 
                ;; Send reply:
-               (send-reply dispatch-result out)
-
-               (custodian-shutdown-all (current-custodian)))]))))))
+               (send-reply dispatch-result out))]))))))
 
 ;; dispatch for HTTP GET and POST requests
 (define (dispatch-request request-type
@@ -367,13 +465,13 @@
   (define dispatch-key (list request-type (car path)))
   (define h (hash-ref dispatch-table dispatch-key #f))
   (printf "dispatch-key: ~s\n" dispatch-key)
-  (printf "dispatch-table: ~s\n" dispatch-table)
+  ;(printf "dispatch-table: ~s\n" dispatch-table)
   (printf "h: ~s\n" h)
   (printf "url: ~s\n" url)
   (printf "path: ~s\n" path)
   (printf "url-query: ~s\n" (url-query url))
-  (printf "req-headers: ~s\n" req-headers)
-  (printf "rest-args: ~s\n" rest-args)
+  ;(printf "req-headers: ~s\n" req-headers)
+  ;(printf "rest-args: ~s\n" rest-args)
   (newline)
 
   (if h
@@ -1103,25 +1201,25 @@
 (define (handle-trapi-query body-json request-fk)
 
   (define message (hash-ref body-json 'message #f))
-  (printf "message:\n~s\n" message)
+  ;(printf "message:\n~s\n" message)
   (unless message
     (printf "** missing `message` in `body-json`: ~s\n" body-json)
     (request-fk))
 
   (define query_graph (hash-ref message 'query_graph #f))
-  (printf "query_graph:\n~s\n" query_graph)
+  ;(printf "query_graph:\n~s\n" query_graph)
   (unless query_graph
     (printf "** missing `query_graph` in `message`: ~s\n" message)
     (request-fk))
 
   (define edges (hash-ref query_graph 'edges #f))
-  (printf "edges:\n~s\n" edges)
+  ;(printf "edges:\n~s\n" edges)
   (unless edges
     (printf "** missing `edges` in `query_graph`: ~s\n" query_graph)
     (request-fk))
 
   (define nodes (hash-ref query_graph 'nodes #f))
-  (printf "nodes:\n~s\n" nodes)
+  ;(printf "nodes:\n~s\n" nodes)
   (unless nodes
     (printf "** missing `nodes` in `query_graph`: ~s\n" query_graph)
     (request-fk))
@@ -1215,7 +1313,7 @@
     (request-fk))
 
   (define body-json (string->jsexpr body-str))
-  (printf "body-json:\n~s\n" body-json)
+  ;(printf "body-json:\n~s\n" body-json)
 
   (handle-trapi-query body-json request-fk))
 
@@ -1340,7 +1438,7 @@
    (hash 'event "starting_server"))
   (lognew-info
    (hash 'event (format "(Neo Server ~a)" NEO_SERVER_VERSION)))  
-  (define stop (serve DEFAULT_PORT))
+  (serve DEFAULT_PORT)
   (lognew-info
    (hash 'event "started_server"))
   (let forever ()
