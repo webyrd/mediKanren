@@ -5,7 +5,9 @@
  ;;
  class-deprecated?
  predicate-mixin?
+ predicate-abstract?
  class-mixin?
+ class-abstract?
  predicate-symmetric?
  ;;
  all-predicates

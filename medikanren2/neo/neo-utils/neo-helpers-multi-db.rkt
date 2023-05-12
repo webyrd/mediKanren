@@ -10,6 +10,9 @@
  get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
  get-non-deprecated-mixed-ins-and-descendent-classes*-in-db
  ;;
+ get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
+ get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
+ ;;
  get-descendent-curies-in-db
  get-descendent-curies*-in-db
  ;;
@@ -44,11 +47,27 @@
             (set->list
               (get-non-deprecated-mixed-ins-and-descendent-predicates* preds)))))
 
+(define (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db preds)
+  (list->set
+   (filter (lambda (p)
+             (not (or
+                   (predicate-mixin? p)
+                   (predicate-abstract? p))))
+           (set->list (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db preds)))))
+
 (define (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db classes)
   (list->set
     (filter curie-in-db?
             (set->list
               (get-non-deprecated-mixed-ins-and-descendent-classes* classes)))))
+
+(define (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db classes)
+  (list->set
+   (filter (lambda (c)
+             (not (or
+                   (class-mixin? c)
+                   (class-abstract? c))))
+           (set->list (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db classes)))))
 
 (define (get-descendent-curies-in-db curie)
   (get-descendent-curies*-in-db (list curie)))

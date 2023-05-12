@@ -6,7 +6,9 @@
  predicate-deprecated?
  class-deprecated?
  predicate-mixin?
+ predicate-abstract?
  class-mixin?
+ class-abstract?
  predicate-symmetric?
  ;;
  all-predicates
@@ -118,6 +120,18 @@
     (lambda (pred)
       (hash-ref predicate-mixin-hash pred #f))))
 
+(define predicate-abstract?
+  (let ((predicate-abstract-hash (make-hash)))
+    (for-each
+      (lambda (pred-yaml-str)
+        (let ((abstract-flag (hash-ref (hash-ref (hash-ref biolink "slots") pred-yaml-str) "abstract" #f)))
+          (when abstract-flag
+            (let ((pred-biolink-name (yaml-predicate-name-to-biolink-name pred-yaml-str)))
+              (hash-set! predicate-abstract-hash pred-biolink-name #t)))))
+      slots)
+    (lambda (pred)
+      (hash-ref predicate-abstract-hash pred #f))))
+
 
 (define class-mixin?
   (let ((class-mixin-hash (make-hash)))
@@ -130,6 +144,18 @@
       classes)
     (lambda (class)
       (hash-ref class-mixin-hash class #f))))
+
+(define class-abstract?
+  (let ((class-abstract-hash (make-hash)))
+    (for-each
+      (lambda (class-yaml-str)
+        (let ((abstract-flag (hash-ref (hash-ref (hash-ref biolink "classes") class-yaml-str) "abstract" #f)))
+          (when abstract-flag
+            (let ((class-biolink-name (yaml-class-name-to-biolink-name class-yaml-str)))
+              (hash-set! class-abstract-hash class-biolink-name #t)))))
+      classes)
+    (lambda (class)
+      (hash-ref class-abstract-hash class #f))))
 
 
 
