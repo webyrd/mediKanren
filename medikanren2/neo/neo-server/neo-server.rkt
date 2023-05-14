@@ -10,6 +10,7 @@
   "../neo-utils/neo-helpers-multi-db.rkt"
   racket/file
   racket/match
+  racket/engine
   racket/set
   racket/port
   racket/pretty
@@ -25,7 +26,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.1")
+(define NEO_SERVER_VERSION "1.2")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -96,22 +97,7 @@
 
 (define (work-safely work)
   (printf "entered work-safely\n")
-  (let ((result
-         (with-handlers ((exn:fail?
-                          (lambda (v)
-                            (printf "!! exn:fail? handler called from work-safely\n")
-                            ((error-display-handler) (exn-message v) v)
-                            (job-failure (exn-message v))))
-                         ((lambda _ #t)
-                          (lambda (v)
-                            (printf "!! unknown error handler called from work-safely\n")
-                            (define message
-                              (string-append "unknown error: "
-                                             (with-output-to-string (lambda () (write v)))))
-                            (pretty-write message)
-                            (job-failure message))))
-           (printf "about to call (work)\n")
-           (work))))
+  (let ((result (work)))
     (printf "work-safely returning result ~s\n" result)
     result))
 
@@ -156,108 +142,197 @@
     ;; main accept-and-handle thread
     (thread
      (lambda ()
-       (define start-time-ms (current-inexact-milliseconds))
+
+       (define start-time-ms-realtime (current-inexact-milliseconds))
+       (define timeout-ms-realtime
+         (+ start-time-ms-realtime (* CONNECTION_TIMEOUT_SECONDS 1000)))
+       
        (let ((cust.job
               (job
                (lambda ()
                  (printf "job-thunk invoked\n")
 
+                 (printf "(current-memory-use): ~s\n"
+                         (current-memory-use))
+                 (printf "calling (collect-garbage)\n")
+                 (collect-garbage)
+                 (printf "(current-memory-use): ~s\n"
+                         (current-memory-use))
+
                  (define cust.job (make-custodian))
                  (parameterize ((current-custodian cust.job))
-                   (define sem (make-semaphore 0))
 
-                   (printf "job-thunk about to call handle\n")
-                   (define handler-thread
-                     (thread
-                      (lambda ()
-                        (handle in out
-                                (lambda ()
-                                  (printf "** connection failure continuation invoked!\n")
-                                  (semaphore-post sem))
-                                (lambda ()
-                                  (printf "** request failure continuation invoked!\n")
-                                  (semaphore-post sem)))
-                        (printf "finished cleanly\n")
-                        (semaphore-post sem))))
+                   (define ENGINE_GAS_MS (* 1 1000))
 
-                   ;; half-closed TCP connections watcher-thread
-                   (define half-closed-TCP-thread
-                     (thread
-                      (lambda ()
-                        (printf "$$$ hello from half-closed-TCP-thread\n")
-                        ;; Detect half-closed TCP connections with eof-evt on the input port
-                        (with-handlers
-                            ((exn:fail:network:errno?
-                              (lambda (ex)
-                                (cond
-                                  ((equal? '(110 . posix) (exn:fail:network:errno-errno ex))
-                                   (printf "!!! Error: TCP keepalive failed.  Presuming half-open TCP connection.\n")
-                                   (semaphore-post sem))
-                                  (else
-                                   (printf "!!! Error: Unknown network error ~a.\n" ex)
-                                   (semaphore-post sem))))))
-                          (let loop-forever ()
-                            (let ((evt (sync/timeout 1
-                                                     (eof-evt in)
-                                                     (thread-dead-evt handler-thread))))
+                   (define eng
+                     (engine
+                      (lambda (suspend-proc)
+                        (call/cc
+                         (lambda (break)
+                           (let ((result
+                                  (handle in out
+                                          (lambda ()
+                                            (printf "** Connection failure continuation invoked!\n")
+                                            (break 'connection-failure))
+                                          (lambda ()
+                                            (printf "** Request failure continuation invoked!\n")
+                                            (break 'request-failure)))))
+                             (printf "`handle` call in `engine-proc` finished cleanly\n")
+                             result))))))
+
+                   (with-handlers
+                       ;; TODO make sure all the handler work properly
+                       ;; What to do in the case of an exception?
+                       ;;
+                       ;; TODO Return a nice error message from the
+                       ;; server.
+                       ;;
+                       ;; TODO handle the various failures and
+                       ;; exceptions more uniformly.
+                       ;;
+                       ;; TODO make sure we are handling all the
+                       ;; possible failure types, including things
+                       ;; like taking the 'car' of 5.  Test with
+                       ;; various types of exceptions and errors.
+                       ;; Make sure the errors are logged correctly,
+                       ;; and that the server returns a reasonable
+                       ;; result.
+                       ;;
+                       ;; TODO Is it possible to catch an out of
+                       ;; memory error?
+                       ;;
+                       ;; TODO revisit and simplify 'work-safely'.
+                       ;;
+                       ;; TODO consider aborting the computation,
+                       ;; logging memory usage information, and
+                       ;; returning a nice error message from the
+                       ;; server, if the memory usage gets too close
+                       ;; to the max allowed memory size.
+                       ((exn:fail:network:errno?
+                         (lambda (ex)
+                           (cond
+                             ((equal? '(110 . posix) (exn:fail:network:errno-errno ex))
+                              (printf "!!! Error: TCP keepalive failed.  Presuming half-open TCP connection.\n"))
+                             (else
+                              (printf "!!! Error: Unknown network error ~a.\n" ex)))
+                           ;; TODO in either case, return a nice error message from the server
+                           (engine-kill eng)))
+                        (exn:fail?
+                         (lambda (v)
+                           (printf "!! exn:fail? handler called from job engine\n")
+                           ;; TODO what does this do, exactly?
+                           ((error-display-handler) (exn-message v) v)
+                           ;; TODO return a nice error message from the server
+                           (engine-kill eng)))
+                        ((lambda _ #t)
+                         (lambda (v)
+                           (printf "!! Unknown error handler called from job engine\n")
+                           (printf "Unknown error: ~s\n" v)
+                           ;; TODO return a nice error message from the server
+                           (engine-kill eng))))
+
+                     (define unexpected-eof-evt
+                       (eof-evt in))
+
+                     (let loop-forever ()                       
+
+                       (define engine-ran-out-of-gas-evt
+                         (alarm-evt (+ (current-inexact-milliseconds)
+                                       ENGINE_GAS_MS)))
+                       
+                       (define end-evt
+                         (choice-evt
+                          unexpected-eof-evt
+                          engine-ran-out-of-gas-evt))
+
+                       (let* ((finished? (engine-run end-evt eng))
+                              (now-ms-realtime (current-inexact-milliseconds))
+                              (elapsed-seconds-realtime
+                               (inexact->exact
+                                (round
+                                 (/ (- now-ms-realtime start-time-ms-realtime) 1000.0))))
+                              (current-mem (current-memory-use)))
+                         (cond
+                           (finished?
+                            (printf "- Engine ran to completion (~s ~s)\n"
+                                    elapsed-seconds-realtime
+                                    current-mem)
+                            ;; Make sure to stop the engine.
+                            (engine-kill eng)
+                            (engine-result eng))
+                           (else
+                            ;; Engine returned because an event in
+                            ;; end-evt became ready for
+                            ;; synchronization, rather than from the
+                            ;; engine's procedure running to
+                            ;; completion.  Perform a case analysis on
+                            ;; the event that became ready for
+                            ;; synchronization.
+                            (let ((evt (sync end-evt)))
                               (cond
-                                (evt
-                                 (printf "$$$ half-closed TCP thread detected synchronized event: ~s\n" evt)
+                                ((or (eof-object? evt)
+                                     (eq? unexpected-eof-evt evt))
+                                 (printf
+                                  "!!! Error: Detected half-closed TCP connection (~s ~s)\n"
+                                  elapsed-seconds-realtime
+                                  current-mem)
+                                 ;; TODO return friendly timeout error from server
+                                 (engine-kill eng))
+                                ((eq? engine-ran-out-of-gas-evt evt)
                                  (cond
-                                   ((eq? (eof-evt in) evt)
-                                    (printf "!!! Error: Detected half-closed TCP connection\n")
-                                    (semaphore-post sem))
-                                   ((eq? (thread-dead-evt handler-thread) evt)
+                                   ((> now-ms-realtime timeout-ms-realtime)
                                     (printf
-                                     "$$$ half-closed TCP thread detected (thread-dead-evt handler-thread) event\n")
-                                    (semaphore-post sem))
+                                     "!!! Computation timed out (~s ~s)\n"
+                                     elapsed-seconds-realtime
+                                     current-mem)
+                                    ;; TODO return friendly timeout error from server
+                                    (engine-kill eng))
                                    (else
-                                    (printf
-                                     "!!! Error: half-closed TCP thread detected unexpected event type\n")
-                                    (semaphore-post sem))))
+                                    (printf ".(~s ~s) "
+                                            elapsed-seconds-realtime
+                                            current-mem)
+                                    (flush-output)
+                                    (loop-forever))))
                                 (else
-                                 (display "." (current-output-port))
-                                 (flush-output (current-output-port))
-                                 (loop-forever)))))))))
+                                 (printf "Unknown evt returned by `(sync end-evt)`\n")
+                                 (engine-kill eng)
+                                 (error
+                                  'accept-and-handle-engine
+                                  (format "Unexpected value of `(sync end-evt)` (~s ~s): ~s"
+                                          elapsed-seconds-realtime
+                                          current-mem
+                                          evt))))))))))
 
-                   ;; timeout watcher-thread
-                   (define watcher-thread
-                     (thread
-                      (lambda ()
-                        (printf "@@@ hello from watcher-thread\n")
-                        (printf "@@@ computation originally had ~s seconds (walltime) until timeout\n"
-                                CONNECTION_TIMEOUT_SECONDS)
-                        (printf "@@@ computation now has ~s seconds (walltime) until timeout\n"
-                                (inexact->exact
-                                 (floor
-                                  (/ (- (+ start-time-ms (* CONNECTION_TIMEOUT_SECONDS 1000))
-                                        (current-inexact-milliseconds))
-                                     1000.0))))
-                        (let loop-forever ()
-                          (let ((evt (sync/timeout 1
-                                                   (thread-dead-evt handler-thread))))
-                            (cond
-                              (evt
-                               (printf "@@@ Watcher thread got a thread-dead-evt for handler-thread\n")
-                               (semaphore-post sem))
-                              ((> (current-inexact-milliseconds)
-                                  (+ start-time-ms (* CONNECTION_TIMEOUT_SECONDS 1000)))
-                               (printf "!!! Watcher thread timed out after ~s seconds (walltime)\n"
-                                       CONNECTION_TIMEOUT_SECONDS)
-                               (semaphore-post sem))
-                              (else (loop-forever))))))))
-
-                   (semaphore-wait sem)
-                   (printf "got past semaphore\n")
                    cust.job)))))
 
          (printf "job call returned cust.job ~s\n" cust.job)
 
+         (printf "(current-memory-use): ~s\n"
+                 (current-memory-use))
+         (printf "calling (collect-garbage)\n")
+         (collect-garbage)
+         (printf "(current-memory-use): ~s\n"
+                 (current-memory-use))
+         
          (printf "main accept-and-handle thread about to shut-down cust.job\n")
          (custodian-shutdown-all cust.job)
 
+         (printf "(current-memory-use): ~s\n"
+                 (current-memory-use))
+         (printf "calling (collect-garbage)\n")
+         (collect-garbage)
+         (printf "(current-memory-use): ~s\n"
+                 (current-memory-use))
+         
          (printf "main accept-and-handle thread about to shut-down cust.accept-and-handle\n")
-         (custodian-shutdown-all cust.accept-and-handle))))))
+         (custodian-shutdown-all cust.accept-and-handle)
+
+         (printf "(current-memory-use): ~s\n"
+                 (current-memory-use))
+         (printf "calling (collect-garbage)\n")
+         (collect-garbage)
+         (printf "(current-memory-use): ~s\n"
+                 (current-memory-use)))))))
 
 (define (get-request-headers in)
   (define request-headers (make-hash))
