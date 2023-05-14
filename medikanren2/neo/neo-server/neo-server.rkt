@@ -26,7 +26,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.2")
+(define NEO_SERVER_VERSION "1.3")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -74,6 +74,7 @@
 (define HTTP_VERSION_STRING "HTTP/1.0")
 (define SERVER_STRING "Server: k")
 (define 200_OK_STRING "200 OK")
+(define 408_ERROR_STRING "408 Request Timeout")
 (define 500_ERROR_STRING "500 Internal Server Error")
 
 (define-runtime-path path:root ".")
@@ -181,54 +182,55 @@
                              result))))))
 
                    (with-handlers
-                       ;; TODO make sure all the handler work properly
-                       ;; What to do in the case of an exception?
-                       ;;
-                       ;; TODO Return a nice error message from the
-                       ;; server.
-                       ;;
-                       ;; TODO handle the various failures and
-                       ;; exceptions more uniformly.
-                       ;;
-                       ;; TODO make sure we are handling all the
-                       ;; possible failure types, including things
-                       ;; like taking the 'car' of 5.  Test with
-                       ;; various types of exceptions and errors.
-                       ;; Make sure the errors are logged correctly,
-                       ;; and that the server returns a reasonable
-                       ;; result.
-                       ;;
-                       ;; TODO Is it possible to catch an out of
-                       ;; memory error?
-                       ;;
-                       ;; TODO revisit and simplify 'work-safely'.
-                       ;;
-                       ;; TODO consider aborting the computation,
-                       ;; logging memory usage information, and
-                       ;; returning a nice error message from the
-                       ;; server, if the memory usage gets too close
-                       ;; to the max allowed memory size.
                        ((exn:fail:network:errno?
                          (lambda (ex)
                            (cond
                              ((equal? '(110 . posix) (exn:fail:network:errno-errno ex))
-                              (printf "!!! Error: TCP keepalive failed.  Presuming half-open TCP connection.\n"))
+                              (printf "!!! Error: TCP keepalive failed.  Presuming half-open TCP connection.\n")
+                              (send-reply
+                               (list
+                                 'xexpr
+                                 500_ERROR_STRING
+                                 `(html
+                                   (body
+                                    "Error: TCP keepalive failed.  Presuming half-open TCP connection.")))
+                               out))
                              (else
                               (printf "!!! Error: Unknown network error ~a.\n" ex)))
-                           ;; TODO in either case, return a nice error message from the server
+                              (send-reply
+                               (list
+                                 'xexpr
+                                 500_ERROR_STRING
+                                 `(html
+                                   (body
+                                    "Error: Unknown network error.")))
+                               out)
                            (engine-kill eng)))
                         (exn:fail?
                          (lambda (v)
                            (printf "!! exn:fail? handler called from job engine\n")
-                           ;; TODO what does this do, exactly?
                            ((error-display-handler) (exn-message v) v)
-                           ;; TODO return a nice error message from the server
+                           (send-reply
+                            (list
+                              'xexpr
+                              500_ERROR_STRING
+                              `(html
+                                (body
+                                 "Error: Unknown error.")))
+                               out)
                            (engine-kill eng)))
                         ((lambda _ #t)
                          (lambda (v)
                            (printf "!! Unknown error handler called from job engine\n")
                            (printf "Unknown error: ~s\n" v)
-                           ;; TODO return a nice error message from the server
+                           (send-reply
+                            (list
+                              'xexpr
+                              500_ERROR_STRING
+                              `(html
+                                (body
+                                 "Error: Unknown error.")))
+                            out)
                            (engine-kill eng))))
 
                      (define unexpected-eof-evt
@@ -276,7 +278,14 @@
                                   "!!! Error: Detected half-closed TCP connection (~s ~s)\n"
                                   elapsed-seconds-realtime
                                   current-mem)
-                                 ;; TODO return friendly timeout error from server
+                                 (send-reply
+                                  (list
+                                    'xexpr
+                                    500_ERROR_STRING
+                                    `(html
+                                      (body
+                                       "Error: TCP keepalive failed.  Presuming half-open TCP connection.")))
+                                  out)
                                  (engine-kill eng))
                                 ((eq? engine-ran-out-of-gas-evt evt)
                                  (cond
@@ -285,7 +294,14 @@
                                      "!!! Computation timed out (~s ~s)\n"
                                      elapsed-seconds-realtime
                                      current-mem)
-                                    ;; TODO return friendly timeout error from server
+                                    (send-reply
+                                     (list
+                                       'xexpr
+                                       408_ERROR_STRING
+                                       `(html
+                                         (body
+                                          "Error: Request timeout.")))
+                                     out)
                                     (engine-kill eng))
                                    (else
                                     (printf ".(~s ~s) "
