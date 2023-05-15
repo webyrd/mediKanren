@@ -26,7 +26,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.3")
+(define NEO_SERVER_VERSION "1.4")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -95,6 +95,7 @@
 (struct job-failure (message))
 
 (define job-request (make-channel))
+(define *jobs-waiting* 0)
 
 (define (work-safely work)
   (printf "entered work-safely\n")
@@ -109,10 +110,16 @@
 (define (job work)
   (define job-response (make-channel))
   (printf "job is calling channel-put on job-request channel\n")
+  (set! *jobs-waiting* (add1 *jobs-waiting*))
+  (printf "^ ~s job(s) in job queue\n"
+          *jobs-waiting*)
   (channel-put job-request (cons job-response work))
   (printf "job is calling channel-get on job-response channel\n")
   (let ((response (channel-get job-response)))
-    (printf "job is returning response from job-reponse channel\n")
+    (set! *jobs-waiting* (sub1 *jobs-waiting*))
+    (printf "work returned response from job-reponse channel\n")
+    (printf "^ ~s job(s) remaining in job queue\n"
+            *jobs-waiting*)
     response))
 
 (define (serve port-no)
