@@ -26,7 +26,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.5")
+(define NEO_SERVER_VERSION "1.6")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -224,7 +224,7 @@
           (printf "** error parsing request headers: current line doesn't end properly\n")
           #f)
         (let ((current-line (list-ref current-line-match 0)))
-          ;(printf "current-line:\n~s\n" current-line)
+          (printf "current-line:\n~s\n" current-line)
           (cond
             [(regexp-match #rx"^([^:]+:) (.+)\r\n" current-line)
              =>
@@ -235,10 +235,10 @@
                (hash-set! request-headers
                           (bytes->string/utf-8 (list-ref header 1))
                           (bytes->string/utf-8 (list-ref header 2)))
-               ;(printf "== request-headers:\n~s\n\n" request-headers)
+               (printf "== request-headers:\n~s\n\n" request-headers)
                (loop))]
             [(regexp-match #px"^[[:space:]]*\r\n" current-line)
-             ;(printf "parsed request headers:\n~s\n" request-headers)
+             (printf "parsed request headers:\n~s\n" request-headers)
              request-headers]
             [else
              (printf "** error parsing request headers: ~s\n" current-line)
@@ -364,7 +364,7 @@
             ["POST"
              (printf "handling POST request\n")
 
-             ;(printf "req-headers:\n~s\n" req-headers)
+             (printf "req-headers:\n~s\n" req-headers)
 
              (define content-length-string
                (get-key/value-from-headers "Content-Length:" req-headers))
@@ -392,7 +392,7 @@
              (printf "Content-Type:\n~s\n" content-type-string)
 
              (define body-str (get-request-body in content-length))
-             ;(printf "body-str:\n~s\n" body-str)
+             (printf "body-str:\n~s\n" body-str)
 
              (unless body-str
                (printf "** error: unable to get the body of POST request\n")
