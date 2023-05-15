@@ -26,7 +26,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.4")
+(define NEO_SERVER_VERSION "1.5")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -154,174 +154,59 @@
        (define start-time-ms-realtime (current-inexact-milliseconds))
        (define timeout-ms-realtime
          (+ start-time-ms-realtime (* CONNECTION_TIMEOUT_SECONDS 1000)))
-       
-       (let ((cust.job
-              (job
-               (lambda ()
-                 (printf "job-thunk invoked\n")
 
-                 (printf "(current-memory-use): ~s\n"
-                         (current-memory-use))
-                 (printf "calling (collect-garbage)\n")
-                 (collect-garbage)
-                 (printf "(current-memory-use): ~s\n"
-                         (current-memory-use))
-
-                 (define cust.job (make-custodian))
-                 (parameterize ((current-custodian cust.job))
-
-                   (define ENGINE_GAS_MS (* 1 1000))
-
-                   (define eng
-                     (engine
-                      (lambda (suspend-proc)
-                        (call/cc
-                         (lambda (break)
-                           (let ((result
-                                  (handle in out
-                                          (lambda ()
-                                            (printf "** Connection failure continuation invoked!\n")
-                                            (break 'connection-failure))
-                                          (lambda ()
-                                            (printf "** Request failure continuation invoked!\n")
-                                            (break 'request-failure)))))
-                             (printf "`handle` call in `engine-proc` finished cleanly\n")
-                             result))))))
-
-                   (with-handlers
-                       ;; Don't send HTTP replies with these
-                       ;; unexpected errors, to avoid errors from
-                       ;; writing to ports which are closed.
-                       ((exn:fail:network:errno?
-                         (lambda (ex)
-                           (cond
-                             ((equal? '(110 . posix) (exn:fail:network:errno-errno ex))
-                              (printf "!!! Error: TCP keepalive failed.\n")
-                              (printf "    Presuming half-open TCP connection.\n"))
-                             (else
-                              (printf "!!! Error: Unknown network error ~a.\n" ex)))
-                           (engine-kill eng)))
-                        (exn:fail?
-                         (lambda (v)
-                           (printf "!! exn:fail? handler called from job engine\n")
-                           ((error-display-handler) (exn-message v) v)
-                           (engine-kill eng)))
-                        ((lambda _ #t)
-                         (lambda (v)
-                           (printf "!! Unknown error handler called from job engine\n")
-                           (printf "Unknown error: ~s\n" v)
-                           (engine-kill eng))))
-
-                     (define unexpected-eof-evt
-                       (eof-evt in))
-
-                     (let loop-forever ()                       
-
-                       (define engine-ran-out-of-gas-evt
-                         (alarm-evt (+ (current-inexact-milliseconds)
-                                       ENGINE_GAS_MS)))
-                       
-                       (define end-evt
-                         (choice-evt
-                          unexpected-eof-evt
-                          engine-ran-out-of-gas-evt))
-
-                       (let* ((finished? (engine-run end-evt eng))
-                              (now-ms-realtime (current-inexact-milliseconds))
-                              (elapsed-seconds-realtime
-                               (inexact->exact
-                                (round
-                                 (/ (- now-ms-realtime start-time-ms-realtime) 1000.0))))
-                              (current-mem (current-memory-use)))
+       (let ((result
+              (call/cc
+               (lambda (break)
+                 (with-handlers
+                     ;; Don't send HTTP replies with these
+                     ;; unexpected errors, to avoid errors from
+                     ;; writing to ports which are closed.
+                     ((exn:fail:network:errno?
+                       (lambda (ex)
                          (cond
-                           (finished?
-                            (printf "- Engine ran to completion (~s ~s)\n"
-                                    elapsed-seconds-realtime
-                                    current-mem)
-                            ;; Make sure to stop the engine.
-                            (engine-kill eng)
-                            (engine-result eng))
+                           ((equal? '(110 . posix) (exn:fail:network:errno-errno ex))
+                            (printf "!!! Error: TCP keepalive failed.\n")
+                            (printf "    Presuming half-open TCP connection.\n")
+                            (break 'tcp-keepalive-failed))
                            (else
-                            ;; Engine returned because an event in
-                            ;; end-evt became ready for
-                            ;; synchronization, rather than from the
-                            ;; engine's procedure running to
-                            ;; completion.  Perform a case analysis on
-                            ;; the event that became ready for
-                            ;; synchronization.
-                            (let ((evt (sync end-evt)))
-                              (cond
-                                ((or (eof-object? evt)
-                                     (eq? unexpected-eof-evt evt))
-                                 (printf
-                                  "!!! Error: Detected half-closed TCP connection (~s ~s)\n"
-                                  elapsed-seconds-realtime
-                                  current-mem)
-                                 (send-reply
-                                  (list
-                                    'xexpr
-                                    500_ERROR_STRING
-                                    `(html
-                                      (body
-                                       "Error: TCP keepalive failed.  Presuming half-open TCP connection.")))
-                                  out)
-                                 (engine-kill eng))
-                                ((eq? engine-ran-out-of-gas-evt evt)
-                                 (cond
-                                   ((> now-ms-realtime timeout-ms-realtime)
-                                    (printf
-                                     "!!! Computation timed out (~s ~s)\n"
-                                     elapsed-seconds-realtime
-                                     current-mem)
-                                    (send-reply
-                                     (list
-                                       'xexpr
-                                       408_ERROR_STRING
-                                       `(html
-                                         (body
-                                          "Error: Request timeout.")))
-                                     out)
-                                    (engine-kill eng))
-                                   (else
-                                    (printf ".(~s ~s) "
-                                            elapsed-seconds-realtime
-                                            current-mem)
-                                    (flush-output)
-                                    (loop-forever))))
-                                (else
-                                 (printf "Unknown evt returned by `(sync end-evt)`\n")
-                                 (engine-kill eng)
-                                 (error
-                                  'accept-and-handle-engine
-                                  (format "Unexpected value of `(sync end-evt)` (~s ~s): ~s"
-                                          elapsed-seconds-realtime
-                                          current-mem
-                                          evt))))))))))
+                            (printf "!!! Error: Unknown network error ~a.\n" ex)
+                            (break 'unknown-network-error)))))
+                      (exn:fail?
+                       (lambda (v)
+                         (printf "!! exn:fail? handler called\n")
+                         ((error-display-handler) (exn-message v) v)
+                         (break 'exn:fail?-handler-called)))
+                      ((lambda _ #t)
+                       (lambda (v)
+                         (printf "!! Unknown error handler called from job engine\n")
+                         (printf "Unknown error: ~s\n" v)
+                         (break 'unknown-error))))
+                   (let ((result
+                          (handle in out
+                                  start-time-ms-realtime
+                                  timeout-ms-realtime
+                                  (lambda ()
+                                    (printf "** Connection failure continuation invoked!\n")
+                                    (break 'connection-failure))
+                                  (lambda ()
+                                    (printf "** Request failure continuation invoked!\n")
+                                    (break 'request-failure)))))
+                     (printf "`handle` call in `engine-proc` finished cleanly\n")
+                     result))))))
 
-                   cust.job)))))
-
-         (printf "job call returned cust.job ~s\n" cust.job)
-
+         (printf "handle returned result ~s\n" result)
+       
          (printf "(current-memory-use): ~s\n"
                  (current-memory-use))
          (printf "calling (collect-garbage)\n")
          (collect-garbage)
          (printf "(current-memory-use): ~s\n"
                  (current-memory-use))
-         
-         (printf "main accept-and-handle thread about to shut-down cust.job\n")
-         (custodian-shutdown-all cust.job)
-
-         (printf "(current-memory-use): ~s\n"
-                 (current-memory-use))
-         (printf "calling (collect-garbage)\n")
-         (collect-garbage)
-         (printf "(current-memory-use): ~s\n"
-                 (current-memory-use))
-         
+       
          (printf "main accept-and-handle thread about to shut-down cust.accept-and-handle\n")
          (custodian-shutdown-all cust.accept-and-handle)
-
+       
          (printf "(current-memory-use): ~s\n"
                  (current-memory-use))
          (printf "calling (collect-garbage)\n")
@@ -435,7 +320,10 @@
 ;; being parsable, or a `query` POST not containing `Content-Type` or
 ;; `Content-Length` information, `Content-Length` that isn't legal, or
 ;; a body that can't be parsed as JSON.
-(define (handle in out conn-fk request-fk)
+(define (handle in out
+                start-time-ms-realtime
+                timeout-ms-realtime
+                conn-fk request-fk)
   (define first-input-line (read-line in))
   (printf "handling request:\n~s\n" first-input-line)
 
@@ -465,6 +353,9 @@
              (let ([dispatch-result (dispatch-request 'GET
                                                       str-path
                                                       req-headers
+                                                      in out
+                                                      start-time-ms-realtime
+                                                      timeout-ms-realtime
                                                       request-fk)])
                (printf "dispatch-result:\n~s\n" dispatch-result)
 
@@ -510,6 +401,9 @@
              (let ([dispatch-result (dispatch-request 'POST
                                                       str-path
                                                       req-headers
+                                                      in out
+                                                      start-time-ms-realtime
+                                                      timeout-ms-realtime
                                                       request-fk
                                                       ;;
                                                       content-type-string
@@ -525,18 +419,28 @@
 (define (dispatch-request request-type
                           str-path
                           req-headers
+                          in out
+                          start-time-ms-realtime
+                          timeout-ms-realtime
                           request-fk
                           . rest-args)
+
   ;; Parse the request as a URL:
   (define url (string->url str-path))
   ;; Extract the path part:
   (define path (map path/param-path (url-path url)))
   ;; Find a handler based on the path's first element:
   (define dispatch-key (list request-type (car path)))
-  (define h (hash-ref dispatch-table dispatch-key #f))
+  (define h/safe? (hash-ref dispatch-table dispatch-key #f))
+  (define h (and h/safe? (car h/safe?)))
+  (define safe-for-concurrent-use?
+    (and h/safe?
+         (eq? (cdr h/safe?) 'safe-for-concurrent-use)))
   (printf "dispatch-key: ~s\n" dispatch-key)
   ;(printf "dispatch-table: ~s\n" dispatch-table)
+  (printf "h/safe?: ~s\n" h/safe?)
   (printf "h: ~s\n" h)
+  (printf "safe-for-concurrent-use?: ~s\n" safe-for-concurrent-use?)
   (printf "url: ~s\n" url)
   (printf "path: ~s\n" path)
   (printf "url-query: ~s\n" (url-query url))
@@ -544,18 +448,211 @@
   ;(printf "rest-args: ~s\n" rest-args)
   (newline)
 
-  (if h
-      ;; Call a handler:
-      (apply h (url-query url) req-headers request-fk rest-args)
-      ;; No handler found:
-      (list
+  (cond
+    ((not h)
+     (printf "!! No handler found !!\n")
+     (list
        'xexpr
        `(html (head (title "Error"))
               (body
                (font ((color "red"))
                      "Unknown page: "
-                     ,str-path))))))
+                     ,str-path)))))
+    (safe-for-concurrent-use?
+     (printf "handler is safe for concurrent use\n")
+     ;; Call the handler, without using the job channels:
+     (apply h (url-query url) req-headers request-fk rest-args))
+    (else
+     (printf "handler is *not* safe for concurrent use\n")
+     ;; Call the handler, using the job channels:
+     (define result/cust.job
+       (job
+        (lambda ()
+          (printf "job-thunk invoked\n")
 
+          (printf "(current-memory-use): ~s\n"
+                  (current-memory-use))
+          (printf "calling (collect-garbage)\n")
+          (collect-garbage)
+          (printf "(current-memory-use): ~s\n"
+                  (current-memory-use))
+
+          (define cust.job (make-custodian))
+          (parameterize ((current-custodian cust.job))
+
+            (define ENGINE_GAS_MS (* 1 1000))
+
+            (define eng
+              (engine
+               (lambda (suspend-proc)
+                 ;; apply the request handler
+                 (apply h (url-query url) req-headers request-fk rest-args))))
+
+            (with-handlers
+                ((exn:fail:network:errno?
+                  (lambda (ex)
+                    (cond
+                      ((equal? '(110 . posix) (exn:fail:network:errno-errno ex))
+                       (printf "!!! Error: TCP keepalive failed.\n")
+                       (printf "    Presuming half-open TCP connection.\n")
+                       (engine-kill eng)
+                       (cons
+                        (list
+                          'xexpr
+                          `(html (head (title "Error"))
+                                 (body
+                                  (font ((color "red"))
+                                        "Error: TCP keepalive failed for: "
+                                        ,str-path))))
+                        cust.job))
+                      (else
+                       (printf "!!! Error: Unknown network error ~a.\n" ex)
+                       (engine-kill eng)
+                       (cons
+                        (list
+                          'xexpr
+                          `(html (head (title "Error"))
+                                 (body
+                                  (font ((color "red"))
+                                        "Unknown network error for: "
+                                        ,str-path))))
+                        cust.job)))
+                    ))
+                 (exn:fail?
+                  (lambda (v)
+                    (printf "!! exn:fail? handler called from job engine\n")
+                    ((error-display-handler) (exn-message v) v)
+                    (engine-kill eng)
+                    (cons
+                     (list
+                       'xexpr
+                       `(html (head (title "Error"))
+                              (body
+                               (font ((color "red"))
+                                     "Internal error for: "
+                                     ,str-path))))
+                     cust.job)))
+                 ((lambda _ #t)
+                  (lambda (v)
+                    (printf "!! Unknown error handler called from job engine\n")
+                    (printf "Unknown error: ~s\n" v)
+                    (engine-kill eng)
+                    (cons
+                     (list
+                       'xexpr
+                       `(html (head (title "Error"))
+                              (body
+                               (font ((color "red"))
+                                     "Internal error for: "
+                                     ,str-path))))
+                     cust.job))))
+
+              (define unexpected-eof-evt
+                (eof-evt in))
+
+              (let loop-forever ()
+
+                (define engine-ran-out-of-gas-evt
+                  (alarm-evt (+ (current-inexact-milliseconds)
+                                ENGINE_GAS_MS)))
+                
+                (define end-evt
+                  (choice-evt
+                   unexpected-eof-evt
+                   engine-ran-out-of-gas-evt))
+
+                (let* ((finished? (engine-run end-evt eng))
+                       (now-ms-realtime (current-inexact-milliseconds))
+                       (elapsed-seconds-realtime
+                        (inexact->exact
+                         (round
+                          (/ (- now-ms-realtime start-time-ms-realtime) 1000.0))))
+                       (current-mem (current-memory-use)))
+                  (cond
+                    (finished?
+                     (printf "- Engine ran to completion (~s ~s)\n"
+                             elapsed-seconds-realtime
+                             current-mem)
+                     ;; Make sure to stop the engine.
+                     (engine-kill eng)
+                     (cons (engine-result eng) cust.job))
+                    (else
+                     ;; Engine returned because an event in
+                     ;; end-evt became ready for
+                     ;; synchronization, rather than from the
+                     ;; engine's procedure running to
+                     ;; completion.  Perform a case analysis on
+                     ;; the event that became ready for
+                     ;; synchronization.
+                     (let ((evt (sync end-evt)))
+                       (cond
+                         ((or (eof-object? evt)
+                              (eq? unexpected-eof-evt evt))
+                          (printf
+                           "!!! Error: Detected half-closed TCP connection (~s ~s)\n"
+                           elapsed-seconds-realtime
+                           current-mem)
+                          (engine-kill eng)
+                          (cons
+                           (list
+                             'xexpr
+                             500_ERROR_STRING
+                             `(html
+                               (body
+                                "Error: TCP keepalive failed.  Presuming half-open TCP connection.")))
+                           cust.job))
+                         ((eq? engine-ran-out-of-gas-evt evt)
+                          (cond
+                            ((> now-ms-realtime timeout-ms-realtime)
+                             (printf
+                              "!!! Computation timed out (~s ~s)\n"
+                              elapsed-seconds-realtime
+                              current-mem)
+                             (engine-kill eng)
+                             (cons
+                              (list
+                                'xexpr
+                                408_ERROR_STRING
+                                `(html
+                                  (body
+                                   "Error: Request timeout.")))
+                              cust.job))
+                            (else
+                             (printf ".(~s ~s) "
+                                     elapsed-seconds-realtime
+                                     current-mem)
+                             (flush-output)
+                             (loop-forever))))
+                         (else
+                          (printf "Unexpected value of `(sync end-evt)` (~s ~s): ~s"
+                                  elapsed-seconds-realtime
+                                  current-mem
+                                  evt)
+                          (engine-kill eng)
+                          (cons
+                           (list
+                             'xexpr
+                             `(html (head (title "Error"))
+                                    (body
+                                     (font ((color "red"))
+                                           "Internal error for: "
+                                           ,str-path))))
+                           cust.job)))))))))))))
+     (define result (car result/cust.job))
+     (define cust.job (cdr result/cust.job))
+     (printf "about to call (custodian-shutdown-all cust.job)\n")
+     (custodian-shutdown-all cust.job)
+     (if result
+         result
+         (begin
+           (printf "job returned #f as the result\n")           
+           (list
+             'xexpr
+             `(html (head (title "Error"))
+                    (body
+                     (font ((color "red"))
+                           "Internal error for : "
+                           ,str-path)))))))))
 
 (define (mvp-creative-query? edges nodes)
 
@@ -1516,63 +1613,75 @@
    schema.yaml.txt))
 
 
-(hash-set! dispatch-table '(GET "schema.json") schema.json)
-(hash-set! dispatch-table '(GET "schema.yaml") schema.yaml)
+;; Dispatch table request handlers that are safe for concurrent use,
+;; without synchronization through the job channels:
+(hash-set! dispatch-table '(GET "schema.json") (cons schema.json 'safe-for-concurrent-use))
+(hash-set! dispatch-table '(GET "schema.yaml") (cons schema.yaml 'safe-for-concurrent-use))
 
-(hash-set! dispatch-table '(POST "query") query)
-(hash-set! dispatch-table '(POST "asyncquery") asyncquery)
+(hash-set! dispatch-table '(GET "meta_knowledge_graph")
+           (cons meta_knowledge_graph 'safe-for-concurrent-use))
 
-(hash-set! dispatch-table '(GET "health") health)
-
-(hash-set! dispatch-table '(GET "meta_knowledge_graph") meta_knowledge_graph)
+(hash-set! dispatch-table '(GET "health") (cons health 'safe-for-concurrent-use))
 
 (hash-set!
  dispatch-table
  '(GET "hello")
- (lambda (query headers request-fk)
-   (printf "received hello query:\n~s\n" query)
-   (list
-    'xexpr
-    200_OK_STRING
-    `(html (body ,(format "Hello, World! from Neo Server ~a" NEO_SERVER_VERSION))))))
+ (cons
+   (lambda (query headers request-fk)
+     (printf "received hello query:\n~s\n" query)
+     (list
+       'xexpr
+       200_OK_STRING
+       `(html (body ,(format "Hello, World! from Neo Server ~a" NEO_SERVER_VERSION)))))
+   'safe-for-concurrent-use))
+
+
+;; Dispatch table request handlers that are *not* safe for concurrent
+;; use, and whose use must be synchronized through the job channels:
+(hash-set! dispatch-table '(POST "query") (cons query #f))
+(hash-set! dispatch-table '(POST "asyncquery") (cons asyncquery #f))
 
 (hash-set!
  dispatch-table
  '(GET "syn")
- (lambda (query headers request-fk)
-   (printf "received syn query:\n~s\n" query)
-   (list
-    'xexpr
-    200_OK_STRING
-    `(html
-      (body
-       ,(format
-         "~s"
-         (curie->synonyms-in-db "HGNC:1101")))))))
+ (cons
+   (lambda (query headers request-fk)
+     (printf "received syn query:\n~s\n" query)
+     (list
+       'xexpr
+       200_OK_STRING
+       `(html
+         (body
+          ,(format
+            "~s"
+            (curie->synonyms-in-db "HGNC:1101"))))))
+   #f))
 
 (hash-set!
  dispatch-table
  '(GET "simple")
- (lambda (query headers request-fk)
-   (printf "received simple query:\n~s\n" query)
-   (list
-    'xexpr
-    200_OK_STRING
-    `(html
-      (body
-       ,(format
-         "~s"
-         (car
-          (query:X->Known
-           (set->list
-            (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
-             '("biolink:ChemicalEntity")))
-           (set->list
-            (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
-             '("biolink:treats")))
-           (set->list
-            (get-descendent-curies*-in-db
-             (curie->synonyms-in-db "DOID:9351")))))))))))
+ (cons
+   (lambda (query headers request-fk)
+     (printf "received simple query:\n~s\n" query)
+     (list
+       'xexpr
+       200_OK_STRING
+       `(html
+         (body
+          ,(format
+            "~s"
+            (car
+             (query:X->Known
+              (set->list
+               (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
+                '("biolink:ChemicalEntity")))
+              (set->list
+               (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
+                '("biolink:treats")))
+              (set->list
+               (get-descendent-curies*-in-db
+                (curie->synonyms-in-db "DOID:9351"))))))))))
+   #f))
 
 (module+ main
   (lognew-info
