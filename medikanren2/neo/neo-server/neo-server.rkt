@@ -1177,7 +1177,7 @@
 
       (define auxiliary-graph (make-hash))
 
-      (define results '())
+      (define unmerged-results (make-hash))
 
       (define (add-node! curie)
         (let ((props (curie->properties curie)))
@@ -1223,8 +1223,23 @@
                      (hash 'edges edge*))
           id))
 
-      (define (add-result! r)
-        (set! results (cons r results)))
+      (define (add-unmerged-result! r)
+        (hash-update! unmerged-results (hash-ref r 'result_id)
+                           (lambda (r-old)
+                             (let* ((a*-old (hash-ref r-old 'analyses))
+                                    (a-old (car a*-old))
+                                    (edge-old (hash-ref (hash-ref a-old 'edge_bindings) qg_edge-id))
+                                    (score-old (hash-ref a-old 'score))
+                                    (a*-new (hash-ref r 'analyses))
+                                    (a-newo (car a*-new))
+                                    (edge-new (hash-ref  (hash-ref a-newo 'edge_bindings) qg_edge-id))
+                                    (score-new (hash-ref a-newo 'score)))
+                               (hash
+                                'node_bindings (hash-ref r-old 'node_bindings) 
+                                'analyses (list (hash 'edge_bindings (hash qg_edge-id (remove-duplicates (append edge-old edge-new)))
+                                                      'resource_id "infores:unsecret-agent"
+                                                      'score (max score-old score-new))))))
+                           r))
 
       (let loop ((en 0) (an 0) (score*/e* scored/q1-sorted))
         (cond
@@ -1255,41 +1270,55 @@
                                                               qg_predicate-str
                                                               an
                                                               auxiliary_id)))
-                      (add-result!
-                       (hash 'node_bindings
+                      (add-unmerged-result!
                              (cond
                                [(or (eq? which-mvp 'mvp1) (eq? which-mvp 'mvp2-gene))
-                                (if (equal? curie_z (car input-id*))
-                                    (hash
-                                     qg_subject-node-id (list (hash 'id curie_x))
-                                     qg_object-node-id (list (hash 'id curie_z)))
-                                    (hash
-                                     qg_subject-node-id (list (hash 'id curie_x))
-                                     qg_object-node-id (list (hash 'id curie_z
-                                                                   'query_id (car input-id*)))))]
+                                (hash 'node_bindings
+                                      (if (equal? curie_z (car input-id*))
+                                          (hash
+                                           qg_subject-node-id (list (hash 'id curie_x))
+                                           qg_object-node-id (list (hash 'id curie_z)))
+                                          (hash
+                                           qg_subject-node-id (list (hash 'id curie_x))
+                                           qg_object-node-id (list (hash 'id curie_z
+                                                                         'query_id (car input-id*)))))
+                                      'result_id curie_x
+                                      'analyses
+                                      (list (hash
+                                             'resource_id "infores:unsecret-agent"
+                                             'edge_bindings
+                                             (hash qg_edge-id (list (hash 'id edge_creative)))
+                                             'score score)))]
                                [(eq? which-mvp 'mvp2-chem)
-                                (if (equal? curie_x (car input-id*))
-                                    (hash
-                                     qg_subject-node-id (list (hash 'id curie_x))
-                                     qg_object-node-id (list (hash 'id curie_z)))
-                                    (hash
-                                     qg_subject-node-id (list (hash 'id curie_x
-                                                                    'query_id (car input-id*)))
-                                     qg_object-node-id (list (hash 'id curie_z))))])
-                             ;; TODO: we should downvote any answer that is already in 1-hop
-                             'analyses
-                             (list (hash
-                                    'resource_id "infores:unsecret-agent"
-                                    'edge_bindings
-                                    (hash qg_edge-id (list (hash 'id edge_creative)))
-                                    ;; TODO: we should downvote any answer that is already in 1-hop
-                                    'score score))
-                             )))
+                                (hash 'node_bindings
+                                      (if (equal? curie_x (car input-id*))
+                                          (hash
+                                           qg_subject-node-id (list (hash 'id curie_x))
+                                           qg_object-node-id (list (hash 'id curie_z)))
+                                          (hash
+                                           qg_subject-node-id (list (hash 'id curie_x
+                                                                          'query_id (car input-id*)))
+                                           qg_object-node-id (list (hash 'id curie_z))))
+                                      'result_id curie_z
+                                      'analyses
+                                      (list (hash
+                                             'resource_id "infores:unsecret-agent"
+                                             'edge_bindings
+                                             (hash qg_edge-id (list (hash 'id edge_creative)))
+                                             'score score)))])))
                     (loop (+ en 2) (+ an 1) (cdr score*/e*)))
                   (loop en an (cdr score*/e*)))]))))
 
+      (define merged-results 
+        (let loop ((id* (hash-keys unmerged-results))
+                   (r '()))
+          (cond
+            [(null? id*) r]
+            [else (loop (cdr id*)
+                        (cons (hash-ref unmerged-results (car id*)) r))])))
+      
       ;; TODO: the result should be already sorted from the process above
-      (set! results (sort results (lambda (a b) (> (get-score-from-result a) (get-score-from-result b)))))
+      (define results (sort merged-results (lambda (a b) (> (get-score-from-result a) (get-score-from-result b)))))
 
       (hash
        'message
