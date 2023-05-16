@@ -397,11 +397,18 @@
          (stg-update! 'relation-id=>table-expr (lambda (rid=>te) (hash-remove rid=>te id.self)))
          (stg-update! 'relation-id=>indexes    (lambda (rid=>os) (hash-remove rid=>os id.self)))
          (invalidate!))
-        ((index-dict signature preload?)
+        ((index-dict signature preload-count)
+         ;; preload-count:
+         ;;   If preload-count is #f or 0, no index layers will be loaded into RAM.
+         ;;   If preload-count is #t, all index layers will be loaded into RAM.
+         ;;   Otherwise, the first preload-count index layers will be loaded into RAM.
          ;; TODO: support complex table expressions
-         (let* ((ordering (index-signature->ordering signature))
-                (oprefix* (ordering->prefixes ordering))
-                (texpr    (R-texpr id.self)))
+         (let* ((ordering      (index-signature->ordering signature))
+                (oprefix*      (ordering->prefixes ordering))
+                (preload-count (cond ((not (boolean? preload-count)) preload-count)
+                                     (preload-count                  (length oprefix*))
+                                     (else                           0)))
+                (texpr         (R-texpr id.self)))
            (unless (hash-ref (hash-ref (stg-ref 'relation-id=>indexes) id.self) ordering #f)
              (error "missing relation index" (R-name id.self) signature))
            (unless (number? texpr)
@@ -413,17 +420,20 @@
                  (tid              texpr))
              (let loop ((ref.prev (lambda (_) '()))
                         (oprefix  (car oprefix*))
-                        (oprefix* (cdr oprefix*)))
+                        (oprefix* (cdr oprefix*))
+                        (level    (- (length oprefix*) 1)))
                (let* ((iprefix    (cons tid oprefix))
                       (desc.key   (hash-ref cid=>desc (hash-ref iprefix=>cid.key iprefix)))
-                      (mvec       (column->monovec desc.key preload?))
+                      (mvec       (column->monovec desc.key (< level preload-count)))
                       (ival->dict (lambda (start end) (dict:monovec mvec ref.prev start end))))
                  (cond
                    ((null? oprefix*) (ival->dict 0 (column-count desc.key)))
                    (else (let* ((desc.pos (hash-ref cid=>desc (hash-ref iprefix=>cid.pos iprefix)))
-                                (ref.pos  (column->ref desc.pos preload?)))
+                                (ref.pos  (column->ref desc.pos (<= level preload-count))))
                            (loop (lambda (i) (ival->dict (ref.pos i) (ref.pos (unsafe-fx+ i 1))))
-                                 (car oprefix*) (cdr oprefix*))))))))))
+                                 (car oprefix*)
+                                 (cdr oprefix*)
+                                 (- level 1))))))))))
         ((text-dicts preload?)
          ;; TODO: support complex table expressions
          (let ((texpr (R-texpr id.self)))
