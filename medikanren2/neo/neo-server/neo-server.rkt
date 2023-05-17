@@ -26,7 +26,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.8")
+(define NEO_SERVER_VERSION "1.9")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -1503,22 +1503,7 @@
   (printf "creative-mvp?: ~s\n" creative-mvp?)
 
   (if creative-mvp?
-      (let ()
-
-        ;; TODO return real-trapi-response rather than fake-trapi-response,
-        ;; once TRAPI 1.4 responses are fixed.
-        (define real-trapi-response
-          (handle-mvp-creative-query body-json message query_graph edges nodes creative-mvp?))
-
-        (define fake-trapi-response
-          (make-empty-trapi-response body-json))
-
-        (list
-         'json
-         200_OK_STRING
-         fake-trapi-response)
-        )
-      ;;
+      (handle-mvp-creative-query body-json message query_graph edges nodes creative-mvp?)
       (let ()
 
         (printf "-- handling non-MVP mode query\n")
