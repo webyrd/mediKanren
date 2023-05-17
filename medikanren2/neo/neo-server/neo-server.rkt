@@ -26,7 +26,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.9")
+(define NEO_SERVER_VERSION "1.10")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -100,7 +100,7 @@
 (define (work-safely work)
   (printf "entered work-safely\n")
   (let ((result (work)))
-    (printf "work-safely returning result ~s\n" result)
+    ;; (printf "work-safely returning result ~s\n" result)
     result))
 
 ;; Run multiple jobs concurrently

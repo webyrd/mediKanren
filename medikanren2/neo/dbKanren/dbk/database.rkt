@@ -63,8 +63,8 @@
   btree-count
   btree-ref-or-set!)
 (require "heap.rkt" "logging.rkt" "misc.rkt" "storage.rkt" "stream.rkt"
-         ;"safe-unsafe.rkt"
-         racket/unsafe/ops
+         "safe-unsafe.rkt"
+         ;racket/unsafe/ops
          racket/file racket/fixnum racket/hash racket/list racket/match
          racket/set racket/struct racket/vector
          "../../neo-utils/neo-helpers-without-db.rkt")
