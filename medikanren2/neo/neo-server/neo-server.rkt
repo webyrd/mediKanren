@@ -892,19 +892,17 @@
 
 (define unsecret-source
   (hash
-      'resource "infores:unsecret-agent"
+      'resource_id "infores:unsecret-agent"
       'resource_role "aggregator_knowledge_source"))
 
-(define (get-sources props)
+(define (get-source props)
   (let ((source (or (get-assoc "biolink:primary_knowledge_source" props)
                     (get-assoc "knowledge_source" props) ;rkx-kg2pre2.8.0
                     (and (get-assoc "json_attributes" props)
                          "infores:text-mining-provider-targeted")))) ;text-mining
-    (list
-     (hash
-      'resource source
-      'resource_role "primary_knowledge_source")
-     unsecret-source)))
+    (hash
+      'resource_id source
+      'resource_role "primary_knowledge_source")))
 
 (define (get-assoc k m)
   (let ((r (assoc k m)))
@@ -1202,19 +1200,30 @@
                            'object (get-assoc "object" props)
                            'predicate (get-assoc "predicate" props)
                            'subject (get-assoc "subject" props)
-                           'sources (get-sources props)))
+                           'sources (list (get-source props) unsecret-source)))
           id))
 
-      (define (add-creative-edge! sub obj pred n aux-id)
+      (define (add-creative-edge! sub obj pred n aux-id e1prop e2prop)
         (let ((id (string-append "medik:creative_edge#" (number->string n))))
           (hash-set! edges (string->symbol id)
                      (hash 'attributes
-                           (list
-                            (auxiliary-graph-attribute aux-id))
+                           (list*
+                            (auxiliary-graph-attribute aux-id)
+                            (append 
+                             (or
+                              (and (get-assoc "json_attributes" e1prop)
+                                   (string->jsexpr (get-assoc "json_attributes" e1prop)))
+                              (data-attributes e1prop))
+                             (or
+                              (and (get-assoc "json_attributes" e2prop)
+                                   (string->jsexpr (get-assoc "json_attributes" e2prop)))
+                              (data-attributes e2prop))))
                            'object obj
                            'predicate pred
                            'subject sub
-                           'sources (list unsecret-source)))
+                           'sources (list (get-source e1prop)
+                                          (get-source e2prop)
+                                          unsecret-source)))
           id))
 
       (define (add-auxiliary! edge* n)
@@ -1269,7 +1278,9 @@
                                                               curie_z
                                                               qg_predicate-str
                                                               an
-                                                              auxiliary_id)))
+                                                              auxiliary_id
+                                                              props_xy
+                                                              props_yz)))
                       (add-unmerged-result!
                              (cond
                                [(or (eq? which-mvp 'mvp1) (eq? which-mvp 'mvp2-gene))
