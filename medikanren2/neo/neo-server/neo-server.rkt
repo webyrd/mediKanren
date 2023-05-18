@@ -26,7 +26,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.11")
+(define NEO_SERVER_VERSION "1.12")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -882,13 +882,27 @@
                     (else (loop (cdr hl)))))))))))
 
 (define (data-attributes props)
-  (let ((publication (get-assoc "publications" props)))
-    (list (hash
-           'attribute_type_id "biolink:publications"
-           'value (if (string-prefix? publication "(")
-                      (string-split (string-trim (string-trim publication "(") ")"))
-                      (string-split publication "|"))
-           'value_type_id "biolink:Uriorcurie"))))
+    (list (get-publications props)))
+
+(define get-publications
+  (lambda props
+    (define (helper props pubs)
+      (cond
+        [(null? props) pubs]
+        [else
+         (let ((publication (or (get-assoc "publications" (car props))
+                                (get-assoc "supporting_publications" (car props)))))
+           (helper (cdr props)
+                   (append 
+                     (if (string-prefix? publication "(")
+                         (string-split (string-trim (string-trim publication "(") ")"))
+                         (string-split publication "|"))
+                    pubs)))]))
+    (define pubs (remove-duplicates (helper props '())))
+    (hash
+     'attribute_type_id "biolink:publications"
+     'value pubs
+     'value_type_id "biolink:Uriorcurie")))
 
 (define unsecret-source
   (hash
@@ -1207,23 +1221,16 @@
         (let ((id (string-append "medik:creative_edge#" (number->string n))))
           (hash-set! edges (string->symbol id)
                      (hash 'attributes
-                           (list*
+                           (list
                             (auxiliary-graph-attribute aux-id)
-                            (append 
-                             (or
-                              (and (get-assoc "json_attributes" e1prop)
-                                   (string->jsexpr (get-assoc "json_attributes" e1prop)))
-                              (data-attributes e1prop))
-                             (or
-                              (and (get-assoc "json_attributes" e2prop)
-                                   (string->jsexpr (get-assoc "json_attributes" e2prop)))
-                              (data-attributes e2prop))))
+                            (get-publications e1prop e2prop))
                            'object obj
                            'predicate pred
                            'subject sub
-                           'sources (list (get-source e1prop)
-                                          (get-source e2prop)
-                                          unsecret-source)))
+                           'sources (list
+                                     (hash
+                                      'resource_id "infores:unsecret-agent"
+                                      'resource_role "primary_knowledge_source"))))
           id))
 
       (define (add-auxiliary! edge* n)
