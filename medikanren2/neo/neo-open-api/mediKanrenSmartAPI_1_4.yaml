@@ -10,7 +10,7 @@ info:
     name: MIT License
     url: https://github.com/webyrd/mediKanren/blob/master/LICENSE
   title: mediKanren
-  version: '2.0 neo'
+  version: '2.0 neo TRAPI 1.4'
   x-translator:
     biolink-version: 3.1.2
     component: ARA
