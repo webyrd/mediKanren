@@ -40,10 +40,6 @@ servers:
   url: https://medikanren-trapi.test.transltr.io
   x-location: ITRB
   x-maturity: testing
-- description: Team Unsecret Agent mediKanren 1.3 CI server
-  url: https://medikanren-trapi.ci.transltr.io
-  x-location: ITRB
-  x-maturity: staging
 externalDocs:
   description: Documentation for the NCATS Biomedical Translator Reasoners web services
   url: https://github.com/NCATSTranslator/ReasonerAPI
