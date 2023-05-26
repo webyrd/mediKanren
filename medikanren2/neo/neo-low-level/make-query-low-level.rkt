@@ -356,14 +356,14 @@
   (pretty-log `(loading relation index dictionaries for db)
               path.here
               db-path-under-parent)
-  (define subject=>object=>eid=>1 (maybe-time (relation-index-dict r.edge  '(subject object eid) #f)))
-  (define object=>subject=>eid=>1 (maybe-time (relation-index-dict r.edge  '(object subject eid) #f)))
-  (define subject=>eid=>object=>1 (maybe-time (relation-index-dict r.edge  '(subject eid object) #t)))
-  (define object=>eid=>subject=>1 (maybe-time (relation-index-dict r.edge  '(object eid subject) #t)))
-  (define ekey=>evalue=>eid=>1    (maybe-time (relation-index-dict r.eprop '(key value eid)      #f)))
-  (define eid=>ekey=>evalue=>1    (maybe-time (relation-index-dict r.eprop '(eid key value)      #f)))
-  (define ckey=>cvalue=>curie=>1  (maybe-time (relation-index-dict r.cprop '(key value curie)    #t)))
-  (define curie=>ckey=>cvalue=>1  (maybe-time (relation-index-dict r.cprop '(curie key value)    #f)))
+  (define subject=>object=>eid=>1 (maybe-time (relation-index-dict r.edge  '(subject object eid) #t))) ;; #f
+  (define object=>subject=>eid=>1 (maybe-time (relation-index-dict r.edge  '(object subject eid) #t))) ;; #f
+  (define subject=>eid=>object=>1 (maybe-time (relation-index-dict r.edge  '(subject eid object) #t))) ;; #t
+  (define object=>eid=>subject=>1 (maybe-time (relation-index-dict r.edge  '(object eid subject) #t))) ;; #t
+  (define ekey=>evalue=>eid=>1    (maybe-time (relation-index-dict r.eprop '(key value eid)      #t))) ;; #f
+  (define eid=>ekey=>evalue=>1    (maybe-time (relation-index-dict r.eprop '(eid key value)      #t))) ;; #f
+  (define ckey=>cvalue=>curie=>1  (maybe-time (relation-index-dict r.cprop '(key value curie)    #t))) ;; #t
+  (define curie=>ckey=>cvalue=>1  (maybe-time (relation-index-dict r.cprop '(curie key value)    #t))) ;; #f
   (pretty-log `(loaded relation index dictionaries for db)
               path.here
               db-path-under-parent)
