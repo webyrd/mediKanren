@@ -81,9 +81,9 @@
 (define (path/root relative-path) (build-path path:root relative-path))
 
 (define schema.json.txt
-  (file->string (path/root "../neo-open-api/mediKanrenSmartAPI.json")))
+  (file->string (path/root "../neo-open-api/mediKanrenSmartAPI_1_4.json")))
 (define schema.yaml.txt
-  (file->string (path/root "../neo-open-api/mediKanrenSmartAPI.yaml")))
+  (file->string (path/root "../neo-open-api/mediKanrenSmartAPI_1_4.yaml")))
 (define metaKG.json.txt
   (file->string (path/root "../neo-open-api/unsecret_metaKG_May_2023.json")))
 
