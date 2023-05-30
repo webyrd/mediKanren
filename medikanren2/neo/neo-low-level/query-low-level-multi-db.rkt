@@ -22,7 +22,7 @@
 
 (require
 
-  (rename-in "query-low-level-robokop.rkt"
+  #;(rename-in "query-low-level-robokop.rkt"
              (query:Known->Known query:Known->Known-robokop)
              (query:Known->X query:Known->X-robokop)
              (query:X->Known query:X->Known-robokop)
@@ -56,7 +56,7 @@
              (edge-id->properties edge-id->properties-text-mining)
              )
 
-  (rename-in "query-low-level-rtx-kg2.rkt"
+  #;(rename-in "query-low-level-rtx-kg2.rkt"
              (query:Known->Known query:Known->Known-rtx-kg2)
              (query:Known->X query:Known->X-rtx-kg2)
              (query:X->Known query:X->Known-rtx-kg2)
@@ -85,7 +85,7 @@
 
 (define (query:Known->Known curie*.S predicate*.S->O curie*.O)
   (append
-   (query:Known->Known-robokop
+   #;(query:Known->Known-robokop
     (filter curie-in-db?-robokop curie*.S)
     (filter curie-in-db?-robokop predicate*.S->O)
     (filter curie-in-db?-robokop curie*.O))
@@ -93,14 +93,14 @@
     (filter curie-in-db?-text-mining curie*.S)
     (filter curie-in-db?-text-mining predicate*.S->O)
     (filter curie-in-db?-text-mining curie*.O))
-   (query:Known->Known-rtx-kg2
+   #;(query:Known->Known-rtx-kg2
     (filter curie-in-db?-rtx-kg2 curie*.S)
     (filter curie-in-db?-rtx-kg2 predicate*.S->O)
     (filter curie-in-db?-rtx-kg2 curie*.O))))
 
 (define (query:Known->X curie*.K predicate*.K->X category*.X)
   (append
-   (query:Known->X-robokop
+   #;(query:Known->X-robokop
     (filter curie-in-db?-robokop curie*.K)
     (filter curie-in-db?-robokop predicate*.K->X)
     (and category*.X
@@ -110,7 +110,7 @@
     (filter curie-in-db?-text-mining predicate*.K->X)
     (and category*.X
          (filter curie-in-db?-text-mining category*.X)))
-   (query:Known->X-rtx-kg2
+   #;(query:Known->X-rtx-kg2
     (filter curie-in-db?-rtx-kg2 curie*.K)
     (filter curie-in-db?-rtx-kg2 predicate*.K->X)
     (and category*.X
@@ -118,7 +118,7 @@
 
 (define (query:X->Known category*.X predicate*.X->K curie*.K)
   (append
-   (query:X->Known-robokop
+   #;(query:X->Known-robokop
     (and category*.X
          (filter curie-in-db?-robokop category*.X))
     (filter curie-in-db?-robokop predicate*.X->K)
@@ -128,7 +128,7 @@
          (filter curie-in-db?-text-mining category*.X))
     (filter curie-in-db?-text-mining predicate*.X->K)
     (filter curie-in-db?-text-mining curie*.K))
-   (query:X->Known-rtx-kg2
+   #;(query:X->Known-rtx-kg2
     (and category*.X
          (filter curie-in-db?-rtx-kg2 category*.X))
     (filter curie-in-db?-rtx-kg2 predicate*.X->K)
@@ -327,41 +327,41 @@
 
 (define (query:Concept curie*)
   (append
-   (query:Concept-robokop (filter curie-in-db?-robokop curie*))
+   #;(query:Concept-robokop (filter curie-in-db?-robokop curie*))
    (query:Concept-text-mining (filter curie-in-db?-text-mining curie*))
-   (query:Concept-rtx-kg2 (filter curie-in-db?-rtx-kg2 curie*))))
+   #;(query:Concept-rtx-kg2 (filter curie-in-db?-rtx-kg2 curie*))))
 
 (define (concept-properties)
   (append
-   (concept-properties-robokop)
+   #;(concept-properties-robokop)
    (concept-properties-text-mining)
-   (concept-properties-rtx-kg2)))
+   #;(concept-properties-rtx-kg2)))
 
 ;;(define (concept-property-values key) 'TODO)
 
 (define (curie-in-db? curie)
   (or
-   (curie-in-db?-robokop curie)
+   #;(curie-in-db?-robokop curie)
    (curie-in-db?-text-mining curie)
-   (curie-in-db?-rtx-kg2 curie)))
+   #;(curie-in-db?-rtx-kg2 curie)))
 
 (define (curie->properties curie)
   (append
-   (if (curie-in-db?-robokop curie)
+   #;(if (curie-in-db?-robokop curie)
        (curie->properties-robokop curie)
        '())
    (if (curie-in-db?-text-mining curie)
        (curie->properties-text-mining curie)
        '())
-   (if (curie-in-db?-rtx-kg2 curie)
+   #;(if (curie-in-db?-rtx-kg2 curie)
        (curie->properties-rtx-kg2 curie)
        '())))
 
 (define (edge-properties)
   (append
-   (edge-properties-robokop)
+   #;(edge-properties-robokop)
    (edge-properties-text-mining)
-   (edge-properties-rtx-kg2)))
+   #;(edge-properties-rtx-kg2)))
 
 ;;(define (edge-property-values key) 'TODO)
 ;;(define (edge-id->properties eid) 'TODO)
