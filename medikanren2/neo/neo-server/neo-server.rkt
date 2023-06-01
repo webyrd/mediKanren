@@ -1192,8 +1192,8 @@
           [`(,curie_x
              ,pred_xy
              ,curie_y
-             ,pred_yz
-             ,curie_z
+             ,(? string? pred_yz)
+             ,(? string? curie_z)
              ,props_xy
              ,props_yz)
            (if (and (edge-has-source? props_xy)
@@ -1356,8 +1356,8 @@
              [`(,curie_x
                 ,pred_xy
                 ,curie_y
-                ,pred_yz
-                ,curie_z
+                ,(? string? pred_yz)
+                ,(? string? curie_z)
                 ,props_xy
                 ,props_yz)
               (if (and (edge-has-source? props_xy)
@@ -1388,7 +1388,7 @@
                                      qg_subject-node-id (list (hash 'id curie_x))
                                      qg_object-node-id (list (hash 'id curie_z
                                                                    'query_id (car input-id*)))))
-                                'result_id curie_x
+                                'result_id (curie->representative curie_x)
                                 'analyses
                                 (list (hash
                                        'resource_id "infores:unsecret-agent"
@@ -1405,7 +1405,7 @@
                                      qg_subject-node-id (list (hash 'id curie_x
                                                                     'query_id (car input-id*)))
                                      qg_object-node-id (list (hash 'id curie_z))))
-                                'result_id curie_z
+                                'result_id (curie->representative curie_z)
                                 'analyses
                                 (list (hash
                                        'resource_id "infores:unsecret-agent"
@@ -1436,7 +1436,7 @@
                                      qg_subject-node-id (list (hash 'id curie_x))
                                      qg_object-node-id (list (hash 'id curie_y
                                                                    'query_id (car input-id*)))))
-                                'result_id curie_x
+                                'result_id (curie->representative curie_x)
                                 'analyses
                                 (list (hash
                                        'resource_id "infores:unsecret-agent"
@@ -1453,7 +1453,7 @@
                                      qg_subject-node-id (list (hash 'id curie_x
                                                                     'query_id (car input-id*)))
                                      qg_object-node-id (list (hash 'id curie_y))))
-                                'result_id curie_y
+                                'result_id (curie->representative curie_y)
                                 'analyses
                                 (list (hash
                                        'resource_id "infores:unsecret-agent"
