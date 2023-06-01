@@ -1000,7 +1000,8 @@
            ;;
            'auxiliary_graphs
            (merge-hash auxiliary_graphs1 auxiliary_graphs2)
-           ;;
+           ;; TODO: merge results when they have the same node binding sub/obj depends on mvp
+           ;; similar with the metaKG merge
            'results
            (merge-list results1 results2)
            ))))
@@ -1036,25 +1037,36 @@
       (define qg_predicate-str (car (hash-ref qg_edge-hash 'predicates)))
 
       (define mvp2-filter
+        (lambda (target-eprop direction)
+          (let* ((aspect (get-assoc "object_aspect_qualifier" target-eprop))
+                 (direction^ (get-assoc "object_direction_qualifier" target-eprop)))
+            (and
+             aspect
+             direction^
+             (or
+              (equal? "activity" aspect)
+              (equal? "abundance" aspect)
+              (equal? "activity_or_abundance" aspect))
+             (equal? direction direction^)
+             ))))
+
+      (define mvp2-2hop-filter
         (lambda (q direction)
           (filter
            (lambda (e)
              (let-values ([(_ eprop) (split-at e 5)])
-               (let* ((target-eprop (cadr eprop))
-                      (aspect-pr (assoc "object_aspect_qualifier" target-eprop))
-                      (direction-pr (assoc "object_direction_qualifier" target-eprop)))
-                 (and
-                  aspect-pr
-                  direction-pr
-                  (or
-                   (equal? "activity" (cadr aspect-pr))
-                   (equal? "abundance" (cadr aspect-pr))
-                   (equal? "activity_or_abundance" (cadr aspect-pr)))
-                  (equal? direction (cadr direction-pr))
-                  ))))
+               (mvp2-filter (cadr eprop) direction)))
            q)))
 
-      (match-define (list input-id* q1-all-results-unsorted)
+      (define mvp2-1hop-filter
+        (lambda (q direction)
+          (filter
+           (lambda (e)
+             (let-values ([(_ eprop) (split-at e 3)])
+               (mvp2-filter eprop direction)))
+           q)))
+
+      (match-define (list input-id* q-1hop-all-results-unsorted q-2hop-all-results-unsorted)
         (time
          (cond
            [(eq? 'mvp1 which-mvp)
@@ -1062,7 +1074,16 @@
               ;; TODO write a chainer in utils, and also check for errors
               (hash-ref (hash-ref qg_nodes qg_object-node-id) 'ids))
             ;;
-            (let ((q
+            (let ((q-1hop
+                   (query:X->Known
+                    (set->list
+                     (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
+                      '("biolink:ChemicalEntity")))
+                    '("biolink:treats")
+                    (set->list
+                     (get-descendent-curies*-in-db
+                      (curies->synonyms-in-db disease-ids)))))
+                  (q-2hop
                    ;; TODO
                    ;;
                    ;; * ensure all of the biolink curies are supported in
@@ -1089,7 +1110,7 @@
                     (set->list
                      (get-descendent-curies*-in-db
                       (curies->synonyms-in-db disease-ids))))))
-               (list disease-ids q))]
+              (list disease-ids q-1hop q-2hop))]
            [(eq? 'mvp2-chem which-mvp)
             (define chemical-ids
               (hash-ref (hash-ref qg_nodes qg_subject-node-id) 'ids))
@@ -1100,7 +1121,17 @@
                   (if (equal? (hash-ref (car l) 'qualifier_type_id) "biolink:object_direction_qualifier")
                       (hash-ref (car l) 'qualifier_value)
                       (loop (cdr l))))))
-            (let* ((q
+            (let* ((q-1hop
+                    (query:Known->X
+                     (set->list
+                      (get-descendent-curies*-in-db
+                       (curies->synonyms-in-db chemical-ids)))
+                     '("biolink:affects")
+                     (set->list
+                      (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
+                       '("biolink:Gene" "biolink:Protein")))))
+                   (qualified-q-1hop (mvp2-1hop-filter q-1hop direction))
+                   (q-2hop
                     (query:Known->Y->X
                      (set->list
                       (get-descendent-curies*-in-db
@@ -1111,8 +1142,8 @@
                      (set->list
                       (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
                        '("biolink:Gene" "biolink:Protein")))))
-                   (qualified-q (mvp2-filter q direction)))
-              (list chemical-ids qualified-q))]
+                   (qualified-q-2hop (mvp2-2hop-filter q-2hop direction)))
+              (list chemical-ids qualified-q-1hop qualified-q-2hop))]
            [(eq? 'mvp2-gene which-mvp)
             (define gene-ids
               (hash-ref (hash-ref qg_nodes qg_object-node-id) 'ids))
@@ -1123,7 +1154,17 @@
                   (if (equal? (hash-ref (car l) 'qualifier_type_id) "biolink:object_direction_qualifier")
                       (hash-ref (car l) 'qualifier_value)
                       (loop (cdr l))))))
-            (let* ((q
+            (let* ((q-1hop
+                    (query:X->Known
+                     (set->list
+                      (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
+                       '("biolink:ChemicalEntity")))
+                     '("biolink:affects")
+                     (set->list
+                      (get-descendent-curies*-in-db
+                       (curies->synonyms-in-db gene-ids)))))
+                   (qualified-q-1hop (mvp2-1hop-filter q-1hop direction))
+                   (q-2hop
                     (query:X->Y->Known
                      (set->list
                       (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
@@ -1134,18 +1175,19 @@
                      (set->list
                       (get-descendent-curies*-in-db
                        (curies->synonyms-in-db gene-ids)))))
-                   (qualified-q (mvp2-filter q direction)))
-              (list gene-ids qualified-q))])))
+                   (qualified-q-2hop (mvp2-2hop-filter q-2hop direction)))
+              (list gene-ids qualified-q-1hop qualified-q-2hop))])))
 
       (printf "computed a total of ~s results for MVP mode creative query\n"
-              (length q1-all-results-unsorted))
+              (+ (length q-1hop-all-results-unsorted) (length q-2hop-all-results-unsorted)))
 
-      (define q1-unsorted-long (take-at-most q1-all-results-unsorted MAX_RESULTS_TO_SCORE_AND_SORT))
+      (define q-1hop-unsorted-long (take-at-most q-1hop-all-results-unsorted MAX_RESULTS_TO_SCORE_AND_SORT))
+      (define q-2hop-unsorted-long (take-at-most q-2hop-all-results-unsorted MAX_RESULTS_TO_SCORE_AND_SORT))
 
       (printf "about to score ~s results for MVP mode creative query\n"
-              (length q1-unsorted-long))
+              (+ (length q-1hop-unsorted-long) (length q-2hop-unsorted-long)))
 
-      (define (score-mvp-two-hop-edge e)
+      (define (score-mvp-edge e)
         (match e
           [`(,curie_x
              ,pred_xy
@@ -1157,28 +1199,70 @@
            (if (and (edge-has-source? props_xy)
                     (edge-has-source? props_yz))
                (* (num-pubs props_xy) (num-pubs props_yz))
+               -1000000)]
+          [`(,curie_x
+             ,pred_xy
+             ,curie_y
+             .
+             ,props_xy)
+           (if (edge-has-source? props_xy)
+               (num-pubs props_xy)
                -1000000)]))
 
-      (define scored/q1-unsorted-long
+      (define scored/q-1hop-unsorted-long
         (map
-         (lambda (e) (cons (score-mvp-two-hop-edge e) e))
-         q1-unsorted-long))
+         (lambda (e) (cons (score-mvp-edge e) e))
+         q-1hop-unsorted-long))
+
+      (define scored/q-2hop-unsorted-long
+        (map
+         (lambda (e) (cons (score-mvp-edge e) e))
+         q-2hop-unsorted-long))
 
       (printf "about to sort ~s results for MVP mode creative query\n"
-              (length scored/q1-unsorted-long))
+              (+ (length scored/q-1hop-unsorted-long) (length scored/q-2hop-unsorted-long)))
 
-      (define scored/q1-sorted-long
+      (define by-score
+        (lambda (score1/e1 score2/e2)
+          (let ((score1 (car score1/e1))
+                (score2 (car score2/e2)))
+            (> score1 score2))))
+
+      (define scored/q-1hop-sorted-long
         (sort
-         scored/q1-unsorted-long
-         (lambda (score1/e1 score2/e2)
-           (let ((score1 (car score1/e1))
-                 (score2 (car score2/e2)))
-             (> score1 score2)))))
+         scored/q-1hop-unsorted-long
+         by-score))
+
+      (define scored/q-2hop-sorted-long
+        (sort
+         scored/q-2hop-unsorted-long
+         by-score))
+
+      (define (normalize-scored/sorted-long-results score/results)
+        (if (null? score/results)
+            score/results
+            (let ((max-score (caar score/results)))
+              (map (lambda (x) (cons (/ (car x) (* 1.0 max-score)) (cdr x))) score/results))))
+
+      (define normalized-scored/q-1hop-sorted-long
+        (normalize-scored/sorted-long-results scored/q-1hop-sorted-long))
+
+      (define normalized-scored/q-2hop-sorted-long
+        (normalize-scored/sorted-long-results scored/q-2hop-sorted-long))
+
+      (define normalized-scored/q-1hop-sorted-short
+        (take-at-most normalized-scored/q-1hop-sorted-long (floor (/ MAX_RESULTS_FROM_COMPONENT 2.0))))
+
+      (define normalized-scored/q1-sorted-long
+        (sort
+         (append normalized-scored/q-1hop-sorted-short normalized-scored/q-2hop-sorted-long)
+         by-score))
 
       (printf "about to take the first ~s scored and sorted results for MVP mode creative query\n"
               MAX_RESULTS_FROM_COMPONENT)
 
-      (define scored/q1-sorted (take-at-most scored/q1-sorted-long MAX_RESULTS_FROM_COMPONENT))
+      ;(define scored/q1-sorted (take-at-most scored/q1-sorted-long MAX_RESULTS_FROM_COMPONENT))
+      (define scored/q1-sorted (take-at-most normalized-scored/q1-sorted-long MAX_RESULTS_FROM_COMPONENT))
 
       (printf "now have ~s scored and sorted results for MVP mode creative query\n"
               (length scored/q1-sorted))
@@ -1207,10 +1291,10 @@
         (let ((id (string-append "medik:edge#" (number->string n))))
           (hash-set! edges (string->symbol id)
                      (hash 'attributes
-                            (or
-                             (and (get-assoc "json_attributes" props)
-                                  (string->jsexpr (get-assoc "json_attributes" props)))
-                             (data-attributes props))
+                           (or
+                            (and (get-assoc "json_attributes" props)
+                                 (string->jsexpr (get-assoc "json_attributes" props)))
+                            (data-attributes props))
                            'object (get-assoc "object" props)
                            'predicate (get-assoc "predicate" props)
                            'subject (get-assoc "subject" props)
@@ -1241,21 +1325,21 @@
 
       (define (add-unmerged-result! r)
         (hash-update! unmerged-results (hash-ref r 'result_id)
-                           (lambda (r-old)
-                             (let* ((a*-old (hash-ref r-old 'analyses))
-                                    (a-old (car a*-old))
-                                    (edge-old (hash-ref (hash-ref a-old 'edge_bindings) qg_edge-id))
-                                    (score-old (hash-ref a-old 'score))
-                                    (a*-new (hash-ref r 'analyses))
-                                    (a-newo (car a*-new))
-                                    (edge-new (hash-ref  (hash-ref a-newo 'edge_bindings) qg_edge-id))
-                                    (score-new (hash-ref a-newo 'score)))
-                               (hash
-                                'node_bindings (hash-ref r-old 'node_bindings) 
-                                'analyses (list (hash 'edge_bindings (hash qg_edge-id (remove-duplicates (append edge-old edge-new)))
-                                                      'resource_id "infores:unsecret-agent"
-                                                      'score (max score-old score-new))))))
-                           r))
+                      (lambda (r-old)
+                        (let* ((a*-old (hash-ref r-old 'analyses))
+                               (a-old (car a*-old))
+                               (edge-old (hash-ref (hash-ref a-old 'edge_bindings) qg_edge-id))
+                               (score-old (hash-ref a-old 'score))
+                               (a*-new (hash-ref r 'analyses))
+                               (a-newo (car a*-new))
+                               (edge-new (hash-ref  (hash-ref a-newo 'edge_bindings) qg_edge-id))
+                               (score-new (hash-ref a-newo 'score)))
+                          (hash
+                           'node_bindings (hash-ref r-old 'node_bindings) 
+                           'analyses (list (hash 'edge_bindings (hash qg_edge-id (remove-duplicates (append edge-old edge-new)))
+                                                 'resource_id "infores:unsecret-agent"
+                                                 'score (max score-old score-new))))))
+                      r))
 
       (let loop ((en 0) (an 0) (score*/e* scored/q1-sorted))
         (cond
@@ -1289,43 +1373,92 @@
                                                               props_xy
                                                               props_yz)))
                       (add-unmerged-result!
-                             (cond
-                               [(or (eq? which-mvp 'mvp1) (eq? which-mvp 'mvp2-gene))
-                                (hash 'node_bindings
-                                      (if (equal? curie_z (car input-id*))
-                                          (hash
-                                           qg_subject-node-id (list (hash 'id curie_x))
-                                           qg_object-node-id (list (hash 'id curie_z)))
-                                          (hash
-                                           qg_subject-node-id (list (hash 'id curie_x))
-                                           qg_object-node-id (list (hash 'id curie_z
-                                                                         'query_id (car input-id*)))))
-                                      'result_id curie_x
-                                      'analyses
-                                      (list (hash
-                                             'resource_id "infores:unsecret-agent"
-                                             'edge_bindings
-                                             (hash qg_edge-id (list (hash 'id edge_creative)))
-                                             'score score)))]
-                               [(eq? which-mvp 'mvp2-chem)
-                                (hash 'node_bindings
-                                      (if (equal? curie_x (car input-id*))
-                                          (hash
-                                           qg_subject-node-id (list (hash 'id curie_x))
-                                           qg_object-node-id (list (hash 'id curie_z)))
-                                          (hash
-                                           qg_subject-node-id (list (hash 'id curie_x
-                                                                          'query_id (car input-id*)))
-                                           qg_object-node-id (list (hash 'id curie_z))))
-                                      'result_id curie_z
-                                      'analyses
-                                      (list (hash
-                                             'resource_id "infores:unsecret-agent"
-                                             'edge_bindings
-                                             (hash qg_edge-id (list (hash 'id edge_creative)))
-                                             'score score)))])))
+                       (cond
+                         [(or (eq? which-mvp 'mvp1) (eq? which-mvp 'mvp2-gene))
+                          (hash 'node_bindings
+                                (if (equal? curie_z (car input-id*))
+                                    (hash
+                                     qg_subject-node-id (list (hash 'id curie_x))
+                                     qg_object-node-id (list (hash 'id curie_z)))
+                                    (hash
+                                     qg_subject-node-id (list (hash 'id curie_x))
+                                     qg_object-node-id (list (hash 'id curie_z
+                                                                   'query_id (car input-id*)))))
+                                'result_id curie_x
+                                'analyses
+                                (list (hash
+                                       'resource_id "infores:unsecret-agent"
+                                       'edge_bindings
+                                       (hash qg_edge-id (list (hash 'id edge_creative)))
+                                       'score score)))]
+                         [(eq? which-mvp 'mvp2-chem)
+                          (hash 'node_bindings
+                                (if (equal? curie_x (car input-id*))
+                                    (hash
+                                     qg_subject-node-id (list (hash 'id curie_x))
+                                     qg_object-node-id (list (hash 'id curie_z)))
+                                    (hash
+                                     qg_subject-node-id (list (hash 'id curie_x
+                                                                    'query_id (car input-id*)))
+                                     qg_object-node-id (list (hash 'id curie_z))))
+                                'result_id curie_z
+                                'analyses
+                                (list (hash
+                                       'resource_id "infores:unsecret-agent"
+                                       'edge_bindings
+                                       (hash qg_edge-id (list (hash 'id edge_creative)))
+                                       'score score)))])))
                     (loop (+ en 2) (+ an 1) (cdr score*/e*)))
-                  (loop en an (cdr score*/e*)))]))))
+                  (loop en an (cdr score*/e*)))]
+             [`(,curie_x
+                ,pred_xy
+                ,curie_y
+                . 
+                ,props_xy)
+              (if (edge-has-source? props_xy)
+                  (begin
+                    (add-node! curie_x)
+                    (add-node! curie_y)
+                    (let ((edge_xy (add-edge! props_xy en)))
+                      (add-unmerged-result!
+                       (cond
+                         [(or (eq? which-mvp 'mvp1) (eq? which-mvp 'mvp2-gene))
+                          (hash 'node_bindings
+                                (if (equal? curie_y (car input-id*))
+                                    (hash
+                                     qg_subject-node-id (list (hash 'id curie_x))
+                                     qg_object-node-id (list (hash 'id curie_y)))
+                                    (hash
+                                     qg_subject-node-id (list (hash 'id curie_x))
+                                     qg_object-node-id (list (hash 'id curie_y
+                                                                   'query_id (car input-id*)))))
+                                'result_id curie_x
+                                'analyses
+                                (list (hash
+                                       'resource_id "infores:unsecret-agent"
+                                       'edge_bindings
+                                       (hash qg_edge-id (list (hash 'id edge_xy)))
+                                       'score score)))]
+                         [(eq? which-mvp 'mvp2-chem)
+                          (hash 'node_bindings
+                                (if (equal? curie_x (car input-id*))
+                                    (hash
+                                     qg_subject-node-id (list (hash 'id curie_x))
+                                     qg_object-node-id (list (hash 'id curie_y)))
+                                    (hash
+                                     qg_subject-node-id (list (hash 'id curie_x
+                                                                    'query_id (car input-id*)))
+                                     qg_object-node-id (list (hash 'id curie_y))))
+                                'result_id curie_y
+                                'analyses
+                                (list (hash
+                                       'resource_id "infores:unsecret-agent"
+                                       'edge_bindings
+                                       (hash qg_edge-id (list (hash 'id edge_xy)))
+                                       'score score)))])))
+                    (loop (+ en 1) an (cdr score*/e*)))
+                  (loop en an (cdr score*/e*)))]
+             ))))
 
       (define merged-results 
         (let loop ((id* (hash-keys unmerged-results))
@@ -1361,107 +1494,107 @@
     ;; Provider KP is handling TRAPI 1.4 Creative Mode queries.
     #f
     #;(if disable-external-requests
-        #f
-        (let ()
+          #f
+          (let ()
 
-          (define res #f)
+            (define res #f)
 
-          (printf "making sync/timeout API call with timeout of ~s seconds\n"
-                  API_CALL_CONNECTION_TIMEOUT_SECONDS)
+            (printf "making sync/timeout API call with timeout of ~s seconds\n"
+                    API_CALL_CONNECTION_TIMEOUT_SECONDS)
 
-          (sync/timeout
-           API_CALL_CONNECTION_TIMEOUT_SECONDS
-           (thread
-            (lambda ()
-              ;; use 'url.genetics.prod', 'url.genetics.test', or 'url.genetics.ci'
-              ;; based on the environment the Unsecret server is running in.
-              (let ((kp-url (case (unbox ENVIRONMENT_TAG_BOX)
-                              (("CI") url.genetics.ci)
-                              (("TEST") url.genetics.test)
-                              (("PROD") url.genetics.prod)
-                              (else
-                               (lognew-info
-                                (hash 'event
-                                      (format
-                                       "unexpected ENVIRONMENT_TAG_BOX value: '~s'"
-                                       (unbox ENVIRONMENT_TAG_BOX))))
-                               url.genetics.prod))))
-                (lognew-info
-                 (hash 'event (format "kp-url for Genetics Provider call: '~s'" kp-url)))
-                (set! res
-                      (api-query (string-append kp-url path.query)
-                                 body-json))))))
+            (sync/timeout
+             API_CALL_CONNECTION_TIMEOUT_SECONDS
+             (thread
+              (lambda ()
+                ;; use 'url.genetics.prod', 'url.genetics.test', or 'url.genetics.ci'
+                ;; based on the environment the Unsecret server is running in.
+                (let ((kp-url (case (unbox ENVIRONMENT_TAG_BOX)
+                                (("CI") url.genetics.ci)
+                                (("TEST") url.genetics.test)
+                                (("PROD") url.genetics.prod)
+                                (else
+                                 (lognew-info
+                                  (hash 'event
+                                        (format
+                                         "unexpected ENVIRONMENT_TAG_BOX value: '~s'"
+                                         (unbox ENVIRONMENT_TAG_BOX))))
+                                 url.genetics.prod))))
+                  (lognew-info
+                   (hash 'event (format "kp-url for Genetics Provider call: '~s'" kp-url)))
+                  (set! res
+                        (api-query (string-append kp-url path.query)
+                                   body-json))))))
 
-          (if res
-              (printf "API call returned\n")
-              (printf "API call timed out\n"))
+            (if res
+                (printf "API call returned\n")
+                (printf "API call timed out\n"))
 
-          (if (hash? res)
-              (let ()
-                (define upstream-status
-                  (hash-ref res 'status #f))
+            (if (hash? res)
+                (let ()
+                  (define upstream-status
+                    (hash-ref res 'status #f))
 
-                (printf "status from API call:\n~s\n" upstream-status)
+                  (printf "status from API call:\n~s\n" upstream-status)
 
-                (if upstream-status
-                    (let ()
-                      (define upstream-headers
-                        (hash-ref res 'headers #f))
+                  (if upstream-status
+                      (let ()
+                        (define upstream-headers
+                          (hash-ref res 'headers #f))
 
-                      (printf "headers from API call:\n~s\n" upstream-headers)
+                        (printf "headers from API call:\n~s\n" upstream-headers)
 
-                      (if (string-contains?
-                           (bytes->string/utf-8 upstream-status)
-                           200_OK_STRING)
-                          (let ()
-                            (printf "API returned an OK status...processing results\n")
+                        (if (string-contains?
+                             (bytes->string/utf-8 upstream-status)
+                             200_OK_STRING)
+                            (let ()
+                              (printf "API returned an OK status...processing results\n")
 
-                            (define upstream-response
-                              (hash-ref res 'response #f))
+                              (define upstream-response
+                                (hash-ref res 'response #f))
 
-                            (define res-message
-                              (hash-ref upstream-response 'message))
+                              (define res-message
+                                (hash-ref upstream-response 'message))
 
-                            (define results
-                              (let ((results
-                                     (hash-ref res-message 'results)))
-                                (take-at-most results MAX_RESULTS_FROM_COMPONENT)))
+                              (define results
+                                (let ((results
+                                       (hash-ref res-message 'results)))
+                                  (take-at-most results MAX_RESULTS_FROM_COMPONENT)))
 
-                            (define scored-results
-                              (score-results results))
+                              (define scored-results
+                                (score-results results))
 
-                            (define knowledge_graph
-                              (hash-ref res-message 'knowledge_graph))
+                              (define knowledge_graph
+                                (hash-ref res-message 'knowledge_graph))
 
-                            (define edges
-                              (hash-ref knowledge_graph 'edges))
+                              (define edges
+                                (hash-ref knowledge_graph 'edges))
 
-                            (define stamped-edges
-                              (hash-map/copy
-                               edges
-                               (lambda (k v)
-                                 (values
-                                  k
-                                  (hash-set v
-                                            'sources
-                                            (cons unsecret-source
-                                                  (hash-ref v 'sources)))))))
+                              (define stamped-edges
+                                (hash-map/copy
+                                 edges
+                                 (lambda (k v)
+                                   (values
+                                    k
+                                    (hash-set v
+                                              'sources
+                                              (cons unsecret-source
+                                                    (hash-ref v 'sources)))))))
 
-                            (define stamped-knowledge_graph
-                              (hash-set knowledge_graph 'edges stamped-edges))
+                              (define stamped-knowledge_graph
+                                (hash-set knowledge_graph 'edges stamped-edges))
 
-                            (hash-set upstream-response
-                                      'message
-                                      (hash-set (hash-set res-message
-                                                          'results
-                                                          (normalize-scores scored-results))
-                                                'knowledge_graph
-                                                stamped-knowledge_graph)))
-                          (begin
-                            (printf "API returned a non-OK status...ignoring results\n")
-                            #f)))
-                    #f))
-              #f))))
+                              (hash-set upstream-response
+                                        'message
+                                        (hash-set (hash-set res-message
+                                                            'results
+                                                            (normalize-scores scored-results))
+                                                  'knowledge_graph
+                                                  stamped-knowledge_graph)))
+                            (begin
+                              (printf "API returned a non-OK status...ignoring results\n")
+                              #f)))
+                      #f))
+                #f))))
 
   (define trapi-response
     (if gp-trapi-response
