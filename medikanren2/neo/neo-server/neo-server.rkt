@@ -26,7 +26,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.13")
+(define NEO_SERVER_VERSION "1.14")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -1204,16 +1204,20 @@
                              'name name)))))
       
       (define (add-edge! props n)             
-        (let ((id (string-append "medik:edge#" (number->string n))))
+        (let ((id (string-append "medik:edge#" (number->string n)))
+              (object (get-assoc "object" props))
+              (subject (get-assoc "subject" props)))
+          (add-node! object)
+          (add-node! subject)
           (hash-set! edges (string->symbol id)
                      (hash 'attributes
                             (or
                              (and (get-assoc "json_attributes" props)
                                   (string->jsexpr (get-assoc "json_attributes" props)))
                              (data-attributes props))
-                           'object (get-assoc "object" props)
+                           'object object
                            'predicate (get-assoc "predicate" props)
-                           'subject (get-assoc "subject" props)
+                           'subject subject
                            'sources (list (get-source props) unsecret-source)))
           id))
 
@@ -1275,9 +1279,9 @@
               (if (and (edge-has-source? props_xy)
                        (edge-has-source? props_yz))
                   (begin 
-                    (add-node! curie_x)
-                    (add-node! curie_y)
-                    (add-node! curie_z)
+                    ;(add-node! curie_x)
+                    ;(add-node! curie_y)
+                    ;(add-node! curie_z)
                     (let* ((edge_xy (add-edge! props_xy en))
                            (edge_yz (add-edge! props_yz (+ en 1)))
                            (auxiliary_id (add-auxiliary! (list edge_xy edge_yz) an))
