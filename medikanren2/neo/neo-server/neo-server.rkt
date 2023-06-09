@@ -26,7 +26,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.15")
+(define NEO_SERVER_VERSION "1.16")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -1344,6 +1344,9 @@
                                                  'resource_id "infores:unsecret-agent"
                                                  'score (max score-old score-new))))))
                       r))
+
+      ;; add the input curie/id from query graph to nodes
+      (add-node! (car input-id*))
 
       (let loop ((en 0) (an 0) (score*/e* scored/q1-sorted))
         (cond
