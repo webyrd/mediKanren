@@ -26,7 +26,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.16")
+(define NEO_SERVER_VERSION "1.15")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -1295,10 +1295,10 @@
           (add-node! subject)
           (hash-set! edges (string->symbol id)
                      (hash 'attributes
-                           (or
-                            (and (get-assoc "json_attributes" props)
-                                 (string->jsexpr (get-assoc "json_attributes" props)))
-                            (data-attributes props))
+                            (or
+                             (and (get-assoc "json_attributes" props)
+                                  (string->jsexpr (get-assoc "json_attributes" props)))
+                             (data-attributes props))
                            'object object
                            'predicate (get-assoc "predicate" props)
                            'subject subject
