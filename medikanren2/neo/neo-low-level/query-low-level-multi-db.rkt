@@ -18,6 +18,7 @@
  ;;edge-id->properties
  curie->synonyms
  curies->synonyms
+ curie->representative
  )
 
 (require
