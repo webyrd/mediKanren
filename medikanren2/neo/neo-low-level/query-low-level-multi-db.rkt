@@ -247,7 +247,7 @@
              (loop (cdr s*) (car s*))
              (loop (cdr s*) smallest)))))))
 
-(define build-curie-representative-hash
+(define build-curies-representative-hash
   (lambda (curie*)
     (define build-curie-representative-hash
       (lambda (hash curie)
@@ -276,7 +276,7 @@
 
 (define (query:X->Y->Known-helper category*.X predicate*.X->Y category*.Y predicate*.Y->K curie*.K)  
   (let* ((YK (query:X->Known category*.Y predicate*.Y->K curie*.K))
-         (curie-rep-hash (build-curie-representative-hash (remove-duplicates (map car YK))))
+         (curie-rep-hash (build-curies-representative-hash (remove-duplicates (map car YK))))
          (Y=>YK=>1 (result*->dict car YK curie-rep-hash))
          (curie*.Y (hash-keys curie-rep-hash))
          (XY (query:X->Known category*.X predicate*.X->Y curie*.Y))
@@ -307,7 +307,7 @@
 
 (define (query:Known->Y->X-helper curie*.K predicate*.K->Y category*.Y predicate*.Y->X category*.X )  
   (let* ((KY (query:Known->X curie*.K predicate*.K->Y category*.Y))
-         (curie-rep-hash (build-curie-representative-hash (remove-duplicates (map caddr KY))))
+         (curie-rep-hash (build-curies-representative-hash (remove-duplicates (map caddr KY))))
          (Y=>KY=>1 (result*->dict caddr KY curie-rep-hash))
          (curie*.Y (hash-keys curie-rep-hash))
          (YX (query:Known->X curie*.Y predicate*.Y->X category*.X))
