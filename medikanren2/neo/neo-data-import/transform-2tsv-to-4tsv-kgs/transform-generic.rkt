@@ -12,6 +12,7 @@
            nodes-import-file-name
            edges-import-file-name
            export-base-file-name
+           which-kg
            transform-node-and-edge)
     
     (define node-export-file-name
@@ -31,10 +32,10 @@
       (string-append
        export-base-file-name
        ".edgeprop.tsv"))
-    (define qualified-edge-export-file-name
+    (define scored-edge-export-file-name
       (string-append
        export-base-file-name
-       ".qualifiededge.tsv"))
+       ".scorededge.tsv"))
 
         ;; --- nodes ---
     (define nodes-file-import-path
@@ -65,20 +66,22 @@
       (string-append
        export-directory-path
        edge-props-export-file-name))
-    (define qualified-edge-file-export-path
+    (define scored-edge-file-export-path
       (string-append
        export-directory-path
-       qualified-edge-export-file-name))
+       scored-edge-export-file-name))
 
     (let ((transform-node (car transform-node-and-edge))
           (transform-edge (cdr transform-node-and-edge)))
       (transform-node nodes-file-import-path
                       node-file-export-path
-                      node-props-file-export-path)
+                      node-props-file-export-path
+                      which-kg)
 
       (transform-edge edges-file-import-path
                       edge-file-export-path
                       edge-props-file-export-path
-                      qualified-edge-file-export-path)
+                      scored-edge-file-export-path
+                      which-kg)
 
     )))

@@ -2,10 +2,10 @@
 (require "../../dbKanren/dbk/database.rkt"
          racket/list racket/pretty racket/runtime-path)
 
-(define EDGEPROP_PATH "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/text-mining-march-20/text_mining.edgeprop.tsv")
-(define EDGE_PATH "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/text-mining-march-20/text_mining.edge.tsv")
-(define QUALIFIED_EDGE_PATH "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/text-mining-march-20/text_mining.qualifiededge.tsv")
-(define NODEPROP_PATH "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/text-mining-march-20/text_mining.nodeprop.tsv")
+(define EDGEPROP_PATH "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/text-mining-june-19/text_mining.edgeprop.tsv")
+(define EDGE_PATH "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/text-mining-june-19/text_mining.edge.tsv")
+(define SCORED_EDGE_PATH "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/text-mining-june-19/text_mining.scorededge.tsv")
+(define NODEPROP_PATH "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/text-mining-june-19/text_mining.nodeprop.tsv")
 ;;
 (define OUTPUT_DATABASE_PATH "../../neo-data/text_mining.db")
 
@@ -29,12 +29,12 @@
                             (object  subject)
                             (subject eid object)
                             (object  eid subject)))
-                         (qualified-edge
-                           ,QUALIFIED_EDGE_PATH
-                           (int text text text text text)
-                           (eid predicate object-aspect object-direction subject object)
-                           ((predicate object-aspect object-direction subject object eid)
-                            (predicate object-aspect object-direction object subject eid)))
+                         (scored-edge
+                           ,SCORED_EDGE_PATH
+                           (int text text text int)
+                           (eid predicate subject object score)
+                           ((score predicate subject object eid)
+                            (score predicate object subject eid)))
                          (cprop
                            ,NODEPROP_PATH
                            (text text text)

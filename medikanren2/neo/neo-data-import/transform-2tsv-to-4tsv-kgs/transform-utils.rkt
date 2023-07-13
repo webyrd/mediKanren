@@ -1,5 +1,7 @@
 #lang racket
-(provide efficient-no-trim-tab-string-split)
+(provide efficient-no-trim-tab-string-split
+         build-buckets-with-top
+         build-buckets-with-interval)
 
 #|
 
@@ -49,3 +51,33 @@ delimiter.
            (loop
             (add1 i)
             indices)])))))
+
+(define (build-buckets-with-top top n)
+  (if (< n top)
+      n
+      top))
+
+; 0 base
+(define (index-of lst ele)
+  (let loop ((l lst)
+             (i 0))
+    (cond
+      [(null? l) #f]
+      [(equal? (car l) ele) i]
+      [else (loop (cdr l) (add1 i))])))
+
+;; (list 0 1 2 (3 . 4) 5) == 0-0, 1-1, 2-2, 3-4, 5&5+
+(define (build-buckets-with-interval interval* n)
+  (define (helper new-interval*)
+    (cond
+      [(null? (cdr new-interval*)) (- (length interval*) 1)]
+      [(equal? (car new-interval*) n) (index-of interval* n)]
+      [(pair? (car new-interval*)) (if (and (not (< n (caar new-interval*)))
+                                            (not (> n (cdar new-interval*))))
+                                       (index-of interval* (car new-interval*))
+                                       (helper (cdr new-interval*)))]
+      [else (helper (cdr new-interval*))]))
+  (helper interval*))
+                                 
+             
+    

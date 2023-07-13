@@ -2,12 +2,12 @@
 (require "../../dbKanren/dbk/database.rkt"
          racket/list racket/pretty racket/runtime-path)
 
-(define EDGEPROP_PATH "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/robokop-march-2023/Robokop.edgeprop.tsv")
-(define EDGE_PATH "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/robokop-march-2023/Robokop.edge.tsv")
-(define SCORED_EDGE_PATH "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/robokop-march-2023/Robokop.scorededge.tsv")
-(define NODEPROP_PATH "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/robokop-march-2023/Robokop.nodeprop.tsv")
+(define EDGEPROP_PATH "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/kg2-may-2023/rtx_kg2.edgeprop.tsv")
+(define EDGE_PATH "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/kg2-may-2023/rtx_kg2.edge.tsv")
+(define SCORED_EDGE_PATH "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/kg2-may-2023/rtx_kg2.scorededge.tsv")
+(define NODEPROP_PATH "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/kg2-may-2023/rtx_kg2.nodeprop.tsv")
 ;;
-(define OUTPUT_DATABASE_PATH "../../neo-data/Robokop_march_2023.db")
+(define OUTPUT_DATABASE_PATH "../../neo-data/rtx-kg2pre_may_2023.db")
 
 (define-runtime-path path.here ".")
 
