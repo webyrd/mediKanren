@@ -27,10 +27,10 @@
  "neo-helpers-without-db.rkt")
 
 (define (curie->synonyms-in-db curie)
-  (filter curie-in-db? (curie->synonyms curie)))
+  (curies-in-db (curie->synonyms curie)))
 
 (define (curies->synonyms-in-db curies)
-  (filter curie-in-db? (curies->synonyms curies)))
+  (curies-in-db (curies->synonyms curies)))
 
 (define all-predicates-in-db
   (list->set
@@ -43,9 +43,9 @@
 
 (define (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db preds)
   (list->set
-    (filter curie-in-db?
-            (set->list
-              (get-non-deprecated-mixed-ins-and-descendent-predicates* preds)))))
+   (curies-in-db
+    (set->list
+     (get-non-deprecated-mixed-ins-and-descendent-predicates* preds)))))
 
 (define (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db preds)
   (list->set
@@ -57,7 +57,7 @@
 
 (define (get-non-deprecated-mixed-ins-and-descendent-classes*-in-db classes)
   (list->set
-    (filter curie-in-db?
+    (curies-in-db
             (set->list
               (get-non-deprecated-mixed-ins-and-descendent-classes* classes)))))
 
@@ -77,14 +77,16 @@
    (set-fixed-point
     (list->set
      (map car
-          (query:X->Known
+          (query:X->Known-scored
            #f
            (list "biolink:subclass_of")
-           curies)))
+           curies
+           (list (list 1111) #f (list 1111)))))
     (lambda (new-curies)
       (list->set
        (map car
-            (query:X->Known
+            (query:X->Known-scored
              #f
              (list "biolink:subclass_of")
-             (set->list new-curies))))))))
+             (set->list new-curies)
+             (list (list 1111) #f (list 1111)))))))))

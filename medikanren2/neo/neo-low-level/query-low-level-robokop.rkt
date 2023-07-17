@@ -3,7 +3,9 @@
 (provide
   query:Known->Known
   query:Known->X
+  query:Known->X-scored
   query:X->Known
+  query:X->Known-scored
   query:Known<-X->Known
   query:Known->X->Known
   query:X->Y->Known
@@ -11,6 +13,7 @@
   concept-properties
   concept-property-values
   curie-in-db?
+  curies-in-db
   curie->properties
   edge-properties
   edge-property-values
@@ -19,22 +22,26 @@
  "make-query-low-level.rkt"
  racket/match)
  
-(define db-path-under-parent "robokop/full_march_2023/full_Robokop.db")
+(define db-path-under-parent "robokop/full_march_2023/Robokop_march_2023.db")
 
 (match-define
   (list
-    query:Known->Known
-    query:Known->X
-    query:X->Known
-    query:Known<-X->Known
-    query:Known->X->Known
-    query:X->Y->Known
-    query:Concept
-    concept-properties
-    concept-property-values
-    curie-in-db?
-    curie->properties
-    edge-properties
-    edge-property-values
-    edge-id->properties)
+   query:Known->Known
+   query:Known->X-scored
+   query:Known->X
+   query:X->Known-scored
+   query:X->Known
+   query:Known<-X->Known
+   query:Known->X->Known
+   query:X->Y->Known
+   query:Concept
+   concept-properties
+   concept-property-values
+   curie-in-db?
+   curies-in-db
+   curie->properties
+   edge-properties
+   edge-property-values
+   edge-id->properties
+   )
   (make-query-low-level db-path-under-parent))
