@@ -22,7 +22,7 @@
  "make-query-low-level.rkt"
  racket/match)
  
-(define db-path-under-parent "robokop/full_march_2023/Robokop_march_2023.db")
+(define db-path-under-parent "robokop-july-17-2023/full_march_2023/Robokop_march_2023.db")
 
 (match-define
   (list

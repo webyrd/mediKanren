@@ -1116,10 +1116,21 @@
             ;;
             (define gene-ids
               (hash-ref (hash-ref qg_nodes qg_object-node-id) 'ids))
+            (define gene-ids-syns (curies->synonyms-in-db gene-ids))
+            (define protein-ids
+              (remove-duplicates
+               (map car
+                    (query:X->Known-scored 
+                     (set->list
+                      (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
+                       '("biolink:Protein")))
+                     '("biolink:gene_product_of")
+                     gene-ids-syns
+                     (list #f #f (list 0))))))
             (define gene-ids+
-              (time (set->list
-                     (get-descendent-curies*-in-db
-                      (curies->synonyms-in-db gene-ids)))))
+                (set->list
+                 (get-descendent-curies*-in-db
+                  (append gene-ids-syns (curies->synonyms-in-db protein-ids)))))
             (define chemical-catogory+
               (set->list
                (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
