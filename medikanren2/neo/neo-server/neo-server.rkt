@@ -901,12 +901,18 @@
         [(null? props) pubs]
         [else
          (let ((publication (or (get-assoc "publications" (car props))
-                                (get-assoc "supporting_publications" (car props)))))
+                                (get-assoc "supporting_publications" (car props))
+                                (get-assoc "publications:string[]" (car props))
+                               )))
            (helper (cdr props)
                    (append 
-                     (if (string-prefix? publication "(")
-                         (string-split (string-trim (string-trim publication "(") ")"))
-                         (string-split publication "|"))
+                    (cond
+                      [(string-prefix? publication "(")
+                       (string-split (string-trim (string-trim publication "(") ")"))]
+                      [(string-contains? publication "|") (string-split publication "|")]
+                      [(string-contains? publication ";") (string-split publication "; ")]
+                      [else (string-split publication)])
+                    #;(cons "|" pubs)
                     pubs)))]))
     (define pubs (remove-duplicates (helper props '())))
     (hash
@@ -921,7 +927,7 @@
 
 (define (get-source props)
   (let ((source (or (get-assoc "biolink:primary_knowledge_source" props)
-                    (get-assoc "knowledge_source" props) ;rkx-kg2pre2.8.0
+                    (get-assoc "primary_knowledge_source" props) ;rkx-kg2
                     (and (get-assoc "json_attributes" props)
                          "infores:text-mining-provider-targeted")))) ;text-mining
     (hash
@@ -930,9 +936,11 @@
 
 (define (num-pubs props)
   (let ((pubs (or (get-assoc "publications" props)
-                  (get-assoc "supporting_publications" props))))
+                  (get-assoc "supporting_publications" props)
+                  (get-assoc "publications:string[]" props))
+              ))
     (if pubs
-        (max (length (string-split pubs "|")) (length (string-split pubs)))
+        (max (length (string-split pubs "|")) (length (string-split pubs "; ")) (length (string-split pubs)))
         0)))
 
 (define (get-score-from-result result)

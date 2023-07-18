@@ -38,8 +38,12 @@
 
 (define mvp2-filter
         (lambda (target-eprop direction)
-          (let* ((aspect (get-assoc "object_aspect_qualifier" target-eprop))
-                 (direction^ (get-assoc "object_direction_qualifier" target-eprop)))
+          (let* ((aspect (or (get-assoc "object_aspect_qualifier" target-eprop)
+                             (get-assoc "qualified_object_aspect" target-eprop)
+                             ))
+                 (direction^ (or (get-assoc "object_direction_qualifier" target-eprop)
+                                 (get-assoc "qualified_object_direction" target-eprop)
+                                 )))
             (and
              aspect
              direction^
