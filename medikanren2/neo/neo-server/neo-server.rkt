@@ -914,7 +914,9 @@
                       [else (string-split publication)])
                     #;(cons "|" pubs)
                     pubs)))]))
-    (define pubs (remove-duplicates (helper props '())))
+    (define pubs (filter
+                  (lambda (p) (not (equal? "PMID:")))
+                  (remove-duplicates (helper props '()))))
     (hash
      'attribute_type_id "biolink:publications"
      'value pubs
@@ -934,6 +936,8 @@
       'resource_id source
       'resource_role "primary_knowledge_source")))
 
+
+;; TODO: can use get-publications
 (define (num-pubs props)
   (let ((pubs (or (get-assoc "publications" props)
                   (get-assoc "supporting_publications" props)
@@ -1134,6 +1138,7 @@
                        '("biolink:Protein")))
                      '("biolink:gene_product_of")
                      gene-ids-syns
+                     ;; TODO: give names to #f and (list 0) - easy to read
                      (list #f #f (list 0))))))
             (define gene-ids+
                 (set->list

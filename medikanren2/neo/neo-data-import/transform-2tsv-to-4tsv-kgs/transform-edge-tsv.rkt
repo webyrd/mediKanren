@@ -82,7 +82,8 @@ Output edge and edge-props file formats:
                          (predicate (list-ref line 15))
                          (subject (list-ref line 16))
                          (object (list-ref line 17))
-                         (pub-len (if (equal? pubs "")
+                         (pub-len (if (or (equal? pubs "")
+                                          (equal? pubs "PMID:"))
                                     0
                                     (length (string-split pubs "; "))))
                          (score (if (and (equal? predicate "biolink:gene_associated_with_condition")
