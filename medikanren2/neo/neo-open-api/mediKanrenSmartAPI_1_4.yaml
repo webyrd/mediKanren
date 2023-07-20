@@ -32,11 +32,11 @@ info:
     - lookup
     version: 1.4.0
 servers:
-- description: Team Unsecret Agent mediKanren 1.3 Production server
+- description: Team Unsecret Agent mediKanren 1.4 Production server
   url: https://medikanren-trapi.transltr.io
   x-location: ITRB
   x-maturity: production
-- description: Team Unsecret Agent mediKanren 1.3 Test server
+- description: Team Unsecret Agent mediKanren 1.4 Test server
   url: https://medikanren-trapi.test.transltr.io
   x-location: ITRB
   x-maturity: testing
