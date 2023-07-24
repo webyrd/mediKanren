@@ -3,7 +3,9 @@
 (provide
   query:Known->Known
   query:Known->X
+  query:Known->X-scored
   query:X->Known
+  query:X->Known-scored
   query:Known<-X->Known
   query:Known->X->Known
   query:X->Y->Known
@@ -11,6 +13,7 @@
   concept-properties
   concept-property-values
   curie-in-db?
+  curies-in-db
   curie->properties
   edge-properties
   edge-property-values
@@ -19,22 +22,26 @@
  "make-query-low-level.rkt"
  racket/match)
 
-(define db-path-under-parent "rtx-kg2a/pre_2.8.0a/rtx-kg2pre_2.8.0a.db")
+(define db-path-under-parent "rtx-kg2-july-17-2023/may_2023/rtx-kg2pre_may_2023.db")
 
 (match-define
   (list
-    query:Known->Known
-    query:Known->X
-    query:X->Known
-    query:Known<-X->Known
-    query:Known->X->Known
-    query:X->Y->Known
-    query:Concept
-    concept-properties
-    concept-property-values
-    curie-in-db?
-    curie->properties
-    edge-properties
-    edge-property-values
-    edge-id->properties)
+   query:Known->Known
+   query:Known->X-scored
+   query:Known->X
+   query:X->Known-scored
+   query:X->Known
+   query:Known<-X->Known
+   query:Known->X->Known
+   query:X->Y->Known
+   query:Concept
+   concept-properties
+   concept-property-values
+   curie-in-db?
+   curies-in-db
+   curie->properties
+   edge-properties
+   edge-property-values
+   edge-id->properties
+   )
   (make-query-low-level db-path-under-parent))

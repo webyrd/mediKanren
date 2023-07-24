@@ -7,7 +7,8 @@
 (define transform-node-jsonl
   (lambda (nodes-file-import-path
            node-file-export-path
-           node-props-file-export-path)
+           node-props-file-export-path
+           which-kg)
 
     (printf "transform-node-jsonl called\n")
     (printf "input nodes jsonl: ~s\n" nodes-file-import-path)
@@ -65,9 +66,10 @@
                 seen-nodes
                 (read-json nodes-in))))]))))
 
-(transform-generic "../../neo-data/raw_downloads_from_kge_archive/robokop_march/"
-           "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/robokop_march/"
+(transform-generic "../../neo-data/raw_downloads_from_kge_archive/robokop-march-2023/"
+           "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/robokop-march-2023/"
            "nodes.jsonl"
            "edges.jsonl"
-           "full_Robokop"
+           "Robokop"
+           'robokop
            (cons transform-node-jsonl transform-edge-jsonl))

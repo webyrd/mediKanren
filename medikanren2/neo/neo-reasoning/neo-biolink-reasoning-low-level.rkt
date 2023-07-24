@@ -67,11 +67,19 @@
   (lambda (str)
     (string-append "biolink:" (string-replace str " " "_"))))
 
+(define (string-titlecase-title-only str)
+  (if (string? str)
+      (string-append (string-upcase (substring str 0 1))
+                     (substring str 1 (string-length str)))
+      (error "invalid string" str)))
 
 (define yaml-class-name-to-biolink-name
   (lambda (str)
-    (string-append "biolink:" (string-replace (string-titlecase str) " " ""))))
+    (apply string-append (cons "biolink:" (map string-titlecase-title-only (string-split str))))))
 
+#;(define yaml-class-name-to-biolink-name
+  (lambda (str)
+    (string-append "biolink:" (string-replace (string-titlecase str) " " ""))))
 
 ;; list of predicates
 (define slots (hash-keys (hash-ref biolink "slots")))

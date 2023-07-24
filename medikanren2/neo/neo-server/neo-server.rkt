@@ -8,6 +8,7 @@
   "../neo-open-api/neo-api-query.rkt"
   "../neo-reasoning/neo-biolink-reasoning.rkt"
   "../neo-utils/neo-helpers-multi-db.rkt"
+  "neo-server-utils.rkt"
   racket/file
   racket/match
   racket/engine
@@ -20,13 +21,15 @@
   json
   xml
   net/url
-  racket/list)
+  racket/list
+  racket/math
+  )
 
 ;; Team Unsecret Agent mediKanren 2 neo server
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.15")
+(define NEO_SERVER_VERSION "1.16")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -40,6 +43,9 @@
 ;; tutorial).
 (define CONNECTION_TIMEOUT_SECONDS (* 58 60))
 (define API_CALL_CONNECTION_TIMEOUT_SECONDS (* 1 60))
+
+;; Numbers of the top bucket of the RoboKop KG, Text Mining KG, and RTX-KG2 KG.
+(define TOP_BUCKET_NUMBERS (list (list 5) (list 5) (list 7)))
 
 
 ;; ** `tcp-listen` settings **
@@ -827,6 +833,9 @@
      'message
      (hash
       ;;
+      'auxiliary_graphs
+      (hash)
+      ;;
       'query_graph
       query_graph
       ;;
@@ -857,7 +866,7 @@
   (lambda (props)
     (and 
      (or (get-assoc "biolink:primary_knowledge_source" props)
-         (get-assoc "knowledge_source" props)
+         (get-assoc "primary_knowledge_source" props)
          (and (get-assoc "json_attributes" props)
               (let ((attr-hl (string->jsexpr (get-assoc "json_attributes" props))))
                 (let loop ((hl attr-hl))
@@ -867,8 +876,9 @@
                       (hash-ref (car hl) 'attribute_type_id #f)
                       "biolink:primary_knowledge_source")
                      #t)
-                    (else (loop (cdr hl))))))))
-     (or (get-assoc "publications" props)
+                    (else (loop (cdr hl)))))))
+         (get-assoc "knowledge_source" props))
+     #;(or (get-assoc "publications" props)
          (get-assoc "supporting_publications" props)
          (and (get-assoc "json_attributes" props)
               (let ((attr-hl (string->jsexpr (get-assoc "json_attributes" props))))
@@ -891,14 +901,22 @@
         [(null? props) pubs]
         [else
          (let ((publication (or (get-assoc "publications" (car props))
-                                (get-assoc "supporting_publications" (car props)))))
+                                (get-assoc "supporting_publications" (car props))
+                                (get-assoc "publications:string[]" (car props))
+                               )))
            (helper (cdr props)
                    (append 
-                     (if (string-prefix? publication "(")
-                         (string-split (string-trim (string-trim publication "(") ")"))
-                         (string-split publication "|"))
+                    (cond
+                      [(string-prefix? publication "(")
+                       (string-split (string-trim (string-trim publication "(") ")"))]
+                      [(string-contains? publication "|") (string-split publication "|")]
+                      [(string-contains? publication ";") (string-split publication "; ")]
+                      [else (string-split publication)])
+                    #;(cons "|" pubs)
                     pubs)))]))
-    (define pubs (remove-duplicates (helper props '())))
+    (define pubs (filter
+                  (lambda (p) (not (equal? "PMID:" p)))
+                  (remove-duplicates (helper props '()))))
     (hash
      'attribute_type_id "biolink:publications"
      'value pubs
@@ -911,30 +929,22 @@
 
 (define (get-source props)
   (let ((source (or (get-assoc "biolink:primary_knowledge_source" props)
-                    (get-assoc "knowledge_source" props) ;rkx-kg2pre2.8.0
+                    (get-assoc "primary_knowledge_source" props) ;rkx-kg2
                     (and (get-assoc "json_attributes" props)
                          "infores:text-mining-provider-targeted")))) ;text-mining
     (hash
       'resource_id source
       'resource_role "primary_knowledge_source")))
 
-(define (get-assoc k m)
-  (let ((r (assoc k m)))
-    (if r
-        (cadr r)
-        #f)))
 
-(define (list-assoc k m)
-  (let ((r (assoc k m)))
-    (if r
-        (cdr r)
-        '())))
-
+;; TODO: can use get-publications
 (define (num-pubs props)
   (let ((pubs (or (get-assoc "publications" props)
-                  (get-assoc "supporting_publications" props))))
+                  (get-assoc "supporting_publications" props)
+                  (get-assoc "publications:string[]" props))
+              ))
     (if pubs
-        (max (length (string-split pubs "|")) (length (string-split pubs)))
+        (max (length (string-split pubs "|")) (length (string-split pubs "; ")) (length (string-split pubs)))
         0)))
 
 (define (get-score-from-result result)
@@ -956,17 +966,7 @@
       (let ((max-score (get-score-from-result (car results))))
         (map (lambda (x) (set-score-in-result x (/ (get-score-from-result x) (* 1.0 max-score)))) results))))
 
-(define (merge-list xs ys)
-  (if (null? xs)
-      ys
-      (cons (car xs) (merge-list ys (cdr xs)))))
-
-(define (merge-hash h1 h2)
-  (define h h2)
-  (hash-for-each h1 (lambda (k v) (set! h (hash-set h k v))))
-  h)
-
-;; TODO: test
+;; TODO: test it with calling out Genetics KP
 (define (merge-trapi-responses r1 r2 original-query_graph)
   (let* ((message1 (hash-ref r1 'message))
          (message2 (hash-ref r2 'message))
@@ -1036,84 +1036,58 @@
       ; TODO: Would new mvp support more than one predicates?
       (define qg_predicate-str (car (hash-ref qg_edge-hash 'predicates)))
 
-      (define mvp2-filter
-        (lambda (target-eprop direction)
-          (let* ((aspect (get-assoc "object_aspect_qualifier" target-eprop))
-                 (direction^ (get-assoc "object_direction_qualifier" target-eprop)))
-            (and
-             aspect
-             direction^
-             (or
-              (equal? "activity" aspect)
-              (equal? "abundance" aspect)
-              (equal? "activity_or_abundance" aspect))
-             (equal? direction direction^)
-             ))))
-
-      (define mvp2-2hop-filter
-        (lambda (q direction)
-          (filter
-           (lambda (e)
-             (let-values ([(_ eprop) (split-at e 5)])
-               (mvp2-filter (cadr eprop) direction)))
-           q)))
-
-      (define mvp2-1hop-filter
-        (lambda (q direction)
-          (filter
-           (lambda (e)
-             (let-values ([(_ eprop) (split-at e 3)])
-               (mvp2-filter eprop direction)))
-           q)))
-
-      (match-define (list input-id* q-1hop-all-results-unsorted q-2hop-all-results-unsorted)
+      (match-define (list input-id* q-1hop-results q-2hop-results)
         (time
          (cond
            [(eq? 'mvp1 which-mvp)
+            ;;
             (define disease-ids
               ;; TODO write a chainer in utils, and also check for errors
               (hash-ref (hash-ref qg_nodes qg_object-node-id) 'ids))
+            (define disease-ids+
+              (set->list
+               (get-descendent-curies*-in-db
+                (curies->synonyms-in-db disease-ids))))
+            (define chemical-catogory+
+              (set->list
+               (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
+                '("biolink:ChemicalEntity"))))
             ;;
-            (let ((q-1hop
-                   (query:X->Known
-                    (set->list
-                     (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
-                      '("biolink:ChemicalEntity")))
-                    '("biolink:treats")
-                    (set->list
-                     (get-descendent-curies*-in-db
-                      (curies->synonyms-in-db disease-ids)))))
-                  (q-2hop
-                   ;; TODO
-                   ;;
-                   ;; * ensure all of the biolink curies are supported in
-                   ;; the current biolink standard, or replace
-                   ;;
-                   ;; * use qualified predicates
-                   (query:X->Y->Known
-                    ;; X
-                    (set->list
-                     (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
-                      '("biolink:ChemicalEntity")))
-                    (set->list
-                     (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
-                      '("biolink:affects")))
-                    ;; Y
-                    (set->list
-                     (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
-                      '("biolink:Gene" "biolink:GeneOrGeneProduct" "biolink:Protein")))
-                    (set->list
-                     (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
-                      '("biolink:gene_associated_with_condition"
-                        "biolink:contributes_to")))
-                    ;;
-                    (set->list
-                     (get-descendent-curies*-in-db
-                      (curies->synonyms-in-db disease-ids))))))
+            (define 1-hop-proc
+              (lambda (score*)
+                (query:X->Known-scored
+                 chemical-catogory+
+                 '("biolink:treats")
+                 disease-ids+
+                 score*)))
+            (define 2-hop-proc
+              (lambda (score*)
+                (query:X->Y->Known-scored
+                 chemical-catogory+
+                 (set->list
+                  (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
+                   '("biolink:affects")))
+                 (set->list
+                  (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
+                   '("biolink:Gene" "biolink:GeneOrGeneProduct" "biolink:Protein")))
+                 (set->list
+                  (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
+                   '("biolink:gene_associated_with_condition"
+                     "biolink:contributes_to")))
+                 disease-ids+
+                 score*)))
+            ;;
+            (let ((q-1hop (auto-grow 1-hop-proc TOP_BUCKET_NUMBERS MAX_RESULTS_FROM_COMPONENT))
+                  (q-2hop (auto-grow 2-hop-proc TOP_BUCKET_NUMBERS MAX_RESULTS_FROM_COMPONENT)))
               (list disease-ids q-1hop q-2hop))]
            [(eq? 'mvp2-chem which-mvp)
+            ;;
             (define chemical-ids
               (hash-ref (hash-ref qg_nodes qg_subject-node-id) 'ids))
+            (define chemical-ids+
+              (time (set->list
+                     (get-descendent-curies*-in-db
+                      (curies->synonyms-in-db chemical-ids)))))
             (define direction
               (let ((qualifer-set
                      (hash-ref (car (hash-ref qg_edge-hash 'qualifier_constraints)) 'qualifier_set)))
@@ -1121,32 +1095,59 @@
                   (if (equal? (hash-ref (car l) 'qualifier_type_id) "biolink:object_direction_qualifier")
                       (hash-ref (car l) 'qualifier_value)
                       (loop (cdr l))))))
-            (let* ((q-1hop
-                    (query:Known->X
-                     (set->list
-                      (get-descendent-curies*-in-db
-                       (curies->synonyms-in-db chemical-ids)))
-                     '("biolink:affects")
-                     (set->list
-                      (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
-                       '("biolink:Gene" "biolink:Protein")))))
+            (define gene-category+
+              (set->list
+               (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
+                '("biolink:Gene" "biolink:Protein"))))
+            ;;
+            (define 1-hop-proc
+              (lambda (score*)
+                (query:Known->X-scored
+                 chemical-ids+
+                 '("biolink:affects")
+                 gene-category+
+                 score*)))
+            (define 2-hop-proc
+              (lambda (score*)
+                (query:Known->Y->X-scored
+                 chemical-ids+
+                 (set->list
+                  (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
+                   '("biolink:affects")))
+                 #f
+                 '("biolink:affects")
+                 gene-category+
+                 score*)))
+            ;;
+            (let* ((q-1hop (auto-grow 1-hop-proc TOP_BUCKET_NUMBERS (* 2.0 MAX_RESULTS_FROM_COMPONENT)))
                    (qualified-q-1hop (mvp2-1hop-filter q-1hop direction))
-                   (q-2hop
-                    (query:Known->Y->X
-                     (set->list
-                      (get-descendent-curies*-in-db
-                       (curies->synonyms-in-db chemical-ids)))
-                     '("biolink:affects" "biolink:regulates")
-                     #f
-                     '("biolink:affects")
-                     (set->list
-                      (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
-                       '("biolink:Gene" "biolink:Protein")))))
+                   (q-2hop (auto-grow 2-hop-proc TOP_BUCKET_NUMBERS (* 2.0 MAX_RESULTS_FROM_COMPONENT)))
                    (qualified-q-2hop (mvp2-2hop-filter q-2hop direction)))
               (list chemical-ids qualified-q-1hop qualified-q-2hop))]
            [(eq? 'mvp2-gene which-mvp)
+            ;;
             (define gene-ids
               (hash-ref (hash-ref qg_nodes qg_object-node-id) 'ids))
+            (define gene-ids-syns (curies->synonyms-in-db gene-ids))
+            (define protein-ids
+              (remove-duplicates
+               (map car
+                    (query:X->Known-scored 
+                     (set->list
+                      (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
+                       '("biolink:Protein")))
+                     '("biolink:gene_product_of")
+                     gene-ids-syns
+                     ;; TODO: give names to #f and (list 0) - easy to read
+                     (list #f #f (list 0))))))
+            (define gene-ids+
+                (set->list
+                 (get-descendent-curies*-in-db
+                  (append gene-ids-syns (curies->synonyms-in-db protein-ids)))))
+            (define chemical-catogory+
+              (set->list
+               (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
+                '("biolink:ChemicalEntity"))))
             (define direction
               (let ((qualifer-set
                      (hash-ref (car (hash-ref qg_edge-hash 'qualifier_constraints)) 'qualifier_set)))
@@ -1154,38 +1155,34 @@
                   (if (equal? (hash-ref (car l) 'qualifier_type_id) "biolink:object_direction_qualifier")
                       (hash-ref (car l) 'qualifier_value)
                       (loop (cdr l))))))
-            (let* ((q-1hop
-                    (query:X->Known
-                     (set->list
-                      (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
-                       '("biolink:ChemicalEntity")))
-                     '("biolink:affects")
-                     (set->list
-                      (get-descendent-curies*-in-db
-                       (curies->synonyms-in-db gene-ids)))))
+            ;;
+            (define 1-hop-proc
+              (lambda (score*)
+                (query:X->Known-scored
+                 chemical-catogory+
+                 '("biolink:affects")
+                 gene-ids+
+                 score*)))
+            (define 2-hop-proc
+              (lambda (score*)
+                (query:X->Y->Known-scored
+                 chemical-catogory+
+                 (set->list
+                  (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
+                   '("biolink:affects")))
+                 #f
+                 '("biolink:affects")
+                 gene-ids+
+                 score*)))
+            ;;
+            (let* ((q-1hop (auto-grow 1-hop-proc TOP_BUCKET_NUMBERS (* 2.0 MAX_RESULTS_FROM_COMPONENT)))
                    (qualified-q-1hop (mvp2-1hop-filter q-1hop direction))
-                   (q-2hop
-                    (query:X->Y->Known
-                     (set->list
-                      (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
-                       '("biolink:ChemicalEntity")))
-                     '("biolink:affects" "biolink:regulates")
-                     #f
-                     '("biolink:affects")
-                     (set->list
-                      (get-descendent-curies*-in-db
-                       (curies->synonyms-in-db gene-ids)))))
+                   (q-2hop (auto-grow 2-hop-proc TOP_BUCKET_NUMBERS (* 2.0 MAX_RESULTS_FROM_COMPONENT)))
                    (qualified-q-2hop (mvp2-2hop-filter q-2hop direction)))
               (list gene-ids qualified-q-1hop qualified-q-2hop))])))
 
-      (printf "computed a total of ~s results for MVP mode creative query\n"
-              (+ (length q-1hop-all-results-unsorted) (length q-2hop-all-results-unsorted)))
-
-      (define q-1hop-unsorted-long (take-at-most q-1hop-all-results-unsorted MAX_RESULTS_TO_SCORE_AND_SORT))
-      (define q-2hop-unsorted-long (take-at-most q-2hop-all-results-unsorted MAX_RESULTS_TO_SCORE_AND_SORT))
-
-      (printf "about to score ~s results for MVP mode creative query\n"
-              (+ (length q-1hop-unsorted-long) (length q-2hop-unsorted-long)))
+      (printf "computed ~s look-up edges and ~s inferred edges for MVP mode creative query\n"
+              (length q-1hop-results) (length q-2hop-results))
 
       (define (score-mvp-edge e)
         (match e
@@ -1199,28 +1196,28 @@
            (if (and (edge-has-source? props_xy)
                     (edge-has-source? props_yz))
                (* (num-pubs props_xy) (num-pubs props_yz))
-               -1000000)]
+               #f)]
           [`(,curie_x
              ,pred_xy
              ,curie_y
              .
              ,props_xy)
            (if (edge-has-source? props_xy)
-               (num-pubs props_xy)
-               -1000000)]))
+               (let ((n (num-pubs props_xy)))
+                 (* n n))
+               #f)]))
 
       (define scored/q-1hop-unsorted-long
-        (map
-         (lambda (e) (cons (score-mvp-edge e) e))
-         q-1hop-unsorted-long))
+        (filter (lambda (scored/r) (car scored/r))
+                (map
+                 (lambda (e) (cons (score-mvp-edge e) e))
+                 (remove-duplicates q-1hop-results))))
 
       (define scored/q-2hop-unsorted-long
-        (map
-         (lambda (e) (cons (score-mvp-edge e) e))
-         q-2hop-unsorted-long))
-
-      (printf "about to sort ~s results for MVP mode creative query\n"
-              (+ (length scored/q-1hop-unsorted-long) (length scored/q-2hop-unsorted-long)))
+        (filter (lambda (scored/r) (car scored/r))
+                (map
+                 (lambda (e) (cons (score-mvp-edge e) e))
+                 (remove-duplicates q-2hop-results))))
 
       (define by-score
         (lambda (score1/e1 score2/e2)
@@ -1229,43 +1226,79 @@
             (> score1 score2))))
 
       (define scored/q-1hop-sorted-long
-        (sort
-         scored/q-1hop-unsorted-long
-         by-score))
+        (sort scored/q-1hop-unsorted-long by-score))
 
-      (define scored/q-2hop-sorted-long
-        (sort
-         scored/q-2hop-unsorted-long
-         by-score))
+      (define scored/q-1hop-sorted-short (take-at-most scored/q-1hop-sorted-long (exact-round (/ MAX_RESULTS_FROM_COMPONENT 2.0))))
 
-      (define (normalize-scored/sorted-long-results score/results)
-        (if (null? score/results)
-            score/results
-            (let ((max-score (caar score/results)))
-              (map (lambda (x) (cons (/ (car x) (* 1.0 max-score)) (cdr x))) score/results))))
+      (printf "computed ~s valid 1 hop edges for MVP mode creative query\n" (length scored/q-1hop-sorted-short))
 
-      (define normalized-scored/q-1hop-sorted-long
-        (normalize-scored/sorted-long-results scored/q-1hop-sorted-long))
+      (define scored/q-unsorted-long (append scored/q-1hop-sorted-short scored/q-2hop-unsorted-long))
 
-      (define normalized-scored/q-2hop-sorted-long
-        (normalize-scored/sorted-long-results scored/q-2hop-sorted-long))
+      (printf "computed total ~s valid edges for MVP mode creative query\n"
+              (length scored/q-unsorted-long))
+      
+      (define scored/q-sorted-long
+        (sort scored/q-unsorted-long by-score))
 
-      (define normalized-scored/q-1hop-sorted-short
-        (take-at-most normalized-scored/q-1hop-sorted-long (floor (/ MAX_RESULTS_FROM_COMPONENT 2.0))))
+      (define scored/q-sorted-short (take-at-most scored/q-sorted-long MAX_RESULTS_FROM_COMPONENT))
 
-      (define normalized-scored/q1-sorted-long
-        (sort
-         (append normalized-scored/q-1hop-sorted-short normalized-scored/q-2hop-sorted-long)
-         by-score))
+      (printf "about to take the best ~s edges for MVP mode creative query\n"
+              (length scored/q-sorted-short))
 
-      (printf "about to take the first ~s scored and sorted results for MVP mode creative query\n"
-              MAX_RESULTS_FROM_COMPONENT)
+      (define curie-representative-table '())
+      (define representative-score-table
+        (cond
+          [(or (eq? which-mvp 'mvp1) (eq? which-mvp 'mvp2-gene))
+            (let ((subject-score-table (make-hash)))
+              (set! curie-representative-table (build-curies-representative-hash (remove-duplicates (map cadr scored/q-sorted-short))))
+              (for-each
+               (lambda (e)
+                 (hash-update! subject-score-table
+                               (hash-ref curie-representative-table (cadr e))
+                               (lambda (old-socre)
+                                 (+ (car e) old-socre))
+                               0))
+               scored/q-sorted-short)
+              subject-score-table)]
+          [(eq? which-mvp 'mvp2-chem)
+           (let ((get-object
+                  (lambda (e)
+                    (match e
+                      [`(,score
+                         ,curie_x
+                         ,pred_xy
+                         ,curie_y
+                         ,(? string? pred_yz)
+                         ,(? string? curie_z)
+                         ,props_xy
+                         ,props_yz)
+                       curie_z]
+                      [`(,score
+                         ,curie_x
+                         ,pred_xy
+                         ,curie_y
+                         .
+                         ,props_xy)
+                       curie_y]
+                      [else (error "invalid form of returned edge" e)])))
+                 (object-score-table (make-hash)))
+             (set! curie-representative-table
+                   (build-curies-representative-hash
+                    (remove-duplicates (map
+                                        (lambda (e) (get-object e))
+                                        scored/q-sorted-short))))
+              (for-each
+               (lambda (e)
+                 (hash-update! object-score-table
+                               (hash-ref curie-representative-table (get-object e))
+                               (lambda (old-socre)
+                                 (+ (car e) old-socre))
+                               0))
+               scored/q-sorted-short)
+             object-score-table)]
+          [else (error "unknown MVP" which-mvp)]))
 
-      ;(define scored/q1-sorted (take-at-most scored/q1-sorted-long MAX_RESULTS_FROM_COMPONENT))
-      (define scored/q1-sorted (take-at-most normalized-scored/q1-sorted-long MAX_RESULTS_FROM_COMPONENT))
-
-      (printf "now have ~s scored and sorted results for MVP mode creative query\n"
-              (length scored/q1-sorted))
+      (printf "There are ~a unique results/entities for the MVP query.\n" (hash-count representative-score-table))
 
       (define nodes (make-hash))
 
@@ -1311,7 +1344,7 @@
                      (hash 'attributes
                            (list
                             (auxiliary-graph-attribute aux-id)
-                            (get-publications e1prop e2prop))
+                            #;(get-publications e1prop e2prop))
                            'object obj
                            'predicate pred
                            'subject sub
@@ -1333,22 +1366,29 @@
                         (let* ((a*-old (hash-ref r-old 'analyses))
                                (a-old (car a*-old))
                                (edge-old (hash-ref (hash-ref a-old 'edge_bindings) qg_edge-id))
-                               (score-old (hash-ref a-old 'score))
-                               (a*-new (hash-ref r 'analyses))
-                               (a-newo (car a*-new))
-                               (edge-new (hash-ref  (hash-ref a-newo 'edge_bindings) qg_edge-id))
-                               (score-new (hash-ref a-newo 'score)))
-                          (hash
+                               (edge-new (hash-ref  (hash-ref r 'edge_bindings) qg_edge-id)))
+                          (hash-set r-old 'analyses
+                                    (list (hash-set (car (hash-ref r-old 'analyses))
+                                                    'edge_bindings
+                                                    (hash qg_edge-id (remove-duplicates (append edge-old edge-new))))))
+                          #;(hash
                            'node_bindings (hash-ref r-old 'node_bindings) 
-                           'analyses (list (hash 'edge_bindings (hash qg_edge-id (remove-duplicates (append edge-old edge-new)))
+                           'analyses (list
+                                      (hash 'edge_bindings (hash qg_edge-id (remove-duplicates (append edge-old edge-new)))
                                                  'resource_id "infores:unsecret-agent"
-                                                 'score (max score-old score-new))))))
-                      r))
+                                                 'score (hash-ref representative-normalized-score-table (hash-ref r 'result_id)))))))
+                      (hash
+                       'node_bindings (hash-ref r 'node_bindings)
+                       'analyses (list (hash 'edge_bindings (hash-ref r 'edge_bindings)
+                                             'resource_id "infores:unsecret-agent"
+                                             'score (hash-ref representative-score-table (hash-ref r 'result_id)))))
+                       ))
+      
 
       ;; add the input curie/id from query graph to nodes
       (add-node! (car input-id*))
 
-      (let loop ((en 0) (an 0) (score*/e* scored/q1-sorted))
+      (let loop ((en 0) (an 0) (score*/e* scored/q-sorted-short))
         (cond
           ((null? score*/e*) '())
           (else
@@ -1363,108 +1403,77 @@
                 ,(? string? curie_z)
                 ,props_xy
                 ,props_yz)
-              (if (and (edge-has-source? props_xy)
-                       (edge-has-source? props_yz))
-                  (begin 
-                    ;(add-node! curie_x)
-                    ;(add-node! curie_y)
-                    ;(add-node! curie_z)
-                    (let* ((edge_xy (add-edge! props_xy en))
-                           (edge_yz (add-edge! props_yz (+ en 1)))
-                           (auxiliary_id (add-auxiliary! (list edge_xy edge_yz) an))
-                           (edge_creative (add-creative-edge! curie_x
-                                                              curie_z
-                                                              qg_predicate-str
-                                                              an
-                                                              auxiliary_id
-                                                              props_xy
-                                                              props_yz)))
-                      (add-unmerged-result!
-                       (cond
-                         [(or (eq? which-mvp 'mvp1) (eq? which-mvp 'mvp2-gene))
-                          (hash 'node_bindings
-                                (if (equal? curie_z (car input-id*))
-                                    (hash
-                                     qg_subject-node-id (list (hash 'id curie_x))
-                                     qg_object-node-id (list (hash 'id curie_z)))
-                                    (hash
-                                     qg_subject-node-id (list (hash 'id curie_x))
-                                     qg_object-node-id (list (hash 'id curie_z
-                                                                   'query_id (car input-id*)))))
-                                'result_id (curie->representative curie_x)
-                                'analyses
-                                (list (hash
-                                       'resource_id "infores:unsecret-agent"
-                                       'edge_bindings
-                                       (hash qg_edge-id (list (hash 'id edge_creative)))
-                                       'score score)))]
-                         [(eq? which-mvp 'mvp2-chem)
-                          (hash 'node_bindings
-                                (if (equal? curie_x (car input-id*))
-                                    (hash
-                                     qg_subject-node-id (list (hash 'id curie_x))
-                                     qg_object-node-id (list (hash 'id curie_z)))
-                                    (hash
-                                     qg_subject-node-id (list (hash 'id curie_x
-                                                                    'query_id (car input-id*)))
-                                     qg_object-node-id (list (hash 'id curie_z))))
-                                'result_id (curie->representative curie_z)
-                                'analyses
-                                (list (hash
-                                       'resource_id "infores:unsecret-agent"
-                                       'edge_bindings
-                                       (hash qg_edge-id (list (hash 'id edge_creative)))
-                                       'score score)))])))
-                    (loop (+ en 2) (+ an 1) (cdr score*/e*)))
-                  (loop en an (cdr score*/e*)))]
+              (let* ((edge_xy (add-edge! props_xy en))
+                     (edge_yz (add-edge! props_yz (+ en 1)))
+                     (auxiliary_id (add-auxiliary! (list edge_xy edge_yz) an))
+                     (edge_creative (add-creative-edge! curie_x
+                                                        curie_z
+                                                        qg_predicate-str
+                                                        an
+                                                        auxiliary_id
+                                                        props_xy
+                                                        props_yz)))
+                (add-unmerged-result!
+                 (cond
+                   [(or (eq? which-mvp 'mvp1) (eq? which-mvp 'mvp2-gene))
+                    (hash 'node_bindings
+                          (if (equal? curie_z (car input-id*))
+                              (hash
+                               qg_subject-node-id (list (hash 'id curie_x))
+                               qg_object-node-id (list (hash 'id curie_z)))
+                              (hash
+                               qg_subject-node-id (list (hash 'id curie_x))
+                               qg_object-node-id (list (hash 'id curie_z
+                                                             'query_id (car input-id*)))))
+                          'result_id (hash-ref curie-representative-table curie_x)
+                          'edge_bindings (hash qg_edge-id (list (hash 'id edge_creative))))]
+                   [(eq? which-mvp 'mvp2-chem)
+                    (hash 'node_bindings
+                          (if (equal? curie_x (car input-id*))
+                              (hash
+                               qg_subject-node-id (list (hash 'id curie_x))
+                               qg_object-node-id (list (hash 'id curie_z)))
+                              (hash
+                               qg_subject-node-id (list (hash 'id curie_x
+                                                              'query_id (car input-id*)))
+                               qg_object-node-id (list (hash 'id curie_z))))
+                          'result_id (hash-ref curie-representative-table curie_z)
+                          'edge_bindings (hash qg_edge-id (list (hash 'id edge_creative))))]
+                   [else (error "unknown MVP" which-mvp)]))
+                (loop (+ en 2) (+ an 1) (cdr score*/e*)))]
              [`(,curie_x
                 ,pred_xy
                 ,curie_y
                 . 
                 ,props_xy)
-              (if (edge-has-source? props_xy)
-                  (begin
-                    ;(add-node! curie_x)
-                    ;(add-node! curie_y)
-                    (let ((edge_xy (add-edge! props_xy en)))
-                      (add-unmerged-result!
-                       (cond
-                         [(or (eq? which-mvp 'mvp1) (eq? which-mvp 'mvp2-gene))
-                          (hash 'node_bindings
-                                (if (equal? curie_y (car input-id*))
-                                    (hash
-                                     qg_subject-node-id (list (hash 'id curie_x))
-                                     qg_object-node-id (list (hash 'id curie_y)))
-                                    (hash
-                                     qg_subject-node-id (list (hash 'id curie_x))
-                                     qg_object-node-id (list (hash 'id curie_y
-                                                                   'query_id (car input-id*)))))
-                                'result_id (curie->representative curie_x)
-                                'analyses
-                                (list (hash
-                                       'resource_id "infores:unsecret-agent"
-                                       'edge_bindings
-                                       (hash qg_edge-id (list (hash 'id edge_xy)))
-                                       'score score)))]
-                         [(eq? which-mvp 'mvp2-chem)
-                          (hash 'node_bindings
-                                (if (equal? curie_x (car input-id*))
-                                    (hash
-                                     qg_subject-node-id (list (hash 'id curie_x))
-                                     qg_object-node-id (list (hash 'id curie_y)))
-                                    (hash
-                                     qg_subject-node-id (list (hash 'id curie_x
-                                                                    'query_id (car input-id*)))
-                                     qg_object-node-id (list (hash 'id curie_y))))
-                                'result_id (curie->representative curie_y)
-                                'analyses
-                                (list (hash
-                                       'resource_id "infores:unsecret-agent"
-                                       'edge_bindings
-                                       (hash qg_edge-id (list (hash 'id edge_xy)))
-                                       'score score)))])))
-                    (loop (+ en 1) an (cdr score*/e*)))
-                  (loop en an (cdr score*/e*)))]
+              (let ((edge_xy (add-edge! props_xy en)))
+                (add-unmerged-result!
+                 (cond
+                   [(or (eq? which-mvp 'mvp1) (eq? which-mvp 'mvp2-gene))
+                    (hash 'node_bindings
+                          (if (equal? curie_y (car input-id*))
+                              (hash
+                               qg_subject-node-id (list (hash 'id curie_x))
+                               qg_object-node-id (list (hash 'id curie_y)))
+                              (hash
+                               qg_subject-node-id (list (hash 'id curie_x))
+                               qg_object-node-id (list (hash 'id curie_y
+                                                             'query_id (car input-id*)))))
+                          'result_id (hash-ref curie-representative-table curie_x)
+                          'edge_bindings (hash qg_edge-id (list (hash 'id edge_xy))))]
+                   [(eq? which-mvp 'mvp2-chem)
+                    (hash 'node_bindings
+                          (if (equal? curie_x (car input-id*))
+                              (hash
+                               qg_subject-node-id (list (hash 'id curie_x))
+                               qg_object-node-id (list (hash 'id curie_y)))
+                              (hash
+                               qg_subject-node-id (list (hash 'id curie_x
+                                                              'query_id (car input-id*)))
+                               qg_object-node-id (list (hash 'id curie_y))))
+                          'result_id (hash-ref curie-representative-table curie_y)
+                          'edge_bindings (hash qg_edge-id (list (hash 'id edge_xy))))]))
+                (loop (+ en 1) an (cdr score*/e*)))]
              ))))
 
       (define merged-results 
@@ -1475,7 +1484,6 @@
             [else (loop (cdr id*)
                         (cons (hash-ref unmerged-results (car id*)) r))])))
       
-      ;; TODO: the result should be already sorted from the process above
       (define results (sort merged-results (lambda (a b) (> (get-score-from-result a) (get-score-from-result b)))))
 
       (hash
@@ -1893,7 +1901,7 @@
 
 
 ;;; Ensure the data is loaded by running an example query:
-(define q3 (query:X->Known
+(define q3 (query:X->Known-scored
             (set->list
              (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
               '("biolink:ChemicalEntity")))
@@ -1902,6 +1910,7 @@
               '("biolink:treats")))
             (set->list
              (get-descendent-curies*-in-db
-              (curie->synonyms-in-db "DOID:9351")))))
+              (curie->synonyms-in-db "DOID:9351")))
+            TOP_BUCKET_NUMBERS))
 
 (length q3)

@@ -15,7 +15,8 @@ Output node and node-props file formats:
 (define transform-node-tsv
   (lambda (nodes-file-import-path
            node-file-export-path
-           node-props-file-export-path)
+           node-props-file-export-path
+           which-kg)
 
     (printf "transform-node-tsv called\n")
     (printf "input nodes tsv: ~s\n" nodes-file-import-path)
@@ -32,11 +33,11 @@ Output node and node-props file formats:
     (define nodes-in
       (open-input-file nodes-file-import-path))
     
-    (let* ((header (read-line nodes-in))
+    (let* ((header (read-line nodes-in 'any))
            (header (string-split header "\t" #:trim? #f)))
       (let loop ((i 0)
                  (seen-nodes (set))
-                 (line-str (read-line nodes-in)))
+                 (line-str (read-line nodes-in 'any)))
         (when (zero? (modulo i 100000))
           (printf "processing nodes line ~s\n" i))
 
@@ -48,7 +49,9 @@ Output node and node-props file formats:
            (printf "finished processing nodes\n\n"))
           (else
            (let ((line (efficient-no-trim-tab-string-split line-str)))               
-             (let ((id (car line)))
+             (let ((id (cond
+                         [(eq? which-kg 'text-mining) (car line)]
+                         [(eq? which-kg 'rtx-kg2) (list-ref line 7)])))
                (when (set-member? seen-nodes id)
                  (error 'make-kg-node (format "already seen node: ~a" id)))
                (fprintf node-out "~a\n" id)
@@ -63,4 +66,4 @@ Output node and node-props file formats:
                (loop
                 (add1 i)
                 (set-add seen-nodes id)
-                (read-line nodes-in))))))))))
+                (read-line nodes-in 'any))))))))))

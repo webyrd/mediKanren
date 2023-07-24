@@ -10,7 +10,9 @@
 
 (provide curie->representative
          curies->synonyms
-         curie->synonyms)
+         curie->synonyms
+         build-curies-representative-hash
+         add-curies-representative-to-hash)
 
 (define (curie->representative curie)
   (define (helper yield)
@@ -20,13 +22,15 @@
        (lambda (id.representative)
          (let ((representative (id->string id.representative)))
            (yield representative))))))
-  (if (curie-in-db? curie)
-      (car (enumerator->rlist helper))
-      curie))
+  (if (null? (curies-in-db (list curie)))
+      curie
+      (car (enumerator->rlist helper))))
 
 (define (curies->synonyms curie*)
   (define (helper yield)
-    (let ((curie*=>1 (string*->id=>1 (filter curie-in-db? curie*))))
+    (let ((curie*=>1 (string*->id=>1
+                      (curies-in-db curie*)
+                      #;(filter curie-in-db? curie*))))
       ((merge-join fx< curie*=>1 curie=>representative=>1)
        (lambda (__ ___ representative=>1)
          ((merge-join fx< representative=>1 representative=>curie=>1)
@@ -40,6 +44,41 @@
 
 (define (curie->synonyms curie)
   (curies->synonyms (list curie)))
+
+(define build-curie-representative-hash
+      (lambda (hash curie)
+        (if (hash-has-key? hash curie)
+            hash
+            (let* ((synonyms (curie->synonyms curie))
+                   (representative (find-smallest-string synonyms)))
+              (let loop ((h hash) (s* synonyms))
+                (cond
+                  ((null? s*) h)
+                  (else (loop (hash-set h (car s*) representative) (cdr s*)))))))))
+
+(define build-curies-representative-hash
+  (lambda (curie*)
+    (let loop ((h (hash)) (c* curie*))
+      (cond
+        ((null? c*) h)
+        (else (loop (build-curie-representative-hash h (car c*)) (cdr c*)))))))
+
+(define add-curies-representative-to-hash
+  (lambda (representative-hash curie*)
+    (let loop ((h representative-hash) (c* curie*))
+      (cond
+        ((null? c*) h)
+        (else (loop (build-curie-representative-hash h (car c*)) (cdr c*)))))))
+
+(define find-smallest-string
+  (lambda (string*)
+    (let loop ((s* (cdr string*)) (smallest (car string*)))
+      (cond
+        ((null? s*) smallest)
+        (else
+         (if (string<? (car s*) smallest)
+             (loop (cdr s*) (car s*))
+             (loop (cdr s*) smallest)))))))
     
 (define (curie-in-db? curie)
     (dict-ref text=>id
@@ -47,13 +86,25 @@
               (lambda (id) #t)
               (lambda () #f)))
 
+(define (curies-in-db curie*)
+    (define curie-text*=>1
+      (let* ((text* (map string->bytes/utf-8 curie*))
+             (text* (list->vector (sort (remove-duplicates text*) bytes<?))))
+        (dict:ref (lambda (i) (vector-ref text* i)) bytes<?
+                  (lambda (_) '()) 0 (vector-length text*))))
+    (define (helper yield)
+      ((merge-join bytes<? curie-text*=>1 text=>id)
+       (lambda (text.curie __ ___)
+         (yield (bytes->string/utf-8 text.curie)))))
+    (enumerator->rlist helper))                      
+
 (define (dict-get d key)
     (dict-ref d key (lambda (v) v) (lambda () (error "dict-get failed" key))))
 
 
 
 (define-runtime-path path.here "../neo-data")
-(define db-path-under-parent "equivalence/april_25_2023/equivalence.db")
+(define db-path-under-parent "equivalence-july-17-2023/july_13_2023/equivalence.db")
 (pretty-log `(loading relation index dictionaries for db)
               path.here
               db-path-under-parent)

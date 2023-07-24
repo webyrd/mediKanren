@@ -3,15 +3,20 @@
 (provide
  query:Known->Known
  query:Known->X
+ query:Known->X-scored
  query:X->Known
+ query:X->Known-scored
  query:Known<-X->Known
  query:Known->X->Known
  query:X->Y->Known
+ query:X->Y->Known-scored
  query:Known->Y->X
+ query:Known->Y->X-scored
  query:Concept
  concept-properties
  ;;concept-property-values
  curie-in-db?
+ curies-in-db
  curie->properties
  edge-properties
  ;;edge-property-values
@@ -19,14 +24,18 @@
  curie->synonyms
  curies->synonyms
  curie->representative
- )
+ build-curies-representative-hash
+ add-curies-representative-to-hash
+)
 
 (require
 
   (rename-in "query-low-level-robokop.rkt"
              (query:Known->Known query:Known->Known-robokop)
              (query:Known->X query:Known->X-robokop)
+             (query:Known->X-scored query:Known->X-scored-robokop)
              (query:X->Known query:X->Known-robokop)
+             (query:X->Known-scored  query:X->Known-scored-robokop)
              (query:Known<-X->Known query:Known<-X->Known-robokop)
              (query:Known->X->Known query:Known->X->Known-robokop)
              (query:X->Y->Known query:X->Y->Known-robokop)
@@ -34,6 +43,7 @@
              (concept-properties concept-properties-robokop)
              (concept-property-values concept-property-values-robokop)
              (curie-in-db? curie-in-db?-robokop)
+             (curies-in-db curies-in-db-robokop)
              (curie->properties curie->properties-robokop)
              (edge-properties edge-properties-robokop)
              (edge-property-values edge-property-values-robokop)
@@ -43,7 +53,9 @@
   (rename-in "query-low-level-text-mining.rkt"
              (query:Known->Known query:Known->Known-text-mining)
              (query:Known->X query:Known->X-text-mining)
+             (query:Known->X-scored query:Known->X-scored-text-mining)
              (query:X->Known query:X->Known-text-mining)
+             (query:X->Known-scored  query:X->Known-scored-text-mining)
              (query:Known<-X->Known query:Known<-X->Known-text-mining)
              (query:Known->X->Known query:Known->X->Known-text-mining)
              (query:X->Y->Known query:X->Y->Known-text-mining)
@@ -51,6 +63,7 @@
              (concept-properties concept-properties-text-mining)
              (concept-property-values concept-property-values-text-mining)
              (curie-in-db? curie-in-db?-text-mining)
+             (curies-in-db curies-in-db-text-mining)
              (curie->properties curie->properties-text-mining)
              (edge-properties edge-properties-text-mining)
              (edge-property-values edge-property-values-text-mining)
@@ -60,7 +73,9 @@
   (rename-in "query-low-level-rtx-kg2.rkt"
              (query:Known->Known query:Known->Known-rtx-kg2)
              (query:Known->X query:Known->X-rtx-kg2)
+             (query:Known->X-scored query:Known->X-scored-rtx-kg2)
              (query:X->Known query:X->Known-rtx-kg2)
+             (query:X->Known-scored  query:X->Known-scored-rtx-kg2)
              (query:Known<-X->Known query:Known<-X->Known-rtx-kg2)
              (query:Known->X->Known query:Known->X->Known-rtx-kg2)
              (query:X->Y->Known query:X->Y->Known-rtx-kg2)
@@ -68,6 +83,7 @@
              (concept-properties concept-properties-rtx-kg2)
              (concept-property-values concept-property-values-rtx-kg2)
              (curie-in-db? curie-in-db?-rtx-kg2)
+             (curies-in-db curies-in-db-rtx-kg2)
              (curie->properties curie->properties-rtx-kg2)
              (edge-properties edge-properties-rtx-kg2)
              (edge-property-values edge-property-values-rtx-kg2)
@@ -97,7 +113,20 @@
    (query:Known->Known-rtx-kg2
     (filter curie-in-db?-rtx-kg2 curie*.S)
     (filter curie-in-db?-rtx-kg2 predicate*.S->O)
-    (filter curie-in-db?-rtx-kg2 curie*.O))))
+    (filter curie-in-db?-rtx-kg2 curie*.O)))
+  #;(append
+   (query:Known->Known-robokop
+    (curies-in-db-robokop curie*.S)
+    (curies-in-db-robokop predicate*.S->O)
+    (curies-in-db-robokop curie*.O))
+   (query:Known->Known-text-mining
+    (curies-in-db-text-mining curie*.S)
+    (curies-in-db-text-mining predicate*.S->O)
+    (curies-in-db-text-mining curie*.O))
+   (query:Known->Known-rtx-kg2
+    (curies-in-db-rtx-kg2 curie*.S)
+    (curies-in-db-rtx-kg2 predicate*.S->O)
+    (curies-in-db-rtx-kg2 curie*.O))))
 
 (define (query:Known->X curie*.K predicate*.K->X category*.X)
   (append
@@ -117,6 +146,27 @@
     (and category*.X
          (filter curie-in-db?-rtx-kg2 category*.X)))))
 
+(define (query:Known->X-scored curie*.K predicate*.K->X category*.X score*)
+  (append
+   (query:Known->X-scored-robokop
+    (curies-in-db-robokop curie*.K)
+    (curies-in-db-robokop predicate*.K->X)
+    (and category*.X
+         (curies-in-db-robokop category*.X))
+    (list-ref score* 0))
+   (query:Known->X-scored-text-mining
+    (curies-in-db-text-mining curie*.K)
+    (curies-in-db-text-mining predicate*.K->X)
+    (and category*.X
+         (curies-in-db-text-mining category*.X))
+    (list-ref score* 1))
+   (query:Known->X-scored-rtx-kg2
+    (curies-in-db-rtx-kg2 curie*.K)
+    (curies-in-db-rtx-kg2 predicate*.K->X)
+    (and category*.X
+         (curies-in-db-rtx-kg2 category*.X))
+    (list-ref score* 2))))
+
 (define (query:X->Known category*.X predicate*.X->K curie*.K)
   (append
    (query:X->Known-robokop
@@ -134,6 +184,27 @@
          (filter curie-in-db?-rtx-kg2 category*.X))
     (filter curie-in-db?-rtx-kg2 predicate*.X->K)
     (filter curie-in-db?-rtx-kg2 curie*.K))))
+
+(define (query:X->Known-scored category*.X predicate*.X->K curie*.K score*)
+  (append
+   (query:X->Known-scored-robokop
+    (and category*.X
+         (curies-in-db-robokop category*.X))
+    (curies-in-db-robokop predicate*.X->K)
+    (curies-in-db-robokop curie*.K)
+    (list-ref score* 0))
+   (query:X->Known-scored-text-mining
+    (and category*.X
+         (curies-in-db-text-mining category*.X))
+    (curies-in-db-text-mining predicate*.X->K)
+    (curies-in-db-text-mining curie*.K)
+    (list-ref score* 1))
+   (query:X->Known-scored-rtx-kg2
+    (and category*.X
+         (curies-in-db-rtx-kg2 category*.X))
+    (curies-in-db-rtx-kg2 predicate*.X->K)
+    (curies-in-db-rtx-kg2 curie*.K)
+    (list-ref score* 2))))
 
 ;; query:Known<-X->Known is analogous to a miniKanren-style query with this shape:
 ;;(run* (K1 name.K1 predicates.K1<-X X name.X predicates.X->K1 K2 name.K2)
@@ -237,33 +308,6 @@
       (dict:ref (lambda (i) (rep/key (car (ref.value i)))) string<?
                 ref.value 0 (vector-length group*))))
 
-(define find-smallest-string
-  (lambda (string*)
-    (let loop ((s* (cdr string*)) (smallest (car string*)))
-      (cond
-        ((null? s*) smallest)
-        (else
-         (if (string<? (car s*) smallest)
-             (loop (cdr s*) (car s*))
-             (loop (cdr s*) smallest)))))))
-
-(define build-curies-representative-hash
-  (lambda (curie*)
-    (define build-curie-representative-hash
-      (lambda (hash curie)
-        (if (hash-has-key? hash curie)
-            hash
-            (let* ((synonyms (curie->synonyms curie))
-                   (representative (find-smallest-string synonyms)))
-              (let loop ((h hash) (s* synonyms))
-                (cond
-                  ((null? s*) h)
-                  (else (loop (hash-set h (car s*) representative) (cdr s*)))))))))
-    (let loop ((h (hash)) (c* curie*))
-      (cond
-        ((null? c*) h)
-        (else (loop (build-curie-representative-hash h (car c*)) (cdr c*)))))))
-
 (define (query:X->Y->Known category*.X predicate*.X->Y category*.Y predicate*.Y->K curie*.K)
   (query:X->Y->Known-helper
    (and category*.X
@@ -272,14 +316,30 @@
    (and category*.Y
         (filter curie-in-db? category*.Y))
    (filter curie-in-db? predicate*.Y->K)
-   (filter curie-in-db? curie*.K)))
+   (filter curie-in-db? curie*.K)
+   #f))
 
-(define (query:X->Y->Known-helper category*.X predicate*.X->Y category*.Y predicate*.Y->K curie*.K)  
-  (let* ((YK (query:X->Known category*.Y predicate*.Y->K curie*.K))
+(define (query:X->Y->Known-scored category*.X predicate*.X->Y category*.Y predicate*.Y->K curie*.K score*)
+  (query:X->Y->Known-helper
+   (and category*.X
+        (curies-in-db category*.X))
+   (curies-in-db predicate*.X->Y)
+   (and category*.Y
+        (curies-in-db category*.Y))
+   (curies-in-db predicate*.Y->K)
+   (curies-in-db curie*.K)
+   score*))
+
+(define (query:X->Y->Known-helper category*.X predicate*.X->Y category*.Y predicate*.Y->K curie*.K score*)
+  (let* ((YK (if score*
+                 (query:X->Known-scored category*.Y predicate*.Y->K curie*.K score*)
+                 (query:X->Known category*.Y predicate*.Y->K curie*.K)))
          (curie-rep-hash (build-curies-representative-hash (remove-duplicates (map car YK))))
          (Y=>YK=>1 (result*->dict car YK curie-rep-hash))
          (curie*.Y (hash-keys curie-rep-hash))
-         (XY (query:X->Known category*.X predicate*.X->Y curie*.Y))
+         (XY (if score*
+                 (query:X->Known-scored category*.X predicate*.X->Y curie*.Y score*)
+                 (query:X->Known category*.X predicate*.X->Y curie*.Y)))
          (Y=>XY=>1 (result*->dict caddr XY curie-rep-hash)))
     (maybe-time (enumerator->list
                  (lambda (yield)
@@ -303,14 +363,30 @@
         (filter curie-in-db? category*.Y))
    (filter curie-in-db? predicate*.Y->X)
    (and category*.X
-        (filter curie-in-db? category*.X))))
+        (filter curie-in-db? category*.X))
+   #f))
 
-(define (query:Known->Y->X-helper curie*.K predicate*.K->Y category*.Y predicate*.Y->X category*.X )  
-  (let* ((KY (query:Known->X curie*.K predicate*.K->Y category*.Y))
+(define (query:Known->Y->X-scored curie*.K predicate*.K->Y category*.Y predicate*.Y->X category*.X score*)
+  (query:Known->Y->X-helper
+   (curies-in-db curie*.K)
+   (curies-in-db predicate*.K->Y)
+   (and category*.Y
+        (curies-in-db category*.Y))
+   (curies-in-db predicate*.Y->X)
+   (and category*.X
+        (curies-in-db category*.X))
+   score*))
+
+(define (query:Known->Y->X-helper curie*.K predicate*.K->Y category*.Y predicate*.Y->X category*.X score*)
+  (let* ((KY (if score*
+                 (query:Known->X-scored curie*.K predicate*.K->Y category*.Y score*)
+                 (query:Known->X curie*.K predicate*.K->Y category*.Y)))
          (curie-rep-hash (build-curies-representative-hash (remove-duplicates (map caddr KY))))
          (Y=>KY=>1 (result*->dict caddr KY curie-rep-hash))
          (curie*.Y (hash-keys curie-rep-hash))
-         (YX (query:Known->X curie*.Y predicate*.Y->X category*.X))
+         (YX (if score*
+                 (query:Known->X-scored curie*.Y predicate*.Y->X category*.X score*)
+                 (query:Known->X curie*.Y predicate*.Y->X category*.X)))
          (Y=>YX=>1 (result*->dict car YX curie-rep-hash)))
     (maybe-time (enumerator->list
                  (lambda (yield)
@@ -345,6 +421,12 @@
    (curie-in-db?-robokop curie)
    (curie-in-db?-text-mining curie)
    (curie-in-db?-rtx-kg2 curie)))
+
+(define (curies-in-db curie*)
+   (append
+    (curies-in-db-robokop curie*)
+    (curies-in-db-text-mining curie*)
+    (curies-in-db-rtx-kg2 curie*)))
 
 (define (curie->properties curie)
   (append
