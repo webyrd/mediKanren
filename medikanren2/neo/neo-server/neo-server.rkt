@@ -915,7 +915,7 @@
                     #;(cons "|" pubs)
                     pubs)))]))
     (define pubs (filter
-                  (lambda (p) (not (equal? "PMID:")))
+                  (lambda (p) (not (equal? "PMID:" p)))
                   (remove-duplicates (helper props '()))))
     (hash
      'attribute_type_id "biolink:publications"
