@@ -202,17 +202,17 @@
                      result))))))
 
          (printf "handle returned result ~s\n" result)
-       
+
          (printf "(current-memory-use): ~s\n"
                  (current-memory-use))
          (printf "calling (collect-garbage)\n")
          (collect-garbage)
          (printf "(current-memory-use): ~s\n"
                  (current-memory-use))
-       
+
          (printf "main accept-and-handle thread about to shut-down cust.accept-and-handle\n")
          (custodian-shutdown-all cust.accept-and-handle)
-       
+
          (printf "(current-memory-use): ~s\n"
                  (current-memory-use))
          (printf "calling (collect-garbage)\n")
@@ -561,7 +561,7 @@
                 (define engine-ran-out-of-gas-evt
                   (alarm-evt (+ (current-inexact-milliseconds)
                                 ENGINE_GAS_MS)))
-                
+
                 (define end-evt
                   (choice-evt
                    unexpected-eof-evt
@@ -651,7 +651,7 @@
      (if result
          result
          (begin
-           (printf "job returned #f as the result\n")           
+           (printf "job returned #f as the result\n")
            (list
              'xexpr
              `(html (head (title "Error"))
@@ -734,13 +734,13 @@
                                          (list? qualifier-constraints)
                                          ; only one type of qualifier-constraints and it is the qualifer set
                                          (eq? 1 (length qualifier-constraints))
-                                         
+
                                          (let ()
                                            (define qualifier-set (hash-ref (car qualifier-constraints) 'qualifier_set #f))
                                            (and qualifier-set
                                                 (list? qualifier-set)
                                                 (eq? 2 (length qualifier-set))
-                                                
+
                                                 (let ()
                                                   (define qualifier-a (car qualifier-set))
                                                   (define qualifier-a-type (hash-ref qualifier-a 'qualifier_type_id #f))
@@ -791,13 +791,13 @@
                                     (and qualifier-constraints
                                          (list? qualifier-constraints)
                                          ; only one type of qualifier-constraints and it is the qualifer set
-                                         (eq? 1 (length qualifier-constraints)) 
+                                         (eq? 1 (length qualifier-constraints))
                                          (let ()
                                            (define qualifier-set (hash-ref (car qualifier-constraints) 'qualifier_set #f))
                                            (and qualifier-set
                                                 (list? qualifier-set)
                                                 (eq? 2 (length qualifier-set))
-                                                
+
                                                 (let ()
                                                   (define qualifier-a (car qualifier-set))
                                                   (define qualifier-a-type (hash-ref qualifier-a 'qualifier_type_id #f))
@@ -822,7 +822,7 @@
                                                              (equal? qualifier-a-type "biolink:object_direction_qualifier"))))))))))))))))
         'mvp2-chem]
        [else #f])]
-             
+
     [else #f]))
 
 (define (make-empty-trapi-response body-json)
@@ -1004,7 +1004,7 @@
             (define protein-ids
               (remove-duplicates
                (map car
-                    (query:X->Known-scored 
+                    (query:X->Known-scored
                      (set->list
                       (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
                        '("biolink:Protein")))
@@ -1111,7 +1111,7 @@
 
       (printf "computed total ~s valid edges for MVP mode creative query\n"
               (length scored/q-unsorted-long))
-      
+
       (define scored/q-sorted-long
         (sort scored/q-unsorted-long by-score))
 
@@ -1194,8 +1194,8 @@
                                                   (class-mixin? c)
                                                   (class-abstract? c)))) categories)
                              'name name)))))
-      
-      (define (add-edge! props n)             
+
+      (define (add-edge! props n)
         (let ((id (string-append "medik:edge#" (number->string n)))
               (object (get-assoc "object" props))
               (subject (get-assoc "subject" props)))
@@ -1251,7 +1251,7 @@
                        'analyses (list (hash 'edge_bindings (hash-ref r 'edge_bindings)
                                              'resource_id "infores:unsecret-agent"
                                              'score (hash-ref representative-score-table (hash-ref r 'result_id)))))))
-      
+
       ;; add the input curie/id from query graph to nodes
       (add-node! (car input-id*))
 
@@ -1311,7 +1311,7 @@
              [`(,curie_x
                 ,pred_xy
                 ,curie_y
-                . 
+                .
                 ,props_xy)
               (let ((edge_xy (add-edge! props_xy en)))
                 (add-unmerged-result!
@@ -1343,14 +1343,14 @@
                 (loop (+ en 1) an (cdr score*/e*)))]
              ))))
 
-      (define merged-results 
+      (define merged-results
         (let loop ((id* (hash-keys unmerged-results))
                    (r '()))
           (cond
             [(null? id*) r]
             [else (loop (cdr id*)
                         (cons (hash-ref unmerged-results (car id*)) r))])))
-      
+
       (define results (sort merged-results (lambda (a b) (> (get-score-from-result a) (get-score-from-result b)))))
 
       (hash
@@ -1498,7 +1498,7 @@
     (hash-set* scored-trapi-response
                'schema_version "1.4.0"
                'biolink_version (get-biolink-version)))
-  
+
   (list
    'json
    200_OK_STRING
@@ -1614,7 +1614,7 @@
                content-length-string
                body-str)
   (printf "received TRAPI `query` POST request\n")
-  
+
   (unless (string-contains? (string-downcase content-type-string) "application/json")
     (printf "** unexpected content-type-string for query\nexpected 'application/json', received '~s'\n"
             content-type-string)
@@ -1753,11 +1753,11 @@
    (hash 'event (format "ENVIRONMENT_TAG_BOX value = '~s'" (unbox ENVIRONMENT_TAG_BOX))))
   (set-box! MK_STAGE_BOX (getenv "MK_STAGE"))
   (lognew-info
-   (hash 'event (format "MK_STAGE_BOX value = '~s'" (unbox MK_STAGE_BOX))))  
+   (hash 'event (format "MK_STAGE_BOX value = '~s'" (unbox MK_STAGE_BOX))))
   (lognew-info
    (hash 'event "starting_server"))
   (lognew-info
-   (hash 'event (format "(Neo Server ~a)" NEO_SERVER_VERSION)))  
+   (hash 'event (format "(Neo Server ~a)" NEO_SERVER_VERSION)))
   (serve DEFAULT_PORT)
   (lognew-info
    (hash 'event "started_server"))
