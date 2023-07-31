@@ -9,10 +9,26 @@
          merge-hash
          minus-one-before-zero
          find-max-number
+         get-source
+         num-pubs
+         get-score-from-result
+         set-score-in-result
+         normalize-scores
+         edge-has-source?
+         data-attributes
+         auxiliary-graph-attribute
+         merge-trapi-responses
+         semantic-exclude*
+         domain-exclude*
+         range-exclude*
          )
 
 (require racket/list
-         racket/math)
+         racket/math
+         racket/string
+         json
+         "../neo-reasoning/semmed-exclude.rkt"
+         )
 
 (define (merge-list xs ys)
   (if (null? xs)
@@ -99,3 +115,151 @@
          (if (> (car n*) greatest)
              (loop (cdr n*) (car n*))
              (loop (cdr n*) greatest)))))))
+
+(define (get-source props)
+  (let ((source (or (get-assoc "biolink:primary_knowledge_source" props)
+                    (get-assoc "primary_knowledge_source" props) ;rkx-kg2
+                    (and (get-assoc "json_attributes" props)
+                         "infores:text-mining-provider-targeted")))) ;text-mining
+    (hash
+      'resource_id source
+      'resource_role "primary_knowledge_source")))
+
+;; TODO: can use get-publications
+(define (num-pubs props)
+  (let ((pubs (or (get-assoc "publications" props)
+                  (get-assoc "supporting_publications" props)
+                  (get-assoc "publications:string[]" props))
+              ))
+    (if pubs
+        (max (length (string-split pubs "|")) (length (string-split pubs "; ")) (length (string-split pubs)))
+        0)))
+
+(define (get-score-from-result result)
+  (let ((analyses (hash-ref result 'analyses #f)))
+    (if analyses
+        (hash-ref (car analyses) 'score)
+        (error "check the implementation of results.analyses"))))
+
+(define (set-score-in-result result score)
+  (let ((analyses (hash-ref result 'analyses #f)))
+    (if analyses
+        (hash-set result 'analyses
+                  (list (hash-set (car analyses) 'score score)))
+        (error "check the implementation of results.analyses"))))
+
+(define (normalize-scores results)
+  (if (null? results)
+      results
+      (let ((max-score (get-score-from-result (car results))))
+        (map (lambda (x) (set-score-in-result x (/ (get-score-from-result x) (* 1.0 max-score)))) results))))
+
+(define edge-has-source?
+  (lambda (props)
+    (and 
+     (or (get-assoc "biolink:primary_knowledge_source" props)
+         (get-assoc "primary_knowledge_source" props)
+         (and (get-assoc "json_attributes" props)
+              (let ((attr-hl (string->jsexpr (get-assoc "json_attributes" props))))
+                (let loop ((hl attr-hl))
+                  (cond
+                    ((null? hl) #f)
+                    ((equal?
+                      (hash-ref (car hl) 'attribute_type_id #f)
+                      "biolink:primary_knowledge_source")
+                     #t)
+                    (else (loop (cdr hl)))))))
+         (get-assoc "knowledge_source" props))
+     #;(or (get-assoc "publications" props)
+         (get-assoc "supporting_publications" props)
+         (and (get-assoc "json_attributes" props)
+              (let ((attr-hl (string->jsexpr (get-assoc "json_attributes" props))))
+                (let loop ((hl attr-hl))
+                  (cond
+                    ((null? hl) #f)
+                    ((equal?
+                      (hash-ref (car hl) 'attribute_type_id #f)
+                      "biolink:publications")
+                     #t)
+                    (else (loop (cdr hl)))))))))))
+
+(define (data-attributes props)
+    (list (get-publications props)))
+
+(define get-publications
+  (lambda props
+    (define (helper props pubs)
+      (cond
+        [(null? props) pubs]
+        [else
+         (let ((publication (or (get-assoc "publications" (car props))
+                                (get-assoc "supporting_publications" (car props))
+                                (get-assoc "publications:string[]" (car props))
+                               )))
+           (helper (cdr props)
+                   (append 
+                    (cond
+                      [(string-prefix? publication "(")
+                       (string-split (string-trim (string-trim publication "(") ")"))]
+                      [(string-contains? publication "|") (string-split publication "|")]
+                      [(string-contains? publication ";") (string-split publication "; ")]
+                      [else (string-split publication)])
+                    #;(cons "|" pubs)
+                    pubs)))]))
+    (define pubs (filter
+                  (lambda (p) (not (equal? "PMID:" p)))
+                  (remove-duplicates (helper props '()))))
+    (hash
+     'attribute_type_id "biolink:publications"
+     'value pubs
+     'value_type_id "biolink:Uriorcurie")))
+
+(define auxiliary-graph-attribute
+  (lambda (id)
+    (hash
+     'attribute_type_id "biolink:support_graphs"
+     'value (list id))))
+
+;; TODO: test it with calling out Genetics KP
+(define (merge-trapi-responses r1 r2 original-query_graph)
+  (let* ((message1 (hash-ref r1 'message))
+         (message2 (hash-ref r2 'message))
+         (auxiliary_graphs1 (hash-ref message1 'auxiliary_graphs))
+         (auxiliary_graphs2 (hash-ref message2 'auxiliary_graphs))
+         (knowledge_graph1 (hash-ref message1 'knowledge_graph))
+         (knowledge_graph2 (hash-ref message2 'knowledge_graph))
+         (nodes1 (hash-ref knowledge_graph1 'nodes))
+         (nodes2 (hash-ref knowledge_graph2 'nodes))
+         (edges1 (hash-ref knowledge_graph1 'edges))
+         (edges2 (hash-ref knowledge_graph2 'edges))
+         (results1 (hash-ref message1 'results))
+         (results2 (hash-ref message2 'results)))
+    ;; POSSIBLE TODO
+    ;; Might want to check that 'original-query_graph'
+    ;; is 'equal?' to the 'query_graph' in 'r1' and the
+    ;; 'query_graph' in 'r2' (to ensure we aren't trying
+    ;; to merge a response that modifies the 'query_graph'
+    ;; in creative mode, for example).
+    (hash 'message
+          (hash
+           ;;
+           'query_graph
+           original-query_graph
+           ;;
+           'knowledge_graph
+           (hash
+            'edges (merge-hash edges1 edges2)
+            ;;
+            'nodes (merge-hash nodes1 nodes2))
+           ;;
+           'auxiliary_graphs
+           (merge-hash auxiliary_graphs1 auxiliary_graphs2)
+           ;; TODO: merge results when they have the same node binding sub/obj depends on mvp
+           ;; similar with the metaKG merge
+           'results
+           (merge-list results1 results2)
+           ))))
+
+
+  
+  

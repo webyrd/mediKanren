@@ -35,6 +35,8 @@
  ;;
  get-mixed-ins-and-descendent-classes*
  ;;
+ UMLS-biolink-class-mapper
+ UMLS-biolink-pred-mapper
  )
 (require
  racket/pretty
@@ -47,7 +49,8 @@
 ;; (define BIOLINK_YAML_FILE "../neo-biolink/biolink_2_4_8/biolink-model.yaml")
 ;; (define BIOLINK_YAML_FILE "../neo-biolink/biolink_3_0_3/biolink-model.yaml")
 ;; (define BIOLINK_YAML_FILE "../neo-biolink/biolink_3_1_1/biolink-model.yaml")
-(define BIOLINK_YAML_FILE "../neo-biolink/biolink_3_1_2/biolink-model.yaml")
+;;(define BIOLINK_YAML_FILE "../neo-biolink/biolink_3_1_2/biolink-model.yaml")
+(define BIOLINK_YAML_FILE "../neo-biolink/biolink_3_5_2/biolink-model.yaml")
 
 (define-runtime-path path.here ".")
 (define bl-path (build-path path.here BIOLINK_YAML_FILE))
@@ -81,11 +84,14 @@
   (lambda (str)
     (string-append "biolink:" (string-replace (string-titlecase str) " " ""))))
 
+(define slots-h (hash-ref biolink "slots"))
+(define classes-h (hash-ref biolink "classes"))
+
 ;; list of predicates
-(define slots (hash-keys (hash-ref biolink "slots")))
+(define slots (hash-keys slots-h))
 
 ;; list of classes
-(define classes (hash-keys (hash-ref biolink "classes")))
+(define classes (hash-keys classes-h))
 
 (define all-predicates (list->set (map yaml-predicate-name-to-biolink-name slots)))
 (define all-classes (list->set (map yaml-class-name-to-biolink-name classes)))
@@ -405,3 +411,41 @@
                                      (get-class-descendents c))
                                     (get-class-descendents c)))))))
           (set-subtract updated-set new-class-set))))))
+
+
+
+(define build-UMLS-biolink-hash
+  (lambda (kind)
+    (define return (make-hash))
+    (define (helper! kind-hash name-mapper prefix)
+      (for-each
+       (lambda (k)
+         #;(displayln k)
+         (let* ((v (hash-ref kind-hash k))
+                (exact-map-code* (hash-ref v "exact_mappings" '()))
+                (exact-map-code* (if (eq? exact-map-code* 'null) '() exact-map-code*))
+                (close-map-code* (hash-ref v "close_mappings" '()))
+                (close-map-code* (if (eq? close-map-code* 'null) '() close-map-code*))
+                (narrow-map-code* (hash-ref v "narrow_mappings" '()))
+                (narrow-map-code* (if (eq? narrow-map-code* 'null) '() narrow-map-code*))
+                (umls-code* (filter
+                             (lambda (code) (string-prefix? code prefix))
+                             (append exact-map-code* close-map-code* narrow-map-code*))))
+           (for-each
+            (lambda (code)
+              (hash-set! return
+                         (string-trim code prefix)
+                         (name-mapper k)))
+            umls-code*)))
+       (hash-keys kind-hash)))
+    (cond
+      ((eq? kind 'predicate) (helper! slots-h yaml-predicate-name-to-biolink-name "SEMMEDDB:"))
+      ((eq? kind 'class) (helper! classes-h yaml-class-name-to-biolink-name "STY:"))
+      (else (error "unknown kind" kind)))
+    return))
+    
+(define UMLS-biolink-class-hash (build-UMLS-biolink-hash 'class))
+(define (UMLS-biolink-class-mapper class) (hash-ref UMLS-biolink-class-hash class #f))
+(define UMLS-biolink-pred-hash (build-UMLS-biolink-hash 'predicate))
+(define (UMLS-biolink-pred-mapper predicate) (hash-ref UMLS-biolink-pred-hash predicate #f))
+
