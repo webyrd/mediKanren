@@ -1196,21 +1196,28 @@
                              'name name)))))
 
       (define (add-edge! props n)
-        (let ((id (string-append "medik:edge#" (number->string n)))
-              (object (get-assoc "object" props))
-              (subject (get-assoc "subject" props)))
+        (let* ((id
+                (or
+                 (get-assoc "id" props) ; rtx-kg2
+                 (get-assoc "assertion_id" props) ;text-mining
+                 (number->string n)))
+               (id (string-append "medik:edge#" id))
+               (id-sym (string->symbol id))
+               (object (get-assoc "object" props))
+               (subject (get-assoc "subject" props)))
           (add-node! object)
           (add-node! subject)
-          (hash-set! edges (string->symbol id)
-                     (hash 'attributes
-                            (or
-                             (and (get-assoc "json_attributes" props)
-                                  (string->jsexpr (get-assoc "json_attributes" props)))
-                             (data-attributes props))
-                           'object object
-                           'predicate (get-assoc "predicate" props)
-                           'subject subject
-                           'sources (list (get-source props) UNSECRET-SOURCE)))
+          (unless (hash-has-key? edges id-sym)
+            (hash-set! edges id-sym
+                       (hash 'attributes
+                             (or
+                              (and (get-assoc "json_attributes" props)
+                                   (string->jsexpr (get-assoc "json_attributes" props)))
+                              (data-attributes props))
+                             'object object
+                             'predicate (get-assoc "predicate" props)
+                             'subject subject
+                             'sources (list (get-source props) UNSECRET-SOURCE))))
           id))
 
       (define (add-creative-edge! sub obj pred n aux-id e1prop e2prop)
