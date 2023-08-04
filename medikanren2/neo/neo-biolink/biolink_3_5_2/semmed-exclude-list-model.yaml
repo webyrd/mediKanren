@@ -1,0 +1,103 @@
+---
+id: https://w3id.org/biolink/biolink-model
+name: semmed-exclude-list-model
+description: Model that represents a semmed exclude list object
+license: https://creativecommons.org/publicdomain/zero/1.0/
+
+# Version should be kept in sync with primary Git repository release tag
+
+version: 3.5.2
+
+## ------------
+##
+## PREFIXES
+## ------------
+# CURIE namespaces (prefixes/base URI's) mappings of prefixes used in the body of the Biolink Model specification
+# are resolved using a specific precedence order, for use in the generation of the Biolink Model context.jsonld
+# mappings to namespaces. Any prefixes encountered in the Biolink Model but not resolved by the following
+# precedence sources, are anonymously declared by linkml as http://example.org/UNKNOWN/ rooted base URI's
+# which should ideally be repaired in one of the precedence lists.
+#
+# 1. The following 'prefixes:' delimited list has first precedence in resolution.
+#
+prefixes:
+  biolink: 'https://w3id.org/biolink/vocab/'
+  linkml: 'https://w3id.org/linkml/'
+  infores: 'https://w3id.org/biolink/vocab/'
+  sel: 'https://w3id.org/biolink/vocab/'
+
+
+imports:
+  - linkml:types
+
+default_prefix: sel
+default_range: string
+
+default_curi_maps:
+  - obo_context
+  - idot_context
+  - monarch_context
+  - semweb_context
+
+emit_prefixes:
+  - rdf
+  - rdfs
+  - xsd
+  - skos
+  - oboInOwl
+
+classes:
+  ExcludeListContainer:
+    tree_root: true
+    description: >-
+      A collection of exclusion objects
+    slots:
+      - excluded_semmedb_records
+
+  ExcludedSemmedbRecord:
+    slots:
+      - semmed_subject_code
+      - semmed_subject_t_code
+      - semmed_predicate
+      - semmed_object_code
+      - semmed_object_t_code
+      - exclusion_type
+
+slots:
+
+  semmed_subject_code:
+    description: >-
+      The subject code of the semmeddb record
+    range: string
+
+  semmed_subject_t_code:
+    description: >-
+      The subject t code of the semmeddb record
+    range: string
+
+  semmed_predicate:
+    description: >-
+      The predicate of the semmeddb record
+    range: string
+
+  semmed_object_code:
+    description: >-
+      The object code of the semmeddb record
+    range: string
+
+  semmed_object_t_code:
+    description: >-
+      The object t code of the semmeddb record
+    range: string
+
+  exclusion_type:
+    description: >-
+      The notes describing the kind of exclusion that generated this record.
+    range: string
+
+  excluded_semmedb_records:
+    description: >-
+      The list of semmeddb records that are excluded
+    multivalued: true
+    range: ExcludedSemmedbRecord
+    inlined_as_list: true
