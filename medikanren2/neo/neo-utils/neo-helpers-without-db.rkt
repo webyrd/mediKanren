@@ -13,7 +13,9 @@
  bytes<=?
  set-fixed-point
  unsafe-bytes-split-tab
- bytes-base10->fxnat)
+ bytes-base10->fxnat
+ ;;
+ minus-one-before-zero)
 
 ;; Use the second definition of 'maybe-time' to see the time use for
 ;; low-level query calls.
@@ -133,3 +135,10 @@
               (unsafe-fx+ (unsafe-fx* n 10)
                           (unsafe-fx- b 48))))
       n)))
+
+(define minus-one-before-zero
+  (lambda (n*)
+    (and n*
+        (if (eq? (car n*) 0)
+            #f
+            (list (- (car n*) 1))))))

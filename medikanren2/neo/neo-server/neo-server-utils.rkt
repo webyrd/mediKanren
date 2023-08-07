@@ -28,6 +28,7 @@
          racket/string
          json
          "../neo-reasoning/semmed-exclude.rkt"
+         "../neo-utils/neo-helpers-without-db.rkt"
          )
 
 (define (merge-list xs ys)
@@ -53,22 +54,23 @@
         '())))
 
 (define mvp2-filter
-        (lambda (target-eprop direction)
-          (let* ((aspect (or (get-assoc "object_aspect_qualifier" target-eprop)
-                             (get-assoc "qualified_object_aspect" target-eprop)
-                             ))
-                 (direction^ (or (get-assoc "object_direction_qualifier" target-eprop)
-                                 (get-assoc "qualified_object_direction" target-eprop)
-                                 )))
-            (and
-             aspect
-             direction^
-             (or
-              (equal? "activity" aspect)
-              (equal? "abundance" aspect)
-              (equal? "activity_or_abundance" aspect))
-             (equal? direction direction^)
-             ))))
+  (lambda (target-eprop direction)
+    (let* ((aspect (or (get-assoc "object_aspect_qualifier" target-eprop)
+                       (get-assoc "qualified_object_aspect" target-eprop)
+                       ))
+           (direction^ (or (get-assoc "object_direction_qualifier" target-eprop)
+                           (get-assoc "qualified_object_direction" target-eprop)
+                           )))
+      (and
+       aspect
+       direction^
+       (or
+        (equal? "activity" aspect)
+        (equal? "abundance" aspect)
+        (equal? "activity_or_abundance" aspect)
+        (equal? "expression" aspect)
+        (equal? "synthesis" aspect))
+       (equal? direction direction^)))))
 
 (define mvp2-2hop-filter
   (lambda (q direction)
@@ -86,25 +88,20 @@
          (mvp2-filter eprop direction)))
      q)))
 
-(define minus-one-before-zero
-  (lambda (n*)
-    (and n*
-        (if (eq? (car n*) 1)
-            #f
-            (list (- (car n*) 1))))))
 
-(define (auto-grow hop-proc score* unique_results_amount)
-  (let ((half-result (exact-round (/ unique_results_amount 2.0))))
+(define (auto-grow hop-proc score* result_amount)
+  (let ((half-result (exact-round (/ result_amount 2.0))))
     (let loop ((r '()) (sl score*))
       (cond
         [(> (length r) half-result)
-         (printf "current length of result: ~a\n" (length r))
+         (printf "return ~a answers\n" (length r))
          r]
         [(andmap not sl) r]
-        [else (loop (append r (hop-proc sl))
-                    (list (minus-one-before-zero (list-ref sl 0))
-                          (minus-one-before-zero (list-ref sl 1))
-                          (minus-one-before-zero (list-ref sl 2))))]))))
+        [else
+         (loop (append r (hop-proc sl))
+               (list (minus-one-before-zero (list-ref sl 0))
+                     (minus-one-before-zero (list-ref sl 1))
+                     (minus-one-before-zero (list-ref sl 2))))]))))
 
 (define find-max-number
   (lambda (num*)
@@ -125,12 +122,10 @@
       'resource_id source
       'resource_role "primary_knowledge_source")))
 
-;; TODO: can use get-publications
 (define (num-pubs props)
   (let ((pubs (or (get-assoc "publications" props)
                   (get-assoc "supporting_publications" props)
-                  (get-assoc "publications:string[]" props))
-              ))
+                  (get-assoc "publications:string[]" props))))
     (if pubs
         (max (length (string-split pubs "|")) (length (string-split pubs "; ")) (length (string-split pubs)))
         0)))
@@ -156,32 +151,19 @@
 
 (define edge-has-source?
   (lambda (props)
-    (and 
-     (or (get-assoc "biolink:primary_knowledge_source" props)
-         (get-assoc "primary_knowledge_source" props)
-         (and (get-assoc "json_attributes" props)
-              (let ((attr-hl (string->jsexpr (get-assoc "json_attributes" props))))
-                (let loop ((hl attr-hl))
-                  (cond
-                    ((null? hl) #f)
-                    ((equal?
-                      (hash-ref (car hl) 'attribute_type_id #f)
-                      "biolink:primary_knowledge_source")
-                     #t)
-                    (else (loop (cdr hl)))))))
-         (get-assoc "knowledge_source" props))
-     #;(or (get-assoc "publications" props)
-         (get-assoc "supporting_publications" props)
-         (and (get-assoc "json_attributes" props)
-              (let ((attr-hl (string->jsexpr (get-assoc "json_attributes" props))))
-                (let loop ((hl attr-hl))
-                  (cond
-                    ((null? hl) #f)
-                    ((equal?
-                      (hash-ref (car hl) 'attribute_type_id #f)
-                      "biolink:publications")
-                     #t)
-                    (else (loop (cdr hl)))))))))))
+    (or (get-assoc "biolink:primary_knowledge_source" props)
+        (get-assoc "primary_knowledge_source" props)
+        (and (get-assoc "json_attributes" props)
+             (let ((attr-hl (string->jsexpr (get-assoc "json_attributes" props))))
+               (let loop ((hl attr-hl))
+                 (cond
+                   ((null? hl) #f)
+                   ((equal?
+                     (hash-ref (car hl) 'attribute_type_id #f)
+                     "biolink:primary_knowledge_source")
+                    #t)
+                   (else (loop (cdr hl)))))))
+        (get-assoc "knowledge_source" props))))
 
 (define (data-attributes props)
     (list (get-publications props)))
@@ -194,8 +176,7 @@
         [else
          (let ((publication (or (get-assoc "publications" (car props))
                                 (get-assoc "supporting_publications" (car props))
-                                (get-assoc "publications:string[]" (car props))
-                               )))
+                                (get-assoc "publications:string[]" (car props)))))
            (helper (cdr props)
                    (append 
                     (cond
@@ -204,7 +185,6 @@
                       [(string-contains? publication "|") (string-split publication "|")]
                       [(string-contains? publication ";") (string-split publication "; ")]
                       [else (string-split publication)])
-                    #;(cons "|" pubs)
                     pubs)))]))
     (define pubs (filter
                   (lambda (p) (not (equal? "PMID:" p)))

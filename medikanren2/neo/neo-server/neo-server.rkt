@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.17")
+(define NEO_SERVER_VERSION "1.18")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -932,25 +932,23 @@
                  '("biolink:treats")
                  disease-ids+
                  score*)))
-            (define 2-hop-proc
-              (lambda (score*)
-                (query:X->Y->Known-scored
-                 chemical-catogory+
-                 (set->list
-                  (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
-                   '("biolink:affects")))
-                 (set->list
-                  (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
-                   '("biolink:Gene" "biolink:GeneOrGeneProduct" "biolink:Protein")))
-                 (set->list
-                  (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
-                   '("biolink:gene_associated_with_condition"
-                     "biolink:contributes_to")))
-                 disease-ids+
-                 score*)))
             ;;
             (let ((q-1hop (auto-grow 1-hop-proc TOP_BUCKET_NUMBERS MAX_RESULTS_FROM_COMPONENT))
-                  (q-2hop (auto-grow 2-hop-proc TOP_BUCKET_NUMBERS MAX_RESULTS_FROM_COMPONENT)))
+                  (q-2hop (query:X->Y->Known-auto-grow
+                           chemical-catogory+
+                           '("biolink:affects" "biolink:regulates")
+                           (set->list
+                            (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
+                             '("biolink:Gene" "biolink:GeneOrGeneProduct" "biolink:Protein")))
+                           (set->list
+                            (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
+                             '("biolink:gene_associated_with_condition"
+                               "biolink:contributes_to")))
+                           disease-ids+
+                           TOP_BUCKET_NUMBERS
+                           MAX_RESULTS_FROM_COMPONENT
+                           #f
+                           #f)))
               (list disease-ids q-1hop q-2hop))]
            [(eq? 'mvp2-chem which-mvp)
             ;;
@@ -974,27 +972,28 @@
             ;;
             (define 1-hop-proc
               (lambda (score*)
-                (query:Known->X-scored
-                 chemical-ids+
-                 '("biolink:affects")
-                 gene-category+
-                 score*)))
-            (define 2-hop-proc
-              (lambda (score*)
-                (query:Known->Y->X-scored
-                 chemical-ids+
-                 (set->list
-                  (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
-                   '("biolink:affects")))
-                 #f
-                 '("biolink:affects")
-                 gene-category+
-                 score*)))
+                (mvp2-1hop-filter
+                 (query:Known->X-scored
+                  chemical-ids+
+                  '("biolink:affects")
+                  gene-category+
+                  score*)
+                 direction)))
             ;;
-            (let* ((q-1hop (auto-grow 1-hop-proc TOP_BUCKET_NUMBERS (* 2.0 MAX_RESULTS_FROM_COMPONENT)))
-                   (qualified-q-1hop (mvp2-1hop-filter q-1hop direction))
-                   (q-2hop (auto-grow 2-hop-proc TOP_BUCKET_NUMBERS (* 2.0 MAX_RESULTS_FROM_COMPONENT)))
-                   (qualified-q-2hop (mvp2-2hop-filter q-2hop direction)))
+            (let* ((qualified-q-1hop (auto-grow 1-hop-proc TOP_BUCKET_NUMBERS MAX_RESULTS_FROM_COMPONENT))
+                   (qualified-q-2hop
+                    (query:Known->Y->X-auto-grow
+                     chemical-ids+
+                     (set->list
+                      (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
+                       '("biolink:affects" "biolink:interacts_with")))
+                     #f
+                     '("biolink:affects")
+                     gene-category+
+                     TOP_BUCKET_NUMBERS
+                     MAX_RESULTS_FROM_COMPONENT
+                     mvp2-2hop-filter
+                     direction)))
               (list chemical-ids qualified-q-1hop qualified-q-2hop))]
            [(eq? 'mvp2-gene which-mvp)
             ;;
@@ -1030,27 +1029,28 @@
             ;;
             (define 1-hop-proc
               (lambda (score*)
-                (query:X->Known-scored
-                 chemical-catogory+
-                 '("biolink:affects")
-                 gene-ids+
-                 score*)))
-            (define 2-hop-proc
-              (lambda (score*)
-                (query:X->Y->Known-scored
-                 chemical-catogory+
-                 (set->list
-                  (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
-                   '("biolink:affects")))
-                 #f
-                 '("biolink:affects")
-                 gene-ids+
-                 score*)))
+                (mvp2-1hop-filter
+                 (query:X->Known-scored
+                  chemical-catogory+
+                  '("biolink:affects")
+                  gene-ids+
+                  score*)
+                 direction)))
             ;;
-            (let* ((q-1hop (auto-grow 1-hop-proc TOP_BUCKET_NUMBERS (* 2.0 MAX_RESULTS_FROM_COMPONENT)))
-                   (qualified-q-1hop (mvp2-1hop-filter q-1hop direction))
-                   (q-2hop (auto-grow 2-hop-proc TOP_BUCKET_NUMBERS (* 2.0 MAX_RESULTS_FROM_COMPONENT)))
-                   (qualified-q-2hop (mvp2-2hop-filter q-2hop direction)))
+            (let* ((qualified-q-1hop (auto-grow 1-hop-proc TOP_BUCKET_NUMBERS MAX_RESULTS_FROM_COMPONENT))
+                   (qualified-q-2hop
+                    (query:X->Y->Known-auto-grow
+                     chemical-catogory+
+                     (set->list
+                      (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
+                       '("biolink:affects"  "biolink:interacts_with")))
+                     #f
+                     '("biolink:affects")
+                     gene-ids+
+                     TOP_BUCKET_NUMBERS
+                     MAX_RESULTS_FROM_COMPONENT
+                     mvp2-2hop-filter
+                     direction)))
               (list gene-ids qualified-q-1hop qualified-q-2hop))])))
 
       (printf "computed ~s look-up edges and ~s inferred edges for MVP mode creative query\n"
@@ -1204,20 +1204,57 @@
                (id (string-append "medik:edge#" id))
                (id-sym (string->symbol id))
                (object (get-assoc "object" props))
-               (subject (get-assoc "subject" props)))
+               (subject (get-assoc "subject" props))
+               (aspect-qualifier (or (get-assoc "object_aspect_qualifier" props)
+                                     (get-assoc "qualified_object_aspect" props)))
+               (direction-qualifier (or (get-assoc "object_direction_qualifier" props)
+                                        (get-assoc "qualified_object_direction" props))))
           (add-node! object)
           (add-node! subject)
           (unless (hash-has-key? edges id-sym)
-            (hash-set! edges id-sym
-                       (hash 'attributes
-                             (or
-                              (and (get-assoc "json_attributes" props)
-                                   (string->jsexpr (get-assoc "json_attributes" props)))
-                              (data-attributes props))
-                             'object object
-                             'predicate (get-assoc "predicate" props)
-                             'subject subject
-                             'sources (list (get-source props) UNSECRET-SOURCE))))
+            (if (= (num-pubs props) 0)
+                (if (and aspect-qualifier direction-qualifier)
+                    (hash-set! edges id-sym
+                               (hash 'object object
+                                     'predicate (get-assoc "predicate" props)
+                                     'subject subject
+                                     'sources (list (get-source props) UNSECRET-SOURCE)
+                                     'qualifiers (list
+                                                  (hash 'qualifier_type_id "biolink:object_aspect_qualifier"
+                                                        'qualifier_value aspect-qualifier)
+                                                  (hash 'qualifier_type_id "biolink:object_direction_qualifier"
+                                                        'qualifier_value direction-qualifier))))
+                    (hash-set! edges id-sym
+                               (hash 'object object
+                                     'predicate (get-assoc "predicate" props)
+                                     'subject subject
+                                     'sources (list (get-source props) UNSECRET-SOURCE))))
+                (if (and aspect-qualifier direction-qualifier)
+                    (hash-set! edges id-sym
+                               (hash 'attributes
+                                     (or
+                                      (and (get-assoc "json_attributes" props)
+                                           (string->jsexpr (get-assoc "json_attributes" props)))
+                                      (data-attributes props))
+                                     'object object
+                                     'predicate (get-assoc "predicate" props)
+                                     'subject subject
+                                     'sources (list (get-source props) UNSECRET-SOURCE)
+                                     'qualifiers (list
+                                                  (hash 'qualifier_type_id "biolink:object_aspect_qualifier"
+                                                        'qualifier_value aspect-qualifier)
+                                                  (hash 'qualifier_type_id "biolink:object_direction_qualifier"
+                                                        'qualifier_value direction-qualifier))))
+                    (hash-set! edges id-sym
+                               (hash 'attributes
+                                     (or
+                                      (and (get-assoc "json_attributes" props)
+                                           (string->jsexpr (get-assoc "json_attributes" props)))
+                                      (data-attributes props))
+                                     'object object
+                                     'predicate (get-assoc "predicate" props)
+                                     'subject subject
+                                     'sources (list (get-source props) UNSECRET-SOURCE))))))
           id))
 
       (define (add-creative-edge! sub obj pred n aux-id e1prop e2prop)
@@ -1225,8 +1262,7 @@
           (hash-set! edges (string->symbol id)
                      (hash 'attributes
                            (list
-                            (auxiliary-graph-attribute aux-id)
-                            #;(get-publications e1prop e2prop))
+                            (auxiliary-graph-attribute aux-id))
                            'object obj
                            'predicate pred
                            'subject sub

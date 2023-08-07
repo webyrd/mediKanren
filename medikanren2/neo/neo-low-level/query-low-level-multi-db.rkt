@@ -26,6 +26,8 @@
  curie->representative
  build-curies-representative-hash
  add-curies-representative-to-hash
+ query:Known->Y->X-auto-grow
+ query:X->Y->Known-auto-grow
 )
 
 (require
@@ -96,6 +98,7 @@
   "../dbKanren/dbk/stream.rkt"
   ;;racket/fixnum
   racket/match
+  racket/math
   racket/set
   racket/list
   )
@@ -401,6 +404,92 @@
                             (yield (list K K->Y Y predicate.Y->X X props.K->Y props.Y->X)))
                           KY*))
                        YX*))))))))
+
+(define (query:X->Y->Known-auto-grow
+         category*.X predicate*.X->Y category*.Y predicate*.Y->K curie*.K score* result_amount result-filter direction)
+  (define half-result (exact-round (/ result_amount 2.0)))
+  (define (helper YK XY curie-rep-hash score*)
+    (let* ((Y=>YK=>1 (result*->dict car YK curie-rep-hash))
+           (Y=>XY=>1 (result*->dict caddr XY curie-rep-hash))
+           (result (enumerator->list
+                    (lambda (yield)
+                      ((merge-join string<? Y=>XY=>1 Y=>YK=>1)
+                       (lambda (rep XY* YK*)
+                         (for-each
+                          (lambda (XY)
+                            (match-define (list* _ X predicate.X->Y Y props.X->Y) XY)
+                            (for-each
+                             (lambda (YK)
+                               (match-define (list* _ _ Y->K K props.Y->K) YK)
+                               (yield (list X predicate.X->Y Y Y->K K props.X->Y props.Y->K)))
+                             YK*))
+                          XY*))))))
+           (result (if result-filter
+                       (result-filter result direction)
+                       result)))
+      (cond
+        [(> (length result) half-result)
+         (printf "current length of result: ~a\n" (length result))
+         result]
+        [(andmap not score*) result]
+        [else
+         (let* ((score* (list (minus-one-before-zero (list-ref score* 0))
+                              (minus-one-before-zero (list-ref score* 1))
+                              (minus-one-before-zero (list-ref score* 2))))
+                (YK-new (query:X->Known-scored category*.Y predicate*.Y->K curie*.K score*))
+                (YK (append YK YK-new))
+                (curie-rep-hash (add-curies-representative-to-hash curie-rep-hash (remove-duplicates (map car YK-new))))
+                (curie*.Y (hash-keys curie-rep-hash))
+                (XY (append XY (query:X->Known-scored category*.X predicate*.X->Y curie*.Y score*))))
+           (helper YK XY curie-rep-hash score*))])))
+  (let* ((YK (query:X->Known-scored category*.Y predicate*.Y->K curie*.K score*))
+         (curie-rep-hash (build-curies-representative-hash (remove-duplicates (map car YK))))
+         (curie*.Y (hash-keys curie-rep-hash))
+         (XY (query:X->Known-scored category*.X predicate*.X->Y curie*.Y score*)))
+    (helper YK XY curie-rep-hash score*)))
+
+(define (query:Known->Y->X-auto-grow
+         curie*.K predicate*.K->Y category*.Y predicate*.Y->X category*.X score* result_amount result-filter direction)
+  (define half-result (exact-round (/ result_amount 2.0)))
+  (define (helper KY YX curie-rep-hash score*)
+    (let* ((Y=>KY=>1 (result*->dict caddr KY curie-rep-hash))
+           (Y=>YX=>1 (result*->dict car YX curie-rep-hash))
+           (result (enumerator->list
+                    (lambda (yield)
+                      ((merge-join string<? Y=>YX=>1 Y=>KY=>1)
+                       (lambda (rep YX* KY*)
+                         (for-each
+                          (lambda (YX)
+                            (match-define (list* _ Y predicate.Y->X X props.Y->X) YX)
+                            (for-each
+                             (lambda (KY)
+                               (match-define (list* _ K K->Y _ props.K->Y) KY)
+                               (yield (list K K->Y Y predicate.Y->X X props.K->Y props.Y->X)))
+                             KY*))
+                          YX*))))))
+           (result (if result-filter
+                       (result-filter result direction)
+                       result)))
+      (cond
+        [(> (length result) half-result)
+         (printf "current length of result: ~a\n" (length result))
+         result]
+        [(andmap not score*) result]
+        [else
+         (let* ((score* (list (minus-one-before-zero (list-ref score* 0))
+                              (minus-one-before-zero (list-ref score* 1))
+                              (minus-one-before-zero (list-ref score* 2))))
+                (KY-new (query:Known->X-scored curie*.K predicate*.K->Y category*.Y score*))
+                (KY (append KY KY-new))
+                (curie-rep-hash (add-curies-representative-to-hash curie-rep-hash (remove-duplicates (map caddr KY-new))))
+                (curie*.Y (hash-keys curie-rep-hash))
+                (YX (append YX (query:Known->X-scored curie*.Y predicate*.Y->X category*.X score*))))
+           (helper KY YX curie-rep-hash score*))])))
+  (let* ((KY (query:Known->X-scored curie*.K predicate*.K->Y category*.Y score*))
+         (curie-rep-hash (build-curies-representative-hash (remove-duplicates (map caddr KY))))
+         (curie*.Y (hash-keys curie-rep-hash))
+         (YX (query:Known->X-scored curie*.Y predicate*.Y->X category*.X score*)))
+    (helper KY YX curie-rep-hash score*)))
 
 (define (query:Concept curie*)
   (append
