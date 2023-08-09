@@ -96,7 +96,9 @@
         [(> (length r) half-result)
          (printf "return ~a answers\n" (length r))
          r]
-        [(andmap not sl) r]
+        [(andmap not sl)
+         (printf "return ~a answers\n" (length r))
+         r]
         [else
          (loop (append r (hop-proc sl))
                (list (minus-one-before-zero (list-ref sl 0))

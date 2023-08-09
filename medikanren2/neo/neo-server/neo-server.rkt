@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.18")
+(define NEO_SERVER_VERSION "1.19")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -878,6 +878,24 @@
                (member domain-pat domain-exclude*)
                (member range-pat range-exclude*))))))
 
+(define (not-semmed-excluded? e)
+  (match e
+    [`(,curie_x
+       ,pred_xy
+       ,curie_y
+       ,(? string? pred_yz)
+       ,(? string? curie_z)
+       ,props_xy
+       ,props_yz)
+     (and (not (excluded-semmed-edge? props_xy))
+          (not (excluded-semmed-edge? props_yz)))]
+    [`(,curie_x
+       ,pred_xy
+       ,curie_y
+       .
+       ,props_xy)
+     (not (excluded-semmed-edge? props_xy))]))
+
 (define (handle-mvp-creative-query body-json message query_graph edges nodes which-mvp)
 
   (printf "++ handling MVP mode creative query for Neo Server ~a\n" NEO_SERVER_VERSION)
@@ -927,11 +945,12 @@
             ;;
             (define 1-hop-proc
               (lambda (score*)
-                (query:X->Known-scored
-                 chemical-catogory+
-                 '("biolink:treats")
-                 disease-ids+
-                 score*)))
+                (filter not-semmed-excluded?
+                        (query:X->Known-scored
+                         chemical-catogory+
+                         '("biolink:treats")
+                         disease-ids+
+                         score*))))
             ;;
             (let ((q-1hop (auto-grow 1-hop-proc TOP_BUCKET_NUMBERS MAX_RESULTS_FROM_COMPONENT))
                   (q-2hop (query:X->Y->Known-auto-grow
@@ -947,8 +966,7 @@
                            disease-ids+
                            TOP_BUCKET_NUMBERS
                            MAX_RESULTS_FROM_COMPONENT
-                           #f
-                           #f)))
+                           (lambda (r*) (filter not-semmed-excluded? r*)))))
               (list disease-ids q-1hop q-2hop))]
            [(eq? 'mvp2-chem which-mvp)
             ;;
@@ -972,13 +990,14 @@
             ;;
             (define 1-hop-proc
               (lambda (score*)
-                (mvp2-1hop-filter
-                 (query:Known->X-scored
-                  chemical-ids+
-                  '("biolink:affects")
-                  gene-category+
-                  score*)
-                 direction)))
+                (filter not-semmed-excluded? 
+                        (mvp2-1hop-filter
+                         (query:Known->X-scored
+                          chemical-ids+
+                          '("biolink:affects")
+                          gene-category+
+                          score*)
+                         direction))))
             ;;
             (let* ((qualified-q-1hop (auto-grow 1-hop-proc TOP_BUCKET_NUMBERS MAX_RESULTS_FROM_COMPONENT))
                    (qualified-q-2hop
@@ -992,8 +1011,7 @@
                      gene-category+
                      TOP_BUCKET_NUMBERS
                      MAX_RESULTS_FROM_COMPONENT
-                     mvp2-2hop-filter
-                     direction)))
+                     (lambda (r*) (filter not-semmed-excluded? (mvp2-2hop-filter r* direction))))))
               (list chemical-ids qualified-q-1hop qualified-q-2hop))]
            [(eq? 'mvp2-gene which-mvp)
             ;;
@@ -1029,13 +1047,14 @@
             ;;
             (define 1-hop-proc
               (lambda (score*)
-                (mvp2-1hop-filter
-                 (query:X->Known-scored
-                  chemical-catogory+
-                  '("biolink:affects")
-                  gene-ids+
-                  score*)
-                 direction)))
+                (filter not-semmed-excluded?
+                        (mvp2-1hop-filter
+                         (query:X->Known-scored
+                          chemical-catogory+
+                          '("biolink:affects")
+                          gene-ids+
+                          score*)
+                         direction))))
             ;;
             (let* ((qualified-q-1hop (auto-grow 1-hop-proc TOP_BUCKET_NUMBERS MAX_RESULTS_FROM_COMPONENT))
                    (qualified-q-2hop
@@ -1049,8 +1068,7 @@
                      gene-ids+
                      TOP_BUCKET_NUMBERS
                      MAX_RESULTS_FROM_COMPONENT
-                     mvp2-2hop-filter
-                     direction)))
+                     (lambda (r*) (filter not-semmed-excluded? (mvp2-2hop-filter r* direction))))))
               (list gene-ids qualified-q-1hop qualified-q-2hop))])))
 
       (printf "computed ~s look-up edges and ~s inferred edges for MVP mode creative query\n"
@@ -1066,9 +1084,7 @@
              ,props_xy
              ,props_yz)
            (if (and (edge-has-source? props_xy)
-                    (edge-has-source? props_yz)
-                    (not (excluded-semmed-edge? props_xy))
-                    (not (excluded-semmed-edge? props_yz)))
+                    (edge-has-source? props_yz))
                (* (num-pubs props_xy) (num-pubs props_yz))
                #f)]
           [`(,curie_x
@@ -1076,8 +1092,7 @@
              ,curie_y
              .
              ,props_xy)
-           (if (and (edge-has-source? props_xy)
-                    (not (excluded-semmed-edge? props_xy)))
+           (if (edge-has-source? props_xy)
                (let ((n (num-pubs props_xy)))
                  (* n n))
                #f)]))

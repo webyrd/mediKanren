@@ -406,7 +406,7 @@
                        YX*))))))))
 
 (define (query:X->Y->Known-auto-grow
-         category*.X predicate*.X->Y category*.Y predicate*.Y->K curie*.K score* result_amount result-filter direction)
+         category*.X predicate*.X->Y category*.Y predicate*.Y->K curie*.K score* result_amount result-filter)
   (define half-result (exact-round (/ result_amount 2.0)))
   (define (helper YK XY curie-rep-hash score*)
     (let* ((Y=>YK=>1 (result*->dict car YK curie-rep-hash))
@@ -424,14 +424,14 @@
                                (yield (list X predicate.X->Y Y Y->K K props.X->Y props.Y->K)))
                              YK*))
                           XY*))))))
-           (result (if result-filter
-                       (result-filter result direction)
-                       result)))
+           (result (result-filter result)))
       (cond
         [(> (length result) half-result)
-         (printf "current length of result: ~a\n" (length result))
+         (printf "return ~a answers\n" (length result))
          result]
-        [(andmap not score*) result]
+        [(andmap not score*)
+         (printf "return ~a answers\n" (length result))
+         result]
         [else
          (let* ((score* (list (minus-one-before-zero (list-ref score* 0))
                               (minus-one-before-zero (list-ref score* 1))
@@ -449,7 +449,7 @@
     (helper YK XY curie-rep-hash score*)))
 
 (define (query:Known->Y->X-auto-grow
-         curie*.K predicate*.K->Y category*.Y predicate*.Y->X category*.X score* result_amount result-filter direction)
+         curie*.K predicate*.K->Y category*.Y predicate*.Y->X category*.X score* result_amount result-filter)
   (define half-result (exact-round (/ result_amount 2.0)))
   (define (helper KY YX curie-rep-hash score*)
     (let* ((Y=>KY=>1 (result*->dict caddr KY curie-rep-hash))
@@ -467,14 +467,14 @@
                                (yield (list K K->Y Y predicate.Y->X X props.K->Y props.Y->X)))
                              KY*))
                           YX*))))))
-           (result (if result-filter
-                       (result-filter result direction)
-                       result)))
+           (result (result-filter result)))
       (cond
         [(> (length result) half-result)
-         (printf "current length of result: ~a\n" (length result))
+         (printf "return ~a answers\n" (length result))
          result]
-        [(andmap not score*) result]
+        [(andmap not score*)
+         (printf "return ~a answers\n" (length result))
+         result]
         [else
          (let* ((score* (list (minus-one-before-zero (list-ref score* 0))
                               (minus-one-before-zero (list-ref score* 1))
