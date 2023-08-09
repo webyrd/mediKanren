@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.19")
+(define NEO_SERVER_VERSION "1.20")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -1130,9 +1130,32 @@
       (define scored/q-sorted-long
         (sort scored/q-unsorted-long by-score))
 
-      (define scored/q-sorted-short (take-at-most scored/q-sorted-long MAX_RESULTS_FROM_COMPONENT))
+      (define old-scored/q-sorted-short (take-at-most scored/q-sorted-long MAX_RESULTS_FROM_COMPONENT))
 
-      (printf "about to take the best ~s edges for MVP mode creative query\n"
+      (define scored/q-sorted-short
+        (map
+         (lambda (e)
+                 (match e
+                   [`(,score
+                      ,curie_x
+                      ,pred_xy
+                      ,curie_y
+                      ,(? string? pred_yz)
+                      ,(? string? curie_z)
+                      ,props_xy
+                      ,props_yz)
+                    e]
+                   [`(,score
+                      ,curie_x
+                      ,pred_xy
+                      ,curie_y
+                      .
+                      ,props_xy)
+                    (cons (sqrt score) (cdr e))]
+                   [else (error "invalid form of returned edge" e)]))
+         old-scored/q-sorted-short))
+
+      (printf "Toke the best ~s edges for MVP mode creative query\n"
               (length scored/q-sorted-short))
 
       (define curie-representative-table '())
