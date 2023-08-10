@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.20")
+(define NEO_SERVER_VERSION "1.21")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -1243,31 +1243,35 @@
                (id-sym (string->symbol id))
                (object (get-assoc "object" props))
                (subject (get-assoc "subject" props))
+               (predicate (get-assoc "predicate" props))
                (aspect-qualifier (or (get-assoc "object_aspect_qualifier" props)
                                      (get-assoc "qualified_object_aspect" props)))
                (direction-qualifier (or (get-assoc "object_direction_qualifier" props)
-                                        (get-assoc "qualified_object_direction" props))))
+                                        (get-assoc "qualified_object_direction" props)))
+               (qualifed-predicate (get-assoc "qualified_predicate" props)))
           (add-node! object)
           (add-node! subject)
           (unless (hash-has-key? edges id-sym)
             (if (= (num-pubs props) 0)
-                (if (and aspect-qualifier direction-qualifier)
+                (if (and aspect-qualifier direction-qualifier qualifed-predicate)
                     (hash-set! edges id-sym
                                (hash 'object object
-                                     'predicate (get-assoc "predicate" props)
+                                     'predicate predicate
                                      'subject subject
                                      'sources (list (get-source props) UNSECRET-SOURCE)
                                      'qualifiers (list
                                                   (hash 'qualifier_type_id "biolink:object_aspect_qualifier"
                                                         'qualifier_value aspect-qualifier)
                                                   (hash 'qualifier_type_id "biolink:object_direction_qualifier"
-                                                        'qualifier_value direction-qualifier))))
+                                                        'qualifier_value direction-qualifier)
+                                                  (hash 'qualifier_type_id "biolink:qualified_predicate"
+                                                        'qualifier_value qualifed-predicate))))
                     (hash-set! edges id-sym
                                (hash 'object object
-                                     'predicate (get-assoc "predicate" props)
+                                     'predicate predicate
                                      'subject subject
                                      'sources (list (get-source props) UNSECRET-SOURCE))))
-                (if (and aspect-qualifier direction-qualifier)
+                (if (and aspect-qualifier direction-qualifier qualifed-predicate)
                     (hash-set! edges id-sym
                                (hash 'attributes
                                      (or
@@ -1275,14 +1279,16 @@
                                            (string->jsexpr (get-assoc "json_attributes" props)))
                                       (data-attributes props))
                                      'object object
-                                     'predicate (get-assoc "predicate" props)
+                                     'predicate predicate
                                      'subject subject
                                      'sources (list (get-source props) UNSECRET-SOURCE)
                                      'qualifiers (list
                                                   (hash 'qualifier_type_id "biolink:object_aspect_qualifier"
                                                         'qualifier_value aspect-qualifier)
                                                   (hash 'qualifier_type_id "biolink:object_direction_qualifier"
-                                                        'qualifier_value direction-qualifier))))
+                                                        'qualifier_value direction-qualifier)
+                                                  (hash 'qualifier_type_id "biolink:qualified_predicate"
+                                                        'qualifier_value qualifed-predicate))))
                     (hash-set! edges id-sym
                                (hash 'attributes
                                      (or
@@ -1290,7 +1296,7 @@
                                            (string->jsexpr (get-assoc "json_attributes" props)))
                                       (data-attributes props))
                                      'object object
-                                     'predicate (get-assoc "predicate" props)
+                                     'predicate predicate
                                      'subject subject
                                      'sources (list (get-source props) UNSECRET-SOURCE))))))
           id))
