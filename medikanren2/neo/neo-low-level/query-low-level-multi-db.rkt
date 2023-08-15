@@ -519,14 +519,14 @@
 
 (define (curie->properties curie)
   (append
-   (if (curie-in-db?-robokop curie)
-       (curie->properties-robokop curie)
-       '())
    (if (curie-in-db?-text-mining curie)
        (curie->properties-text-mining curie)
        '())
    (if (curie-in-db?-rtx-kg2 curie)
        (curie->properties-rtx-kg2 curie)
+       '())
+   (if (curie-in-db?-robokop curie)
+       (curie->properties-robokop curie)
        '())))
 
 (define (edge-properties)

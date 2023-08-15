@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.22")
+(define NEO_SERVER_VERSION "1.23")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -1254,7 +1254,9 @@
           (add-node! subject)
           (unless (hash-has-key? edges id-sym)
             (if (= (num-pubs props) 0)
-                (if (and aspect-qualifier direction-qualifier qualifed-predicate)
+                (if (and
+                     (or (eq? which-mvp 'mvp2-chem) (eq? which-mvp 'mvp2-gene))
+                     aspect-qualifier direction-qualifier qualifed-predicate)
                     (hash-set! edges id-sym
                                (hash 'object object
                                      'predicate predicate
@@ -1272,7 +1274,9 @@
                                      'predicate predicate
                                      'subject subject
                                      'sources (list (get-source props) UNSECRET-SOURCE))))
-                (if (and aspect-qualifier direction-qualifier qualifed-predicate)
+                (if (and
+                     (or (eq? which-mvp 'mvp2-chem) (eq? which-mvp 'mvp2-gene))
+                     aspect-qualifier direction-qualifier qualifed-predicate)
                     (hash-set! edges id-sym
                                (hash 'attributes
                                      (or
@@ -1339,9 +1343,6 @@
                        'analyses (list (hash 'edge_bindings (hash-ref r 'edge_bindings)
                                              'resource_id "infores:unsecret-agent"
                                              'score (hash-ref representative-score-table (hash-ref r 'result_id)))))))
-
-      ;; add the input curie/id from query graph to nodes
-      (add-node! (car input-id*))
 
       (let loop ((en 0) (an 0) (score*/e* scored/q-sorted-short))
         (cond
@@ -1440,6 +1441,10 @@
                         (cons (hash-ref unmerged-results (car id*)) r))])))
 
       (define results (sort merged-results (lambda (a b) (> (get-score-from-result a) (get-score-from-result b)))))
+
+      ;; add the input curie/id from query graph to nodes if mediKanren returns answer
+      (unless (null? results)
+        (add-node! (car input-id*)))
 
       (hash
        'message
