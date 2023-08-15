@@ -1224,14 +1224,14 @@
 
       (define (add-node! curie)
         (let ((props (curie->properties curie)))
-          (let ((categories (list-assoc "category" props))
-                (categories (filter
-                             (lambda (c)
-                               (not (or
-                                     (class-mixin? c)
-                                     (class-abstract? c))))
-                             categories))
-                (name (get-assoc "name" props)))
+          (let* ((categories (list-assoc "category" props))
+                 (categories (filter
+                              (lambda (c)
+                                (not (or
+                                      (class-mixin? c)
+                                      (class-abstract? c))))
+                              categories))
+                 (name (get-assoc "name" props)))
             (if (null? categories)
                 (hash-set! nodes (string->symbol curie)
                            (hash 'name name))
