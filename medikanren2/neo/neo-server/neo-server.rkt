@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.25")
+(define NEO_SERVER_VERSION "1.26")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -897,6 +897,18 @@
        ,props_xy)
      (not (excluded-semmed-edge? props_xy))]))
 
+(define (node-has-name-and-cat? curie)
+  (let* ((props (curie->properties curie))
+         (categories (list-assoc "category" props))
+         (categories (filter
+                      (lambda (c)
+                        (not (or
+                              (class-mixin? c)
+                              (class-abstract? c))))
+                      categories))
+         (name (get-assoc "name" props)))
+    (and (not (null? categories)) name)))
+
 (define (handle-mvp-creative-query body-json message query_graph edges nodes which-mvp)
 
   (printf "++ handling MVP mode creative query for Neo Server ~a\n" NEO_SERVER_VERSION)
@@ -1232,12 +1244,9 @@
                                       (class-abstract? c))))
                               categories))
                  (name (get-assoc "name" props)))
-            (if (null? categories)
-                (hash-set! nodes (string->symbol curie)
-                           (hash 'name name))
-                (hash-set! nodes (string->symbol curie)
-                           (hash 'categories categories
-                                 'name name))))))
+            (hash-set! nodes (string->symbol curie)
+                       (hash 'categories categories
+                             'name name)))))
 
       (define (add-edge! props n)
         (let* ((id
@@ -1364,77 +1373,84 @@
                 ,(? string? curie_z)
                 ,props_xy
                 ,props_yz)
-              (let* ((edge_xy (add-edge! props_xy en))
-                     (edge_yz (add-edge! props_yz (+ en 1)))
-                     (auxiliary_id (add-auxiliary! (list edge_xy edge_yz) an))
-                     (edge_creative (add-creative-edge! curie_x
-                                                        curie_z
-                                                        qg_predicate-str
-                                                        an
-                                                        auxiliary_id
-                                                        props_xy
-                                                        props_yz)))
-                (add-unmerged-result!
-                 (cond
-                   [(or (eq? which-mvp 'mvp1) (eq? which-mvp 'mvp2-gene))
-                    (hash 'node_bindings
-                          (if (equal? curie_z (car input-id*))
-                              (hash
-                               qg_subject-node-id (list (hash 'id curie_x))
-                               qg_object-node-id (list (hash 'id curie_z)))
-                              (hash
-                               qg_subject-node-id (list (hash 'id curie_x))
-                               qg_object-node-id (list (hash 'id curie_z
-                                                             'query_id (car input-id*)))))
-                          'result_id (hash-ref curie-representative-table curie_x)
-                          'edge_bindings (hash qg_edge-id (list (hash 'id edge_creative))))]
-                   [(eq? which-mvp 'mvp2-chem)
-                    (hash 'node_bindings
-                          (if (equal? curie_x (car input-id*))
-                              (hash
-                               qg_subject-node-id (list (hash 'id curie_x))
-                               qg_object-node-id (list (hash 'id curie_z)))
-                              (hash
-                               qg_subject-node-id (list (hash 'id curie_x
-                                                              'query_id (car input-id*)))
-                               qg_object-node-id (list (hash 'id curie_z))))
-                          'result_id (hash-ref curie-representative-table curie_z)
-                          'edge_bindings (hash qg_edge-id (list (hash 'id edge_creative))))]
-                   [else (error "unknown MVP" which-mvp)]))
-                (loop (+ en 2) (+ an 1) (cdr score*/e*)))]
+              (if (and (node-has-name-and-cat? curie_x)
+                       (node-has-name-and-cat? curie_y)
+                       (node-has-name-and-cat? curie_z))
+                  (let* ((edge_xy (add-edge! props_xy en))
+                         (edge_yz (add-edge! props_yz (+ en 1)))
+                         (auxiliary_id (add-auxiliary! (list edge_xy edge_yz) an))
+                         (edge_creative (add-creative-edge! curie_x
+                                                            curie_z
+                                                            qg_predicate-str
+                                                            an
+                                                            auxiliary_id
+                                                            props_xy
+                                                            props_yz)))
+                    (add-unmerged-result!
+                     (cond
+                       [(or (eq? which-mvp 'mvp1) (eq? which-mvp 'mvp2-gene))
+                        (hash 'node_bindings
+                              (if (equal? curie_z (car input-id*))
+                                  (hash
+                                   qg_subject-node-id (list (hash 'id curie_x))
+                                   qg_object-node-id (list (hash 'id curie_z)))
+                                  (hash
+                                   qg_subject-node-id (list (hash 'id curie_x))
+                                   qg_object-node-id (list (hash 'id curie_z
+                                                                 'query_id (car input-id*)))))
+                              'result_id (hash-ref curie-representative-table curie_x)
+                              'edge_bindings (hash qg_edge-id (list (hash 'id edge_creative))))]
+                       [(eq? which-mvp 'mvp2-chem)
+                        (hash 'node_bindings
+                              (if (equal? curie_x (car input-id*))
+                                  (hash
+                                   qg_subject-node-id (list (hash 'id curie_x))
+                                   qg_object-node-id (list (hash 'id curie_z)))
+                                  (hash
+                                   qg_subject-node-id (list (hash 'id curie_x
+                                                                  'query_id (car input-id*)))
+                                   qg_object-node-id (list (hash 'id curie_z))))
+                              'result_id (hash-ref curie-representative-table curie_z)
+                              'edge_bindings (hash qg_edge-id (list (hash 'id edge_creative))))]
+                       [else (error "unknown MVP" which-mvp)]))
+                    (loop (+ en 2) (+ an 1) (cdr score*/e*)))
+                  (loop en an (cdr score*/e*)))]
              [`(,curie_x
                 ,pred_xy
                 ,curie_y
                 .
                 ,props_xy)
-              (let ((edge_xy (add-edge! props_xy en)))
-                (add-unmerged-result!
-                 (cond
-                   [(or (eq? which-mvp 'mvp1) (eq? which-mvp 'mvp2-gene))
-                    (hash 'node_bindings
-                          (if (equal? curie_y (car input-id*))
-                              (hash
-                               qg_subject-node-id (list (hash 'id curie_x))
-                               qg_object-node-id (list (hash 'id curie_y)))
-                              (hash
-                               qg_subject-node-id (list (hash 'id curie_x))
-                               qg_object-node-id (list (hash 'id curie_y
-                                                             'query_id (car input-id*)))))
-                          'result_id (hash-ref curie-representative-table curie_x)
-                          'edge_bindings (hash qg_edge-id (list (hash 'id edge_xy))))]
-                   [(eq? which-mvp 'mvp2-chem)
-                    (hash 'node_bindings
-                          (if (equal? curie_x (car input-id*))
-                              (hash
-                               qg_subject-node-id (list (hash 'id curie_x))
-                               qg_object-node-id (list (hash 'id curie_y)))
-                              (hash
-                               qg_subject-node-id (list (hash 'id curie_x
-                                                              'query_id (car input-id*)))
-                               qg_object-node-id (list (hash 'id curie_y))))
-                          'result_id (hash-ref curie-representative-table curie_y)
-                          'edge_bindings (hash qg_edge-id (list (hash 'id edge_xy))))]))
-                (loop (+ en 1) an (cdr score*/e*)))]
+              (if (and (node-has-name-and-cat? curie_x)
+                       (node-has-name-and-cat? curie_y))
+                  (let ((edge_xy (add-edge! props_xy en)))
+                    (add-unmerged-result!
+                     (cond
+                       [(or (eq? which-mvp 'mvp1) (eq? which-mvp 'mvp2-gene))
+                        (hash 'node_bindings
+                              (if (equal? curie_y (car input-id*))
+                                  (hash
+                                   qg_subject-node-id (list (hash 'id curie_x))
+                                   qg_object-node-id (list (hash 'id curie_y)))
+                                  (hash
+                                   qg_subject-node-id (list (hash 'id curie_x))
+                                   qg_object-node-id (list (hash 'id curie_y
+                                                                 'query_id (car input-id*)))))
+                              'result_id (hash-ref curie-representative-table curie_x)
+                              'edge_bindings (hash qg_edge-id (list (hash 'id edge_xy))))]
+                       [(eq? which-mvp 'mvp2-chem)
+                        (hash 'node_bindings
+                              (if (equal? curie_x (car input-id*))
+                                  (hash
+                                   qg_subject-node-id (list (hash 'id curie_x))
+                                   qg_object-node-id (list (hash 'id curie_y)))
+                                  (hash
+                                   qg_subject-node-id (list (hash 'id curie_x
+                                                                  'query_id (car input-id*)))
+                                   qg_object-node-id (list (hash 'id curie_y))))
+                              'result_id (hash-ref curie-representative-table curie_y)
+                              'edge_bindings (hash qg_edge-id (list (hash 'id edge_xy))))]))
+                    (loop (+ en 1) an (cdr score*/e*)))
+                  (loop en an (cdr score*/e*)))]
              ))))
 
       (define merged-results
