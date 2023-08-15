@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.21")
+(define NEO_SERVER_VERSION "1.22")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -278,7 +278,8 @@
        (display SERVER_STRING out)
        (display "\r\n" out)
        (display "Content-Type: application/json\r\n\r\n" out)
-       (pretty-print-json-string (jsexpr->string jsexpr) out)]
+       (display (jsexpr->string jsexpr) out)
+       #;(pretty-print-json-string (jsexpr->string jsexpr) out)]
       [`(xexpr ,respose-code ,xexpr)
        (printf "sending HTML reply\n")
        (display HTTP_VERSION_STRING out)
