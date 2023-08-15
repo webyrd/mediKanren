@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.23")
+(define NEO_SERVER_VERSION "1.24")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -1225,14 +1225,19 @@
       (define (add-node! curie)
         (let ((props (curie->properties curie)))
           (let ((categories (list-assoc "category" props))
+                (categories (filter
+                             (lambda (c)
+                               (not (or
+                                     (class-mixin? c)
+                                     (class-abstract? c))))
+                             categories))
                 (name (get-assoc "name" props)))
-            (hash-set! nodes (string->symbol curie)
-                       (hash 'categories (filter
-                                          (lambda (c)
-                                            (not (or
-                                                  (class-mixin? c)
-                                                  (class-abstract? c)))) categories)
-                             'name name)))))
+            (if (null? categories)
+                (hash-set! nodes (string->symbol curie)
+                           (hash 'name name))
+                (hash-set! nodes (string->symbol curie)
+                           (hash 'categories categories
+                                 'name name))))))
 
       (define (add-edge! props n)
         (let* ((id
