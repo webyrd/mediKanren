@@ -128,7 +128,7 @@
   (let ((pubs (or (get-assoc "publications" props)
                   (get-assoc "supporting_publications" props)
                   (get-assoc "publications:string[]" props))))
-    (if pubs
+    (if (and pubs (not (equal? "()" pubs)))
         (max (length (string-split pubs "|")) (length (string-split pubs "; ")) (length (string-split pubs)))
         0)))
 
