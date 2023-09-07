@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.27")
+(define NEO_SERVER_VERSION "1.28")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -1019,7 +1019,9 @@
                      (set->list
                       (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
                        '("biolink:affects" "biolink:interacts_with")))
-                     #f
+                     (set->list
+                      (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
+                       '("biolink:Gene" "biolink:GeneOrGeneProduct" "biolink:Protein")))
                      '("biolink:affects")
                      gene-category+
                      TOP_BUCKET_NUMBERS
@@ -1076,7 +1078,9 @@
                      (set->list
                       (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
                        '("biolink:affects"  "biolink:interacts_with")))
-                     #f
+                     (set->list
+                      (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
+                       '("biolink:Gene" "biolink:GeneOrGeneProduct" "biolink:Protein")))
                      '("biolink:affects")
                      gene-ids+
                      TOP_BUCKET_NUMBERS
@@ -1347,11 +1351,21 @@
                         (let* ((a*-old (hash-ref r-old 'analyses))
                                (a-old (car a*-old))
                                (edge-old (hash-ref (hash-ref a-old 'edge_bindings) qg_edge-id))
-                               (edge-new (hash-ref  (hash-ref r 'edge_bindings) qg_edge-id)))
-                          (hash-set r-old 'analyses
-                                    (list (hash-set (car (hash-ref r-old 'analyses))
-                                                    'edge_bindings
-                                                    (hash qg_edge-id (remove-duplicates (append edge-old edge-new))))))))
+                               (edge-new (hash-ref  (hash-ref r 'edge_bindings) qg_edge-id))
+                               (node-to-merge (hash-ref r 'which-to-merge))
+                               (nb-old (hash-ref r-old 'node_bindings))
+                               (nb-new (hash-ref r 'node_bindings))
+                               (merge-node-old (hash-ref nb-old node-to-merge))
+                               (merge-node-new (hash-ref nb-new node-to-merge)))
+                          (hash-set* r-old
+                                     'analyses
+                                     (list (hash-set (car (hash-ref r-old 'analyses))
+                                                     'edge_bindings
+                                                     (hash qg_edge-id (remove-duplicates (append edge-old edge-new)))))
+                                     'node_bindings
+                                     (hash-set nb-old node-to-merge
+                                               (remove-duplicates (append merge-node-new merge-node-old)))
+                                     )))
                       (hash
                        'node_bindings (hash-ref r 'node_bindings)
                        'analyses (list (hash 'edge_bindings (hash-ref r 'edge_bindings)
@@ -1399,7 +1413,8 @@
                                    qg_object-node-id (list (hash 'id curie_z
                                                                  'query_id (car input-id*)))))
                               'result_id (hash-ref curie-representative-table curie_x)
-                              'edge_bindings (hash qg_edge-id (list (hash 'id edge_creative))))]
+                              'edge_bindings (hash qg_edge-id (list (hash 'id edge_creative)))
+                              'which-to-merge qg_object-node-id)]
                        [(eq? which-mvp 'mvp2-chem)
                         (hash 'node_bindings
                               (if (equal? curie_x (car input-id*))
@@ -1411,7 +1426,8 @@
                                                                   'query_id (car input-id*)))
                                    qg_object-node-id (list (hash 'id curie_z))))
                               'result_id (hash-ref curie-representative-table curie_z)
-                              'edge_bindings (hash qg_edge-id (list (hash 'id edge_creative))))]
+                              'edge_bindings (hash qg_edge-id (list (hash 'id edge_creative)))
+                              'which-to-merge qg_subject-node-id)]
                        [else (error "unknown MVP" which-mvp)]))
                     (loop (+ en 2) (+ an 1) (cdr score*/e*)))
                   (loop en an (cdr score*/e*)))]
@@ -1436,7 +1452,8 @@
                                    qg_object-node-id (list (hash 'id curie_y
                                                                  'query_id (car input-id*)))))
                               'result_id (hash-ref curie-representative-table curie_x)
-                              'edge_bindings (hash qg_edge-id (list (hash 'id edge_xy))))]
+                              'edge_bindings (hash qg_edge-id (list (hash 'id edge_xy)))
+                              'which-to-merge qg_object-node-id)]
                        [(eq? which-mvp 'mvp2-chem)
                         (hash 'node_bindings
                               (if (equal? curie_x (car input-id*))
@@ -1448,7 +1465,8 @@
                                                                   'query_id (car input-id*)))
                                    qg_object-node-id (list (hash 'id curie_y))))
                               'result_id (hash-ref curie-representative-table curie_y)
-                              'edge_bindings (hash qg_edge-id (list (hash 'id edge_xy))))]))
+                              'edge_bindings (hash qg_edge-id (list (hash 'id edge_xy)))
+                              'which-to-merge qg_subject-node-id)]))
                     (loop (+ en 1) an (cdr score*/e*)))
                   (loop en an (cdr score*/e*)))]
              ))))
