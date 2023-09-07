@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.28")
+(define NEO_SERVER_VERSION "1.29")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -1349,9 +1349,6 @@
         (hash-update! unmerged-results (hash-ref r 'result_id)
                       (lambda (r-old)
                         (let* ((a*-old (hash-ref r-old 'analyses))
-                               (a-old (car a*-old))
-                               (edge-old (hash-ref (hash-ref a-old 'edge_bindings) qg_edge-id))
-                               (edge-new (hash-ref  (hash-ref r 'edge_bindings) qg_edge-id))
                                (node-to-merge (hash-ref r 'which-to-merge))
                                (nb-old (hash-ref r-old 'node_bindings))
                                (nb-new (hash-ref r 'node_bindings))
@@ -1359,9 +1356,12 @@
                                (merge-node-new (hash-ref nb-new node-to-merge)))
                           (hash-set* r-old
                                      'analyses
-                                     (list (hash-set (car (hash-ref r-old 'analyses))
-                                                     'edge_bindings
-                                                     (hash qg_edge-id (remove-duplicates (append edge-old edge-new)))))
+                                     (remove-duplicates
+                                      (cons
+                                       (hash 'edge_bindings (hash-ref r 'edge_bindings)
+                                             'resource_id "infores:unsecret-agent"
+                                             'score (hash-ref representative-score-table (hash-ref r 'result_id)))
+                                       a*-old))
                                      'node_bindings
                                      (hash-set nb-old node-to-merge
                                                (remove-duplicates (append merge-node-new merge-node-old)))

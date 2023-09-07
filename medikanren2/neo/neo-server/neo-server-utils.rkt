@@ -142,8 +142,10 @@
   (let ((analyses (hash-ref result 'analyses #f)))
     (if analyses
         (hash-set result 'analyses
-                  (list (hash-set (car analyses) 'score score)))
+                  (map (lambda (a) (hash-set a 'score score)) analyses))
         (error "check the implementation of results.analyses"))))
+
+
 
 (define (normalize-scores results)
   (if (null? results)
