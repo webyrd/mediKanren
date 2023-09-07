@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.29")
+(define NEO_SERVER_VERSION "1.30")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -1175,12 +1175,14 @@
       (printf "Toke the best ~s edges for MVP mode creative query\n"
               (length scored/q-sorted-short))
 
-      (define curie-representative-table '())
+      (define curie-representative-table (add-curies-representative-to-hash
+                                          (build-curies-representative-hash
+                                           (remove-duplicates (map cadr scored/q-sorted-short)))
+                                          (remove-duplicates (map (lambda (e) (get-object e)) scored/q-sorted-short))))
       (define representative-score-table
         (cond
           [(or (eq? which-mvp 'mvp1) (eq? which-mvp 'mvp2-gene))
             (let ((subject-score-table (make-hash)))
-              (set! curie-representative-table (build-curies-representative-hash (remove-duplicates (map cadr scored/q-sorted-short))))
               (for-each
                (lambda (e)
                  (hash-update! subject-score-table
@@ -1191,40 +1193,15 @@
                scored/q-sorted-short)
               subject-score-table)]
           [(eq? which-mvp 'mvp2-chem)
-           (let ((get-object
-                  (lambda (e)
-                    (match e
-                      [`(,score
-                         ,curie_x
-                         ,pred_xy
-                         ,curie_y
-                         ,(? string? pred_yz)
-                         ,(? string? curie_z)
-                         ,props_xy
-                         ,props_yz)
-                       curie_z]
-                      [`(,score
-                         ,curie_x
-                         ,pred_xy
-                         ,curie_y
-                         .
-                         ,props_xy)
-                       curie_y]
-                      [else (error "invalid form of returned edge" e)])))
-                 (object-score-table (make-hash)))
-             (set! curie-representative-table
-                   (build-curies-representative-hash
-                    (remove-duplicates (map
-                                        (lambda (e) (get-object e))
-                                        scored/q-sorted-short))))
-              (for-each
-               (lambda (e)
-                 (hash-update! object-score-table
-                               (hash-ref curie-representative-table (get-object e))
-                               (lambda (old-socre)
-                                 (+ (car e) old-socre))
-                               0))
-               scored/q-sorted-short)
+           (let ((object-score-table (make-hash)))
+             (for-each
+              (lambda (e)
+                (hash-update! object-score-table
+                              (hash-ref curie-representative-table (get-object e))
+                              (lambda (old-socre)
+                                (+ (car e) old-socre))
+                              0))
+              scored/q-sorted-short)
              object-score-table)]
           [else (error "unknown MVP" which-mvp)]))
 
@@ -1349,28 +1326,18 @@
         (hash-update! unmerged-results (hash-ref r 'result_id)
                       (lambda (r-old)
                         (let* ((a*-old (hash-ref r-old 'analyses))
-                               (node-to-merge (hash-ref r 'which-to-merge))
-                               (nb-old (hash-ref r-old 'node_bindings))
-                               (nb-new (hash-ref r 'node_bindings))
-                               (merge-node-old (hash-ref nb-old node-to-merge))
-                               (merge-node-new (hash-ref nb-new node-to-merge)))
-                          (hash-set* r-old
-                                     'analyses
-                                     (remove-duplicates
-                                      (cons
-                                       (hash 'edge_bindings (hash-ref r 'edge_bindings)
-                                             'resource_id "infores:unsecret-agent"
-                                             'score (hash-ref representative-score-table (hash-ref r 'result_id)))
-                                       a*-old))
-                                     'node_bindings
-                                     (hash-set nb-old node-to-merge
-                                               (remove-duplicates (append merge-node-new merge-node-old)))
-                                     )))
+                               (a-old (car a*-old))
+                               (edge-old (hash-ref (hash-ref a-old 'edge_bindings) qg_edge-id))
+                               (edge-new (hash-ref  (hash-ref r 'edge_bindings) qg_edge-id)))
+                          (hash-set r-old 'analyses
+                                    (list (hash-set (car (hash-ref r-old 'analyses))
+                                                    'edge_bindings
+                                                    (hash qg_edge-id (remove-duplicates (append edge-old edge-new))))))))
                       (hash
                        'node_bindings (hash-ref r 'node_bindings)
                        'analyses (list (hash 'edge_bindings (hash-ref r 'edge_bindings)
                                              'resource_id "infores:unsecret-agent"
-                                             'score (hash-ref representative-score-table (hash-ref r 'result_id)))))))
+                                             'score (hash-ref representative-score-table (hash-ref r 'score_id)))))))
 
       (let loop ((en 0) (an 0) (score*/e* scored/q-sorted-short))
         (cond
@@ -1412,9 +1379,12 @@
                                    qg_subject-node-id (list (hash 'id curie_x))
                                    qg_object-node-id (list (hash 'id curie_z
                                                                  'query_id (car input-id*)))))
-                              'result_id (hash-ref curie-representative-table curie_x)
+                              'result_id (string-append
+                                          (hash-ref curie-representative-table curie_x)
+                                          curie_z)
+                              'score_id (hash-ref curie-representative-table curie_x)
                               'edge_bindings (hash qg_edge-id (list (hash 'id edge_creative)))
-                              'which-to-merge qg_object-node-id)]
+                              )]
                        [(eq? which-mvp 'mvp2-chem)
                         (hash 'node_bindings
                               (if (equal? curie_x (car input-id*))
@@ -1425,9 +1395,12 @@
                                    qg_subject-node-id (list (hash 'id curie_x
                                                                   'query_id (car input-id*)))
                                    qg_object-node-id (list (hash 'id curie_z))))
-                              'result_id (hash-ref curie-representative-table curie_z)
+                              'result_id (string-append
+                                          curie_x
+                                          (hash-ref curie-representative-table curie_z))
+                              'score_id (hash-ref curie-representative-table curie_z)
                               'edge_bindings (hash qg_edge-id (list (hash 'id edge_creative)))
-                              'which-to-merge qg_subject-node-id)]
+                              )]
                        [else (error "unknown MVP" which-mvp)]))
                     (loop (+ en 2) (+ an 1) (cdr score*/e*)))
                   (loop en an (cdr score*/e*)))]
@@ -1451,9 +1424,12 @@
                                    qg_subject-node-id (list (hash 'id curie_x))
                                    qg_object-node-id (list (hash 'id curie_y
                                                                  'query_id (car input-id*)))))
-                              'result_id (hash-ref curie-representative-table curie_x)
+                              'result_id (string-append
+                                          (hash-ref curie-representative-table curie_x)
+                                          curie_y)
+                              'score_id (hash-ref curie-representative-table curie_x)
                               'edge_bindings (hash qg_edge-id (list (hash 'id edge_xy)))
-                              'which-to-merge qg_object-node-id)]
+                              )]
                        [(eq? which-mvp 'mvp2-chem)
                         (hash 'node_bindings
                               (if (equal? curie_x (car input-id*))
@@ -1464,9 +1440,12 @@
                                    qg_subject-node-id (list (hash 'id curie_x
                                                                   'query_id (car input-id*)))
                                    qg_object-node-id (list (hash 'id curie_y))))
-                              'result_id (hash-ref curie-representative-table curie_y)
+                              'result_id (string-append
+                                          curie_x
+                                          (hash-ref curie-representative-table curie_y))
+                              'score_id (hash-ref curie-representative-table curie_y)
                               'edge_bindings (hash qg_edge-id (list (hash 'id edge_xy)))
-                              'which-to-merge qg_subject-node-id)]))
+                              )]))
                     (loop (+ en 1) an (cdr score*/e*)))
                   (loop en an (cdr score*/e*)))]
              ))))

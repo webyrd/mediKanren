@@ -21,12 +21,14 @@
          semantic-exclude*
          domain-exclude*
          range-exclude*
+         get-object
          )
 
 (require racket/list
          racket/math
          racket/string
          json
+         racket/match
          "../neo-reasoning/semmed-exclude.rkt"
          "../neo-utils/neo-helpers-without-db.rkt"
          )
@@ -243,6 +245,27 @@
            'results
            (merge-list results1 results2)
            ))))
+
+(define get-object
+  (lambda (e)
+    (match e
+      [`(,score
+         ,curie_x
+         ,pred_xy
+         ,curie_y
+         ,(? string? pred_yz)
+         ,(? string? curie_z)
+         ,props_xy
+         ,props_yz)
+       curie_z]
+      [`(,score
+         ,curie_x
+         ,pred_xy
+         ,curie_y
+         .
+         ,props_xy)
+       curie_y]
+      [else (error "invalid form of returned edge" e)])))
 
 
   
