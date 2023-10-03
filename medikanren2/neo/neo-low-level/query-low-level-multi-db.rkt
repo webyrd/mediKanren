@@ -397,10 +397,10 @@
                     (lambda (rep YX* KY*)
                       (for-each
                        (lambda (YX)
-                         (match-define (list* _ Y predicate.Y->X X props.Y->X) YX)
+                         (match-define (list* _ _ predicate.Y->X X props.Y->X) YX)
                          (for-each
                           (lambda (KY)
-                            (match-define (list* _ K K->Y _ props.K->Y) KY)
+                            (match-define (list* _ K K->Y Y props.K->Y) KY)
                             (yield (list K K->Y Y predicate.Y->X X props.K->Y props.Y->X)))
                           KY*))
                        YX*))))))))

@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.30")
+(define NEO_SERVER_VERSION "1.31")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -1149,6 +1149,34 @@
 
       (define old-scored/q-sorted-short (take-at-most scored/q-sorted-long MAX_RESULTS_FROM_COMPONENT))
 
+      (printf "Toke the best ~s edges for MVP mode creative query\n"
+              (length old-scored/q-sorted-short))
+
+      (define subjs-from-results (remove-duplicates (map cadr old-scored/q-sorted-short)))
+      (define objs-from-results (remove-duplicates (map (lambda (e) (get-object e)) old-scored/q-sorted-short)))
+
+      (define curie-representative-table (add-curies-representative-to-hash
+                                          (build-curies-representative-hash subjs-from-results)
+                                          objs-from-results))
+
+      (define representative-canonical-table
+        (let ((t (make-hash)))
+          (define helper
+            (lambda (c*)
+                (cond
+                  ((null? c*) t)
+                  ((hash-has-key? t (hash-ref curie-representative-table (car c*)))
+                   (helper (cdr c*)))
+                  (else
+                    (hash-set! t (hash-ref curie-representative-table (car c*)) (car c*))
+                    (helper (cdr c*))))))
+           (helper (append subjs-from-results objs-from-results))))
+
+      (define curie->canonical
+        (lambda (c)
+          (hash-ref representative-canonical-table
+                    (hash-ref curie-representative-table c))))
+
       (define scored/q-sorted-short
         (map
          (lambda (e)
@@ -1161,24 +1189,28 @@
                       ,(? string? curie_z)
                       ,props_xy
                       ,props_yz)
-                    e]
+                    (list score
+                          (curie->canonical curie_x)
+                          pred_xy
+                          curie_y
+                          pred_yz
+                          (curie->canonical curie_z)
+                          props_xy
+                          props_yz)]
                    [`(,score
                       ,curie_x
                       ,pred_xy
                       ,curie_y
                       .
                       ,props_xy)
-                    (cons (sqrt score) (cdr e))]
+                    (list* (sqrt score)
+                           (curie->canonical curie_x)
+                           pred_xy
+                           (curie->canonical curie_y)
+                           props_xy)]
                    [else (error "invalid form of returned edge" e)]))
          old-scored/q-sorted-short))
-
-      (printf "Toke the best ~s edges for MVP mode creative query\n"
-              (length scored/q-sorted-short))
-
-      (define curie-representative-table (add-curies-representative-to-hash
-                                          (build-curies-representative-hash
-                                           (remove-duplicates (map cadr scored/q-sorted-short)))
-                                          (remove-duplicates (map (lambda (e) (get-object e)) scored/q-sorted-short))))
+                
       (define representative-score-table
         (cond
           [(or (eq? which-mvp 'mvp1) (eq? which-mvp 'mvp2-gene))
@@ -1229,16 +1261,16 @@
                        (hash 'categories categories
                              'name name)))))
 
-      (define (add-edge! props n)
+      (define (add-edge! subj obj props n)
         (let* ((id
                 (or
-                 (get-assoc "id" props) ; rtx-kg2
-                 (get-assoc "assertion_id" props) ;text-mining
+                 #;(get-assoc "id" props) ; rtx-kg2
+                 #;(get-assoc "assertion_id" props) ;text-mining
                  (number->string n)))
                (id (string-append "medik:edge#" id))
                (id-sym (string->symbol id))
-               (object (get-assoc "object" props))
-               (subject (get-assoc "subject" props))
+               (object obj)
+               (subject subj)
                (predicate (get-assoc "predicate" props))
                (aspect-qualifier (or (get-assoc "object_aspect_qualifier" props)
                                      (get-assoc "qualified_object_aspect" props)))
@@ -1357,8 +1389,8 @@
               (if (and (node-has-name-and-cat? curie_x)
                        (node-has-name-and-cat? curie_y)
                        (node-has-name-and-cat? curie_z))
-                  (let* ((edge_xy (add-edge! props_xy en))
-                         (edge_yz (add-edge! props_yz (+ en 1)))
+                  (let* ((edge_xy (add-edge! curie_x curie_y props_xy en))
+                         (edge_yz (add-edge! curie_y curie_z props_yz (+ en 1)))
                          (auxiliary_id (add-auxiliary! (list edge_xy edge_yz) an))
                          (edge_creative (add-creative-edge! curie_x
                                                             curie_z
@@ -1379,9 +1411,7 @@
                                    qg_subject-node-id (list (hash 'id curie_x))
                                    qg_object-node-id (list (hash 'id curie_z
                                                                  'query_id (car input-id*)))))
-                              'result_id (string-append
-                                          (hash-ref curie-representative-table curie_x)
-                                          curie_z)
+                              'result_id (string-append curie_x curie_z)
                               'score_id (hash-ref curie-representative-table curie_x)
                               'edge_bindings (hash qg_edge-id (list (hash 'id edge_creative)))
                               )]
@@ -1395,9 +1425,7 @@
                                    qg_subject-node-id (list (hash 'id curie_x
                                                                   'query_id (car input-id*)))
                                    qg_object-node-id (list (hash 'id curie_z))))
-                              'result_id (string-append
-                                          curie_x
-                                          (hash-ref curie-representative-table curie_z))
+                              'result_id (string-append curie_x curie_z)
                               'score_id (hash-ref curie-representative-table curie_z)
                               'edge_bindings (hash qg_edge-id (list (hash 'id edge_creative)))
                               )]
@@ -1411,7 +1439,7 @@
                 ,props_xy)
               (if (and (node-has-name-and-cat? curie_x)
                        (node-has-name-and-cat? curie_y))
-                  (let ((edge_xy (add-edge! props_xy en)))
+                  (let ((edge_xy (add-edge! curie_x curie_y props_xy en)))
                     (add-unmerged-result!
                      (cond
                        [(or (eq? which-mvp 'mvp1) (eq? which-mvp 'mvp2-gene))
@@ -1424,9 +1452,7 @@
                                    qg_subject-node-id (list (hash 'id curie_x))
                                    qg_object-node-id (list (hash 'id curie_y
                                                                  'query_id (car input-id*)))))
-                              'result_id (string-append
-                                          (hash-ref curie-representative-table curie_x)
-                                          curie_y)
+                              'result_id (string-append curie_x curie_y)
                               'score_id (hash-ref curie-representative-table curie_x)
                               'edge_bindings (hash qg_edge-id (list (hash 'id edge_xy)))
                               )]
@@ -1440,9 +1466,7 @@
                                    qg_subject-node-id (list (hash 'id curie_x
                                                                   'query_id (car input-id*)))
                                    qg_object-node-id (list (hash 'id curie_y))))
-                              'result_id (string-append
-                                          curie_x
-                                          (hash-ref curie-representative-table curie_y))
+                              'result_id (string-append curie_x curie_y)
                               'score_id (hash-ref curie-representative-table curie_y)
                               'edge_bindings (hash qg_edge-id (list (hash 'id edge_xy)))
                               )]))
@@ -1805,7 +1829,7 @@
      (list
        'xexpr
        200_OK_STRING
-       `(html (body ,(format "Hello, World! from Neo Server ~a" NEO_SERVER_VERSION)))))
+       `(html (body ,(format "Hello, World! from Neo Server ~a. Current amount of jobs waiting: ~a" NEO_SERVER_VERSION *jobs-waiting*)))))
    'safe-for-concurrent-use))
 
 
