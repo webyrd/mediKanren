@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.31")
+(define NEO_SERVER_VERSION "1.32")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -46,6 +46,13 @@
 
 ;; Numbers of the top bucket of the RoboKop KG, Text Mining KG, and RTX-KG2 KG.
 (define TOP_BUCKET_NUMBERS (list (list 5) (list 5) (list 7)))
+
+;; Unsecret-level excluded MVP1 results - answers that is obviously wrong/useless
+(define UNWELCOME-TREATMENT
+  (append
+   (curie->synonyms "MESH:D001335") ; Vehicle emissions
+   (curie->synonyms "UMLS:C0013227") ; Pharmaceutical preparations
+   ))
 
 
 ;; ** `tcp-listen` settings **
@@ -897,6 +904,10 @@
        ,props_xy)
      (not (excluded-semmed-edge? props_xy))]))
 
+(define (not-unwelcome-treatment? e)
+  (not (member (car e) UNWELCOME-TREATMENT)))
+  
+
 (define (node-has-name-and-cat? curie)
   (let* ((props (curie->properties curie))
          (categories (list-assoc "category" props))
@@ -958,7 +969,9 @@
             ;;
             (define 1-hop-proc
               (lambda (score*)
-                (filter not-semmed-excluded?
+                (filter (lambda (r)
+                          (and (not-semmed-excluded? r)
+                               (not-unwelcome-treatment? r)))
                         (query:X->Known-scored
                          chemical-catogory+
                          '("biolink:treats")
@@ -979,7 +992,10 @@
                            disease-ids+
                            TOP_BUCKET_NUMBERS
                            MAX_RESULTS_FROM_COMPONENT
-                           (lambda (r*) (filter not-semmed-excluded? r*)))))
+                           (lambda (r*) (filter (lambda (r)
+                                                  (and (not-semmed-excluded? r)
+                                                       (not-unwelcome-treatment? r)))
+                                                r*)))))
               (list disease-ids q-1hop q-2hop))]
            [(eq? 'mvp2-chem which-mvp)
             ;;
@@ -1916,3 +1932,4 @@
             TOP_BUCKET_NUMBERS))
 
 (length q3)
+(length UNWELCOME-TREATMENT)
