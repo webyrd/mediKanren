@@ -153,7 +153,9 @@
   (if (null? results)
       results
       (let ((max-score (get-score-from-result (car results))))
-        (map (lambda (x) (set-score-in-result x (/ (get-score-from-result x) (* 1.0 max-score)))) results))))
+        (if (zero? max-score)
+            results
+            (map (lambda (x) (set-score-in-result x (/ (get-score-from-result x) (* 1.0 max-score)))) results)))))
 
 (define edge-has-source?
   (lambda (props)

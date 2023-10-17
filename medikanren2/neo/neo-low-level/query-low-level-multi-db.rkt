@@ -350,10 +350,10 @@
                     (lambda (rep XY* YK*)
                       (for-each
                        (lambda (XY)
-                         (match-define (list* _ X predicate.X->Y Y props.X->Y) XY)
+                         (match-define (list* _ X predicate.X->Y _ props.X->Y) XY)
                          (for-each
                           (lambda (YK)
-                            (match-define (list* _ _ Y->K K props.Y->K) YK)
+                            (match-define (list* _ Y Y->K K props.Y->K) YK)
                             (yield (list X predicate.X->Y Y Y->K K props.X->Y props.Y->K)))
                           YK*))
                        XY*))))))))
@@ -417,10 +417,10 @@
                        (lambda (rep XY* YK*)
                          (for-each
                           (lambda (XY)
-                            (match-define (list* _ X predicate.X->Y Y props.X->Y) XY)
+                            (match-define (list* _ X predicate.X->Y _ props.X->Y) XY)
                             (for-each
                              (lambda (YK)
-                               (match-define (list* _ _ Y->K K props.Y->K) YK)
+                               (match-define (list* _ Y Y->K K props.Y->K) YK)
                                (yield (list X predicate.X->Y Y Y->K K props.X->Y props.Y->K)))
                              YK*))
                           XY*))))))
@@ -460,10 +460,10 @@
                        (lambda (rep YX* KY*)
                          (for-each
                           (lambda (YX)
-                            (match-define (list* _ Y predicate.Y->X X props.Y->X) YX)
+                            (match-define (list* _ _ predicate.Y->X X props.Y->X) YX)
                             (for-each
                              (lambda (KY)
-                               (match-define (list* _ K K->Y _ props.K->Y) KY)
+                               (match-define (list* _ K K->Y Y props.K->Y) KY)
                                (yield (list K K->Y Y predicate.Y->X X props.K->Y props.Y->X)))
                              KY*))
                           YX*))))))
