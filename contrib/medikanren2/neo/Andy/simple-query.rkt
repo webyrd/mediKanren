@@ -33,5 +33,42 @@
      (`(,subj ,pred ,obj . ,props)
       (list (concept->name subj)
             pred
-            (concept->name obj)))))
+            (concept->name obj)
+            props))))
  regulates-EGFR)
+
+#|
+This is all that is required:
+{
+  "nodes": [
+    { "id": "node1", "label": "Node 1" },
+    { "id": "node2", "label": "Node 2" },
+    { "id": "node3", "label": "Node 3" }
+  ],
+  "edges": [
+    { "source": "node1", "target": "node2" },
+    { "source": "node2", "target": "node3" }
+  ]
+}
+I use the curie as the ID and the name as the label for nodes and get the categories as well.
+Then also get the predicate and qualifiers,  from the edge, but have not used that much. So, if It hard to break out then I can go without for now.
+|#
+
+
+(define (results->jsexpr results)
+  (let loop ((results results)
+             (edges (set))
+             (nodes (set)))
+    (cond
+      ((null? results) (hasheq 'nodes (set->list nodes) 'edges (set->list edges)))
+      (else (let ((res (car results)))
+              (match res
+                (`(,subj ,pred ,obj . ,props)
+                 (loop (cdr results)
+                       (set-add edges (hasheq 'source subj 'target obj))
+                       (set-add (set-add nodes (hasheq 'id subj 'label (concept->name subj)))
+                                (hasheq 'id obj 'label (concept->name obj)))))))))))
+
+(define op (open-output-file "results.json" #:mode 'text #:exists 'replace))
+(write-json (results->jsexpr regulates-EGFR) op)
+(close-output-port op)
