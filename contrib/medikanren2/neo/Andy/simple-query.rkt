@@ -72,3 +72,30 @@ Then also get the predicate and qualifiers,  from the edge, but have not used th
 (define op (open-output-file "results.json" #:mode 'text #:exists 'replace))
 (write-json (results->jsexpr regulates-EGFR) op)
 (close-output-port op)
+
+
+#|
+Gene1 - any node - Disease 1
+
+probably should exclude `biolink:same_as` as a predicate
+|#
+
+(define (gene->any->disease gene disease)
+  (time (query:Known->X->Known
+         (set->list
+          (get-descendent-curies*-in-db
+           (curies->synonyms-in-db (list gene))))
+         (set->list
+          (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
+           '("biolink:affects"  "biolink:interacts_with")))
+         #f
+         (set->list
+          (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
+           '("biolink:affects"  "biolink:interacts_with")))
+         (set->list
+          (get-descendent-curies*-in-db
+           (curies->synonyms-in-db (list disease)))))))
+
+;; BRCA2 and breast cancer
+(define BRCA2->any->breast-cancer
+  (gene->any->disease "HGNC:1101" "MONDO:0007254"))
