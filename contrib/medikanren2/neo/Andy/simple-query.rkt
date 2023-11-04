@@ -31,6 +31,22 @@
                        (set-add (set-add nodes (hasheq 'id subj 'label (concept->name subj)))
                                 (hasheq 'id obj 'label (concept->name obj)))))))))))
 
+(define (two-hop-results->jsexpr results)
+  (let loop ((results results)
+             (edges (set))
+             (nodes (set)))
+    (cond
+      ((null? results) (hasheq 'nodes (set->list nodes) 'edges (set->list edges)))
+      (else (let ((res (car results)))
+              (match res
+                (`(,subj1 ,pred1 ,X ,pred2 ,obj2 . ,props)
+                 (loop (cdr results)
+                       (set-add (set-add edges (hasheq 'source subj1 'target X))
+                                (hasheq 'source X 'target obj2))
+                       (set-add (set-add (set-add nodes (hasheq 'id subj1 'label (concept->name subj1)))
+                                         (hasheq 'id obj2 'label (concept->name obj2)))
+                                (hasheq 'id X 'label (concept->name X)))))))))))
+
 
 
 (define regulates-EGFR
@@ -42,16 +58,6 @@
          (set->list
           (get-descendent-curies*-in-db
            (curies->synonyms-in-db (list "HGNC:3236")))))))
-
-(map
- (lambda (edge)
-   (match edge
-     (`(,subj ,pred ,obj . ,props)
-      (list (concept->name subj)
-            pred
-            (concept->name obj)
-            props))))
- regulates-EGFR)
 
 #|
 This is all that is required:
@@ -71,7 +77,7 @@ Then also get the predicate and qualifiers,  from the edge, but have not used th
 |#
 
 
-(let ((op (open-output-file "results.json" #:mode 'text #:exists 'replace)))
+(let ((op (open-output-file "X-regulates-EGFR.json" #:mode 'text #:exists 'replace)))
   (write-json (one-hop-results->jsexpr regulates-EGFR) op)
   (close-output-port op))
 
@@ -102,3 +108,7 @@ probably should exclude `biolink:same_as` as a predicate
 ;; BRCA2 and breast cancer
 (define BRCA2->any->breast-cancer
   (gene->any->disease "HGNC:1101" "MONDO:0007254"))
+
+(let ((op (open-output-file "BRCA2->any->breast-cancer.json" #:mode 'text #:exists 'replace)))
+  (write-json (two-hop-results->jsexpr BRCA2->any->breast-cancer) op)
+  (close-output-port op))
