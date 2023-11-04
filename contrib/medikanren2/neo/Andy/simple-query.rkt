@@ -17,6 +17,22 @@
                                            (equal? (cadr cl) "name")))
                                     (query:Concept (list curie))))))
 
+(define (one-hop-results->jsexpr results)
+  (let loop ((results results)
+             (edges (set))
+             (nodes (set)))
+    (cond
+      ((null? results) (hasheq 'nodes (set->list nodes) 'edges (set->list edges)))
+      (else (let ((res (car results)))
+              (match res
+                (`(,subj ,pred ,obj . ,props)
+                 (loop (cdr results)
+                       (set-add edges (hasheq 'source subj 'target obj))
+                       (set-add (set-add nodes (hasheq 'id subj 'label (concept->name subj)))
+                                (hasheq 'id obj 'label (concept->name obj)))))))))))
+
+
+
 (define regulates-EGFR
   (time (query:X->Known
          #f
@@ -55,23 +71,10 @@ Then also get the predicate and qualifiers,  from the edge, but have not used th
 |#
 
 
-(define (results->jsexpr results)
-  (let loop ((results results)
-             (edges (set))
-             (nodes (set)))
-    (cond
-      ((null? results) (hasheq 'nodes (set->list nodes) 'edges (set->list edges)))
-      (else (let ((res (car results)))
-              (match res
-                (`(,subj ,pred ,obj . ,props)
-                 (loop (cdr results)
-                       (set-add edges (hasheq 'source subj 'target obj))
-                       (set-add (set-add nodes (hasheq 'id subj 'label (concept->name subj)))
-                                (hasheq 'id obj 'label (concept->name obj)))))))))))
+(let ((op (open-output-file "results.json" #:mode 'text #:exists 'replace)))
+  (write-json (one-hop-results->jsexpr regulates-EGFR) op)
+  (close-output-port op))
 
-(define op (open-output-file "results.json" #:mode 'text #:exists 'replace))
-(write-json (results->jsexpr regulates-EGFR) op)
-(close-output-port op)
 
 
 #|
