@@ -12,10 +12,18 @@
  racket/string)
 
 (define (concept->name curie)
-  (caddar (remove-duplicates (filter (lambda (cl)
+  (let ((id-name-val
+         (remove-duplicates (filter (lambda (cl)
                                       (and (equal? (car cl) curie)
                                            (equal? (cadr cl) "name")))
                                     (query:Concept (list curie))))))
+        (if (null? id-name-val)
+            curie
+            (caddar id-name-val))))
+
+(define (concept->category curie)
+  (let ((category (assoc "category" (curie->properties curie))))
+    (if category (cdr category) '())))
 
 (define (one-hop-results->jsexpr results)
   (let loop ((results results)
@@ -28,8 +36,12 @@
                 (`(,subj ,pred ,obj . ,props)
                  (loop (cdr results)
                        (set-add edges (hasheq 'source subj 'target obj))
-                       (set-add (set-add nodes (hasheq 'id subj 'label (concept->name subj)))
-                                (hasheq 'id obj 'label (concept->name obj)))))))))))
+                       (set-add (set-add nodes (hasheq 'id subj
+                                                       'label (concept->name subj)
+                                                       'category_label (concept->category subj)))
+                                (hasheq 'id obj
+                                        'label (concept->name obj)
+                                        'category_label (concept->category obj)))))))))))
 
 (define (two-hop-results->jsexpr results)
   (let loop ((results results)
@@ -43,9 +55,16 @@
                  (loop (cdr results)
                        (set-add (set-add edges (hasheq 'source subj1 'target X))
                                 (hasheq 'source X 'target obj2))
-                       (set-add (set-add (set-add nodes (hasheq 'id subj1 'label (concept->name subj1)))
-                                         (hasheq 'id obj2 'label (concept->name obj2)))
-                                (hasheq 'id X 'label (concept->name X)))))))))))
+                       (set-add (set-add (set-add nodes (hasheq 'id subj1
+                                                                'label (concept->name subj1)
+                                                                'category_label (concept->category subj1)))
+                                         (hasheq 'id obj2
+                                                 'label (concept->name obj2)
+                                                 'category_label (concept->category obj2)))
+                                (hasheq 'id X
+                                        'label (concept->name X)
+                                        'category_label (concept->category X)))))))))))
+
 
 
 
