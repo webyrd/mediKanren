@@ -44,8 +44,11 @@
            pred)
        obj-curie
        (concept->name obj-curie)
-       (or (get-assoc "NCBITaxon" props)
-           "N/A")
+       (let ((taxon (get-assoc "NCBITaxon" props)))
+         (cond
+           ((equal? "9606" taxon) (string-append taxon " (Homo sapiens)"))
+           ((equal? "10090" taxon) (string-append taxon " (Mus musculus)"))
+           (else (or taxon "N/A"))))
        (string-join (get-pubs props) ",")
        (get-primary-knowledge-source props))]))
 
