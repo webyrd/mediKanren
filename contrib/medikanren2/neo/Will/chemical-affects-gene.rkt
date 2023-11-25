@@ -1,6 +1,8 @@
 #lang racket/base
 
 (provide
+ chem-affects-gene
+ chem-affects-gene-entries
  chem-affects-gene-TSV)
 
 (require
@@ -29,7 +31,7 @@
           (set->list (curie-synonyms-and-descendents gene-list))))))
 
 (define header
-  (list "chemical CURIE" "chemical name" "predicate description" "object CURIE" "object name" "PUBMEDs" "source"))
+  (list "chemical CURIE" "chemical name" "predicate description" "object CURIE" "object name" "NCBITaxon" "PUBMEDs" "source"))
 
 (define (create-entry result)
   (match result
@@ -42,13 +44,18 @@
            pred)
        obj-curie
        (concept->name obj-curie)
+       (or (get-assoc "NCBITaxon" props)
+           "N/A")
        (string-join (get-pubs props) ",")
        (get-primary-knowledge-source props))]))
+
+(define (chem-affects-gene-entries gene-list)
+  (cons header
+        (remove-duplicates
+         (map create-entry
+              (chem-affects-gene gene-list)))))
 
 (define (chem-affects-gene-TSV file-name gene-list)
   (write-answers-to-tsv
    file-name
-   (cons header
-         (remove-duplicates
-          (map create-entry
-               (chem-affects-gene gene-list))))))
+   (chem-affects-gene-entries gene-list)))
