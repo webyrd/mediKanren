@@ -2,6 +2,7 @@
 
 (provide get-assoc
          list-assoc
+         get-publications
          mvp2-1hop-filter
          mvp2-2hop-filter
          auto-grow
