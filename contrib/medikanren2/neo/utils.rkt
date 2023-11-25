@@ -5,6 +5,8 @@
 
          get-props
 
+         curie-synonyms-and-descendents
+
          write-answers-to-tsv
          
          get-source
@@ -24,8 +26,13 @@
          racket/match
          "../../../medikanren2/neo/neo-server/neo-server-utils.rkt"
          "../../../medikanren2/neo/neo-low-level/query-low-level-multi-db.rkt"
+         "../../../medikanren2/neo/neo-utils/neo-helpers-multi-db.rkt"         
          "../../../medikanren2/neo/neo-utils/neo-helpers-without-db.rkt"
          )
+
+(define (curie-synonyms-and-descendents curie-list)
+  (get-descendent-curies*-in-db
+   (curies->synonyms-in-db curie-list)))
 
 (define (concept->name curie)
   (let ((id-name-val
