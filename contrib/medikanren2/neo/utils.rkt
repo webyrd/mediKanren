@@ -3,11 +3,11 @@
 (provide concept->name
          concept->category
 
-         get-props
-
          curie-synonyms-and-descendents
 
          write-answers-to-tsv
+
+         get-publications
          
          get-source
          num-pubs
@@ -16,7 +16,7 @@
          get-assoc
          list-assoc
          merge-list
-         merge-hash         
+         merge-hash   
          )
 
 (require racket/list
@@ -47,10 +47,6 @@
 (define (concept->category curie)
   (let ((category (assoc "category" (curie->properties curie))))
     (if category (cdr category) '())))
-
-(define (get-props edge)
-  ;; TODO check this is correct
-  (cdddr edge))
 
 (define (write-answers-to-tsv edges)
   'TODO)

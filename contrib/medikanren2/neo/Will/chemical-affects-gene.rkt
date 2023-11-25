@@ -27,3 +27,20 @@
 
 ;; test with BRCA2 gene
 (define chem-affects-BRCA2 (chem-affects-gene (list "HGNC:1101")))
+
+(define header
+  (list "chemical CURIE" "chemical name" "predicate description" "object CURIE" "object name"))
+
+(define (create-entry result)
+  (match result
+    [`(,subj-curie ,pred ,obj-curie . ,props)
+     (list
+       subj-curie
+       (concept->name subj-curie)
+       (or (get-assoc "description" props)
+           (get-assoc "predicate_label" props)
+           pred)       
+       obj-curie
+       (concept->name obj-curie))]))
+
+(cons header (map create-entry chem-affects-BRCA2))
