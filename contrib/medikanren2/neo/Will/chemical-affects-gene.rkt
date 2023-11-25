@@ -39,17 +39,16 @@
        (concept->name subj-curie)
        (or (get-assoc "description" props)
            (get-assoc "predicate_label" props)
-           pred)       
+           pred)
        obj-curie
        (concept->name obj-curie)
        (string-join (get-pubs props) ",")
-       (or (get-assoc "biolink:primary_knowledge_source" props)
-           (get-assoc "primary_knowledge_source" props)
-           "N/A"))]))
+       (get-primary-knowledge-source props))]))
 
 (define (chem-affects-gene-TSV file-name gene-list)
   (write-answers-to-tsv
    file-name
    (cons header
-         (map create-entry
-              (chem-affects-gene gene-list)))))
+         (remove-duplicates
+          (map create-entry
+               (chem-affects-gene gene-list))))))

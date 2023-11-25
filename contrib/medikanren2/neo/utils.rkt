@@ -8,8 +8,7 @@
          write-answers-to-tsv
 
          get-pubs
-         edge-has-source?
-         get-source
+         get-primary-knowledge-source
          
          get-assoc
          list-assoc
@@ -32,6 +31,15 @@
   (if (zero? (num-pubs props))
       '()
       (hash-ref (get-publications props) 'value)))
+
+(define (get-primary-knowledge-source props)
+  (if (edge-has-source? props)
+      (hash-ref (get-source props) 'resource_id)
+      (error 'get-primary-knowledge-source (format "no primary knowledge source in properties: ~s" props))))
+
+
+
+
 
 (define (curie-synonyms-and-descendents curie-list)
   (get-descendent-curies*-in-db
