@@ -7,11 +7,9 @@
 
          write-answers-to-tsv
 
-         get-publications
-         
-         get-source
-         num-pubs
+         get-pubs
          edge-has-source?
+         get-source
          
          get-assoc
          list-assoc
@@ -29,6 +27,11 @@
          "../../../medikanren2/neo/neo-utils/neo-helpers-multi-db.rkt"         
          "../../../medikanren2/neo/neo-utils/neo-helpers-without-db.rkt"
          )
+
+(define (get-pubs props)
+  (if (zero? (num-pubs props))
+      '()
+      (hash-ref (get-publications props) 'value)))
 
 (define (curie-synonyms-and-descendents curie-list)
   (get-descendent-curies*-in-db

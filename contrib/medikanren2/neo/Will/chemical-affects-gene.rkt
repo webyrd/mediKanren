@@ -29,7 +29,7 @@
 (define chem-affects-BRCA2 (chem-affects-gene (list "HGNC:1101")))
 
 (define header
-  (list "chemical CURIE" "chemical name" "predicate description" "object CURIE" "object name"))
+  (list "chemical CURIE" "chemical name" "predicate description" "object CURIE" "object name" "PUBMEDs" "source"))
 
 (define (create-entry result)
   (match result
@@ -41,6 +41,10 @@
            (get-assoc "predicate_label" props)
            pred)       
        obj-curie
-       (concept->name obj-curie))]))
+       (concept->name obj-curie)
+       (string-join (get-pubs props) ",")
+       (or (get-assoc "biolink:primary_knowledge_source" props)
+           (get-assoc "primary_knowledge_source" props)
+           "N/A"))]))
 
 (cons header (map create-entry chem-affects-BRCA2))
