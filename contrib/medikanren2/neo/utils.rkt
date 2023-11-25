@@ -51,5 +51,11 @@
   (let ((category (assoc "category" (curie->properties curie))))
     (if category (cdr category) '())))
 
-(define (write-answers-to-tsv edges)
-  'TODO)
+(define (write-answers-to-tsv file-name lines)
+  (let ((op (open-output-file file-name #:mode 'text #:exists 'replace)))
+    (for-each
+      (lambda (line)
+        (fprintf op (string-join line "\t"))
+        (fprintf op "\n"))
+      lines)
+    (close-output-port op)))

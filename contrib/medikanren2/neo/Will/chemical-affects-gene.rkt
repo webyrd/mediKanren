@@ -1,5 +1,8 @@
 #lang racket/base
 
+(provide
+ chem-affects-gene-TSV)
+
 (require
  "../../../../medikanren2/neo/neo-low-level/query-low-level-multi-db.rkt"
  "../../../../medikanren2/neo/neo-utils/neo-helpers-multi-db.rkt"
@@ -25,9 +28,6 @@
             '("biolink:affects")))
           (set->list (curie-synonyms-and-descendents gene-list))))))
 
-;; test with BRCA2 gene
-(define chem-affects-BRCA2 (chem-affects-gene (list "HGNC:1101")))
-
 (define header
   (list "chemical CURIE" "chemical name" "predicate description" "object CURIE" "object name" "PUBMEDs" "source"))
 
@@ -47,4 +47,9 @@
            (get-assoc "primary_knowledge_source" props)
            "N/A"))]))
 
-(cons header (map create-entry chem-affects-BRCA2))
+(define (chem-affects-gene-TSV file-name gene-list)
+  (write-answers-to-tsv
+   file-name
+   (cons header
+         (map create-entry
+              (chem-affects-gene gene-list)))))
