@@ -41,6 +41,15 @@
        (concept->name subj-curie)
        (or (get-assoc "description" props)
            (get-assoc "predicate_label" props)
+           (let ((qp (get-assoc "qualified_predicate" props)))
+             (if qp
+                 (string-append
+                  qp
+                  " "
+                  (or (get-assoc "object_direction_qualifier" props) "")
+                  " "
+                  (or (get-assoc "object_aspect_qualifier" props) ""))
+                 #f))
            pred)
        obj-curie
        (concept->name obj-curie)
