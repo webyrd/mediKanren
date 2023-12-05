@@ -114,11 +114,11 @@ probably should exclude `biolink:same_as` as a predicate
           (get-descendent-curies*-in-db
            (curies->synonyms-in-db (list gene))))
          (set->list
-          (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
+          (get-non-deprecated/mixin/abstract-ins-and-descendent-predicates*-in-db
            '("biolink:affects"  "biolink:interacts_with")))
          #f
          (set->list
-          (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
+          (get-non-deprecated/mixin/abstract-ins-and-descendent-predicates*-in-db
            '("biolink:affects"  "biolink:interacts_with")))
          (set->list
           (get-descendent-curies*-in-db

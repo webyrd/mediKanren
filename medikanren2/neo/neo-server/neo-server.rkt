@@ -986,7 +986,7 @@
                             (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
                              '("biolink:Gene" "biolink:GeneOrGeneProduct" "biolink:Protein")))
                            (set->list
-                            (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
+                            (get-non-deprecated/mixin/abstract-ins-and-descendent-predicates*-in-db
                              '("biolink:gene_associated_with_condition"
                                "biolink:contributes_to")))
                            disease-ids+
@@ -1033,7 +1033,7 @@
                     (query:Known->Y->X-auto-grow
                      chemical-ids+
                      (set->list
-                      (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
+                      (get-non-deprecated/mixin/abstract-ins-and-descendent-predicates*-in-db
                        '("biolink:affects" "biolink:interacts_with")))
                      (set->list
                       (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
@@ -1092,7 +1092,7 @@
                     (query:X->Y->Known-auto-grow
                      chemical-catogory+
                      (set->list
-                      (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
+                      (get-non-deprecated/mixin/abstract-ins-and-descendent-predicates*-in-db
                        '("biolink:affects"  "biolink:interacts_with")))
                      (set->list
                       (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
@@ -1889,7 +1889,7 @@
                (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
                 '("biolink:ChemicalEntity")))
               (set->list
-               (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
+               (get-non-deprecated/mixin/abstract-ins-and-descendent-predicates*-in-db
                 '("biolink:treats")))
               (set->list
                (get-descendent-curies*-in-db
@@ -1924,7 +1924,7 @@
              (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
               '("biolink:ChemicalEntity")))
             (set->list
-             (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
+             (get-non-deprecated/mixin/abstract-ins-and-descendent-predicates*-in-db
               '("biolink:treats")))
             (set->list
              (get-descendent-curies*-in-db

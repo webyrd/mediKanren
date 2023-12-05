@@ -26,7 +26,7 @@
            (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
             '("biolink:ChemicalEntity")))
           (set->list
-           (get-non-deprecated/mixin/absreact-ins-and-descendent-predicates*-in-db
+           (get-non-deprecated/mixin/abstract-ins-and-descendent-predicates*-in-db
             '("biolink:affects")))
           (set->list (curie-synonyms-and-descendents gene-list))))))
 
