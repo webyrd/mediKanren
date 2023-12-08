@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.33")
+(define NEO_SERVER_VERSION "1.34")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -833,10 +833,7 @@
 
     [else #f]))
 
-(define (make-empty-trapi-response body-json)
-  (let* ((message (hash-ref body-json 'message #f))
-         (query_graph (hash-ref message 'query_graph #f)))
-
+(define (make-empty-trapi-response)
     (hash
      'message
      (hash
@@ -845,7 +842,7 @@
       (hash)
       ;;
       'query_graph
-      query_graph
+      (hash)
       ;;
       'knowledge_graph
       (hash 'nodes (hash)
@@ -853,7 +850,7 @@
       ;;
       'results
       '()
-      ))))
+      )))
 
 (define (make-score-result num-results)
   (lambda (result index)
@@ -1659,94 +1656,86 @@
 
 (define (handle-trapi-query body-json request-fk)
 
+  (define (empty-reply)
+    (let ()
+
+      (printf "-- handling non-MVP mode query\n")
+
+      (define trapi-response
+        (make-empty-trapi-response))
+
+      (list
+       'json
+       200_OK_STRING
+       trapi-response)
+      ))
+  
   (define message (hash-ref body-json 'message #f))
-  ;(printf "message:\n~s\n" message)
-  (unless message
-    (printf "** missing `message` in `body-json`: ~s\n" body-json)
-    (request-fk))
-
-  (define query_graph (hash-ref message 'query_graph #f))
-  ;(printf "query_graph:\n~s\n" query_graph)
-  (unless query_graph
-    (printf "** missing `query_graph` in `message`: ~s\n" message)
-    (request-fk))
-
-  (define edges (hash-ref query_graph 'edges #f))
-  ;(printf "edges:\n~s\n" edges)
-  (unless edges
-    (printf "** missing `edges` in `query_graph`: ~s\n" query_graph)
-    (request-fk))
-
-  (define nodes (hash-ref query_graph 'nodes #f))
-  ;(printf "nodes:\n~s\n" nodes)
-  (unless nodes
-    (printf "** missing `nodes` in `query_graph`: ~s\n" query_graph)
-    (request-fk))
-
-  (define creative-mvp? (mvp-creative-query? edges nodes))
-  (printf "creative-mvp?: ~s\n" creative-mvp?)
-
-  (if creative-mvp?
-      (handle-mvp-creative-query body-json message query_graph edges nodes creative-mvp?)
+  (if message
+      (let()
+        (define query_graph (hash-ref message 'query_graph #f))
+        (if query_graph
+            (let ()
+              (define edges (hash-ref query_graph 'edges #f))
+              (define nodes (hash-ref query_graph 'nodes #f))
+              (if (and edges nodes)
+                  (let ()
+                    (define creative-mvp? (mvp-creative-query? edges nodes))
+                    (printf "creative-mvp?: ~s\n" creative-mvp?)
+                    (if creative-mvp?
+                        (handle-mvp-creative-query body-json message query_graph edges nodes creative-mvp?)
+                        (empty-reply)))
+                  (let ()
+                    (printf "** missing `nodes` or `edges` in `query_graph`: ~s\n" query_graph)
+                    (empty-reply))))
+            (let ()
+              (printf "** missing `query_graph` in `message`: ~s\n" message)
+              (empty-reply))))              
       (let ()
-
-        (printf "-- handling non-MVP mode query\n")
-
-        (define trapi-response
-          (make-empty-trapi-response body-json))
-
-        (list
-         'json
-         200_OK_STRING
-         trapi-response)
-        )
-      )
+        (printf "** missing `message` in `body-json`: ~s\n" body-json)
+        (empty-reply)))
   )
 
 (define (handle-trapi-asyncquery body-json request-fk)
 
+  (define (empty-reply)
+    (let ()
+
+      (printf "-- handling non-MVP mode asyncquery\n")
+
+      (define trapi-response
+        (make-empty-trapi-response))
+
+      (list
+       'json
+       200_OK_STRING
+       trapi-response)
+      ))
+
   (define message (hash-ref body-json 'message #f))
-  (printf "message:\n~s\n" message)
-  (unless message
-    (printf "** missing `message` in `body-json`: ~s\n" body-json)
-    (request-fk))
-
-  (define query_graph (hash-ref message 'query_graph #f))
-  (printf "query_graph:\n~s\n" query_graph)
-  (unless query_graph
-    (printf "** missing `query_graph` in `message`: ~s\n" message)
-    (request-fk))
-
-  (define edges (hash-ref query_graph 'edges #f))
-  (printf "edges:\n~s\n" edges)
-  (unless edges
-    (printf "** missing `edges` in `query_graph`: ~s\n" query_graph)
-    (request-fk))
-
-  (define nodes (hash-ref query_graph 'nodes #f))
-  (printf "nodes:\n~s\n" nodes)
-  (unless nodes
-    (printf "** missing `nodes` in `query_graph`: ~s\n" query_graph)
-    (request-fk))
-
-  (define creative-mvp? (mvp-creative-query? edges nodes))
-  (printf "creative-mvp?: ~s\n" creative-mvp?)
-
-  (if creative-mvp?
-      (handle-mvp-creative-query body-json message query_graph edges nodes creative-mvp?)
+  (if message
+      (let()
+        (define query_graph (hash-ref message 'query_graph #f))
+        (if query_graph
+            (let ()
+              (define edges (hash-ref query_graph 'edges #f))
+              (define nodes (hash-ref query_graph 'nodes #f))
+              (if (and edges nodes)
+                  (let ()
+                    (define creative-mvp? (mvp-creative-query? edges nodes))
+                    (printf "creative-mvp?: ~s\n" creative-mvp?)
+                    (if creative-mvp?
+                        (handle-mvp-creative-query body-json message query_graph edges nodes creative-mvp?)
+                        (empty-reply)))
+                  (let ()
+                    (printf "** missing `nodes` or `edges` in `query_graph`: ~s\n" query_graph)
+                    (empty-reply))))
+            (let ()
+              (printf "** missing `query_graph` in `message`: ~s\n" message)
+              (empty-reply))))              
       (let ()
-
-        (printf "-- handling non-MVP mode query\n")
-
-        (define trapi-response
-          (make-empty-trapi-response body-json))
-
-        (list
-         'json
-         200_OK_STRING
-         trapi-response)
-        )
-      )
+        (printf "** missing `message` in `body-json`: ~s\n" body-json)
+        (empty-reply)))
   )
 
 
