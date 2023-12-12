@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.33")
+(define NEO_SERVER_VERSION "1.34")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -45,7 +45,9 @@
 (define API_CALL_CONNECTION_TIMEOUT_SECONDS (* 1 60))
 
 ;; Numbers of the top bucket of the RoboKop KG, Text Mining KG, and RTX-KG2 KG.
-(define TOP_BUCKET_NUMBERS (list (list 5) (list 5) (list 7)))
+(define TOP_BUCKET_NUMBERS (list (list (get-highest-bucket-number-robokop))
+                                 (list (get-highest-bucket-number-text-mining))
+                                 (list (get-highest-bucket-number-rtx-kg2))))
 
 ;; Unsecret-level excluded MVP1 results - answers that is obviously wrong/useless
 (define UNWELCOME-TREATMENT
@@ -833,10 +835,7 @@
 
     [else #f]))
 
-(define (make-empty-trapi-response body-json)
-  (let* ((message (hash-ref body-json 'message #f))
-         (query_graph (hash-ref message 'query_graph #f)))
-
+(define (make-empty-trapi-response)
     (hash
      'message
      (hash
@@ -845,7 +844,7 @@
       (hash)
       ;;
       'query_graph
-      query_graph
+      (hash)
       ;;
       'knowledge_graph
       (hash 'nodes (hash)
@@ -853,7 +852,7 @@
       ;;
       'results
       '()
-      ))))
+      )))
 
 (define (make-score-result num-results)
   (lambda (result index)
@@ -1059,7 +1058,7 @@
                      '("biolink:gene_product_of")
                      gene-ids-syns
                      ;; TODO: give names to #f and (list 0) - easy to read
-                     (list #f #f (list 0))))))
+                     (list (list 1112) #f (list 0))))))
             (define gene-ids+
                 (set->list
                  (get-descendent-curies*-in-db
@@ -1104,8 +1103,11 @@
                      (lambda (r*) (filter not-semmed-excluded? (mvp2-2hop-filter r* direction))))))
               (list gene-ids qualified-q-1hop qualified-q-2hop))])))
 
+       (define q-1hop-unique-results (remove-duplicates q-1hop-results))
+      (define q-2hop-unique-results (remove-duplicates q-2hop-results))
+
       (printf "computed ~s look-up edges and ~s inferred edges for MVP mode creative query\n"
-              (length q-1hop-results) (length q-2hop-results))
+              (length q-1hop-unique-results) (length q-2hop-unique-results))
 
       (define (score-mvp-edge e)
         (match e
@@ -1134,13 +1136,13 @@
         (filter (lambda (scored/r) (car scored/r))
                 (map
                  (lambda (e) (cons (score-mvp-edge e) e))
-                 (remove-duplicates q-1hop-results))))
+                 q-1hop-unique-results)))
 
       (define scored/q-2hop-unsorted-long
         (filter (lambda (scored/r) (car scored/r))
                 (map
                  (lambda (e) (cons (score-mvp-edge e) e))
-                 (remove-duplicates q-2hop-results))))
+                 q-2hop-unique-results)))
 
       (define by-score
         (lambda (score1/e1 score2/e2)
@@ -1659,48 +1661,44 @@
 
 (define (handle-trapi-query body-json request-fk)
 
-  (define message (hash-ref body-json 'message #f))
-  ;(printf "message:\n~s\n" message)
-  (unless message
-    (printf "** missing `message` in `body-json`: ~s\n" body-json)
-    (request-fk))
-
-  (define query_graph (hash-ref message 'query_graph #f))
-  ;(printf "query_graph:\n~s\n" query_graph)
-  (unless query_graph
-    (printf "** missing `query_graph` in `message`: ~s\n" message)
-    (request-fk))
-
-  (define edges (hash-ref query_graph 'edges #f))
-  ;(printf "edges:\n~s\n" edges)
-  (unless edges
-    (printf "** missing `edges` in `query_graph`: ~s\n" query_graph)
-    (request-fk))
-
-  (define nodes (hash-ref query_graph 'nodes #f))
-  ;(printf "nodes:\n~s\n" nodes)
-  (unless nodes
-    (printf "** missing `nodes` in `query_graph`: ~s\n" query_graph)
-    (request-fk))
-
-  (define creative-mvp? (mvp-creative-query? edges nodes))
-  (printf "creative-mvp?: ~s\n" creative-mvp?)
-
-  (if creative-mvp?
-      (handle-mvp-creative-query body-json message query_graph edges nodes creative-mvp?)
-      (let ()
+  (define (empty-reply)
+    (let ()
 
         (printf "-- handling non-MVP mode query\n")
 
         (define trapi-response
-          (make-empty-trapi-response body-json))
+          (make-empty-trapi-response))
 
         (list
          'json
          200_OK_STRING
          trapi-response)
-        )
-      )
+        ))
+  
+  (define message (hash-ref body-json 'message #f))
+  (if message
+      (let()
+        (define query_graph (hash-ref message 'query_graph #f))
+        (if query_graph
+            (let ()
+              (define edges (hash-ref query_graph 'edges #f))
+              (define nodes (hash-ref query_graph 'nodes #f))
+              (if (and edges nodes)
+                  (let ()
+                    (define creative-mvp? (mvp-creative-query? edges nodes))
+                    (printf "creative-mvp?: ~s\n" creative-mvp?)
+                    (if creative-mvp?
+                        (handle-mvp-creative-query body-json message query_graph edges nodes creative-mvp?)
+                        (empty-reply)))
+                  (let ()
+                    (printf "** missing `nodes` or `edges` in `query_graph`: ~s\n" query_graph)
+                    (empty-reply))))
+            (let ()
+              (printf "** missing `query_graph` in `message`: ~s\n" message)
+              (empty-reply))))              
+      (let ()
+        (printf "** missing `message` in `body-json`: ~s\n" body-json)
+        (empty-reply)))
   )
 
 (define (handle-trapi-asyncquery body-json request-fk)
@@ -1739,7 +1737,7 @@
         (printf "-- handling non-MVP mode query\n")
 
         (define trapi-response
-          (make-empty-trapi-response body-json))
+          (make-empty-trapi-response))
 
         (list
          'json
