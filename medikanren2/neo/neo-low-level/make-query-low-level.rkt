@@ -410,6 +410,18 @@
                 (yield (list curie (id->string id.key) (id->string (dict-min cvalue=>1)))))))))))
     (maybe-time (enumerator->list query)))
 
+  (define (get-highest-bucket-number)
+    (define (helper yield)
+      ((dict-key-enumerator score=>pred=>sub=>obj=>eid=>1)
+       (lambda (score)
+         (yield (list score)))))
+    (let* ((score* (remove-duplicates (enumerator->rlist helper)))
+           (score* (sort (apply append score*) >)))
+      (let loop ((s* score*))
+        (if (or (eq? (car s*) 1111) (eq? (car s*) 1112))
+            (loop (cdr s*))
+            (car s*)))))
+
   (pretty-log `(defining db for)
               path.here
               db-path-under-parent)
@@ -483,5 +495,6 @@
    edge-properties
    edge-property-values
    edge-id->properties
+   get-highest-bucket-number
    )
   )

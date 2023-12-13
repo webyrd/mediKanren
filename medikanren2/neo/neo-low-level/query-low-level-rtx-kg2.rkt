@@ -17,7 +17,8 @@
   curie->properties
   edge-properties
   edge-property-values
-  edge-id->properties)
+  edge-id->properties
+  get-highest-bucket-number)
 (require
  "make-query-low-level.rkt"
  racket/match)
@@ -43,5 +44,6 @@
    edge-properties
    edge-property-values
    edge-id->properties
+   get-highest-bucket-number
    )
   (make-query-low-level db-path-under-parent))

@@ -17,12 +17,13 @@
   curie->properties
   edge-properties
   edge-property-values
-  edge-id->properties)
+  edge-id->properties
+  get-highest-bucket-number)
 (require
  "make-query-low-level.rkt"
  racket/match)
 
-(define db-path-under-parent "text-mining-july-17-2023/june_19_2023/text_mining.db")
+(define db-path-under-parent "text-mining-dec-6-2023/nov_6_2023/text_mining.db")
 
 (match-define
   (list
@@ -43,5 +44,6 @@
    edge-properties
    edge-property-values
    edge-id->properties
+   get-highest-bucket-number
    )
   (make-query-low-level db-path-under-parent))

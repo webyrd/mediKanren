@@ -28,6 +28,9 @@
  add-curies-representative-to-hash
  query:Known->Y->X-auto-grow
  query:X->Y->Known-auto-grow
+ get-highest-bucket-number-robokop
+ get-highest-bucket-number-text-mining
+ get-highest-bucket-number-rtx-kg2
 )
 
 (require
@@ -50,6 +53,7 @@
              (edge-properties edge-properties-robokop)
              (edge-property-values edge-property-values-robokop)
              (edge-id->properties edge-id->properties-robokop)
+             (get-highest-bucket-number get-highest-bucket-number-robokop)
              )
 
   (rename-in "query-low-level-text-mining.rkt"
@@ -70,6 +74,7 @@
              (edge-properties edge-properties-text-mining)
              (edge-property-values edge-property-values-text-mining)
              (edge-id->properties edge-id->properties-text-mining)
+             (get-highest-bucket-number get-highest-bucket-number-text-mining)
              )
 
   (rename-in "query-low-level-rtx-kg2.rkt"
@@ -90,6 +95,7 @@
              (edge-properties edge-properties-rtx-kg2)
              (edge-property-values edge-property-values-rtx-kg2)
              (edge-id->properties edge-id->properties-rtx-kg2)
+             (get-highest-bucket-number get-highest-bucket-number-rtx-kg2)
              )
   "query-low-level-equivalence.rkt"
   "../neo-utils/neo-helpers-without-db.rkt"

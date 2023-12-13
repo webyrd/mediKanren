@@ -104,7 +104,7 @@
 
 
 (define-runtime-path path.here "../neo-data")
-(define db-path-under-parent "equivalence-july-17-2023/july_13_2023/equivalence.db")
+(define db-path-under-parent "equivalence-dec-6-2023/dec_3_2023/equivalence.db")
 (pretty-log `(loading relation index dictionaries for db)
               path.here
               db-path-under-parent)
