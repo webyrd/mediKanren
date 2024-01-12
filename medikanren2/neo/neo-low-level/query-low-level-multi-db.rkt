@@ -141,17 +141,20 @@
   (append
    (query:Known->X-robokop
     (filter curie-in-db?-robokop curie*.K)
-    (filter curie-in-db?-robokop predicate*.K->X)
+    (and predicate*.K->X
+         (filter curie-in-db?-robokop predicate*.K->X))
     (and category*.X
          (filter curie-in-db?-robokop category*.X)))
    (query:Known->X-text-mining
     (filter curie-in-db?-text-mining curie*.K)
-    (filter curie-in-db?-text-mining predicate*.K->X)
+     (and predicate*.K->X
+          (filter curie-in-db?-text-mining predicate*.K->X))
     (and category*.X
          (filter curie-in-db?-text-mining category*.X)))
    (query:Known->X-rtx-kg2
     (filter curie-in-db?-rtx-kg2 curie*.K)
-    (filter curie-in-db?-rtx-kg2 predicate*.K->X)
+     (and predicate*.K->X
+          (filter curie-in-db?-rtx-kg2 predicate*.K->X))
     (and category*.X
          (filter curie-in-db?-rtx-kg2 category*.X)))))
 
@@ -181,17 +184,20 @@
    (query:X->Known-robokop
     (and category*.X
          (filter curie-in-db?-robokop category*.X))
-    (filter curie-in-db?-robokop predicate*.X->K)
+    (and predicate*.X->K
+         (filter curie-in-db?-robokop predicate*.X->K))
     (filter curie-in-db?-robokop curie*.K))
    (query:X->Known-text-mining
     (and category*.X
          (filter curie-in-db?-text-mining category*.X))
-    (filter curie-in-db?-text-mining predicate*.X->K)
+    (and predicate*.X->K
+         (filter curie-in-db?-text-mining predicate*.X->K))
     (filter curie-in-db?-text-mining curie*.K))
    (query:X->Known-rtx-kg2
     (and category*.X
          (filter curie-in-db?-rtx-kg2 category*.X))
-    (filter curie-in-db?-rtx-kg2 predicate*.X->K)
+    (and predicate*.X->K
+         (filter curie-in-db?-rtx-kg2 predicate*.X->K))
     (filter curie-in-db?-rtx-kg2 curie*.K))))
 
 (define (query:X->Known-scored category*.X predicate*.X->K curie*.K score*)
