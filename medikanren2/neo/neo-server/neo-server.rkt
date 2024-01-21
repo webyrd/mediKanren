@@ -1859,6 +1859,29 @@
                             (cons "Known->X" edge))
                           (query:Known->X CURIEs #f #f)))
 
+  (define cached-concept->name
+    (let ((ht (make-hash)))
+      (lambda (concept-curie)
+        (when (> (hash-count ht) 1000)
+          (set! ht (make-hash)))
+        (define v (hash-ref ht concept-curie #f))
+        (if v
+            v
+            (let ((v (concept->name concept-curie)))
+              (hash-set! ht concept-curie v)
+              v)))))
+  (define cached-concept->category
+    (let ((ht (make-hash)))
+      (lambda (concept-curie)
+        (when (> (hash-count ht) 1000)
+          (set! ht (make-hash)))
+        (define v (hash-ref ht concept-curie #f))
+        (if v
+            v
+            (let ((v (concept->category concept-curie)))
+              (hash-set! ht concept-curie v)
+              v)))))
+
   (define response-jsexpr (append X->Known-edges Known->X-edges))
   (set! response-jsexpr
         (map (lambda (edge)
@@ -1867,10 +1890,14 @@
                   (let ((n-pubs (num-pubs props)))
                     `(,direction
                       ,subj
-                      ,(concept->name subj)
+                      ,(cached-concept->name subj)
+                      ,(cached-concept->category subj)
                       ,pred
+                      ;; ?? should we add qualifier information ??
                       ,obj
-                      ,(concept->name obj)
+                      ,(cached-concept->name obj)
+                      ,(cached-concept->category obj)
+                      ;; everything here and below is actually in the property list!
                       ,(get-primary-knowledge-source props)
                       ,n-pubs
                       ,(if (> n-pubs 0)
