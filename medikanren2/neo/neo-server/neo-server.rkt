@@ -1791,6 +1791,101 @@
   (handle-trapi-asyncquery body-json request-fk))
 
 
+(define (singlehop query
+                   headers
+                   request-fk
+                   ;;
+                   content-type-string
+                   content-length-string
+                   body-str)
+  (printf "received `singlehop` POST request\n")
+
+  (unless (string-contains? (string-downcase content-type-string) "application/json")
+    (printf "** unexpected content-type-string for query\nexpected 'application/json', received '~s'\n"
+            content-type-string)
+    (request-fk))
+
+  (define body-json (string->jsexpr body-str))
+  (printf "body-json:\n~s\n" body-json)
+
+  (handle-singlehop body-json request-fk))
+
+
+(define (handle-singlehop body-json request-fk)
+
+  (define (get-primary-knowledge-source props)
+    (if (edge-has-source? props)
+        (hash-ref (get-source props) 'resource_id)
+        (error 'get-primary-knowledge-source
+               (format "no primary knowledge source in properties: ~s" props))))
+
+  (define (concept->name curie)
+    (let ((id-name-val
+           (remove-duplicates (filter (lambda (cl)
+                                        (and (equal? (car cl) curie)
+                                             (equal? (cadr cl) "name")))
+                                      (query:Concept (list curie))))))
+      (if (null? id-name-val)
+          curie
+          (caddar id-name-val))))
+
+  (define (concept->category curie)
+    (let ((category (assoc "category" (curie->properties curie))))
+      (if category (cdr category) '())))
+
+  ;; body-json should be a list jsexpr representing a set of CURIEs
+  (define CURIEs (remove-duplicates body-json))
+
+  ;; check that each element of the list is a string
+  (set! CURIEs (filter string? CURIEs))
+
+  ;; design decision -- do not node normalize the CURIEs
+
+  ;; remove any CURIEs that are not in the KGs
+  (set! CURIEs (filter curie-in-db? CURIEs))
+
+  ;; ??? Should we use query:X->Known-scored ?  should we set the
+  ;; number of buckets and do backoff, for performance?
+
+  ;; run 1-hop query for set of CURIES using all predicates in one direction
+  (define X->Known-edges (map
+                          (lambda (edge)
+                            (cons "X->Known" edge))
+                          (query:X->Known #f #f CURIEs)))
+
+  ;; run 1-hop query for set of CURIES using all predicates in other directino
+  (define Known->X-edges (map
+                          (lambda (edge)
+                            (cons "Known->X" edge))
+                          (query:Known->X CURIEs #f #f)))
+
+  (define response-jsexpr (append X->Known-edges Known->X-edges))
+  (set! response-jsexpr
+        (map (lambda (edge)
+               (match edge
+                 [`(,direction ,subj ,pred ,obj . ,props)
+                  (let ((n-pubs (num-pubs props)))
+                    `(,direction
+                      ,subj
+                      ,(concept->name subj)
+                      ,pred
+                      ,obj
+                      ,(concept->name obj)
+                      ,(get-primary-knowledge-source props)
+                      ,n-pubs
+                      ,(if (> n-pubs 0)
+                           (get-publications props)
+                           '())
+                      .
+                      ,props))]))
+             response-jsexpr))
+
+  (list
+    'json
+    200_OK_STRING
+    response-jsexpr)
+  )
+
 (define (meta_knowledge_graph query headers request-fk)
   (printf "received TRAPI meta knowledge graph query:\n~s\n" query)
   (list
@@ -1847,6 +1942,10 @@
 ;; use, and whose use must be synchronized through the job channels:
 (hash-set! dispatch-table '(POST "query") (cons query #f))
 (hash-set! dispatch-table '(POST "asyncquery") (cons asyncquery #f))
+
+
+(hash-set! dispatch-table '(POST "singlehop") (cons singlehop 'safe-for-concurrent-use))
+
 
 (hash-set!
  dispatch-table
