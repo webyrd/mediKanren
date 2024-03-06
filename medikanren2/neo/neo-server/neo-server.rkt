@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.35")
+(define NEO_SERVER_VERSION "1.36")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -51,10 +51,13 @@
 
 ;; Unsecret-level excluded MVP1 results - answers that is obviously wrong/useless
 (define UNWELCOME-TREATMENT
-  (append
-   (curie->synonyms "MESH:D001335") ; Vehicle emissions
-   (curie->synonyms "UMLS:C0013227") ; Pharmaceutical preparations
-   ))
+  (curies->synonyms
+   '(
+     "MESH:D001335" ; Vehicle emissions
+     "UMLS:C0013227" ; Pharmaceutical preparations
+     "MESH:D014028" ; tobacco smoke pollution
+     "UMLS:C1611640" ; Therapeutic agent (substance)
+     )))
 
 
 ;; ** `tcp-listen` settings **
