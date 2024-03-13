@@ -128,12 +128,13 @@
             (map (lambda (name)
                    (define path (path/data (symbol->string name)))
                    (define options (list (config-ref 'in-memory-names?)
-                                         (config-ref 'in-memory-cuis?)))
+                                         (config-ref 'in-memory-cuis?)
+                                         (config-ref 'num-cached-cuis)))
                    (cond ((directory-exists? path)
                           (when verbose? (printf "loading ~a\n" name))
                           (cons name (if verbose?
-                                       (time (apply make-db path options))
-                                       (apply make-db path options))))
+                                       (time (apply make-db (cons path options)))
+                                       (apply make-db (cons path options)))))
                          (else (when verbose?
                                  (printf "cannot load ~a; " name)
                                  (printf "directory missing: ~a\n" path))
