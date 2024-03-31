@@ -6,17 +6,8 @@
   racket/string
   )
 
-;; Y send Aleksandra the predicate list
-;; Y TODO: add publication column in output
-;; Y TODO: input the path instead of rewriting
-;; Y TODO: add have-a-relation feature
-;; Y TODO: add specified predicate/s feature
-;; Y add node prop in output
+;; TODO:
 ;; sentence column in output
-;; Y synonym command and output with prop
-;; Y connect genes and protein in node norm
-
-
 
 (define (mediKanren-activates curie* path)
   (write-out-prepared-answers
