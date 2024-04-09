@@ -4,8 +4,10 @@
          "transform-edge-tsv.rkt"
          "transform-node-tsv.rkt")
 
-(transform-generic "../../neo-data/raw_downloads_from_kge_archive/text-mining-june-19/"
-                   "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/text-mining-june-19/"
+(define BASE "text-mining-apr-2-2024/")
+
+(transform-generic (string-append "../../neo-data/raw_downloads_from_kge_archive/" BASE)
+                   (string-append "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/" BASE)
                    "nodes_with_header.tsv"
                    "edges_with_header.tsv"
                    "text_mining"

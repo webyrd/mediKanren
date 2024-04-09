@@ -2,10 +2,12 @@
 (require "../../dbKanren/dbk/database.rkt"
          racket/list racket/pretty racket/runtime-path)
 
-(define EDGEPROP_PATH "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/text-mining-june-19/text_mining.edgeprop.tsv")
-(define EDGE_PATH "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/text-mining-june-19/text_mining.edge.tsv")
-(define SCORED_EDGE_PATH "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/text-mining-june-19/text_mining.scorededge.tsv")
-(define NODEPROP_PATH "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/text-mining-june-19/text_mining.nodeprop.tsv")
+(define BASE "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/text-mining-apr-2-2024/")
+
+(define EDGEPROP_PATH (string-append BASE "text_mining.edgeprop.tsv"))
+(define EDGE_PATH (string-append BASE "text_mining.edge.tsv"))
+(define SCORED_EDGE_PATH (string-append BASE "text_mining.scorededge.tsv"))
+(define NODEPROP_PATH (string-append BASE "text_mining.nodeprop.tsv"))
 ;;
 (define OUTPUT_DATABASE_PATH "../../neo-data/text_mining.db")
 
