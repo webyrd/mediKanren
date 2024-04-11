@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.36")
+(define NEO_SERVER_VERSION "1.37")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -853,8 +853,8 @@
       (hash 'nodes (hash)
             'edges (hash))
       ;;
-      'results
-      '()
+      ;;'results
+      ;;'()
       )))
 
 (define (make-score-result num-results)
@@ -1280,7 +1280,9 @@
                  (name (get-assoc "name" props)))
             (hash-set! nodes (string->symbol curie)
                        (hash 'categories categories
-                             'name name)))))
+                             'name name
+                             'attributes (list)
+                             )))))
 
       (define (add-edge! subj obj props n)
         (let* ((id
@@ -1372,7 +1374,8 @@
       (define (add-auxiliary! edge* n)
         (let ((id (string-append "medik:auxiliary_graph#" (number->string n))))
           (hash-set! auxiliary-graph (string->symbol id)
-                     (hash 'edges edge*))
+                     (hash 'edges edge*
+                           'attributes (list)))
           id))
 
       (define (add-unmerged-result! r)
@@ -1426,29 +1429,39 @@
                         (hash 'node_bindings
                               (if (equal? curie_z (car input-id*))
                                   (hash
-                                   qg_subject-node-id (list (hash 'id curie_x))
-                                   qg_object-node-id (list (hash 'id curie_z)))
-                                  (hash
-                                   qg_subject-node-id (list (hash 'id curie_x))
+                                   qg_subject-node-id (list (hash 'id curie_x
+                                                                  'attributes (list)))
                                    qg_object-node-id (list (hash 'id curie_z
-                                                                 'query_id (car input-id*)))))
+                                                                 'attributes (list))))
+                                  (hash
+                                   qg_subject-node-id (list (hash 'id curie_x
+                                                                  'attributes (list)))
+                                   qg_object-node-id (list (hash 'id curie_z
+                                                                 'query_id (car input-id*)
+                                                                 'attributes (list)))))
                               'result_id (string-append curie_x curie_z)
                               'score_id (hash-ref curie-representative-table curie_x)
-                              'edge_bindings (hash qg_edge-id (list (hash 'id edge_creative)))
+                              'edge_bindings (hash qg_edge-id (list (hash 'id edge_creative
+                                                                          'attributes (list))))
                               )]
                        [(eq? which-mvp 'mvp2-chem)
                         (hash 'node_bindings
                               (if (equal? curie_x (car input-id*))
                                   (hash
-                                   qg_subject-node-id (list (hash 'id curie_x))
-                                   qg_object-node-id (list (hash 'id curie_z)))
+                                   qg_subject-node-id (list (hash 'id curie_x
+                                                                  'attributes (list)))
+                                   qg_object-node-id (list (hash 'id curie_z
+                                                                 'attributes (list))))
                                   (hash
                                    qg_subject-node-id (list (hash 'id curie_x
-                                                                  'query_id (car input-id*)))
-                                   qg_object-node-id (list (hash 'id curie_z))))
+                                                                  'query_id (car input-id*)
+                                                                  'attributes (list)))
+                                   qg_object-node-id (list (hash 'id curie_z
+                                                                 'attributes (list)))))
                               'result_id (string-append curie_x curie_z)
                               'score_id (hash-ref curie-representative-table curie_z)
-                              'edge_bindings (hash qg_edge-id (list (hash 'id edge_creative)))
+                              'edge_bindings (hash qg_edge-id (list (hash 'id edge_creative
+                                                                          'attributes (list))))
                               )]
                        [else (error "unknown MVP" which-mvp)]))
                     (loop (+ en 2) (+ an 1) (cdr score*/e*)))
@@ -1467,29 +1480,39 @@
                         (hash 'node_bindings
                               (if (equal? curie_y (car input-id*))
                                   (hash
-                                   qg_subject-node-id (list (hash 'id curie_x))
-                                   qg_object-node-id (list (hash 'id curie_y)))
-                                  (hash
-                                   qg_subject-node-id (list (hash 'id curie_x))
+                                   qg_subject-node-id (list (hash 'id curie_x
+                                                                  'attributes (list)))
                                    qg_object-node-id (list (hash 'id curie_y
-                                                                 'query_id (car input-id*)))))
+                                                                 'attributes (list))))
+                                  (hash
+                                   qg_subject-node-id (list (hash 'id curie_x
+                                                                  'attributes (list)))
+                                   qg_object-node-id (list (hash 'id curie_y
+                                                                 'query_id (car input-id*)
+                                                                 'attributes (list)))))
                               'result_id (string-append curie_x curie_y)
                               'score_id (hash-ref curie-representative-table curie_x)
-                              'edge_bindings (hash qg_edge-id (list (hash 'id edge_xy)))
+                              'edge_bindings (hash qg_edge-id (list (hash 'id edge_xy
+                                                                          'attributes (list))))
                               )]
                        [(eq? which-mvp 'mvp2-chem)
                         (hash 'node_bindings
                               (if (equal? curie_x (car input-id*))
                                   (hash
-                                   qg_subject-node-id (list (hash 'id curie_x))
-                                   qg_object-node-id (list (hash 'id curie_y)))
+                                   qg_subject-node-id (list (hash 'id curie_x
+                                                                  'attributes (list)))
+                                   qg_object-node-id (list (hash 'id curie_y
+                                                                 'attributes (list))))
                                   (hash
                                    qg_subject-node-id (list (hash 'id curie_x
-                                                                  'query_id (car input-id*)))
-                                   qg_object-node-id (list (hash 'id curie_y))))
+                                                                  'query_id (car input-id*)
+                                                                  'attributes (list)))
+                                   qg_object-node-id (list (hash 'id curie_y
+                                                                 'attributes (list)))))
                               'result_id (string-append curie_x curie_y)
                               'score_id (hash-ref curie-representative-table curie_y)
-                              'edge_bindings (hash qg_edge-id (list (hash 'id edge_xy)))
+                              'edge_bindings (hash qg_edge-id (list (hash 'id edge_xy
+                                                                          'attributes (list))))
                               )]))
                     (loop (+ en 1) an (cdr score*/e*)))
                   (loop en an (cdr score*/e*)))]
@@ -1652,7 +1675,8 @@
 
   (define versioned-trapi-response
     (hash-set* scored-trapi-response
-               'schema_version "1.4.0"
+               'logs (list)
+               'schema_version "1.5.0"
                'biolink_version (get-biolink-version)))
 
   (list
