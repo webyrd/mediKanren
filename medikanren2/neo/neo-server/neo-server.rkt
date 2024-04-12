@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.37")
+(define NEO_SERVER_VERSION "1.38")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -976,7 +976,8 @@
                                (not-unwelcome-treatment? r)))
                         (query:X->Known-scored
                          chemical-catogory+
-                         '("biolink:treats")
+                         '("biolink:treats"
+                           "biolink:treats_or_applied_or_studied_to_treat")
                          disease-ids+
                          score*))))
             ;;
@@ -1106,7 +1107,7 @@
                      (lambda (r*) (filter not-semmed-excluded? (mvp2-2hop-filter r* direction))))))
               (list gene-ids qualified-q-1hop qualified-q-2hop))])))
 
-       (define q-1hop-unique-results (remove-duplicates q-1hop-results))
+      (define q-1hop-unique-results (remove-duplicates q-1hop-results))
       (define q-2hop-unique-results (remove-duplicates q-2hop-results))
 
       (printf "computed ~s look-up edges and ~s inferred edges for MVP mode creative query\n"
@@ -1356,7 +1357,7 @@
                                      'sources (list (get-source props) UNSECRET-SOURCE))))))
           id))
 
-      (define (add-creative-edge! sub obj pred n aux-id e1prop e2prop)
+      (define (add-creative-edge! sub obj pred n aux-id)
         (let ((id (string-append "medik:creative_edge#" (number->string n))))
           (hash-set! edges (string->symbol id)
                      (hash 'attributes
@@ -1420,9 +1421,7 @@
                                                             curie_z
                                                             qg_predicate-str
                                                             an
-                                                            auxiliary_id
-                                                            props_xy
-                                                            props_yz)))
+                                                            auxiliary_id)))
                     (add-unmerged-result!
                      (cond
                        [(or (eq? which-mvp 'mvp1) (eq? which-mvp 'mvp2-gene))
@@ -1476,7 +1475,33 @@
                   (let ((edge_xy (add-edge! curie_x curie_y props_xy en)))
                     (add-unmerged-result!
                      (cond
-                       [(or (eq? which-mvp 'mvp1) (eq? which-mvp 'mvp2-gene))
+                       [(and (eq? which-mvp 'mvp1) (not (equal? pred_xy qg_predicate-str)))
+                        (let* ((auxiliary_id (add-auxiliary! (list edge_xy) an))
+                               (edge_creative (add-creative-edge! curie_x
+                                                                  curie_y
+                                                                  qg_predicate-str
+                                                                  an
+                                                                  auxiliary_id)))
+                          (hash 'node_bindings
+                                (if (equal? curie_y (car input-id*))
+                                    (hash
+                                     qg_subject-node-id (list (hash 'id curie_x
+                                                                    'attributes (list)))
+                                     qg_object-node-id (list (hash 'id curie_y
+                                                                   'attributes (list))))
+                                    (hash
+                                     qg_subject-node-id (list (hash 'id curie_x
+                                                                    'attributes (list)))
+                                     qg_object-node-id (list (hash 'id curie_y
+                                                                   'query_id (car input-id*)
+                                                                   'attributes (list)))))
+                                'result_id (string-append curie_x curie_y)
+                                'score_id (hash-ref curie-representative-table curie_x)
+                                'edge_bindings (hash qg_edge-id (list (hash 'id edge_creative
+                                                                            'attributes (list))))
+                                ))]
+                       [(or (and (eq? which-mvp 'mvp1) (equal? pred_xy qg_predicate-str))
+                            (eq? which-mvp 'mvp2-gene))
                         (hash 'node_bindings
                               (if (equal? curie_y (car input-id*))
                                   (hash
@@ -1514,7 +1539,9 @@
                               'edge_bindings (hash qg_edge-id (list (hash 'id edge_xy
                                                                           'attributes (list))))
                               )]))
-                    (loop (+ en 1) an (cdr score*/e*)))
+                    (if (equal? pred_xy qg_predicate-str)
+                        (loop (+ en 1) an (cdr score*/e*))
+                        (loop (+ en 1) (+ an 1) (cdr score*/e*))))
                   (loop en an (cdr score*/e*)))]
              ))))
 
