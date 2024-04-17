@@ -5,12 +5,12 @@ info:
     name: William E. Byrd
     url: https://github.com/webyrd
     x-role: responsible developer
-  description: TRAPI 1.4 Endpoint for Team Unsecret Agent's mediKanren ARA
+  description: TRAPI 1.5 Endpoint for Team Unsecret Agent's mediKanren ARA
   license:
     name: MIT License
     url: https://github.com/webyrd/mediKanren/blob/master/LICENSE
   title: mediKanren
-  version: '2.0 neo TRAPI 1.4'
+  version: '2.0 neo TRAPI 1.5'
   x-translator:
     biolink-version: 3.1.2
     component: ARA
@@ -30,16 +30,12 @@ info:
       url: https://github.com/NCATSTranslator/translator_extensions/blob/\ production/x-trapi/    
     operations:
     - lookup
-    version: 1.4.0
+    version: 1.5.0
 servers:
-- description: Team Unsecret Agent mediKanren 1.4 Production server
-  url: https://medikanren-trapi.transltr.io
+- description: Team Unsecret Agent mediKanren 1.5 CI server
+  url: https://medikanren-trapi.ci.transltr.io
   x-location: ITRB
-  x-maturity: production
-- description: Team Unsecret Agent mediKanren 1.4 Test server
-  url: https://medikanren-trapi.test.transltr.io
-  x-location: ITRB
-  x-maturity: testing
+  x-maturity: staging
 externalDocs:
   description: Documentation for the NCATS Biomedical Translator Reasoners web services
   url: https://github.com/NCATSTranslator/ReasonerAPI
