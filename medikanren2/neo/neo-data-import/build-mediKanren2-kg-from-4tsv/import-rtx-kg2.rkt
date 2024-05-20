@@ -2,14 +2,14 @@
 (require "../../dbKanren/dbk/database.rkt"
          racket/list racket/pretty racket/runtime-path)
 
-(define BASE "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/robokop-march-7-2024/")
+(define BASE "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/rtx-kg2-2.9.0pre/")
 
-(define EDGEPROP_PATH (string-append BASE "Robokop.edgeprop.tsv"))
-(define EDGE_PATH (string-append BASE "Robokop.edge.tsv"))
-(define SCORED_EDGE_PATH (string-append BASE "Robokop.scorededge.tsv"))
-(define NODEPROP_PATH (string-append BASE "Robokop.nodeprop.tsv"))
+(define EDGEPROP_PATH (string-append BASE "rtx_kg2.edgeprop.tsv"))
+(define EDGE_PATH (string-append BASE "rtx_kg2.edge.tsv"))
+(define SCORED_EDGE_PATH (string-append BASE  "rtx_kg2.scorededge.tsv"))
+(define NODEPROP_PATH (string-append BASE "rtx_kg2.nodeprop.tsv"))
 ;;
-(define OUTPUT_DATABASE_PATH "../../neo-data/robokop.db")
+(define OUTPUT_DATABASE_PATH "../../neo-data/rtx-kg2.db")
 
 (define-runtime-path path.here ".")
 

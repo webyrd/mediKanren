@@ -2,7 +2,8 @@
 
 (require "transform-generic.rkt"
          "transform-edge-jsonl.rkt"
-         json)
+         json
+         "../../neo-reasoning/neo-biolink-reasoning-low-level.rkt")
 
 (define transform-node-jsonl
   (lambda (nodes-file-import-path
@@ -44,15 +45,26 @@
                  (when (set-member? seen-nodes id)
                    (error 'make-kg-node (format "already seen node: ~a" id)))
                  (fprintf node-out "~a\n" id)
-                 (let ((name (hash-ref line-json 'name "N/A"))
-                       (categories (hash-ref line-json 'category #f)))
+                 (let* ((name (hash-ref line-json 'name "N/A"))
+                        (categories (hash-ref line-json 'category #f))
+                        (categories-smallest-nonmixin (and categories
+                                                           (list? categories)
+                                                           (get-smallest-nonmixin-class* categories))))
                    (fprintf node-props-out "~a\tname\t~a\n" id name)
                    (cond
-                     ((and categories (list? categories))
+                     ((and categories-smallest-nonmixin
+                           (not (null? categories-smallest-nonmixin)))
                       (for-each
                        (lambda (c)
                          (fprintf node-props-out "~a\tcategory\t~a\n" id c))
-                       categories))
+                       categories-smallest-nonmixin))
+                     ((and categories-smallest-nonmixin
+                           (null? categories-smallest-nonmixin))
+                      (let ((categories-samllest (find-leaf-classes categories)))
+                        (for-each
+                         (lambda (c)
+                           (fprintf node-props-out "~a\tcategory\t~a\n" id c))
+                         categories-samllest)))
                      ((and categories (string? categories))
                       (fprintf node-props-out "~a\tcategory\t~a\n" id categories))
                      (else
@@ -66,10 +78,13 @@
                 seen-nodes
                 (read-json nodes-in))))]))))
 
-(transform-generic "../../neo-data/raw_downloads_from_kge_archive/robokop-march-2023/"
-           "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/robokop-march-2023/"
-           "nodes.jsonl"
-           "edges.jsonl"
-           "Robokop"
-           'robokop
-           (cons transform-node-jsonl transform-edge-jsonl))
+(define BASE "robokop-march-7-2024/")
+
+(transform-generic
+ (string-append "../../neo-data/raw_downloads_from_kge_archive/" BASE)
+ (string-append "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/" BASE)
+ "nodes.jsonl"
+ "edges.jsonl"
+ "Robokop"
+ 'robokop
+ (cons transform-node-jsonl transform-edge-jsonl))

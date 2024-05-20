@@ -11,10 +11,14 @@ Output node and node-props file formats:
 :ID propname value
 |#
 
+(define (sanitize-string str)
+  (regexp-replace* #rx"\t|\n|\r" str " "))
+
 (define transform-node-jsonl
   (lambda (nodes-file-import-path
            node-file-export-path
-           node-props-file-export-path)
+           node-props-file-export-path
+           which-kg)
 
     (printf "transform-node-jsonl called\n")
     (printf "input nodes jsonl: ~s\n" nodes-file-import-path)
@@ -52,7 +56,13 @@ Output node and node-props file formats:
              (let loop-inner ((propnames (remove 'id (hash-keys line-json))))
                (when (not (null? propnames)) 
                  (let* ((propname (car propnames))
-                        (value (hash-ref line-json propname #f)))
+                        (value (hash-ref line-json propname #f))
+                        (value (cond
+                                 ((string? value) (sanitize-string value))
+                                 ((list? value) (if (andmap string? value)
+                                                    (map sanitize-string value)
+                                                    value))
+                                 (else value))))
                    (unless (equal? "" value)
                      (fprintf node-props-out "~a\t~a\t~a\n" id propname value)))
                  (loop-inner (cdr propnames)))))
