@@ -372,11 +372,14 @@
     (error 'query:X->Y->Known "obsolete"))
 
   (define (query:Known->Known curie*.S predicate*.S->O curie*.O)
-    (query:dict.Known->dict.Known
-     (string*->id=>1 curie*.S) predicate*.S->O (string*->id=>1 curie*.O)))
+    (if (> (length curie*.S) (length curie*.O))
+        (query:dict.Known->dict.Known
+         (string*->id=>1 curie*.S) predicate*.S->O (string*->id=>1 curie*.O) 'obj->sub)
+        (query:dict.Known->dict.Known
+         (string*->id=>1 curie*.S) predicate*.S->O (string*->id=>1 curie*.O) 'sub->obj)))
 
-  (define (query:dict.Known->dict.Known curie=>1.S predicate*.S->O curie=>1.O)
-    (define (query yield)
+  (define (query:dict.Known->dict.Known curie=>1.S predicate*.S->O curie=>1.O direction-tag)
+    (define (query.sub->obj yield)
       (let* ((ekey.predicate    (string->id str.predicate))
              (ckey.name         (string->id "name"))
              (predicate=>1      (string*->id=>1 predicate*.S->O))
@@ -397,7 +400,31 @@
                                (O      (id->string id.O)))
                           (yield (list* S name.S predicate.S->O O name.O
                                         (edge-id->properties eid))))))))))))))))
-    (maybe-time (enumerator->rlist query)))
+    (define (query.obj->sub yield)
+      (let* ((ekey.predicate    (string->id str.predicate))
+             (ckey.name         (string->id "name"))
+             (predicate=>1      (string*->id=>1 predicate*.S->O))
+             (predicate=>eid=>1 (dict-get ekey=>evalue=>eid=>1 ekey.predicate)))
+        ((merge-join fx< curie=>1.O object=>eid=>subject=>1)
+         (lambda (id.O __ eid=>S=>1)
+           (let* ((name.O (get-name-from-dict-safe (dict-get curie=>ckey=>cvalue=>1 id.O) ckey.name))
+                  (O      (id->string id.O)))
+             ((merge-join fx< predicate=>1 predicate=>eid=>1)
+              (lambda (id.predicate.O->S __ eid=>1)
+                (let ((predicate.O->S (id->string id.predicate.O->S)))
+                  ((merge-join fx< eid=>1 eid=>S=>1)
+                   (lambda (eid __ S=>1)
+                     ((merge-join fx< curie=>1.S S=>1)
+                      (lambda (id.S __ ___)
+                        (let* ((name.S (get-name-from-dict-safe (dict-get curie=>ckey=>cvalue=>1 id.S)
+                                                                ckey.name))
+                               (S      (id->string id.S)))
+                          (yield (list* S name.S predicate.O->S O name.O
+                                        (edge-id->properties eid))))))))))))))))
+    (cond
+      [(eq? direction-tag 'obj->sub) (maybe-time (enumerator->rlist query.obj->sub))]
+      [(eq? direction-tag 'sub->obj) maybe-time (enumerator->rlist query.sub->obj)]
+      [else (error "unknown direction tag")]))
 
   (define (query:Concept curie*)
     (define (query yield)

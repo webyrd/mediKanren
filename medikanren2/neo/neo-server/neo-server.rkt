@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.38")
+(define NEO_SERVER_VERSION "1.39")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -37,6 +37,8 @@
 
 ;; Maximum number of results to score and then sort.
 (define MAX_RESULTS_TO_SCORE_AND_SORT 100000)
+
+(define MAX_DESCENDENT 100)
 
 ;; Number of seconds before a connection times out, collecting all
 ;; resources from the connection (was 10 seconds in the original
@@ -962,8 +964,9 @@
               (hash-ref (hash-ref qg_nodes qg_object-node-id) 'ids))
             (define disease-ids+
               (set->list
-               (get-descendent-curies*-in-db
-                (curies->synonyms-in-db disease-ids))))
+               (get-n-descendent-curies*-in-db
+                (curies->synonyms-in-db disease-ids)
+                MAX_DESCENDENT)))
             (define chemical-catogory+
               (set->list
                (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
@@ -1006,8 +1009,9 @@
               (hash-ref (hash-ref qg_nodes qg_subject-node-id) 'ids))
             (define chemical-ids+
               (time (set->list
-                     (get-descendent-curies*-in-db
-                      (curies->synonyms-in-db chemical-ids)))))
+                     (get-n-descendent-curies*-in-db
+                      (curies->synonyms-in-db chemical-ids)
+                      MAX_DESCENDENT))))
             (define direction
               (let ((qualifer-set
                      (hash-ref (car (hash-ref qg_edge-hash 'qualifier_constraints)) 'qualifier_set)))
@@ -1062,11 +1066,12 @@
                      '("biolink:gene_product_of")
                      gene-ids-syns
                      ;; TODO: give names to #f and (list 0) - easy to read
-                     (list (list 1112) #f (list 0))))))
+                     (list (list 1112) #f (list 1112))))))
             (define gene-ids+
                 (set->list
-                 (get-descendent-curies*-in-db
-                  (append gene-ids-syns (curies->synonyms-in-db protein-ids)))))
+                 (get-n-descendent-curies*-in-db
+                  (append gene-ids-syns (curies->synonyms-in-db protein-ids))
+                  MAX_DESCENDENT)))
             (define chemical-catogory+
               (set->list
                (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
@@ -1171,11 +1176,28 @@
 
       (define old-scored/q-sorted-short (take-at-most scored/q-sorted-long MAX_RESULTS_FROM_COMPONENT))
 
-      (printf "Toke the best ~s edges for MVP mode creative query\n"
-              (length old-scored/q-sorted-short))
-
       (define subjs-from-results (remove-duplicates (map cadr old-scored/q-sorted-short)))
       (define objs-from-results (remove-duplicates (map (lambda (e) (get-object e)) old-scored/q-sorted-short)))
+      
+      (when (eq? which-mvp 'mvp1)
+        (let* ((chemicals (remove-duplicates (curies->synonyms-in-db subjs-from-results)))
+               (disease-id+ (remove-duplicates (curies->synonyms-in-db objs-from-results)))
+               (chem-worsen-disease (remove-duplicates
+                                     (curies->synonyms-in-db
+                                      (map car 
+                                           (time (query:Known->Known
+                                            chemicals
+                                            '("biolink:causes"
+                                              "biolink:exacerbates"
+                                              "biolink:has_adverse_event"
+                                              "biolink:contributes_to")
+                                            disease-id+))))))
+               (not-cause-old-scored/q-sorted-short
+                (filter (lambda (e) (not (member (cadr e) chem-worsen-disease))) old-scored/q-sorted-short)))
+          (set! old-scored/q-sorted-short not-cause-old-scored/q-sorted-short)))
+
+      (printf "Toke the best ~s edges for MVP mode creative query\n"
+              (length old-scored/q-sorted-short))
 
       (define curie-representative-table (add-curies-representative-to-hash
                                           (build-curies-representative-hash subjs-from-results)
@@ -1296,17 +1318,15 @@
                (object obj)
                (subject subj)
                (predicate (get-assoc "predicate" props))
-               (aspect-qualifier (or (get-assoc "object_aspect_qualifier" props)
-                                     (get-assoc "qualified_object_aspect" props)))
-               (direction-qualifier (or (get-assoc "object_direction_qualifier" props)
-                                        (get-assoc "qualified_object_direction" props)))
+               (aspect-qualifier (get-assoc "object_aspect_qualifier" props))
+               (direction-qualifier (get-assoc "object_direction_qualifier" props))
                (qualifed-predicate (get-assoc "qualified_predicate" props)))
           (add-node! object)
           (add-node! subject)
           (unless (hash-has-key? edges id-sym)
             (if (= (num-pubs props) 0)
                 (if (and
-                     (or (eq? which-mvp 'mvp2-chem) (eq? which-mvp 'mvp2-gene))
+                     #;(or (eq? which-mvp 'mvp2-chem) (eq? which-mvp 'mvp2-gene))
                      aspect-qualifier direction-qualifier qualifed-predicate)
                     (hash-set! edges id-sym
                                (hash 'object object
@@ -1326,7 +1346,7 @@
                                      'subject subject
                                      'sources (list (get-source props) UNSECRET-SOURCE))))
                 (if (and
-                     (or (eq? which-mvp 'mvp2-chem) (eq? which-mvp 'mvp2-gene))
+                     #;(or (eq? which-mvp 'mvp2-chem) (eq? which-mvp 'mvp2-gene))
                      aspect-qualifier direction-qualifier qualifed-predicate)
                     (hash-set! edges id-sym
                                (hash 'attributes
@@ -1940,8 +1960,9 @@
                (get-non-deprecated/mixin/abstract-ins-and-descendent-predicates*-in-db
                 '("biolink:treats")))
               (set->list
-               (get-descendent-curies*-in-db
-                (curie->synonyms-in-db "DOID:9351"))))))))))
+               (get-n-descendent-curies*-in-db
+                (curie->synonyms-in-db "DOID:9351")
+                MAX_DESCENDENT)))))))))
    #f))
 
 (module+ main
@@ -1975,8 +1996,9 @@
              (get-non-deprecated/mixin/abstract-ins-and-descendent-predicates*-in-db
               '("biolink:treats")))
             (set->list
-             (get-descendent-curies*-in-db
-              (curie->synonyms-in-db "DOID:9351")))
+             (get-n-descendent-curies*-in-db
+              (curie->synonyms-in-db "MONDO:0007827")
+              MAX_DESCENDENT))
             TOP_BUCKET_NUMBERS))
 
 (length q3)

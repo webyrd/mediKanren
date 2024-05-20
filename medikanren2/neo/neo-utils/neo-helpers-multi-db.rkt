@@ -15,6 +15,7 @@
  ;;
  get-descendent-curies-in-db
  get-descendent-curies*-in-db
+ get-n-descendent-curies*-in-db
  ;;
  iota
  pretty-print-json-string
@@ -24,7 +25,8 @@
  "../neo-low-level/query-low-level-multi-db.rkt"
  "../neo-reasoning/neo-biolink-reasoning.rkt"
  racket/set
- "neo-helpers-without-db.rkt")
+ "neo-helpers-without-db.rkt"
+ racket/list)
 
 (define (curie->synonyms-in-db curie)
   (curies-in-db (curie->synonyms curie)))
@@ -90,3 +92,22 @@
              (list "biolink:subclass_of")
              (set->list new-curies)
              (list (list 1111) #f (list 1111)))))))))
+
+(define (get-n-descendent-curies*-in-db curies n)
+  (list->set
+   (append curies
+           (let loop ((r '()) (c curies))
+             (if (or (> (length r) n) (= (length r) n))
+                 r
+                 (let* ((children (map car
+                                       (query:X->Known-scored
+                                        #f
+                                        (list "biolink:subclass_of")
+                                        c
+                                        (list (list 1111) #f (list 1111)))))
+                        (new-r (remove-duplicates (append r children))))
+                   (if (= (length r) (length new-r))
+                       r
+                       (loop new-r children))))))))
+             
+    

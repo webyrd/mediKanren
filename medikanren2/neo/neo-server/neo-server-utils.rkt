@@ -58,12 +58,8 @@
 
 (define mvp2-filter
   (lambda (target-eprop direction)
-    (let* ((aspect (or (get-assoc "object_aspect_qualifier" target-eprop)
-                       (get-assoc "qualified_object_aspect" target-eprop)
-                       ))
-           (direction^ (or (get-assoc "object_direction_qualifier" target-eprop)
-                           (get-assoc "qualified_object_direction" target-eprop)
-                           )))
+    (let* ((aspect (get-assoc "object_aspect_qualifier" target-eprop))
+           (direction^ (get-assoc "object_direction_qualifier" target-eprop)))
       (and
        aspect
        direction^
@@ -103,6 +99,7 @@
          (printf "return ~a answers\n" (length r))
          r]
         [else
+         #;(printf "number of answers: ~a, take next round\n" (length r))
          (loop (append r (hop-proc sl))
                (list (minus-one-before-zero (list-ref sl 0))
                      (minus-one-before-zero (list-ref sl 1))
@@ -119,21 +116,14 @@
              (loop (cdr n*) greatest)))))))
 
 (define (get-source props)
-  (let ((source (or (get-assoc "biolink:primary_knowledge_source" props)
-                    (get-assoc "primary_knowledge_source" props) ;rkx-kg2
+  (let ((source (or (get-assoc "primary_knowledge_source" props) 
                     (and (get-assoc "json_attributes" props)
                          "infores:text-mining-provider-targeted")))) ;text-mining
     (hash
       'resource_id source
       'resource_role "primary_knowledge_source")))
 
-(define (num-pubs props)
-  (let ((pubs (or (get-assoc "publications" props)
-                  (get-assoc "supporting_publications" props)
-                  (get-assoc "publications:string[]" props))))
-    (if (and pubs (not (equal? "()" pubs)))
-        (max (length (string-split pubs "|")) (length (string-split pubs "; ")) (length (string-split pubs)))
-        0)))
+(define (num-pubs props) (string->number (get-assoc "mediKanren-score" props)))
 
 (define (get-score-from-result result)
   (let ((analyses (hash-ref result 'analyses #f)))
@@ -160,8 +150,7 @@
 
 (define edge-has-source?
   (lambda (props)
-    (or (get-assoc "biolink:primary_knowledge_source" props)
-        (get-assoc "primary_knowledge_source" props)
+    (or (get-assoc "primary_knowledge_source" props)
         (and (get-assoc "json_attributes" props)
              (let ((attr-hl (string->jsexpr (get-assoc "json_attributes" props))))
                (let loop ((hl attr-hl))
@@ -171,8 +160,7 @@
                      (hash-ref (car hl) 'attribute_type_id #f)
                      "biolink:primary_knowledge_source")
                     #t)
-                   (else (loop (cdr hl)))))))
-        (get-assoc "knowledge_source" props))))
+                   (else (loop (cdr hl))))))))))
 
 (define (data-attributes props)
     (list (get-publications props)))
@@ -184,14 +172,13 @@
         [(null? props) pubs]
         [else
          (let ((publication (or (get-assoc "publications" (car props))
-                                (get-assoc "supporting_publications" (car props))
-                                (get-assoc "publications:string[]" (car props)))))
+                                (get-assoc "supporting_publications" (car props)))))
            (helper (cdr props)
                    (append 
                     (cond
                       [(string-prefix? publication "(")
-                       (string-split (string-trim (string-trim publication "(") ")"))]
-                      [(string-contains? publication "|") (string-split publication "|")]
+                       (string-split (string-trim (string-trim publication "(") ")"))] ;rtx-kg2 & robokop
+                      [(string-contains? publication "|") (string-split publication "|")] ;text-mining
                       [(string-contains? publication ";") (string-split publication "; ")]
                       [else (string-split publication)])
                     pubs)))]))
