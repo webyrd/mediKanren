@@ -37,6 +37,9 @@
  ;;
  UMLS-biolink-class-mapper
  UMLS-biolink-pred-mapper
+ ;;
+ find-leaf-classes
+ get-smallest-nonmixin-class*
  )
 (require
  racket/pretty
@@ -50,7 +53,8 @@
 ;; (define BIOLINK_YAML_FILE "../neo-biolink/biolink_3_0_3/biolink-model.yaml")
 ;; (define BIOLINK_YAML_FILE "../neo-biolink/biolink_3_1_1/biolink-model.yaml")
 ;;(define BIOLINK_YAML_FILE "../neo-biolink/biolink_3_1_2/biolink-model.yaml")
-(define BIOLINK_YAML_FILE "../neo-biolink/biolink_3_5_2/biolink-model.yaml")
+;;(define BIOLINK_YAML_FILE "../neo-biolink/biolink_3_5_2/biolink-model.yaml")
+(define BIOLINK_YAML_FILE "../neo-biolink/biolink_4_2_1/biolink-model.yaml")
 
 (define-runtime-path path.here ".")
 (define bl-path (build-path path.here BIOLINK_YAML_FILE))
@@ -108,7 +112,6 @@
     (lambda (pred)
       (hash-ref predicate-deprecated-hash pred #f))))
 
-
 (define class-deprecated?
   (let ((class-deprecated-hash (make-hash)))
     (for-each
@@ -120,7 +123,6 @@
       classes)
     (lambda (class)
       (hash-ref class-deprecated-hash class #f))))
-
 
 (define predicate-mixin?
   (let ((predicate-mixin-hash (make-hash)))
@@ -146,8 +148,7 @@
     (lambda (pred)
       (hash-ref predicate-abstract-hash pred #f))))
 
-
-(define class-mixin?
+(define class-mixin-hash
   (let ((class-mixin-hash (make-hash)))
     (for-each
       (lambda (class-yaml-str)
@@ -156,8 +157,11 @@
             (let ((class-biolink-name (yaml-class-name-to-biolink-name class-yaml-str)))
               (hash-set! class-mixin-hash class-biolink-name #t)))))
       classes)
+    class-mixin-hash))
+
+(define class-mixin?
     (lambda (class)
-      (hash-ref class-mixin-hash class #f))))
+      (hash-ref class-mixin-hash class #f)))
 
 (define class-abstract?
   (let ((class-abstract-hash (make-hash)))
@@ -171,8 +175,6 @@
     (lambda (class)
       (hash-ref class-abstract-hash class #f))))
 
-
-
 (define predicate-symmetric?
   (let ((predicate-symmetric-hash (make-hash)))
     (for-each
@@ -184,8 +186,6 @@
       slots)
     (lambda (pred)
       (hash-ref predicate-symmetric-hash pred #f))))
-
-
 
 (define get-inverse-predicate
   (let ((inverse-predicate-hash (make-hash)))
@@ -201,8 +201,6 @@
     (lambda (pred)
       (hash-ref inverse-predicate-hash pred #f))))
 
-
-
 (define get-predicate-children
   (let ((predicate-children-hash (make-hash)))
     (for-each
@@ -217,7 +215,6 @@
       slots)
     (lambda (pred)
       (hash-ref predicate-children-hash pred (set)))))
-
 
 (define get-predicate-descendents*
   (lambda (preds)
@@ -266,8 +263,7 @@
     (lambda (pred)
       (hash-ref predicate-proper-descendents-hash pred (set)))))
 
-
-(define get-class-children
+(define class-children-hash
   (let ((class-children-hash (make-hash)))
     (for-each
       (lambda (child-yaml-str)
@@ -279,8 +275,25 @@
                 (hash-set! class-children-hash parent-biolink-name
                            (set-union (set child-biolink-name) children-set)))))))
       classes)
-    (lambda (class)
-      (hash-ref class-children-hash class (set)))))
+    class-children-hash))
+
+(define get-class-children
+  (lambda (class)
+    (hash-ref class-children-hash class (set))))
+
+(define (find-leaf-classes class*)
+  (let ((sub-hierarchy (make-hash)))
+    (for-each
+     (lambda (class)
+       (let* ((child* (set->list (hash-ref class-children-hash class (set))))
+              (child* (filter (lambda (c) (member c class*)) child*)))
+        (hash-set! sub-hierarchy class child*)))
+     class*)
+    (filter (lambda (class) (null? (hash-ref sub-hierarchy class)))
+            (hash-keys sub-hierarchy))))
+
+(define (get-smallest-nonmixin-class* class*)
+  (find-leaf-classes (filter (lambda (c) (not (class-mixin? c))) class*)))
 
 (define get-class-descendents*
   (lambda (classes)
