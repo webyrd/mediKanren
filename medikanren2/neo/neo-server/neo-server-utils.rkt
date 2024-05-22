@@ -23,6 +23,7 @@
          domain-exclude*
          range-exclude*
          get-object
+         get-and-print-qualifiers
          )
 
 (require racket/list
@@ -71,13 +72,38 @@
         (equal? "synthesis" aspect))
        (equal? direction direction^)))))
 
+#|
+A increases B increases C = A increases C
+A decreases B deceases C = A increases C
+A increases B decreases C = A decreases C
+A decreases B increases C = A decreases C
+|#
+
 (define mvp2-2hop-filter
-  (lambda (q direction)
+  (lambda (e* direction)
     (filter
      (lambda (e)
-       (let-values ([(_ eprop) (split-at e 5)])
-         (mvp2-filter (cadr eprop) direction)))
-     q)))
+       (match e
+         [`(,curie_x
+            ,pred_xy
+            ,curie_y
+            ,(? string? pred_yz)
+            ,(? string? curie_z)
+            ,props_xy
+            ,props_yz)
+          (if (equal? direction "increased")
+              (or
+               (and (mvp2-filter props_xy "increased")
+                    (mvp2-filter props_yz "increased"))
+               (and (mvp2-filter props_xy "decreased")
+                    (mvp2-filter props_yz "decreased")))
+              (or
+               (and (mvp2-filter props_xy "increased")
+                    (mvp2-filter props_yz "decreased"))
+               (and (mvp2-filter props_xy "decreased")
+                    (mvp2-filter props_yz "increased"))))]
+         [else #f]))
+     e*)))
 
 (define mvp2-1hop-filter
   (lambda (q direction)
@@ -257,6 +283,12 @@
        curie_y]
       [else (error "invalid form of returned edge" e)])))
 
+(define (get-and-print-qualifiers qualifier)
+  (define qualifier-type (hash-ref qualifier 'qualifier_type_id #f))
+  (printf "qualifier-type: ~s\n" qualifier-type)
+  (define qualifier-value (hash-ref qualifier 'qualifier_value #f))
+  (printf "qualifier-value: ~s\n" qualifier-value)
+  (list qualifier-type qualifier-value))
 
   
   

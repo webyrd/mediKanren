@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.39")
+(define NEO_SERVER_VERSION "1.40")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -754,30 +754,30 @@
                                            (define qualifier-set (hash-ref (car qualifier-constraints) 'qualifier_set #f))
                                            (and qualifier-set
                                                 (list? qualifier-set)
-                                                (eq? 2 (length qualifier-set))
-
+                                                (eq? 3 (length qualifier-set))
                                                 (let ()
-                                                  (define qualifier-a (car qualifier-set))
-                                                  (define qualifier-a-type (hash-ref qualifier-a 'qualifier_type_id #f))
-                                                  (printf "qualifier-a-type: ~s\n" qualifier-a-type)
-                                                  (define qualifier-a-value (hash-ref qualifier-a 'qualifier_value #f))
-                                                  (printf "qualifier-a-value: ~s\n" qualifier-a-value)
-
-                                                  (define qualifier-b (cadr qualifier-set))
-                                                  (define qualifier-b-type (hash-ref qualifier-b 'qualifier_type_id #f))
-                                                  (printf "qualifier-b-type: ~s\n" qualifier-b-type)
-                                                  (define qualifier-b-value (hash-ref qualifier-b 'qualifier_value #f))
-                                                  (printf "qualifier-b-value: ~s\n" qualifier-b-value)
-
+                                                  (match-define
+                                                    (list qualifier-a-type qualifier-a-value)
+                                                    (get-and-print-qualifiers (list-ref qualifier-set 0)))
+                                                  (match-define
+                                                    (list qualifier-b-type qualifier-b-value)
+                                                    (get-and-print-qualifiers (list-ref qualifier-set 1)))
+                                                  (match-define
+                                                    (list qualifier-c-type qualifier-c-value)
+                                                    (get-and-print-qualifiers (list-ref qualifier-set 2)))
+                                                  (define expected-qualifiers (list "biolink:object_aspect_qualifier"
+                                                                                    "biolink:object_direction_qualifier"
+                                                                                    "biolink:qualified_predicate"))
+                                                                                     
                                                   (and qualifier-a-type
                                                        qualifier-a-value
                                                        qualifier-b-type
                                                        qualifier-b-value
-                                                       (or
-                                                        (and (equal? qualifier-a-type "biolink:object_aspect_qualifier")
-                                                             (equal? qualifier-b-type "biolink:object_direction_qualifier"))
-                                                        (and (equal? qualifier-b-type "biolink:object_aspect_qualifier")
-                                                             (equal? qualifier-a-type "biolink:object_direction_qualifier"))))))))))))))))
+                                                       qualifier-c-type
+                                                       qualifier-c-value
+                                                       (member qualifier-a-type expected-qualifiers)
+                                                       (member qualifier-b-type expected-qualifiers)
+                                                       (member qualifier-c-type expected-qualifiers))))))))))))))
         'mvp2-gene]
        [(and (equal? "inferred" knowledge_type)
              (list? predicates)
@@ -811,30 +811,30 @@
                                            (define qualifier-set (hash-ref (car qualifier-constraints) 'qualifier_set #f))
                                            (and qualifier-set
                                                 (list? qualifier-set)
-                                                (eq? 2 (length qualifier-set))
-
+                                                (eq? 3 (length qualifier-set))
                                                 (let ()
-                                                  (define qualifier-a (car qualifier-set))
-                                                  (define qualifier-a-type (hash-ref qualifier-a 'qualifier_type_id #f))
-                                                  (printf "qualifier-a-type: ~s\n" qualifier-a-type)
-                                                  (define qualifier-a-value (hash-ref qualifier-a 'qualifier_value #f))
-                                                  (printf "qualifier-a-value: ~s\n" qualifier-a-value)
-
-                                                  (define qualifier-b (cadr qualifier-set))
-                                                  (define qualifier-b-type (hash-ref qualifier-b 'qualifier_type_id #f))
-                                                  (printf "qualifier-b-type: ~s\n" qualifier-b-type)
-                                                  (define qualifier-b-value (hash-ref qualifier-b 'qualifier_value #f))
-                                                  (printf "qualifier-b-value: ~s\n" qualifier-b-value)
-
+                                                  (match-define
+                                                    (list qualifier-a-type qualifier-a-value)
+                                                    (get-and-print-qualifiers (list-ref qualifier-set 0)))
+                                                  (match-define
+                                                    (list qualifier-b-type qualifier-b-value)
+                                                    (get-and-print-qualifiers (list-ref qualifier-set 1)))
+                                                  (match-define
+                                                    (list qualifier-c-type qualifier-c-value)
+                                                    (get-and-print-qualifiers (list-ref qualifier-set 2)))
+                                                  (define expected-qualifiers (list "biolink:object_aspect_qualifier"
+                                                                                    "biolink:object_direction_qualifier"
+                                                                                    "biolink:qualified_predicate"))
+                                                                                     
                                                   (and qualifier-a-type
                                                        qualifier-a-value
                                                        qualifier-b-type
                                                        qualifier-b-value
-                                                       (or
-                                                        (and (equal? qualifier-a-type "biolink:object_aspect_qualifier")
-                                                             (equal? qualifier-b-type "biolink:object_direction_qualifier"))
-                                                        (and (equal? qualifier-b-type "biolink:object_aspect_qualifier")
-                                                             (equal? qualifier-a-type "biolink:object_direction_qualifier"))))))))))))))))
+                                                       qualifier-c-type
+                                                       qualifier-c-value
+                                                       (member qualifier-a-type expected-qualifiers)
+                                                       (member qualifier-b-type expected-qualifiers)
+                                                       (member qualifier-c-type expected-qualifiers))))))))))))))
         'mvp2-chem]
        [else #f])]
 
@@ -1379,17 +1379,30 @@
 
       (define (add-creative-edge! sub obj pred n aux-id)
         (let ((id (string-append "medik:creative_edge#" (number->string n))))
-          (hash-set! edges (string->symbol id)
-                     (hash 'attributes
-                           (list
-                            (auxiliary-graph-attribute aux-id))
-                           'object obj
-                           'predicate pred
-                           'subject sub
-                           'sources (list
-                                     (hash
-                                      'resource_id "infores:unsecret-agent"
-                                      'resource_role "primary_knowledge_source"))))
+          (if (or (eq? which-mvp 'mvp2-gene) (eq? which-mvp 'mvp2-chem))
+              (hash-set! edges (string->symbol id)
+                         (hash 'attributes
+                               (list
+                                (auxiliary-graph-attribute aux-id))
+                               'object obj
+                               'predicate pred
+                               'subject sub
+                               'qualifiers (hash-ref (car (hash-ref qg_edge-hash 'qualifier_constraints)) 'qualifier_set)
+                               'sources (list
+                                         (hash
+                                          'resource_id "infores:unsecret-agent"
+                                          'resource_role "primary_knowledge_source"))))
+              (hash-set! edges (string->symbol id)
+                         (hash 'attributes
+                               (list
+                                (auxiliary-graph-attribute aux-id))
+                               'object obj
+                               'predicate pred
+                               'subject sub
+                               'sources (list
+                                         (hash
+                                          'resource_id "infores:unsecret-agent"
+                                          'resource_role "primary_knowledge_source")))))
           id))
 
       (define (add-auxiliary! edge* n)
