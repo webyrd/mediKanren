@@ -188,8 +188,10 @@ A decreases B increases C = A decreases C
                     #t)
                    (else (loop (cdr hl))))))))))
 
-(define (data-attributes props)
-    (list (get-publications props)))
+(define (data-attributes props has-pub?)
+  (if has-pub?
+    (list (get-publications props))
+    (list)))
 
 (define get-publications
   (lambda props

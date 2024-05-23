@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.40")
+(define NEO_SERVER_VERSION "1.41")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -1320,61 +1320,41 @@
                (predicate (get-assoc "predicate" props))
                (aspect-qualifier (get-assoc "object_aspect_qualifier" props))
                (direction-qualifier (get-assoc "object_direction_qualifier" props))
-               (qualifed-predicate (get-assoc "qualified_predicate" props)))
+               (qualifed-predicate (get-assoc "qualified_predicate" props))
+               (has-pub? (> (num-pubs props) 0)))
           (add-node! object)
           (add-node! subject)
           (unless (hash-has-key? edges id-sym)
-            (if (= (num-pubs props) 0)
-                (if (and
-                     #;(or (eq? which-mvp 'mvp2-chem) (eq? which-mvp 'mvp2-gene))
-                     aspect-qualifier direction-qualifier qualifed-predicate)
-                    (hash-set! edges id-sym
-                               (hash 'object object
-                                     'predicate predicate
-                                     'subject subject
-                                     'sources (list (get-source props) UNSECRET-SOURCE)
-                                     'qualifiers (list
-                                                  (hash 'qualifier_type_id "biolink:object_aspect_qualifier"
-                                                        'qualifier_value aspect-qualifier)
-                                                  (hash 'qualifier_type_id "biolink:object_direction_qualifier"
-                                                        'qualifier_value direction-qualifier)
-                                                  (hash 'qualifier_type_id "biolink:qualified_predicate"
-                                                        'qualifier_value qualifed-predicate))))
-                    (hash-set! edges id-sym
-                               (hash 'object object
-                                     'predicate predicate
-                                     'subject subject
-                                     'sources (list (get-source props) UNSECRET-SOURCE))))
-                (if (and
-                     #;(or (eq? which-mvp 'mvp2-chem) (eq? which-mvp 'mvp2-gene))
-                     aspect-qualifier direction-qualifier qualifed-predicate)
-                    (hash-set! edges id-sym
-                               (hash 'attributes
-                                     (or
-                                      (and (get-assoc "json_attributes" props)
-                                           (string->jsexpr (get-assoc "json_attributes" props)))
-                                      (data-attributes props))
-                                     'object object
-                                     'predicate predicate
-                                     'subject subject
-                                     'sources (list (get-source props) UNSECRET-SOURCE)
-                                     'qualifiers (list
-                                                  (hash 'qualifier_type_id "biolink:object_aspect_qualifier"
-                                                        'qualifier_value aspect-qualifier)
-                                                  (hash 'qualifier_type_id "biolink:object_direction_qualifier"
-                                                        'qualifier_value direction-qualifier)
-                                                  (hash 'qualifier_type_id "biolink:qualified_predicate"
-                                                        'qualifier_value qualifed-predicate))))
-                    (hash-set! edges id-sym
-                               (hash 'attributes
-                                     (or
-                                      (and (get-assoc "json_attributes" props)
-                                           (string->jsexpr (get-assoc "json_attributes" props)))
-                                      (data-attributes props))
-                                     'object object
-                                     'predicate predicate
-                                     'subject subject
-                                     'sources (list (get-source props) UNSECRET-SOURCE))))))
+            (if (and
+                 #;(or (eq? which-mvp 'mvp2-chem) (eq? which-mvp 'mvp2-gene))
+                 aspect-qualifier direction-qualifier qualifed-predicate)
+                (hash-set! edges id-sym
+                           (hash 'attributes
+                                 (or
+                                  (and (get-assoc "json_attributes" props)
+                                       (string->jsexpr (get-assoc "json_attributes" props)))
+                                  (data-attributes props has-pub?))
+                                 'object object
+                                 'predicate predicate
+                                 'subject subject
+                                 'sources (list (get-source props) UNSECRET-SOURCE)
+                                 'qualifiers (list
+                                              (hash 'qualifier_type_id "biolink:object_aspect_qualifier"
+                                                    'qualifier_value aspect-qualifier)
+                                              (hash 'qualifier_type_id "biolink:object_direction_qualifier"
+                                                    'qualifier_value direction-qualifier)
+                                              (hash 'qualifier_type_id "biolink:qualified_predicate"
+                                                    'qualifier_value qualifed-predicate))))
+                (hash-set! edges id-sym
+                           (hash 'attributes
+                                 (or
+                                  (and (get-assoc "json_attributes" props)
+                                       (string->jsexpr (get-assoc "json_attributes" props)))
+                                  (data-attributes props has-pub?))
+                                 'object object
+                                 'predicate predicate
+                                 'subject subject
+                                 'sources (list (get-source props) UNSECRET-SOURCE)))))
           id))
 
       (define (add-creative-edge! sub obj pred n aux-id)
