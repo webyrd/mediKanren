@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.41")
+(define NEO_SERVER_VERSION "1.42")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -749,7 +749,6 @@
                                          (list? qualifier-constraints)
                                          ; only one type of qualifier-constraints and it is the qualifer set
                                          (eq? 1 (length qualifier-constraints))
-
                                          (let ()
                                            (define qualifier-set (hash-ref (car qualifier-constraints) 'qualifier_set #f))
                                            (and qualifier-set
@@ -768,7 +767,6 @@
                                                   (define expected-qualifiers (list "biolink:object_aspect_qualifier"
                                                                                     "biolink:object_direction_qualifier"
                                                                                     "biolink:qualified_predicate"))
-                                                                                     
                                                   (and qualifier-a-type
                                                        qualifier-a-value
                                                        qualifier-b-type
@@ -778,6 +776,54 @@
                                                        (member qualifier-a-type expected-qualifiers)
                                                        (member qualifier-b-type expected-qualifiers)
                                                        (member qualifier-c-type expected-qualifiers))))))))))))))
+        'mvp2-gene]
+       [(and (equal? "inferred" knowledge_type)
+             (list? predicates)
+             (member "biolink:affects" predicates)
+             subject-node
+             object-node
+             (let ()
+               (define object-ids (hash-ref object-node 'ids #f))
+               (and (list? object-ids)
+                    (not (null? object-ids))
+                    (let ()
+                      (printf "object-ids: ~s\n" object-ids)
+                      (define subject-categories (hash-ref subject-node 'categories #f))
+                      (printf "subject-categories: ~s\n" subject-categories)
+
+                      (and (list? subject-categories)
+                           (member "biolink:ChemicalEntity" subject-categories)
+                           (let ()
+                             (define object-categories (hash-ref object-node 'categories #f))
+                             (printf "object-categories: ~s\n" object-categories)
+                             (and (list? object-categories)
+                                  (member "biolink:Gene" object-categories)
+                                  (let ()
+                                    (define qualifier-constraints (hash-ref edge-hash 'qualifier_constraints #f))
+                                    (and qualifier-constraints
+                                         (list? qualifier-constraints)
+                                         ; only one type of qualifier-constraints and it is the qualifer set
+                                         (eq? 1 (length qualifier-constraints))
+                                         (let ()
+                                           (define qualifier-set (hash-ref (car qualifier-constraints) 'qualifier_set #f))
+                                           (and qualifier-set
+                                                (list? qualifier-set)
+                                                (eq? 2 (length qualifier-set))
+                                                (let ()
+                                                  (match-define
+                                                    (list qualifier-a-type qualifier-a-value)
+                                                    (get-and-print-qualifiers (list-ref qualifier-set 0)))
+                                                  (match-define
+                                                    (list qualifier-b-type qualifier-b-value)
+                                                    (get-and-print-qualifiers (list-ref qualifier-set 1)))
+                                                  (define expected-qualifiers (list "biolink:object_aspect_qualifier"
+                                                                                    "biolink:object_direction_qualifier"))
+                                                  (and qualifier-a-type
+                                                       qualifier-a-value
+                                                       qualifier-b-type
+                                                       qualifier-b-value
+                                                       (member qualifier-a-type expected-qualifiers)
+                                                       (member qualifier-b-type expected-qualifiers))))))))))))))
         'mvp2-gene]
        [(and (equal? "inferred" knowledge_type)
              (list? predicates)
@@ -824,8 +870,7 @@
                                                     (get-and-print-qualifiers (list-ref qualifier-set 2)))
                                                   (define expected-qualifiers (list "biolink:object_aspect_qualifier"
                                                                                     "biolink:object_direction_qualifier"
-                                                                                    "biolink:qualified_predicate"))
-                                                                                     
+                                                                                    "biolink:qualified_predicate"))       
                                                   (and qualifier-a-type
                                                        qualifier-a-value
                                                        qualifier-b-type
@@ -835,6 +880,55 @@
                                                        (member qualifier-a-type expected-qualifiers)
                                                        (member qualifier-b-type expected-qualifiers)
                                                        (member qualifier-c-type expected-qualifiers))))))))))))))
+        'mvp2-chem]
+       [(and (equal? "inferred" knowledge_type)
+             (list? predicates)
+             (member "biolink:affects" predicates)
+             subject-node
+             object-node
+             (let ()
+               (define subject-ids (hash-ref subject-node 'ids #f))
+               (and (list? subject-ids)
+                    (not (null? subject-ids))
+                    (let ()
+                      (printf "subject-ids: ~s\n" subject-ids)
+                      (define subject-categories (hash-ref subject-node 'categories #f))
+                      (printf "subject-categories: ~s\n" subject-categories)
+
+                      (and (list? subject-categories)
+                           (member "biolink:ChemicalEntity" subject-categories)
+                           (let ()
+                             (define object-categories (hash-ref object-node 'categories #f))
+                             (printf "object-categories: ~s\n" object-categories)
+
+                             (and (list? object-categories)
+                                  (member "biolink:Gene" object-categories)
+                                  (let ()
+                                    (define qualifier-constraints (hash-ref edge-hash 'qualifier_constraints #f))
+                                    (and qualifier-constraints
+                                         (list? qualifier-constraints)
+                                         ; only one type of qualifier-constraints and it is the qualifer set
+                                         (eq? 1 (length qualifier-constraints))
+                                         (let ()
+                                           (define qualifier-set (hash-ref (car qualifier-constraints) 'qualifier_set #f))
+                                           (and qualifier-set
+                                                (list? qualifier-set)
+                                                (eq? 2 (length qualifier-set))
+                                                (let ()
+                                                  (match-define
+                                                    (list qualifier-a-type qualifier-a-value)
+                                                    (get-and-print-qualifiers (list-ref qualifier-set 0)))
+                                                  (match-define
+                                                    (list qualifier-b-type qualifier-b-value)
+                                                    (get-and-print-qualifiers (list-ref qualifier-set 1)))
+                                                  (define expected-qualifiers (list "biolink:object_aspect_qualifier"
+                                                                                    "biolink:object_direction_qualifier"))
+                                                  (and qualifier-a-type
+                                                       qualifier-a-value
+                                                       qualifier-b-type
+                                                       qualifier-b-value
+                                                       (member qualifier-a-type expected-qualifiers)
+                                                       (member qualifier-b-type expected-qualifiers))))))))))))))
         'mvp2-chem]
        [else #f])]
 
@@ -1367,7 +1461,13 @@
                                'object obj
                                'predicate pred
                                'subject sub
-                               'qualifiers (hash-ref (car (hash-ref qg_edge-hash 'qualifier_constraints)) 'qualifier_set)
+                               'qualifiers
+                               (let ((exist-qualifiers (hash-ref (car (hash-ref qg_edge-hash 'qualifier_constraints)) 'qualifier_set))
+                                     (qualified_pred (hash 'qualifier_type_id "biolink:qualified_predicate"
+                                                           'qualifier_value "biolink:causes")))
+                                 (if (member qualified_pred exist-qualifiers)
+                                     exist-qualifiers
+                                     (cons qualified_pred exist-qualifiers)))
                                'sources (list
                                          (hash
                                           'resource_id "infores:unsecret-agent"
