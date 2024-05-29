@@ -26,7 +26,8 @@
  "../neo-reasoning/neo-biolink-reasoning.rkt"
  racket/set
  "neo-helpers-without-db.rkt"
- racket/list)
+ racket/list
+ racket/string)
 
 (define (curie->synonyms-in-db curie)
   (curies-in-db (curie->synonyms curie)))
@@ -93,21 +94,28 @@
              (set->list new-curies)
              (list (list 1111) #f (list 1111)))))))))
 
+(define (curie-is-type? curie type)
+  (let* ((node-prop (curie->properties curie))
+        (umls-description (assoc "description" node-prop)))
+    (and umls-description (string-contains? (cadr umls-description) type))))
+
 (define (get-n-descendent-curies*-in-db curies n)
   (list->set
    (append curies
            (let loop ((r '()) (c curies))
              (if (or (> (length r) n) (= (length r) n))
                  r
-                 (let* ((children (map car
+                 (let* ((children (remove-duplicates
+                                   (map car
                                        (query:X->Known-scored
                                         #f
                                         (list "biolink:subclass_of")
                                         c
-                                        (list (list 1111) #f (list 1111)))))
-                        (new-r (remove-duplicates (append r children))))
+                                        (list (list 1111) #f (list 1111))))))
+                        (not-classification-type (filter (lambda (c) (not (curie-is-type? c "STY:T185"))) children))
+                        (new-r (remove-duplicates (append r not-classification-type))))
                    (if (= (length r) (length new-r))
                        r
-                       (loop new-r children))))))))
+                       (loop new-r not-classification-type))))))))
              
     
