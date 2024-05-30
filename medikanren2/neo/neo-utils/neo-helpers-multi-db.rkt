@@ -99,6 +99,12 @@
         (umls-description (assoc "description" node-prop)))
     (and umls-description (string-contains? (cadr umls-description) type))))
 
+(define (edge-from-source edge source^)
+  (let* ((props (cdddr edge))
+         (source (assoc "primary_knowledge_source" props))
+         (source (and source (cadr source))))
+    (and source (equal? source source^))))
+
 (define (get-n-descendent-curies*-in-db curies n)
   (list->set
    (append curies
@@ -107,11 +113,13 @@
                  r
                  (let* ((children (remove-duplicates
                                    (map car
-                                       (query:X->Known-scored
-                                        #f
-                                        (list "biolink:subclass_of")
-                                        c
-                                        (list (list 1111) #f (list 1111))))))
+                                        (filter
+                                         (lambda (e) (not (edge-from-source e "infores:medrt-umls")))
+                                         (query:X->Known-scored
+                                          #f
+                                          (list "biolink:subclass_of")
+                                          c
+                                          (list (list 1111) #f (list 1111)))))))
                         (not-classification-type (filter (lambda (c) (not (curie-is-type? c "STY:T185"))) children))
                         (new-r (remove-duplicates (append r not-classification-type))))
                    (if (= (length r) (length new-r))
