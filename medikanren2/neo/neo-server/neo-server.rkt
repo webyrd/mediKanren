@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.45")
+(define NEO_SERVER_VERSION "1.46")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -1459,8 +1459,7 @@
                                (list
                                 (auxiliary-graph-attribute aux-id)
                                 agent-type-attribute
-                                knowledge-level-attribute
-                                )
+                                knowledge-level-attribute)
                                'object obj
                                'predicate pred
                                'subject sub
@@ -1478,7 +1477,9 @@
               (hash-set! edges (string->symbol id)
                          (hash 'attributes
                                (list
-                                (auxiliary-graph-attribute aux-id))
+                                (auxiliary-graph-attribute aux-id)
+                                agent-type-attribute
+                                knowledge-level-attribute)
                                'object obj
                                'predicate pred
                                'subject sub
