@@ -24,6 +24,8 @@
          range-exclude*
          get-object
          get-and-print-qualifiers
+         agent-type-attribute
+         knowledge-level-attribute
          )
 
 (require racket/list
@@ -223,6 +225,18 @@ A decreases B increases C = A decreases C
     (hash
      'attribute_type_id "biolink:support_graphs"
      'value (list id))))
+
+(define agent-type-attribute
+  (hash
+   'attribute_type_id "biolink:agent_type"
+   'value "computational_model"
+   'attribute_source "infores:unsecret-agent"))
+
+(define knowledge-level-attribute
+  (hash
+   'attribute_type_id "biolink:knowledge_level"
+   'value "prediction"
+   'attribute_source "infores:unsecret-agent"))
 
 ;; TODO: test it with calling out Genetics KP
 (define (merge-trapi-responses r1 r2 original-query_graph)
