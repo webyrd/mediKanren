@@ -5,7 +5,6 @@
          get-publications
          mvp2-1hop-filter
          mvp2-2hop-filter
-         auto-grow
          merge-list
          merge-hash
          minus-one-before-zero
@@ -114,24 +113,6 @@ A decreases B increases C = A decreases C
        (let-values ([(_ eprop) (split-at e 3)])
          (mvp2-filter eprop direction)))
      q)))
-
-
-(define (auto-grow hop-proc score* result_amount)
-  (let ((half-result (exact-round (/ result_amount 2.0))))
-    (let loop ((r '()) (sl score*))
-      (cond
-        [(> (length r) half-result)
-         (printf "return ~a answers\n" (length r))
-         r]
-        [(andmap not sl)
-         (printf "return ~a answers\n" (length r))
-         r]
-        [else
-         #;(printf "number of answers: ~a, take next round\n" (length r))
-         (loop (append r (hop-proc sl))
-               (list (minus-one-before-zero (list-ref sl 0))
-                     (minus-one-before-zero (list-ref sl 1))
-                     (minus-one-before-zero (list-ref sl 2))))]))))
 
 (define find-max-number
   (lambda (num*)

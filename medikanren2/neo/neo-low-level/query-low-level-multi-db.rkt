@@ -313,12 +313,14 @@
 (define (query:X->Y->Known category*.X predicate*.X->Y category*.Y predicate*.Y->K curie*.K)
   (query:X->Y->Known-helper
    (and category*.X
-        (filter curie-in-db? category*.X))
-   (filter curie-in-db? predicate*.X->Y)
+        (curies-in-db category*.X))
+   (and predicate*.X->Y
+        (curies-in-db predicate*.X->Y))
    (and category*.Y
-        (filter curie-in-db? category*.Y))
-   (filter curie-in-db? predicate*.Y->K)
-   (filter curie-in-db? curie*.K)
+        (curies-in-db category*.Y))
+   (and predicate*.Y->K
+        (curies-in-db predicate*.Y->K))
+   (curies-in-db curie*.K)
    #f))
 
 (define (query:X->Y->Known-scored category*.X predicate*.X->Y category*.Y predicate*.Y->K curie*.K score*)
@@ -359,13 +361,15 @@
 
 (define (query:Known->Y->X curie*.K predicate*.K->Y category*.Y predicate*.Y->X category*.X)
   (query:Known->Y->X-helper
-   (filter curie-in-db? curie*.K)
-   (filter curie-in-db? predicate*.K->Y)
+   (curies-in-db curie*.K)
+   (and predicate*.K->Y
+        (curies-in-db predicate*.K->Y))
    (and category*.Y
-        (filter curie-in-db? category*.Y))
-   (filter curie-in-db? predicate*.Y->X)
+        (curies-in-db category*.Y))
+   (and predicate*.Y->X
+        (curies-in-db predicate*.Y->X))
    (and category*.X
-        (filter curie-in-db? category*.X))
+        (curies-in-db category*.X))
    #f))
 
 (define (query:Known->Y->X-scored curie*.K predicate*.K->Y category*.Y predicate*.Y->X category*.X score*)

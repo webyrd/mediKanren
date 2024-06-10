@@ -20,6 +20,8 @@
  iota
  pretty-print-json-string
  take-at-most
+ ;;
+ auto-grow
  )
 (require
  "../neo-low-level/query-low-level-multi-db.rkt"

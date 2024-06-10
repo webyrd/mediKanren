@@ -2,7 +2,8 @@
 
 (require
  racket/set
- racket/unsafe/ops)
+ racket/unsafe/ops
+ racket/math)
 
 (provide
  maybe-time
@@ -15,7 +16,8 @@
  unsafe-bytes-split-tab
  bytes-base10->fxnat
  ;;
- minus-one-before-zero)
+ minus-one-before-zero
+ auto-grow)
 
 ;; Use the second definition of 'maybe-time' to see the time use for
 ;; low-level query calls.
@@ -142,3 +144,20 @@
         (if (eq? (car n*) 0)
             #f
             (list (- (car n*) 1))))))
+
+(define (auto-grow hop-proc score* result_amount)
+  (let ((half-result (exact-round (/ result_amount 2.0))))
+    (let loop ((r '()) (sl score*))
+      (cond
+        [(> (length r) half-result)
+         (printf "return ~a answers\n" (length r))
+         r]
+        [(andmap not sl)
+         (printf "return ~a answers\n" (length r))
+         r]
+        [else
+         #;(printf "number of answers: ~a, take next round\n" (length r))
+         (loop (append r (hop-proc sl))
+               (list (minus-one-before-zero (list-ref sl 0))
+                     (minus-one-before-zero (list-ref sl 1))
+                     (minus-one-before-zero (list-ref sl 2))))]))))
