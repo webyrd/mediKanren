@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.47")
+(define NEO_SERVER_VERSION "1.48")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -59,6 +59,9 @@
      "UMLS:C0013227" ; Pharmaceutical preparations
      "MESH:D014028" ; tobacco smoke pollution
      "UMLS:C1611640" ; Therapeutic agent (substance)
+     "MESH:D020218" ; Response elements
+     "UMLS:C0162327" ; RNA Sequence
+     "PUBCHEM.COMPOUND:135499568" ; Double stranded RNA
      )))
 
 
