@@ -30,21 +30,19 @@
   ;;(define str.predicate "edge_label")
 
   (define (curie-in-db? curie)
-    (initialize-text!)
-    (dict-ref (thread-cell-ref tcell.text=>id)
+    (dict-ref text=>id
               (string->bytes/utf-8 curie)
               (lambda (id) #t)
               (lambda () #f)))
 
   (define (curies-in-db curie*)
-    (initialize-text!)
     (define curie-text*=>1
       (let* ((text* (map string->bytes/utf-8 curie*))
              (text* (list->vector (sort (remove-duplicates text*) bytes<?))))
         (dict:ref (lambda (i) (vector-ref text* i)) bytes<?
                   (lambda (_) '()) 0 (vector-length text*))))
     (define (helper yield)
-      ((merge-join bytes<? curie-text*=>1 (thread-cell-ref tcell.text=>id))
+      ((merge-join bytes<? curie-text*=>1 text=>id)
        (lambda (text.curie __ ___)
          (yield (bytes->string/utf-8 text.curie)))))
     (enumerator->rlist helper))
@@ -76,8 +74,8 @@
 
   (define (string->id str) (text->id (string->bytes/utf-8 str)))
   (define (id->string id)  (bytes->string/utf-8 (id->text id)))
-  (define (text->id   b)   (initialize-text!) (dict-get (thread-cell-ref tcell.text=>id) b))
-  (define (id->text   id)  (initialize-text!) (dict-get (thread-cell-ref tcell.id=>text) id))
+  (define (text->id   b)   (dict-get text=>id b))
+  (define (id->text   id)  (dict-get id=>text id))
 
   (define (concept-properties)          (map id->string (enumerator->list
                                                          (dict-key-enumerator ckey=>cvalue=>curie=>1))))
@@ -473,29 +471,22 @@
 
   (define r.scored-edge (database-relation db 'scored-edge))  
 
-  (pretty-log `(defining tcells for)
+  (pretty-log `(defining text ids for)
               path.here
               db-path-under-parent)
-  (define tcell.text=>id (make-thread-cell #f))
-  (define tcell.id=>text (make-thread-cell #f))
+  (define-values (text=>id id=>text) (relation-text-dicts r.cprop #t))
 
-  (define (initialize-text!)
-    (unless (thread-cell-ref tcell.text=>id)
-      (define-values (text=>id id=>text) (relation-text-dicts r.cprop #f))
-      (thread-cell-set! tcell.text=>id text=>id)
-      (thread-cell-set! tcell.id=>text id=>text)))
-  
   (pretty-log `(loading relation index dictionaries for db)
               path.here
               db-path-under-parent)
-  (define subject=>object=>eid=>1 (maybe-time (relation-index-dict r.edge  '(subject object eid) #f))) ;; #f
-  (define object=>subject=>eid=>1 (maybe-time (relation-index-dict r.edge  '(object subject eid) #f))) ;; #f
-  (define subject=>eid=>object=>1 (maybe-time (relation-index-dict r.edge  '(subject eid object) #f))) ;; #t
-  (define object=>eid=>subject=>1 (maybe-time (relation-index-dict r.edge  '(object eid subject) #f))) ;; #t
-  (define ekey=>evalue=>eid=>1    (maybe-time (relation-index-dict r.eprop '(key value eid)      #f))) ;; #f
-  (define eid=>ekey=>evalue=>1    (maybe-time (relation-index-dict r.eprop '(eid key value)      #f))) ;; #f
+  (define subject=>object=>eid=>1 (maybe-time (relation-index-dict r.edge  '(subject object eid) #t))) ;; #f
+  (define object=>subject=>eid=>1 (maybe-time (relation-index-dict r.edge  '(object subject eid) #t))) ;; #f
+  (define subject=>eid=>object=>1 (maybe-time (relation-index-dict r.edge  '(subject eid object) #t))) ;; #t
+  (define object=>eid=>subject=>1 (maybe-time (relation-index-dict r.edge  '(object eid subject) #t))) ;; #t
+  (define ekey=>evalue=>eid=>1    (maybe-time (relation-index-dict r.eprop '(key value eid)      #t))) ;; #f
+  (define eid=>ekey=>evalue=>1    (maybe-time (relation-index-dict r.eprop '(eid key value)      #t))) ;; #f
   (define ckey=>cvalue=>curie=>1  (maybe-time (relation-index-dict r.cprop '(key value curie)    #t))) ;; #t
-  (define curie=>ckey=>cvalue=>1  (maybe-time (relation-index-dict r.cprop '(curie key value)    #f))) ;; #f
+  (define curie=>ckey=>cvalue=>1  (maybe-time (relation-index-dict r.cprop '(curie key value)    #t))) ;; #f
   (define score=>pred=>sub=>obj=>eid=>1 (maybe-time
                                          (relation-index-dict r.scored-edge '(score predicate subject object eid) #t)))
   (define score=>pred=>obj=>sub=>eid=>1 (maybe-time
