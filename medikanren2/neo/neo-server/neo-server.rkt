@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.48")
+(define NEO_SERVER_VERSION "1.49")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -51,18 +51,31 @@
                                  (list (get-highest-bucket-number-text-mining))
                                  (list (get-highest-bucket-number-rtx-kg2))))
 
-;; Unsecret-level excluded MVP1 results - answers that is obviously wrong/useless
-(define UNWELCOME-TREATMENT
+(define GENERAL-NODES
   (curies->synonyms
-   '(
-     "MESH:D001335" ; Vehicle emissions
-     "UMLS:C0013227" ; Pharmaceutical preparations
-     "MESH:D014028" ; tobacco smoke pollution
+   '("UMLS:C0017337" ; Genes
+     "UMLS:C0005522" ; Biological Products
      "UMLS:C1611640" ; Therapeutic agent (substance)
      "MESH:D020218" ; Response elements
      "UMLS:C0162327" ; RNA Sequence
      "PUBCHEM.COMPOUND:135499568" ; Double stranded RNA
+     "UMLS:C1099354" ; RNA, Small Interfering
+     "UMLS:C0376613" ; "Vaccines, DNA"
      )))
+
+;; Unsecret-level excluded MVP1 results - answers that is obviously wrong/useless
+(define UNWELCOME-TREATMENT
+  (append 
+   (curies->synonyms
+    '(
+      "MESH:D001335" ; Vehicle emissions
+      "UMLS:C0013227" ; Pharmaceutical preparations
+      "MESH:D014028" ; tobacco smoke pollution
+      ))
+   GENERAL-NODES
+   ))
+
+
 
 
 ;; ** `tcp-listen` settings **
@@ -1005,6 +1018,17 @@
        ,props_xy)
      (not (excluded-semmed-edge? props_xy))]))
 
+(define (not-general-connector? e)
+  (match e
+    [`(,curie_x
+       ,pred_xy
+       ,curie_y
+       ,(? string? pred_yz)
+       ,(? string? curie_z)
+       ,props_xy
+       ,props_yz)
+     (not (member curie_y GENERAL-NODES))]))
+
 (define (not-unwelcome-treatment? e)
   (not (member (car e) UNWELCOME-TREATMENT)))
 
@@ -1097,6 +1121,7 @@
                            MAX_RESULTS_FROM_COMPONENT
                            (lambda (r*) (filter (lambda (r)
                                                   (and (not-semmed-excluded? r)
+                                                       (not-general-connector? r)
                                                        (not-unwelcome-treatment? r)))
                                                 r*)))))
               (list disease-ids q-1hop q-2hop))]
@@ -1146,7 +1171,9 @@
                      gene-category+
                      TOP_BUCKET_NUMBERS
                      MAX_RESULTS_FROM_COMPONENT
-                     (lambda (r*) (filter not-semmed-excluded? (mvp2-2hop-filter r* direction))))))
+                     (lambda (r*) (filter (lambda (r) (and (not-semmed-excluded? r)
+                                                           (not-general-connector? r)))
+                                            (mvp2-2hop-filter r* direction))))))
               (list chemical-ids qualified-q-1hop qualified-q-2hop))]
            [(eq? 'mvp2-gene which-mvp)
             ;;
@@ -1206,7 +1233,10 @@
                      gene-ids+
                      TOP_BUCKET_NUMBERS
                      MAX_RESULTS_FROM_COMPONENT
-                     (lambda (r*) (filter not-semmed-excluded? (mvp2-2hop-filter r* direction))))))
+                     (lambda (r*) (filter (lambda (r)
+                                            (and (not-semmed-excluded? r)
+                                                 (not-general-connector? r)))
+                                          (mvp2-2hop-filter r* direction))))))
               (list gene-ids qualified-q-1hop qualified-q-2hop))])))
 
       (define q-1hop-unique-results (remove-duplicates q-1hop-results))
@@ -1226,7 +1256,7 @@
              ,props_yz)
            (if (and (edge-has-source? props_xy)
                     (edge-has-source? props_yz))
-               (* (num-pubs props_xy) (num-pubs props_yz))
+               (sqrt (* (num-pubs props_xy) (num-pubs props_yz)))
                #f)]
           [`(,curie_x
              ,pred_xy
@@ -1234,8 +1264,7 @@
              .
              ,props_xy)
            (if (edge-has-source? props_xy)
-               (let ((n (num-pubs props_xy)))
-                 (* n n))
+               (num-pubs props_xy)
                #f)]))
 
       (define scored/q-1hop-unsorted-long
@@ -1344,7 +1373,7 @@
                       ,curie_y
                       .
                       ,props_xy)
-                    (list* (sqrt score)
+                    (list* score
                            (curie->canonical curie_x)
                            pred_xy
                            (curie->canonical curie_y)
@@ -2103,3 +2132,4 @@
 
 (length q3)
 (length UNWELCOME-TREATMENT)
+(length GENERAL-NODES)

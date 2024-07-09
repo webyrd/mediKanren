@@ -124,15 +124,23 @@ A decreases B increases C = A decreases C
              (loop (cdr n*) (car n*))
              (loop (cdr n*) greatest)))))))
 
-(define (get-source props)
-  (let ((source (or (get-assoc "primary_knowledge_source" props) 
-                    (and (get-assoc "json_attributes" props)
-                         "infores:text-mining-provider-targeted")))) ;text-mining
-    (hash
-      'resource_id source
-      'resource_role "primary_knowledge_source")))
+(define (get-source-helper props)
+  (or (get-assoc "primary_knowledge_source" props) 
+      (and (get-assoc "json_attributes" props)
+           "infores:text-mining-provider-targeted")))
 
-(define (num-pubs props) (string->number (get-assoc "mediKanren-score" props)))
+(define (get-source props)
+    (hash
+      'resource_id (get-source-helper props)
+      'resource_role "primary_knowledge_source"))
+
+(define (num-pubs props)
+  (let ((score (string->number (get-assoc "mediKanren-score" props)))
+        (source (get-source-helper props)))
+    (cond
+      ((equal? source "infores:semmeddb") (* 0.7 score))
+      ((equal? source "infores:text-mining-provider-targeted") (* 2 score))
+      (else score))))
 
 (define (get-score-from-result result)
   (let ((analyses (hash-ref result 'analyses #f)))
