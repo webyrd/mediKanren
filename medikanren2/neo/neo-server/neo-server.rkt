@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.50")
+(define NEO_SERVER_VERSION "1.51")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -1050,8 +1050,8 @@
                      .
                      ,props_xy)
                    curie_y]
-                  [else "UMLS:C0376613"])))
-    (not (member object UNWELCOME-TREATMENT))))
+                  [else "UMLS:C0017337"])))
+    (not (member object GENERAL-NODES))))
 
 (define (node-has-name-and-cat? curie)
   (let* ((props (curie->properties curie))
@@ -1144,8 +1144,8 @@
                                                (not-unwelcome-answer-as-subject? r)))
                                         r*))))))
             ;;
-            (let ((q-1hop (auto-grow-with-class-hierarchy #t 1-hop-proc TOP_BUCKET_NUMBERS disease-ids+ (/ MAX_RESULTS_FROM_COMPONENT 2)))
-                  (q-2hop (auto-grow-with-class-hierarchy #f 2-hop-proc TOP_BUCKET_NUMBERS disease-ids+ (/ MAX_RESULTS_FROM_COMPONENT 2))))
+            (let ((q-1hop (auto-grow-with-class-hierarchy #t 1-hop-proc TOP_BUCKET_NUMBERS disease-ids+ (exact-round (/ MAX_RESULTS_FROM_COMPONENT 2))))
+                  (q-2hop (auto-grow-with-class-hierarchy #f 2-hop-proc TOP_BUCKET_NUMBERS disease-ids+ (exact-round (/ MAX_RESULTS_FROM_COMPONENT 2)))))
               (list disease-ids q-1hop q-2hop))]
            [(eq? 'mvp2-chem which-mvp)
             ;;
@@ -1198,8 +1198,8 @@
                                                          (not-unwelcome-answer-as-object? r)))
                                         (mvp2-2hop-filter r* direction)))))))
   
-            (let* ((qualified-q-1hop (auto-grow-with-class-hierarchy #t 1-hop-proc TOP_BUCKET_NUMBERS chemical-ids+ (/ MAX_RESULTS_FROM_COMPONENT 2)))
-                   (qualified-q-2hop (auto-grow-with-class-hierarchy #f 2-hop-proc TOP_BUCKET_NUMBERS chemical-ids+ (/ MAX_RESULTS_FROM_COMPONENT 2))))
+            (let* ((qualified-q-1hop (auto-grow-with-class-hierarchy #t 1-hop-proc TOP_BUCKET_NUMBERS chemical-ids+ (exact-round (/ MAX_RESULTS_FROM_COMPONENT 2))))
+                   (qualified-q-2hop (auto-grow-with-class-hierarchy #f 2-hop-proc TOP_BUCKET_NUMBERS chemical-ids+ (exact-round (/ MAX_RESULTS_FROM_COMPONENT 2)))))
               (list chemical-ids qualified-q-1hop qualified-q-2hop))]
            [(eq? 'mvp2-gene which-mvp)
             ;;
@@ -1264,8 +1264,8 @@
                                                (not-unwelcome-answer-as-subject? r)))
                                         (mvp2-2hop-filter r* direction)))))))
             ;;
-            (let* ((qualified-q-1hop (auto-grow-with-class-hierarchy #t 1-hop-proc TOP_BUCKET_NUMBERS gene-ids+ (/ MAX_RESULTS_FROM_COMPONENT 2)))
-                   (qualified-q-2hop (auto-grow-with-class-hierarchy #f 2-hop-proc TOP_BUCKET_NUMBERS gene-ids+ (/ MAX_RESULTS_FROM_COMPONENT 2))))
+            (let* ((qualified-q-1hop (auto-grow-with-class-hierarchy #t 1-hop-proc TOP_BUCKET_NUMBERS gene-ids+ (exact-round (/ MAX_RESULTS_FROM_COMPONENT 2))))
+                   (qualified-q-2hop (auto-grow-with-class-hierarchy #f 2-hop-proc TOP_BUCKET_NUMBERS gene-ids+ (exact-round (/ MAX_RESULTS_FROM_COMPONENT 2)))))
               (list gene-ids qualified-q-1hop qualified-q-2hop))])))
 
       (define q-1hop-unique-results (remove-duplicates q-1hop-results))
