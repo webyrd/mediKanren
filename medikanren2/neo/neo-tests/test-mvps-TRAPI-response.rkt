@@ -197,7 +197,7 @@
         (test-reply (time (get-response which-mvp known-id "decreased"))))
       (test-reply (time (get-response which-mvp known-id #f)))))
 
-
+#|
 (test-and-timer 'mvp2-chem "PUBCHEM.COMPOUND:3007") ;Amphetamine ;Amphetamine
 (test-and-timer 'mvp2-chem "PUBCHEM.COMPOUND:5826") ;Dextroamphetamine
 (test-and-timer 'mvp2-chem "PUBCHEM.COMPOUND:44246724") ;Methylphenidate
@@ -212,3 +212,19 @@
 (test-and-timer 'mvp1 "MONDO:0020066") ;Ehlers-Danlos syndrome
 (test-and-timer 'mvp1 "MONDO:0007827") ;inclusion body myositis
 (test-and-timer 'mvp1 "MONDO:0001302") ;hypertensive heart disease
+|#
+
+(test-and-timer 'mvp1 "MONDO:0005301")
+(test-and-timer 'mvp1 "MONDO:0015564")
+(test-and-timer 'mvp1 "MONDO:0100345")
+(test-and-timer 'mvp1 "MONDO:0005799")
+(test-and-timer 'mvp1 "MONDO:0009265")
+(test-and-timer 'mvp1 "MONDO:0018982")
+
+(test-and-timer 'mvp2-gene "NCBIGene:1636")
+(test-and-timer 'mvp2-gene "NCBIGene:1565")
+(test-and-timer 'mvp2-gene "NCBIGene:154")
+
+(test-and-timer 'mvp2-chem "CHEBI:34648")
+(test-and-timer 'mvp2-chem "CHEBI:34911")
+(test-and-timer 'mvp2-chem "CHEBI:167574")

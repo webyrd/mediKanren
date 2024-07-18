@@ -3,7 +3,7 @@
 (require
  racket/set
  racket/unsafe/ops
- racket/math)
+ racket/list)
 
 (provide
  maybe-time
@@ -146,18 +146,17 @@
             (list (- (car n*) 1))))))
 
 (define (auto-grow hop-proc score* result_amount)
-  (let ((half-result (exact-round (/ result_amount 2.0))))
-    (let loop ((r '()) (sl score*))
-      (cond
-        [(> (length r) half-result)
-         (printf "return ~a answers\n" (length r))
-         r]
-        [(andmap not sl)
-         (printf "return ~a answers\n" (length r))
-         r]
-        [else
-         #;(printf "number of answers: ~a, take next round\n" (length r))
-         (loop (append r (hop-proc sl))
-               (list (minus-one-before-zero (list-ref sl 0))
-                     (minus-one-before-zero (list-ref sl 1))
-                     (minus-one-before-zero (list-ref sl 2))))]))))
+  (let loop ((r '()) (sl score*))
+    (cond
+      [(> (length r) result_amount)
+       (printf "return ~a answers\n" (length r))
+       r]
+      [(andmap not sl)
+       (printf "return ~a answers\n" (length r))
+       r]
+      [else
+       #;(printf "number of answers: ~a, take next round\n" (length r))
+       (loop (remove-duplicates  (append r (hop-proc sl)))
+             (list (minus-one-before-zero (list-ref sl 0))
+                   (minus-one-before-zero (list-ref sl 1))
+                   (minus-one-before-zero (list-ref sl 2))))])))

@@ -138,8 +138,8 @@ A decreases B increases C = A decreases C
   (let ((score (string->number (get-assoc "mediKanren-score" props)))
         (source (get-source-helper props)))
     (cond
-      ((equal? source "infores:semmeddb") (* 0.7 score))
-      ((equal? source "infores:text-mining-provider-targeted") (* 2 score))
+      ((equal? source "infores:semmeddb") (* 0.1 score))
+      ((equal? source "infores:text-mining-provider-targeted") (* 10 score))
       (else score))))
 
 (define (get-score-from-result result)

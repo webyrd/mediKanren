@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.49")
+(define NEO_SERVER_VERSION "1.50")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -61,6 +61,7 @@
      "PUBCHEM.COMPOUND:135499568" ; Double stranded RNA
      "UMLS:C1099354" ; RNA, Small Interfering
      "UMLS:C0376613" ; "Vaccines, DNA"
+     "MESH:D004798" ; Enzymes
      )))
 
 ;; Unsecret-level excluded MVP1 results - answers that is obviously wrong/useless
@@ -1029,9 +1030,28 @@
        ,props_yz)
      (not (member curie_y GENERAL-NODES))]))
 
-(define (not-unwelcome-treatment? e)
+(define (not-unwelcome-answer-as-subject? e)
   (not (member (car e) UNWELCOME-TREATMENT)))
 
+(define (not-unwelcome-answer-as-object? e)
+  (let ((object (match e
+                  [`(,curie_x
+                     ,pred_xy
+                     ,curie_y
+                     ,(? string? pred_yz)
+                     ,(? string? curie_z)
+                     ,props_xy
+                     ,props_yz)
+                   curie_z]
+                  [`(,score
+                     ,curie_x
+                     ,pred_xy
+                     ,curie_y
+                     .
+                     ,props_xy)
+                   curie_y]
+                  [else "UMLS:C0376613"])))
+    (not (member object UNWELCOME-TREATMENT))))
 
 (define (node-has-name-and-cat? curie)
   (let* ((props (curie->properties curie))
@@ -1083,57 +1103,56 @@
             (define disease-ids
               ;; TODO write a chainer in utils, and also check for errors
               (hash-ref (hash-ref qg_nodes qg_object-node-id) 'ids))
-            (define disease-ids+
-              (set->list
-               (get-n-descendent-curies*-in-db
-                (curies->synonyms-in-db disease-ids)
-                MAX_DESCENDENT)))
+            (define disease-ids+ (curies->synonyms-in-db disease-ids))
+            
             (define chemical-catogory+
               (set->list
                (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
                 '("biolink:ChemicalEntity"))))
             ;;
             (define 1-hop-proc
-              (lambda (score*)
-                (filter (lambda (r)
-                          (and (not-semmed-excluded? r)
-                               (not-unwelcome-treatment? r)))
-                        (query:X->Known-scored
-                         chemical-catogory+
-                         '("biolink:treats"
-                           "biolink:treats_or_applied_or_studied_to_treat")
-                         disease-ids+
-                         score*))))
-            ;;
-            (let ((q-1hop (auto-grow 1-hop-proc TOP_BUCKET_NUMBERS MAX_RESULTS_FROM_COMPONENT))
-                  (q-2hop (query:X->Y->Known-auto-grow
+              (lambda (curies)
+                (lambda (score*)
+                  (filter (lambda (r)
+                            (and (not-semmed-excluded? r)
+                                 (not-unwelcome-answer-as-subject? r)))
+                          (query:X->Known-scored
                            chemical-catogory+
-                           '("biolink:affects" "biolink:regulates")
-                           (set->list
-                            (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
-                             '("biolink:Gene" "biolink:GeneOrGeneProduct" "biolink:Protein")))
-                           (set->list
-                            (get-non-deprecated/mixin/abstract-ins-and-descendent-predicates*-in-db
-                             '("biolink:gene_associated_with_condition"
-                               "biolink:contributes_to")))
-                           disease-ids+
-                           TOP_BUCKET_NUMBERS
-                           MAX_RESULTS_FROM_COMPONENT
-                           (lambda (r*) (filter (lambda (r)
-                                                  (and (not-semmed-excluded? r)
-                                                       (not-general-connector? r)
-                                                       (not-unwelcome-treatment? r)))
-                                                r*)))))
+                           '("biolink:treats"
+                             "biolink:treats_or_applied_or_studied_to_treat")
+                           curies
+                           score*)))))
+            (define 2-hop-proc
+              (lambda (curies)
+                (lambda (score* result-amount)
+                  (query:X->Y->Known-auto-grow
+                   chemical-catogory+
+                   '("biolink:affects" "biolink:regulates")
+                   (set->list
+                    (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
+                     '("biolink:Gene" "biolink:GeneOrGeneProduct" "biolink:Protein")))
+                   (set->list
+                    (get-non-deprecated/mixin/abstract-ins-and-descendent-predicates*-in-db
+                     '("biolink:gene_associated_with_condition"
+                       "biolink:contributes_to")))
+                   curies
+                   score*
+                   result-amount
+                   (lambda (r*) (filter (lambda (r)
+                                          (and (not-semmed-excluded? r)
+                                               (not-general-connector? r)
+                                               (not-unwelcome-answer-as-subject? r)))
+                                        r*))))))
+            ;;
+            (let ((q-1hop (auto-grow-with-class-hierarchy #t 1-hop-proc TOP_BUCKET_NUMBERS disease-ids+ (/ MAX_RESULTS_FROM_COMPONENT 2)))
+                  (q-2hop (auto-grow-with-class-hierarchy #f 2-hop-proc TOP_BUCKET_NUMBERS disease-ids+ (/ MAX_RESULTS_FROM_COMPONENT 2))))
               (list disease-ids q-1hop q-2hop))]
            [(eq? 'mvp2-chem which-mvp)
             ;;
             (define chemical-ids
               (hash-ref (hash-ref qg_nodes qg_subject-node-id) 'ids))
-            (define chemical-ids+
-              (time (set->list
-                     (get-n-descendent-curies*-in-db
-                      (curies->synonyms-in-db chemical-ids)
-                      MAX_DESCENDENT))))
+            (define chemical-ids+ (curies->synonyms-in-db chemical-ids))
+            
             (define direction
               (let ((qualifer-set
                      (hash-ref (car (hash-ref qg_edge-hash 'qualifier_constraints)) 'qualifier_set)))
@@ -1147,33 +1166,40 @@
                 '("biolink:Gene" "biolink:Protein"))))
             ;;
             (define 1-hop-proc
-              (lambda (score*)
-                (filter not-semmed-excluded?
-                        (mvp2-1hop-filter
-                         (query:Known->X-scored
-                          chemical-ids+
-                          '("biolink:affects")
-                          gene-category+
-                          score*)
-                         direction))))
-            ;;
-            (let* ((qualified-q-1hop (auto-grow 1-hop-proc TOP_BUCKET_NUMBERS MAX_RESULTS_FROM_COMPONENT))
-                   (qualified-q-2hop
-                    (query:Known->Y->X-auto-grow
-                     chemical-ids+
-                     (set->list
-                      (get-non-deprecated/mixin/abstract-ins-and-descendent-predicates*-in-db
-                       '("biolink:affects" "biolink:interacts_with")))
-                     (set->list
-                      (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
-                       '("biolink:Gene" "biolink:GeneOrGeneProduct" "biolink:Protein")))
-                     '("biolink:affects")
-                     gene-category+
-                     TOP_BUCKET_NUMBERS
-                     MAX_RESULTS_FROM_COMPONENT
-                     (lambda (r*) (filter (lambda (r) (and (not-semmed-excluded? r)
-                                                           (not-general-connector? r)))
-                                            (mvp2-2hop-filter r* direction))))))
+              (lambda (curies)
+                (lambda (score*)
+                  (filter (lambda (r)
+                            (and (not-semmed-excluded? r)
+                                 (not-unwelcome-answer-as-object? r)))
+                          (mvp2-1hop-filter
+                           (query:Known->X-scored
+                            curies
+                            '("biolink:affects")
+                            gene-category+
+                            score*)
+                           direction)))))
+            (define 2-hop-proc
+              (lambda (curies)
+                (lambda (score* result-amount)
+                  (query:Known->Y->X-auto-grow
+                   curies
+                   (set->list
+                    (get-non-deprecated/mixin/abstract-ins-and-descendent-predicates*-in-db
+                     '("biolink:affects" "biolink:interacts_with")))
+                   (set->list
+                    (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
+                     '("biolink:Gene" "biolink:GeneOrGeneProduct" "biolink:Protein")))
+                   '("biolink:affects")
+                   gene-category+
+                   score*
+                   result-amount
+                   (lambda (r*) (filter (lambda (r) (and (not-semmed-excluded? r)
+                                                         (not-general-connector? r)
+                                                         (not-unwelcome-answer-as-object? r)))
+                                        (mvp2-2hop-filter r* direction)))))))
+  
+            (let* ((qualified-q-1hop (auto-grow-with-class-hierarchy #t 1-hop-proc TOP_BUCKET_NUMBERS chemical-ids+ (/ MAX_RESULTS_FROM_COMPONENT 2)))
+                   (qualified-q-2hop (auto-grow-with-class-hierarchy #f 2-hop-proc TOP_BUCKET_NUMBERS chemical-ids+ (/ MAX_RESULTS_FROM_COMPONENT 2))))
               (list chemical-ids qualified-q-1hop qualified-q-2hop))]
            [(eq? 'mvp2-gene which-mvp)
             ;;
@@ -1189,13 +1215,9 @@
                        '("biolink:Protein")))
                      '("biolink:gene_product_of")
                      gene-ids-syns
-                     ;; TODO: give names to #f and (list 0) - easy to read
                      (list (list 1112) #f (list 1112))))))
-            (define gene-ids+
-                (set->list
-                 (get-n-descendent-curies*-in-db
-                  (append gene-ids-syns (curies->synonyms-in-db protein-ids))
-                  MAX_DESCENDENT)))
+            (define gene-ids+ (remove-duplicates (append gene-ids-syns (curies->synonyms-in-db protein-ids))))
+            
             (define chemical-catogory+
               (set->list
                (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
@@ -1209,34 +1231,41 @@
                       (loop (cdr l))))))
             ;;
             (define 1-hop-proc
-              (lambda (score*)
-                (filter not-semmed-excluded?
-                        (mvp2-1hop-filter
-                         (query:X->Known-scored
-                          chemical-catogory+
-                          '("biolink:affects")
-                          gene-ids+
-                          score*)
-                         direction))))
+              (lambda (curies)
+                (lambda (score*)
+                  (filter (lambda (r)
+                            (and (not-semmed-excluded? r)
+                                 (not-unwelcome-answer-as-subject? r)))
+                          (mvp2-1hop-filter
+                           (query:X->Known-scored
+                            chemical-catogory+
+                            '("biolink:affects")
+                            curies
+                            score*)
+                           direction)))))
+            (define 2-hop-proc
+              (lambda (curies)
+                (lambda (score* result-amount)
+                  (query:X->Y->Known-auto-grow
+                   chemical-catogory+
+                   (set->list
+                    (get-non-deprecated/mixin/abstract-ins-and-descendent-predicates*-in-db
+                     '("biolink:affects"  "biolink:interacts_with")))
+                   (set->list
+                    (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
+                     '("biolink:Gene" "biolink:GeneOrGeneProduct" "biolink:Protein")))
+                   '("biolink:affects")
+                   curies
+                   score*
+                   result-amount
+                   (lambda (r*) (filter (lambda (r)
+                                          (and (not-semmed-excluded? r)
+                                               (not-general-connector? r)
+                                               (not-unwelcome-answer-as-subject? r)))
+                                        (mvp2-2hop-filter r* direction)))))))
             ;;
-            (let* ((qualified-q-1hop (auto-grow 1-hop-proc TOP_BUCKET_NUMBERS MAX_RESULTS_FROM_COMPONENT))
-                   (qualified-q-2hop
-                    (query:X->Y->Known-auto-grow
-                     chemical-catogory+
-                     (set->list
-                      (get-non-deprecated/mixin/abstract-ins-and-descendent-predicates*-in-db
-                       '("biolink:affects"  "biolink:interacts_with")))
-                     (set->list
-                      (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
-                       '("biolink:Gene" "biolink:GeneOrGeneProduct" "biolink:Protein")))
-                     '("biolink:affects")
-                     gene-ids+
-                     TOP_BUCKET_NUMBERS
-                     MAX_RESULTS_FROM_COMPONENT
-                     (lambda (r*) (filter (lambda (r)
-                                            (and (not-semmed-excluded? r)
-                                                 (not-general-connector? r)))
-                                          (mvp2-2hop-filter r* direction))))))
+            (let* ((qualified-q-1hop (auto-grow-with-class-hierarchy #t 1-hop-proc TOP_BUCKET_NUMBERS gene-ids+ (/ MAX_RESULTS_FROM_COMPONENT 2)))
+                   (qualified-q-2hop (auto-grow-with-class-hierarchy #f 2-hop-proc TOP_BUCKET_NUMBERS gene-ids+ (/ MAX_RESULTS_FROM_COMPONENT 2))))
               (list gene-ids qualified-q-1hop qualified-q-2hop))])))
 
       (define q-1hop-unique-results (remove-duplicates q-1hop-results))
@@ -1245,9 +1274,24 @@
       (printf "computed ~s look-up edges and ~s inferred edges for MVP mode creative query\n"
               (length q-1hop-unique-results) (length q-2hop-unique-results))
 
+      #|
+       weights = {
+        'class-hierarchy': 0.3,
+        'edge-score: 0.3,
+        'hop-count': 0.2,
+        'predicate-type': 0.2
+       }
+      class-hierarchy-values = 10 * 1/level. self: 10*1/1=10; child: 10*1/2=5; grandchild: 10*1/3=3.33 ...
+      hop-count-values = mvp1: {'look-up': 3, '1 hops': 2, ' 2 hops': 1}
+                         mvp2: {'look-up': 50, '1 hops': 40, ' 2 hops': 1}
+      predicate-type-values = {'causation': 3, 'association': 2, 'other': 1}
+      |#
+      (define causation-prediates (get-non-deprecated/mixin/abstract-ins-and-descendent-predicates*-in-db '("biolink:contributes_to" "biolink:affects")))
+      (define association-predicates (get-non-deprecated/mixin/abstract-ins-and-descendent-predicates*-in-db '("biolink:gene_associated_with_condition" "biolink:interacts_with")))
       (define (score-mvp-edge e)
         (match e
-          [`(,curie_x
+          [`(,hierarchy
+             ,curie_x
              ,pred_xy
              ,curie_y
              ,(? string? pred_yz)
@@ -1256,27 +1300,48 @@
              ,props_yz)
            (if (and (edge-has-source? props_xy)
                     (edge-has-source? props_yz))
-               (sqrt (* (num-pubs props_xy) (num-pubs props_yz)))
+               (let ((class-hierarchy-values (* 10 (/ 1  hierarchy)))
+                     (hop-count-values 1)
+                     (predicate-type-values (if (eq? which-mvp 'mvp1)
+                                                (cond
+                                                  [(set-member? causation-prediates pred_yz) 3]
+                                                  [(set-member? association-predicates pred_yz) 2]
+                                                  [else 1])
+                                                (cond
+                                                  [(set-member? causation-prediates pred_xy) 3]
+                                                  [(set-member? association-predicates pred_xy) 2]
+                                                  [else 1])))
+                     (edge-score (sqrt (* (num-pubs props_xy) (num-pubs props_yz)))))
+                 (+ (* 0.3 class-hierarchy-values) (* 0.3 edge-score) (* 0.2 hop-count-values) (* 0.2 predicate-type-values)))
                #f)]
-          [`(,curie_x
+          [`(,hierarchy
+             ,curie_x
              ,pred_xy
              ,curie_y
              .
              ,props_xy)
            (if (edge-has-source? props_xy)
-               (num-pubs props_xy)
+               (let ((class-hierarchy-values (* 10 (/ 1  hierarchy)))
+                     (hop-count-values
+                      (if (eq? which-mvp 'mvp1)
+                          (if (equal? pred_xy qg_predicate-str) 3 2)
+                          (let ((aspect (get-assoc "object_aspect_qualifier" props_xy)))
+                            (if (member aspect '("activity" "abundance" "activity_or_abundance")) 50 40))))                  
+                     (predicate-type-values 3)
+                     (edge-score (num-pubs props_xy)))
+                 (+ (* 0.3 class-hierarchy-values) (* 0.3 edge-score) (* 0.2 hop-count-values) (* 0.2 predicate-type-values)))
                #f)]))
 
       (define scored/q-1hop-unsorted-long
         (filter (lambda (scored/r) (car scored/r))
                 (map
-                 (lambda (e) (cons (score-mvp-edge e) e))
+                 (lambda (e) (cons (score-mvp-edge e) (cdr e)))
                  q-1hop-unique-results)))
 
       (define scored/q-2hop-unsorted-long
         (filter (lambda (scored/r) (car scored/r))
                 (map
-                 (lambda (e) (cons (score-mvp-edge e) e))
+                 (lambda (e) (cons (score-mvp-edge e) (cdr e)))
                  q-2hop-unique-results)))
 
       (define by-score
@@ -1288,26 +1353,31 @@
       (define scored/q-1hop-sorted-long
         (sort scored/q-1hop-unsorted-long by-score))
 
+      (define scored/q-2hop-sorted-long
+        (sort scored/q-2hop-unsorted-long by-score))
+
       (define scored/q-1hop-sorted-short (take-at-most scored/q-1hop-sorted-long (exact-round (/ MAX_RESULTS_FROM_COMPONENT 2.0))))
+      (define scored/q-2hop-sorted-short (take-at-most scored/q-2hop-sorted-long (exact-round (/ MAX_RESULTS_FROM_COMPONENT 2.0))))
 
       (printf "computed ~s valid 1 hop edges for MVP mode creative query\n" (length scored/q-1hop-sorted-short))
+      (printf "computed ~s valid 2 hop edges for MVP mode creative query\n" (length scored/q-2hop-sorted-short))
 
-      (define scored/q-unsorted-long (append scored/q-1hop-sorted-short scored/q-2hop-unsorted-long))
+      (define scored/q-unsorted-short (append scored/q-1hop-sorted-short scored/q-2hop-sorted-short))
 
       (printf "computed total ~s valid edges for MVP mode creative query\n"
-              (length scored/q-unsorted-long))
+              (length scored/q-unsorted-short))
 
-      (define scored/q-sorted-long
-        (sort scored/q-unsorted-long by-score))
+      (define old-scored/q-sorted-short
+        (sort scored/q-unsorted-short by-score))
 
-      (define old-scored/q-sorted-short (take-at-most scored/q-sorted-long MAX_RESULTS_FROM_COMPONENT))
+      #;(define old-scored/q-sorted-short (take-at-most scored/q-sorted-long MAX_RESULTS_FROM_COMPONENT))
 
-      (define subjs-from-results (remove-duplicates (map cadr old-scored/q-sorted-short)))
-      (define objs-from-results (remove-duplicates (map (lambda (e) (get-object e)) old-scored/q-sorted-short)))
+      (define subjs-from-2hop-results (remove-duplicates (map cadr scored/q-2hop-sorted-short)))
+      (define objs-from-2hop-results (remove-duplicates (map (lambda (e) (get-object e)) scored/q-2hop-sorted-short)))
       
       (when (eq? which-mvp 'mvp1)
-        (let* ((chemicals (remove-duplicates (curies->synonyms-in-db subjs-from-results)))
-               (disease-id+ (remove-duplicates (curies->synonyms-in-db objs-from-results)))
+        (let* ((chemicals (remove-duplicates (curies->synonyms-in-db subjs-from-2hop-results)))
+               (disease-id+ (remove-duplicates (curies->synonyms-in-db objs-from-2hop-results)))
                (chem-worsen-disease (remove-duplicates
                                      (curies->synonyms-in-db
                                       (map car 
@@ -1325,6 +1395,9 @@
       (printf "Toke the best ~s edges for MVP mode creative query\n"
               (length old-scored/q-sorted-short))
 
+      (define subjs-from-results (remove-duplicates (map cadr old-scored/q-sorted-short)))
+      (define objs-from-results (remove-duplicates (map (lambda (e) (get-object e)) old-scored/q-sorted-short)))
+      
       (define curie-representative-table (add-curies-representative-to-hash
                                           (build-curies-representative-hash subjs-from-results)
                                           objs-from-results))

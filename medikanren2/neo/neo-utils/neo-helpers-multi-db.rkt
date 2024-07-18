@@ -22,6 +22,7 @@
  take-at-most
  ;;
  auto-grow
+ auto-grow-with-class-hierarchy
  )
 (require
  "../neo-low-level/query-low-level-multi-db.rkt"
@@ -127,5 +128,35 @@
                    (if (= (length r) (length new-r))
                        r
                        (loop new-r not-classification-type))))))))
-             
-    
+
+(define (get-next-descendent-curies* curies)
+  (let* ((children (remove-duplicates
+                    (map car
+                         (filter
+                          (lambda (e) (not (edge-from-source e "infores:medrt-umls")))
+                          (query:X->Known-scored
+                           #f
+                           (list "biolink:subclass_of")
+                           curies
+                           (list (list 1111) #f (list 1111)))))))
+         (not-classification-type-children (filter (lambda (c) (not (curie-is-type? c "STY:T185"))) children)))
+    not-classification-type-children))
+
+(define (auto-grow-with-class-hierarchy 1hop? proc-template score* self-curie* result-amount)
+  (let loop ((r '()) (hierarchy 1) (desired-size result-amount) (c* self-curie*) (seen-curies '()))
+    (cond
+      [(or (< desired-size 0) (= desired-size 0)) r]
+      [(null? c*) r]
+      [else
+       (let* ((proc (proc-template c*))
+              (new-results (if 1hop? (auto-grow proc score* desired-size) (proc score* desired-size)))
+              (new-results-with-hierarchy-property (map (lambda (r) (cons hierarchy r)) new-results))
+              (new-results-size (length new-results-with-hierarchy-property))
+              (next-descendent (get-next-descendent-curies* c*))
+              (next-descendent (filter (lambda (c) (not (member c seen-curies))) next-descendent)))
+         (loop (append r new-results-with-hierarchy-property)
+               (+ hierarchy 1)
+               (- desired-size new-results-size)
+               next-descendent
+               (append seen-curies next-descendent)
+               ))])))

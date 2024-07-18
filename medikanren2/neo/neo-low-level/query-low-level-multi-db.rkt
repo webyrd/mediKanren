@@ -410,7 +410,6 @@
 
 (define (query:X->Y->Known-auto-grow
          category*.X predicate*.X->Y category*.Y predicate*.Y->K curie*.K score* result_amount result-filter)
-  (define half-result (exact-round (/ result_amount 2.0)))
   (define (helper YK XY curie-rep-hash score*)
     (let* ((Y=>YK=>1 (result*->dict car YK curie-rep-hash))
            (Y=>XY=>1 (result*->dict caddr XY curie-rep-hash))
@@ -429,7 +428,7 @@
                           XY*))))))
            (result (result-filter result)))
       (cond
-        [(> (length result) half-result)
+        [(> (length result) result_amount)
          (printf "return ~a answers\n" (length result))
          result]
         [(andmap not score*)
@@ -453,7 +452,6 @@
 
 (define (query:Known->Y->X-auto-grow
          curie*.K predicate*.K->Y category*.Y predicate*.Y->X category*.X score* result_amount result-filter)
-  (define half-result (exact-round (/ result_amount 2.0)))
   (define (helper KY YX curie-rep-hash score*)
     (let* ((Y=>KY=>1 (result*->dict caddr KY curie-rep-hash))
            (Y=>YX=>1 (result*->dict car YX curie-rep-hash))
@@ -472,7 +470,7 @@
                           YX*))))))
            (result (result-filter result)))
       (cond
-        [(> (length result) half-result)
+        [(> (length result) result_amount)
          (printf "return ~a answers\n" (length result))
          result]
         [(andmap not score*)
