@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.51")
+(define NEO_SERVER_VERSION "1.52")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -113,6 +113,7 @@
 (define 200_OK_STRING "200 OK")
 (define 408_ERROR_STRING "408 Request Timeout")
 (define 500_ERROR_STRING "500 Internal Server Error")
+(define 501_ERROR_STRING "501 Not Implemented Error")
 
 (define-runtime-path path:root ".")
 (define (path/root relative-path) (build-path path:root relative-path))
@@ -1947,7 +1948,7 @@
 
       (list
        'json
-       200_OK_STRING
+       501_ERROR_STRING
        trapi-response)
       ))
 
@@ -1989,7 +1990,7 @@
 
       (list
        'json
-       200_OK_STRING
+       501_ERROR_STRING
        trapi-response)
       ))
 
