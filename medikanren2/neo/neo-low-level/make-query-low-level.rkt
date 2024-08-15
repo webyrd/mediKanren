@@ -21,6 +21,7 @@
 
 (define (make-query-low-level
          db-path-under-parent ;; for example, "rtx-kg2/pre_2.8.0/rtx-kg2pre_2.8.0.db"
+         kg-infores
          )
 
   (pretty-log `(In make-query-low-level for)
@@ -94,17 +95,18 @@
   (define (curie->properties curie)
     (enumerator->list
      (lambda (yield)
-       ((dict-enumerator (dict-get curie=>ckey=>cvalue=>1 (string->id curie)))
+       ((dict-enumerator (dict-get-safe curie=>ckey=>cvalue=>1 (string->id curie) dict.empty))
         (lambda (ckey cvalue=>1)
           (yield (map id->string (cons ckey (enumerator->list
                                              (dict-key-enumerator cvalue=>1))))))))))
   (define (edge-id->properties eid)
-    (enumerator->list
-     (lambda (yield)
-       ((dict-enumerator (dict-get eid=>ekey=>evalue=>1 eid))
-        (lambda (ekey evalue=>1)
-          (yield (map id->string (cons ekey (enumerator->list
-                                             (dict-key-enumerator evalue=>1))))))))))
+    (cons (list "upstream_resource_ids" (list kg-infores))
+          (enumerator->list
+           (lambda (yield)
+             ((dict-enumerator (dict-get eid=>ekey=>evalue=>1 eid))
+              (lambda (ekey evalue=>1)
+                (yield (map id->string (cons ekey (enumerator->list
+                                                   (dict-key-enumerator evalue=>1)))))))))))
 
   (define (query:Known->X curie*.K predicate*.K->X category*.X)
     (define (query. yield)
@@ -381,13 +383,11 @@
   (define (query:dict.Known->dict.Known curie=>1.S predicate*.S->O curie=>1.O direction-tag)
     (define (query.sub->obj yield)
       (let* ((ekey.predicate    (string->id str.predicate))
-             (ckey.name         (string->id "name"))
              (predicate=>1      (string*->id=>1 predicate*.S->O))
              (predicate=>eid=>1 (dict-get ekey=>evalue=>eid=>1 ekey.predicate)))
         ((merge-join fx< curie=>1.S subject=>eid=>object=>1)
          (lambda (id.S __ eid=>O=>1)
-           (let* ((name.S (get-name-from-dict-safe (dict-get curie=>ckey=>cvalue=>1 id.S) ckey.name))
-                  (S      (id->string id.S)))
+           (let* ((S      (id->string id.S)))
              ((merge-join fx< predicate=>1 predicate=>eid=>1)
               (lambda (id.predicate.S->O __ eid=>1)
                 (let ((predicate.S->O (id->string id.predicate.S->O)))
@@ -395,20 +395,15 @@
                    (lambda (eid __ O=>1)
                      ((merge-join fx< curie=>1.O O=>1)
                       (lambda (id.O __ ___)
-                        (let* ((name.O (get-name-from-dict-safe (dict-get curie=>ckey=>cvalue=>1 id.O)
-                                                                ckey.name))
-                               (O      (id->string id.O)))
-                          (yield (list* S name.S predicate.S->O O name.O
-                                        (edge-id->properties eid))))))))))))))))
+                        (let* ((O      (id->string id.O)))
+                          (yield (list* S predicate.S->O O (edge-id->properties eid))))))))))))))))
     (define (query.obj->sub yield)
       (let* ((ekey.predicate    (string->id str.predicate))
-             (ckey.name         (string->id "name"))
              (predicate=>1      (string*->id=>1 predicate*.S->O))
              (predicate=>eid=>1 (dict-get ekey=>evalue=>eid=>1 ekey.predicate)))
         ((merge-join fx< curie=>1.O object=>eid=>subject=>1)
          (lambda (id.O __ eid=>S=>1)
-           (let* ((name.O (get-name-from-dict-safe (dict-get curie=>ckey=>cvalue=>1 id.O) ckey.name))
-                  (O      (id->string id.O)))
+           (let* ((O      (id->string id.O)))
              ((merge-join fx< predicate=>1 predicate=>eid=>1)
               (lambda (id.predicate.O->S __ eid=>1)
                 (let ((predicate.O->S (id->string id.predicate.O->S)))
@@ -416,11 +411,8 @@
                    (lambda (eid __ S=>1)
                      ((merge-join fx< curie=>1.S S=>1)
                       (lambda (id.S __ ___)
-                        (let* ((name.S (get-name-from-dict-safe (dict-get curie=>ckey=>cvalue=>1 id.S)
-                                                                ckey.name))
-                               (S      (id->string id.S)))
-                          (yield (list* S name.S predicate.O->S O name.O
-                                        (edge-id->properties eid))))))))))))))))
+                        (let* ((S      (id->string id.S)))
+                          (yield (list* S predicate.O->S O (edge-id->properties eid))))))))))))))))
     (cond
       [(eq? direction-tag 'obj->sub) (maybe-time (enumerator->rlist query.obj->sub))]
       [(eq? direction-tag 'sub->obj) maybe-time (enumerator->rlist query.sub->obj)]

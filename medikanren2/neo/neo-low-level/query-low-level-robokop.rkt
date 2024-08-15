@@ -23,7 +23,8 @@
  "make-query-low-level.rkt"
  racket/match)
  
-(define db-path-under-parent "robokop-may-9-2024/march-7-2024/robokop.db")
+#;(define db-path-under-parent "robokop-may-9-2024/march-7-2024/robokop.db")
+(define db-path-under-parent "robokop-aug-6-2024/july-31-2024/robokop.db")
 
 (match-define
   (list
@@ -46,4 +47,4 @@
    edge-id->properties
    get-highest-bucket-number
    )
-  (make-query-low-level db-path-under-parent))
+  (make-query-low-level db-path-under-parent "infores:robokop-kg"))

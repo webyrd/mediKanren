@@ -10,19 +10,23 @@
          minus-one-before-zero
          find-max-number
          get-source
+         UNSECRET-SOURCE
          num-pubs
          get-score-from-result
          set-score-in-result
          normalize-scores
          edge-has-source?
-         data-attributes
+         publication-attributes
          auxiliary-graph-attribute
+         qualifier-attribute*
          merge-trapi-responses
          semantic-exclude*
          domain-exclude*
          range-exclude*
          get-object
          get-and-print-qualifiers
+         Unsecret-agent-type-attribute
+         Unsecret-knowledge-level-attribute
          agent-type-attribute
          knowledge-level-attribute
          )
@@ -59,19 +63,18 @@
         '())))
 
 (define mvp2-filter
-  (lambda (target-eprop direction)
+  (lambda (target-eprop direction care-aspect?)
     (let* ((aspect (get-assoc "object_aspect_qualifier" target-eprop))
            (direction^ (get-assoc "object_direction_qualifier" target-eprop)))
-      (and
-       aspect
-       direction^
-       (or
-        (equal? "activity" aspect)
-        (equal? "abundance" aspect)
-        (equal? "activity_or_abundance" aspect)
-        (equal? "expression" aspect)
-        (equal? "synthesis" aspect))
-       (equal? direction direction^)))))
+      (if care-aspect?
+          (and
+           aspect
+           direction^
+           (member aspect '("activity" "abundance" "activity_or_abundance" "expression" "synthesis"))
+           (equal? direction direction^))
+          (and
+           direction^
+           (equal? direction direction^))))))
 
 #|
 A increases B increases C = A increases C
@@ -92,17 +95,21 @@ A decreases B increases C = A decreases C
             ,(? string? curie_z)
             ,props_xy
             ,props_yz)
-          (if (equal? direction "increased")
-              (or
-               (and (mvp2-filter props_xy "increased")
-                    (mvp2-filter props_yz "increased"))
-               (and (mvp2-filter props_xy "decreased")
-                    (mvp2-filter props_yz "decreased")))
-              (or
-               (and (mvp2-filter props_xy "increased")
-                    (mvp2-filter props_yz "decreased"))
-               (and (mvp2-filter props_xy "decreased")
-                    (mvp2-filter props_yz "increased"))))]
+          (if (equal? pred_xy "biolink:affects")
+              (if (equal? direction "increased")
+                  (or
+                   (and (mvp2-filter props_xy "increased" #f)
+                        (mvp2-filter props_yz "increased" #t))
+                   (and (mvp2-filter props_xy "decreased" #f)
+                        (mvp2-filter props_yz "decreased" #t)))
+                  (or
+                   (and (mvp2-filter props_xy "increased" #f)
+                        (mvp2-filter props_yz "decreased" #t))
+                   (and (mvp2-filter props_xy "decreased" #f)
+                        (mvp2-filter props_yz "increased" #t))))
+              (if (equal? direction "increased")
+                  (mvp2-filter props_yz "increased" #t)
+                  (mvp2-filter props_yz "decreased" #t)))]
          [else #f]))
      e*)))
 
@@ -111,7 +118,7 @@ A decreases B increases C = A decreases C
     (filter
      (lambda (e)
        (let-values ([(_ eprop) (split-at e 3)])
-         (mvp2-filter eprop direction)))
+         (mvp2-filter eprop direction #t)))
      q)))
 
 (define find-max-number
@@ -125,14 +132,13 @@ A decreases B increases C = A decreases C
              (loop (cdr n*) greatest)))))))
 
 (define (get-source-helper props)
-  (or (get-assoc "primary_knowledge_source" props) 
-      (and (get-assoc "json_attributes" props)
-           "infores:text-mining-provider-targeted")))
+  (get-assoc "primary_knowledge_source" props))
 
 (define (get-source props)
-    (hash
-      'resource_id (get-source-helper props)
-      'resource_role "primary_knowledge_source"))
+  (hash
+   'type "biolink:RetrievalSource"
+   'resource_id (get-source-helper props)
+   'resource_role "primary_knowledge_source"))
 
 (define (num-pubs props)
   (let ((score (string->number (get-assoc "mediKanren-score" props)))
@@ -141,6 +147,13 @@ A decreases B increases C = A decreases C
       ((equal? source "infores:semmeddb") (* 0.1 score))
       ((equal? source "infores:text-mining-provider-targeted") (* 10 score))
       (else score))))
+
+(define (UNSECRET-SOURCE prop)
+  (hash
+   'type "biolink:RetrievalSource"
+   'resource_id "infores:unsecret-agent"
+   'resource_role "aggregator_knowledge_source"
+   'upstream_resource_ids (get-assoc "upstream_resource_ids" prop)))
 
 (define (get-score-from-result result)
   (let ((analyses (hash-ref result 'analyses #f)))
@@ -165,21 +178,10 @@ A decreases B increases C = A decreases C
             results
             (map (lambda (x) (set-score-in-result x (/ (get-score-from-result x) (* 1.0 max-score)))) results)))))
 
-(define edge-has-source?
-  (lambda (props)
-    (or (get-assoc "primary_knowledge_source" props)
-        (and (get-assoc "json_attributes" props)
-             (let ((attr-hl (string->jsexpr (get-assoc "json_attributes" props))))
-               (let loop ((hl attr-hl))
-                 (cond
-                   ((null? hl) #f)
-                   ((equal?
-                     (hash-ref (car hl) 'attribute_type_id #f)
-                     "biolink:primary_knowledge_source")
-                    #t)
-                   (else (loop (cdr hl))))))))))
+(define (edge-has-source? props)
+  (get-source-helper props))
 
-(define (data-attributes props has-pub?)
+(define (publication-attributes props has-pub?)
   (if has-pub?
     (list (get-publications props))
     (list)))
@@ -190,8 +192,7 @@ A decreases B increases C = A decreases C
       (cond
         [(null? props) pubs]
         [else
-         (let ((publication (or (get-assoc "publications" (car props))
-                                (get-assoc "supporting_publications" (car props)))))
+         (let ((publication (get-assoc "publications" (car props))))
            (helper (cdr props)
                    (append 
                     (cond
@@ -215,17 +216,39 @@ A decreases B increases C = A decreases C
      'attribute_type_id "biolink:support_graphs"
      'value (list id))))
 
-(define agent-type-attribute
+(define (qualifier-attribute* qualifier-name props)
+  (let ((qualifer (get-assoc qualifier-name props)))
+    (if qualifer
+        (list (hash 'qualifier_type_id (string-append "biolink:" qualifier-name)
+              'qualifier_value qualifer))
+        '())))
+        
+
+(define Unsecret-agent-type-attribute
   (hash
    'attribute_type_id "biolink:agent_type"
    'value "computational_model"
    'attribute_source "infores:unsecret-agent"))
 
-(define knowledge-level-attribute
+(define Unsecret-knowledge-level-attribute
   (hash
    'attribute_type_id "biolink:knowledge_level"
    'value "prediction"
    'attribute_source "infores:unsecret-agent"))
+
+(define (agent-type-attribute prop)
+  (let* ((edge-from-tmkg? (get-assoc "json_attributes" prop))
+         (agent-type (if edge-from-tmkg? "text_mining_agent" (get-assoc "agent_type" prop))))
+        (hash
+         'attribute_type_id "biolink:agent_type"
+         'value agent-type)))
+
+(define (knowledge-level-attribute prop)
+  (let* ((edge-from-tmkg? (get-assoc "json_attributes" prop))
+         (knowledge-level (if edge-from-tmkg? "not_provided" (get-assoc "knowledge_level" prop))))
+        (hash
+         'attribute_type_id "biolink:knowledge_level"
+         'value knowledge-level)))
 
 ;; TODO: test it with calling out Genetics KP
 (define (merge-trapi-responses r1 r2 original-query_graph)

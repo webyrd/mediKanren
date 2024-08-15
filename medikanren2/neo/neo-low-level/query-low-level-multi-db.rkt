@@ -513,10 +513,11 @@
    (curie-in-db?-rtx-kg2 curie)))
 
 (define (curies-in-db curie*)
+  (remove-duplicates
    (append
     (curies-in-db-robokop curie*)
     (curies-in-db-text-mining curie*)
-    (curies-in-db-rtx-kg2 curie*)))
+    (curies-in-db-rtx-kg2 curie*))))
 
 (define (curie->properties curie)
   (append

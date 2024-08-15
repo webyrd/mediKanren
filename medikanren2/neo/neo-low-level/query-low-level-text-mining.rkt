@@ -23,7 +23,8 @@
  "make-query-low-level.rkt"
  racket/match)
 
-(define db-path-under-parent "text-mining-apr-5-2024/apr_2_2024/text_mining.db")
+(define db-path-under-parent "text-mining-aug-5-2024/aug_5_2024/text_mining.db")
+#;(define db-path-under-parent "text-mining-apr-5-2024/apr_2_2024/text_mining.db")
 
 (match-define
   (list
@@ -46,4 +47,4 @@
    edge-id->properties
    get-highest-bucket-number
    )
-  (make-query-low-level db-path-under-parent))
+  (make-query-low-level db-path-under-parent  "infores:text-mining-provider-targeted"))

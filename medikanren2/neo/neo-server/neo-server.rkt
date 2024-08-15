@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.52")
+(define NEO_SERVER_VERSION "1.53")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.
@@ -980,11 +980,6 @@
     (let ((score-one-result (make-score-result n)))
       (map (lambda (h i) (set-score-in-result h (score-one-result h i))) results (iota n)))))
 
-(define UNSECRET-SOURCE
-  (hash
-      'resource_id "infores:unsecret-agent"
-      'resource_role "aggregator_knowledge_source"))
-
 (define (excluded-semmed-edge? prop)
   (let ((source (get-assoc "primary_knowledge_source" prop))) ;only rkx-kg2 has semmed edge
     (and (equal? source "infores:semmeddb")
@@ -1054,7 +1049,7 @@
                   [else "UMLS:C0017337"])))
     (not (member object GENERAL-NODES))))
 
-(define (node-has-name-and-cat? curie)
+(define (node-has-cat? curie)
   (let* ((props (curie->properties curie))
          (categories (list-assoc "category" props))
          (categories (filter
@@ -1062,9 +1057,11 @@
                         (not (or
                               (class-mixin? c)
                               (class-abstract? c))))
-                      categories))
-         (name (get-assoc "name" props)))
-    (and (not (null? categories)) name)))
+                      categories)))
+    (not (null? categories))))
+
+(define (same-concept? c1 c2)
+  (equal? (curie->representative c1) (curie->representative c2)))
 
 (define (handle-mvp-creative-query body-json message query_graph edges nodes which-mvp)
 
@@ -1120,7 +1117,8 @@
                           (query:X->Known-scored
                            chemical-catogory+
                            '("biolink:treats"
-                             "biolink:treats_or_applied_or_studied_to_treat")
+                             "biolink:treats_or_applied_or_studied_to_treat"
+                             "biolink:ameliorates_condition")
                            curies
                            score*)))))
             (define 2-hop-proc
@@ -1132,10 +1130,10 @@
                    (set->list
                     (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
                      '("biolink:Gene" "biolink:GeneOrGeneProduct" "biolink:Protein")))
-                   (set->list
-                    (get-non-deprecated/mixin/abstract-ins-and-descendent-predicates*-in-db
-                     '("biolink:gene_associated_with_condition"
-                       "biolink:contributes_to")))
+                   '("biolink:contributes_to"
+                     "biolink:gene_associated_with_condition"
+                     "biolink:causes"
+                     "biolink:target_for")
                    curies
                    score*
                    result-amount
@@ -1184,9 +1182,10 @@
                 (lambda (score* result-amount)
                   (query:Known->Y->X-auto-grow
                    curies
-                   (set->list
-                    (get-non-deprecated/mixin/abstract-ins-and-descendent-predicates*-in-db
-                     '("biolink:affects" "biolink:interacts_with")))
+                   '("biolink:affects"
+                     "biolink:physically_interacts_with"
+                     "biolink:indirectly_physically_interacts_with"
+                     "biolink:directly_physically_interacts_with")
                    (set->list
                     (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
                      '("biolink:Gene" "biolink:GeneOrGeneProduct" "biolink:Protein")))
@@ -1249,9 +1248,10 @@
                 (lambda (score* result-amount)
                   (query:X->Y->Known-auto-grow
                    chemical-catogory+
-                   (set->list
-                    (get-non-deprecated/mixin/abstract-ins-and-descendent-predicates*-in-db
-                     '("biolink:affects"  "biolink:interacts_with")))
+                   '("biolink:affects"
+                     "biolink:physically_interacts_with"
+                     "biolink:indirectly_physically_interacts_with"
+                     "biolink:directly_physically_interacts_with")
                    (set->list
                     (get-non-deprecated/mixin/abstract-ins-and-descendent-classes*-in-db
                      '("biolink:Gene" "biolink:GeneOrGeneProduct" "biolink:Protein")))
@@ -1287,7 +1287,7 @@
                          mvp2: {'look-up': 50, '1 hops': 40, ' 2 hops': 1}
       predicate-type-values = {'causation': 3, 'association': 2, 'other': 1}
       |#
-      (define causation-prediates (get-non-deprecated/mixin/abstract-ins-and-descendent-predicates*-in-db '("biolink:contributes_to" "biolink:affects")))
+      (define causation-prediates (get-non-deprecated/mixin/abstract-ins-and-descendent-predicates*-in-db '("biolink:contributes_to" "biolink:affects" "biolink:target_for")))
       (define association-predicates (get-non-deprecated/mixin/abstract-ins-and-descendent-predicates*-in-db '("biolink:gene_associated_with_condition" "biolink:interacts_with")))
       (define (score-mvp-edge e)
         (match e
@@ -1501,60 +1501,56 @@
                                       (class-abstract? c))))
                               categories))
                  (name (get-assoc "name" props)))
-            (hash-set! nodes (string->symbol curie)
-                       (hash 'categories categories
-                             'name name
-                             'attributes (list)
-                             )))))
+            (if name
+                (hash-set! nodes (string->symbol curie)
+                           (hash 'categories categories
+                                 'name name
+                                 'attributes (list)))
+                (hash-set! nodes (string->symbol curie)
+                           (hash 'categories categories
+                                 'attributes (list)
+                                 ))))))
 
       (define (add-edge! subj obj props n)
-        (let* ((id
-                (or
-                 #;(get-assoc "id" props) ; rtx-kg2
-                 #;(get-assoc "assertion_id" props) ;text-mining
-                 (number->string n)))
+        (let* ((id (number->string n))
                (id (string-append "medik:edge#" id))
                (id-sym (string->symbol id))
                (object obj)
                (subject subj)
                (predicate (get-assoc "predicate" props))
-               (aspect-qualifier (get-assoc "object_aspect_qualifier" props))
-               (direction-qualifier (get-assoc "object_direction_qualifier" props))
-               (qualifed-predicate (get-assoc "qualified_predicate" props))
+               (aspect-qualifier (qualifier-attribute* "object_aspect_qualifier" props))
+               (direction-qualifier (qualifier-attribute* "object_direction_qualifier" props))
+               (qualifed-predicate (qualifier-attribute* "qualified_predicate" props))
+               (qualifiers-attr* (append aspect-qualifier direction-qualifier qualifed-predicate))
                (has-pub? (> (num-pubs props) 0)))
           (add-node! object)
           (add-node! subject)
-          (unless (hash-has-key? edges id-sym)
-            (if (and
-                 #;(or (eq? which-mvp 'mvp2-chem) (eq? which-mvp 'mvp2-gene))
-                 aspect-qualifier direction-qualifier qualifed-predicate)
-                (hash-set! edges id-sym
-                           (hash 'attributes
-                                 (or
-                                  (and (get-assoc "json_attributes" props)
-                                       (string->jsexpr (get-assoc "json_attributes" props)))
-                                  (data-attributes props has-pub?))
-                                 'object object
-                                 'predicate predicate
-                                 'subject subject
-                                 'sources (list (get-source props) UNSECRET-SOURCE)
-                                 'qualifiers (list
-                                              (hash 'qualifier_type_id "biolink:object_aspect_qualifier"
-                                                    'qualifier_value aspect-qualifier)
-                                              (hash 'qualifier_type_id "biolink:object_direction_qualifier"
-                                                    'qualifier_value direction-qualifier)
-                                              (hash 'qualifier_type_id "biolink:qualified_predicate"
-                                                    'qualifier_value qualifed-predicate))))
-                (hash-set! edges id-sym
-                           (hash 'attributes
-                                 (or
-                                  (and (get-assoc "json_attributes" props)
-                                       (string->jsexpr (get-assoc "json_attributes" props)))
-                                  (data-attributes props has-pub?))
-                                 'object object
-                                 'predicate predicate
-                                 'subject subject
-                                 'sources (list (get-source props) UNSECRET-SOURCE)))))
+          (if (not (null? qualifiers-attr*))
+              (hash-set! edges id-sym
+                         (hash 'attributes
+                               (or
+                                #;(and (get-assoc "json_attributes" props)
+                                     (string->jsexpr (get-assoc "json_attributes" props)))
+                                (list* (agent-type-attribute props)
+                                       (knowledge-level-attribute props)
+                                       (publication-attributes props has-pub?)))
+                               'object object
+                               'predicate predicate
+                               'subject subject
+                               'sources (list (get-source props) (UNSECRET-SOURCE props))
+                               'qualifiers qualifiers-attr*))
+              (hash-set! edges id-sym
+                         (hash 'attributes
+                               (or
+                                #;(and (get-assoc "json_attributes" props)
+                                     (string->jsexpr (get-assoc "json_attributes" props)))
+                                (list* (agent-type-attribute props)
+                                       (knowledge-level-attribute props)
+                                       (publication-attributes props has-pub?)))
+                               'object object
+                               'predicate predicate
+                               'subject subject
+                               'sources (list (get-source props) (UNSECRET-SOURCE props)))))
           id))
 
       (define (add-creative-edge! sub obj pred n aux-id)
@@ -1564,8 +1560,8 @@
                          (hash 'attributes
                                (list
                                 (auxiliary-graph-attribute aux-id)
-                                agent-type-attribute
-                                knowledge-level-attribute)
+                                Unsecret-agent-type-attribute
+                                Unsecret-knowledge-level-attribute)
                                'object obj
                                'predicate pred
                                'subject sub
@@ -1584,8 +1580,8 @@
                          (hash 'attributes
                                (list
                                 (auxiliary-graph-attribute aux-id)
-                                agent-type-attribute
-                                knowledge-level-attribute)
+                                Unsecret-agent-type-attribute
+                                Unsecret-knowledge-level-attribute)
                                'object obj
                                'predicate pred
                                'subject sub
@@ -1634,9 +1630,10 @@
                 ,(? string? curie_z)
                 ,props_xy
                 ,props_yz)
-              (if (and (node-has-name-and-cat? curie_x)
-                       (node-has-name-and-cat? curie_y)
-                       (node-has-name-and-cat? curie_z))
+              (if (and (node-has-cat? curie_x)
+                       (node-has-cat? curie_y)
+                       (node-has-cat? curie_z)
+                       (not (same-concept? curie_y curie_z)))
                   (let* ((edge_xy (add-edge! curie_x curie_y props_xy en))
                          (edge_yz (add-edge! curie_y curie_z props_yz (+ en 1)))
                          (auxiliary_id (add-auxiliary! (list edge_xy edge_yz) an))
@@ -1693,8 +1690,8 @@
                 ,curie_y
                 .
                 ,props_xy)
-              (if (and (node-has-name-and-cat? curie_x)
-                       (node-has-name-and-cat? curie_y))
+              (if (and (node-has-cat? curie_x)
+                       (node-has-cat? curie_y))
                   (let ((edge_xy (add-edge! curie_x curie_y props_xy en)))
                     (add-unmerged-result!
                      (cond

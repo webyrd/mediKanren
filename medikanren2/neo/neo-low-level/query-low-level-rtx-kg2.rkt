@@ -23,7 +23,8 @@
  "make-query-low-level.rkt"
  racket/match)
 
-(define db-path-under-parent "rtx-kg2-may-9-2024/rtx-kg2-2.9.0pre/rtx-kg2.db")
+#;(define db-path-under-parent "rtx-kg2-may-9-2024/rtx-kg2-2.9.0pre/rtx-kg2.db")
+(define db-path-under-parent "rtx-kg2-Aug-6-2024/rtx-kg2-2.10.0pre/rtx-kg2.db")
 
 (match-define
   (list
@@ -46,4 +47,4 @@
    edge-id->properties
    get-highest-bucket-number
    )
-  (make-query-low-level db-path-under-parent))
+  (make-query-low-level db-path-under-parent "infores:rtx-kg2"))
