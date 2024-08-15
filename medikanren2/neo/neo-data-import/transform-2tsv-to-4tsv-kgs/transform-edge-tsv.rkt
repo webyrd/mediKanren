@@ -1,7 +1,5 @@
 #lang racket
-(require "transform-utils.rkt"
-         "rtx-kg2-bucket-table.rkt"
-         "../../neo-data/raw_downloads_from_kge_archive/text-mining-apr-2-2024/text-mining-bucket-distribution.rkt")
+(require "transform-utils.rkt")
 (provide transform-edge-tsv)
 
 #|
@@ -18,34 +16,40 @@ Output edge and edge-props file formats:
 
 |#
 
-(define counters (hash))
+(define text-mining-bucket-needed-path "../../neo-data/raw_downloads_from_kge_archive/text-mining-aug-5-2024/buckets-needed.tsv")
+(define text-mining-start-bucket-numbers-path "../../neo-data/raw_downloads_from_kge_archive/text-mining-aug-5-2024/start-bucket-numbers.tsv")
 
+
+(define counters (hash))
 (define build-buckets-with-distribution
   (lambda (predicate score buckets-needed start-bucket-numbers)
     (set! counters
           (hash-update counters
                        predicate
                        (lambda(pred-h)
-                         (hash-update pred-h score add1))))
+                         (hash-update pred-h score add1 0))
+                       (hash)))
     (let* ((edge-count (hash-ref (hash-ref counters predicate) score))
            (num-buckets (hash-ref (hash-ref buckets-needed predicate) score))
            (start-bucket-number (hash-ref (hash-ref start-bucket-numbers predicate) score))
-           (specific_bucket (modulo (- edge-count 1) num-buckets))
-           (bucket-assignment (+ start-bucket-number specific_bucket)))
+           (specific-bucket (modulo (- edge-count 1) (max num-buckets 1)))
+           (bucket-assignment (+ start-bucket-number specific-bucket)))
       bucket-assignment)))
 
 (define transform-edge-tsv
   (lambda (edges-file-import-path
+           bucket-needed-path
+           start-bucket-numbers-path
            edge-file-export-path
            edge-props-file-export-path
            scored-edge-file-export-path
            which-kg)
     
-    (when (eq? which-kg 'text-mining)
-      (set! counters text-mining-counters))
+    (define buckets-needed (build-pred-score-amount-hash bucket-needed-path))
 
-    (printf "transform-edge-tsv version 1.0\n")
-    
+    (define start-bucket-numbers (build-pred-score-amount-hash start-bucket-numbers-path))
+
+    (printf "transform-edge-tsv\n")
     (printf "transform-edge-tsv called\n")
     (printf "input edges tsv: ~s\n" edges-file-import-path)
     (printf "output edge tsv: ~s\n" edge-file-export-path)
@@ -70,9 +74,7 @@ Output edge and edge-props file formats:
       (let loop ((id 0)
                  (line-str (read-line edges-in 'any)))
         (when (zero? (modulo id 100000))
-          (printf "processing edges line ~s\n" id)
-          (printf "the current counters ~s\n" counters))
-
+          (printf "processing edges line ~s\n" id))
         (cond
           ((eof-object? line-str)
            (close-input-port edges-in)
@@ -96,33 +98,9 @@ Output edge and edge-props file formats:
                          (TM-score (string->number (list-ref line 15)))
                          (score (exact-round (* TM-score pub-len)))
                          (bucket-num (build-buckets-with-distribution
-                                      predicate score text-mining-buckets-needed text-mining-start-bucket-numbers)))
+                                      predicate score buckets-needed start-bucket-numbers)))
                     (list predicate subject object score bucket-num))]
-                 [(eq? which-kg 'rtx-kg2)
-                  (let* ((pubs (list-ref line 6))
-                         (predicate (list-ref line 15))
-                         (subject (list-ref line 16))
-                         (object (list-ref line 17))
-                         (pub-len (if (or (equal? pubs "")
-                                          (equal? pubs "PMID:"))
-                                    0
-                                    (length (string-split pubs "; "))))
-                         (score (if (and (equal? predicate "biolink:gene_associated_with_condition")
-                                         (= pub-len 30))
-                                    (cond
-                                      [(zero? (modulo id 100)) ((hash-ref kg2-buckets predicate) (+ pub-len 2))]
-                                      [(zero? (modulo id 40)) ((hash-ref kg2-buckets predicate) (+ pub-len 1))]
-                                      [else ((hash-ref kg2-buckets predicate) pub-len)])
-
-                                    #;(build-buckets-with-top 3 pub-len)
-                                    #;(build-buckets-with-interval (list 0 1 2 (cons 3 5) (cons 6 29) 30)
-                                                                   pub-len)
-                                    #;(build-buckets-with-interval (list 0 1 2 (cons 3 5) (cons 6 29) 30 (cons 31 66) 67)
-                                                                   pub-len)
-                                    ((hash-ref kg2-buckets predicate) pub-len)
-                                    )))
-                    (list predicate subject object score score))]
-                 ))
+                 [else (error "unknown KG")]))
              (unless (or (string=? "" subject) (string=? "" object))
                (fprintf edges-export-out "~a\t~a\t~a\n" id subject object)
                (unless (string=? "" predicate)
@@ -137,6 +115,7 @@ Output edge and edge-props file formats:
                      (fprintf edge-props-out "~a\t~a\t~a\n" id propname value)))
                  (loop-inner (cdr props) (cdr headers))))
              (fprintf edge-props-out "~a\tmediKanren-score\t~a\n" id score)
+             (fprintf edge-props-out "~a\tprimary_knowledge_source\tinfores:text-mining-provider-targeted\n" id)
              (loop
               (add1 id)
               (read-line edges-in 'any)))))))))

@@ -78,7 +78,7 @@
                 seen-nodes
                 (read-json nodes-in))))]))))
 
-(define BASE "robokop-march-7-2024/")
+(define BASE "robokop-july-31-2024/")
 
 (transform-generic
  (string-append "../../neo-data/raw_downloads_from_kge_archive/" BASE)

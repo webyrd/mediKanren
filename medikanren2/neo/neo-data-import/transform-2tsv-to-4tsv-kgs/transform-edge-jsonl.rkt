@@ -22,30 +22,6 @@ ex-rows:
 :ID predicate subject object score
 |#
 
-(define rtx-kg2-bucket-needed-path "../../neo-data/raw_downloads_from_kge_archive/rtx-kg2-2.9.0pre/buckets-needed.tsv")
-(define rtx-kg2-start-bucket-numbers-path "../../neo-data/raw_downloads_from_kge_archive/rtx-kg2-2.9.0pre/start-bucket-numbers.tsv")
-;;
-(define robokop-bucket-needed-path "../../neo-data/raw_downloads_from_kge_archive/robokop-march-7-2024/buckets-needed.tsv")
-(define robokop-start-bucket-numbers-path "../../neo-data/raw_downloads_from_kge_archive/robokop-march-7-2024/start-bucket-numbers.tsv")
-
-(define (build-pred-score-amount-hash path)
-  (define in
-      (open-input-file path))
-  (define return (make-hash))
-  (let loop ((line (read-line in 'any)))
-    (cond
-      ((eof-object? line)
-       (close-input-port in)
-        return)
-      (else
-        (let* ((line (efficient-no-trim-tab-string-split line))
-               (predicate (list-ref line 0))
-               (score (string->number  (list-ref line 1)))
-               (amount (string->number (list-ref line 2))))
-          (hash-set! return predicate (hash-set (hash-ref return predicate (hash))
-                                                score
-                                                amount))
-          (loop (read-line in 'any)))))))
 
 (define counters (hash))
 (define build-buckets-with-distribution
@@ -65,22 +41,16 @@ ex-rows:
 
 (define transform-edge-jsonl
   (lambda (edges-file-import-path
+           bucket-needed-path
+           start-bucket-numbers-path
            edge-file-export-path
            edge-props-file-export-path
            scored-edge-file-export-path
            which-kg)
 
-    (define buckets-needed
-      (cond
-        ((eq? which-kg 'rtx-kg2) (build-pred-score-amount-hash rtx-kg2-bucket-needed-path))
-        ((eq? which-kg 'robokop) (build-pred-score-amount-hash robokop-bucket-needed-path))
-        (else (error "unknown kg for getting buckets-needed"))))
-
-    (define start-bucket-numbers
-      (cond
-        ((eq? which-kg 'rtx-kg2) (build-pred-score-amount-hash rtx-kg2-start-bucket-numbers-path))
-        ((eq? which-kg 'robokop) (build-pred-score-amount-hash robokop-start-bucket-numbers-path))
-        (else (error "unknown kg for getting start-bucket-numbers"))))
+    (define buckets-needed (build-pred-score-amount-hash bucket-needed-path))
+     
+    (define start-bucket-numbers (build-pred-score-amount-hash start-bucket-numbers-path))
 
     (printf "transform-edge-jsonl called\n")
     (printf "input edges jsonl: ~s\n" edges-file-import-path)
@@ -117,7 +87,7 @@ ex-rows:
          (let ((subject (hash-ref line 'subject #f))
                (object (hash-ref line 'object #f))
                (predicate (hash-ref line 'predicate #f))
-               (robokop-primary_knowledge_source (hash-ref line 'biolink:primary_knowledge_source #f)))
+               (robokop-primary_knowledge_source (hash-ref line 'primary_knowledge_source #f)))
            (if (equal? robokop-primary_knowledge_source "infores:text-mining-provider-targeted")
                (loop id (read-json edges-in))
                (begin

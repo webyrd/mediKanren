@@ -1,8 +1,8 @@
 #lang racket/base
 (require "../../dbKanren/dbk/database.rkt"
-         racket/list racket/pretty racket/runtime-path)
+         racket/pretty racket/runtime-path)
 
-(define BASE "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/text-mining-apr-2-2024/")
+(define BASE "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/text-mining-aug-5-2024/")
 
 (define EDGEPROP_PATH (string-append BASE "text_mining.edgeprop.tsv"))
 (define EDGE_PATH (string-append BASE "text_mining.edge.tsv"))
@@ -36,7 +36,9 @@
                            (int text text text int)
                            (eid predicate subject object score)
                            ((score predicate subject object eid)
-                            (score predicate object subject eid)))
+                            (score predicate object subject eid)
+                            #;(predicate score subject object eid)
+                            #;(predicate score object subject eid)))
                          (cprop
                            ,NODEPROP_PATH
                            (text text text)

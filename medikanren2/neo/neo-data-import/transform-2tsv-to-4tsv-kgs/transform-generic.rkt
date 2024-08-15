@@ -71,6 +71,17 @@
        export-directory-path
        scored-edge-export-file-name))
 
+    ;; --- precomputed distribution ---
+    (define bucket-needed-path
+      (string-append
+       import-directory-path
+       "buckets-needed.tsv"))
+
+    (define start-bucket-numbers-path
+      (string-append
+       import-directory-path
+       "start-bucket-numbers.tsv"))
+
     (let ((transform-node (car transform-node-and-edge))
           (transform-edge (cdr transform-node-and-edge)))
       (transform-node nodes-file-import-path
@@ -79,6 +90,8 @@
                       which-kg)
 
       (transform-edge edges-file-import-path
+                      bucket-needed-path
+                      start-bucket-numbers-path
                       edge-file-export-path
                       edge-props-file-export-path
                       scored-edge-file-export-path

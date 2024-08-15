@@ -2,7 +2,7 @@
 (require "../../dbKanren/dbk/database.rkt"
          racket/list racket/pretty racket/runtime-path)
 
-(define BASE "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/robokop-march-7-2024/")
+(define BASE "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/robokop-july-31-2024/")
 
 (define EDGEPROP_PATH (string-append BASE "Robokop.edgeprop.tsv"))
 (define EDGE_PATH (string-append BASE "Robokop.edge.tsv"))
@@ -36,7 +36,9 @@
                            (int text text text int)
                            (eid predicate subject object score)
                            ((score predicate subject object eid)
-                            (score predicate object subject eid)))
+                            (score predicate object subject eid)
+                            #;(predicate score subject object eid)
+                            #;(predicate score object subject eid)))
                          (cprop
                            ,NODEPROP_PATH
                            (text text text)

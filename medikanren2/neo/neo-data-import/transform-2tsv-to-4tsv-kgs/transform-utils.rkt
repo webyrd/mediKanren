@@ -1,7 +1,8 @@
 #lang racket
 (provide efficient-no-trim-tab-string-split
          build-buckets-with-top
-         build-buckets-with-interval)
+         build-buckets-with-interval
+         build-pred-score-amount-hash)
 
 #|
 
@@ -78,6 +79,25 @@ delimiter.
                                        (helper (cdr new-interval*)))]
       [else (helper (cdr new-interval*))]))
   (helper interval*))
+
+(define (build-pred-score-amount-hash path)
+  (define in
+      (open-input-file path))
+  (define return (make-hash))
+  (let loop ((line (read-line in 'any)))
+    (cond
+      ((eof-object? line)
+       (close-input-port in)
+        return)
+      (else
+        (let* ((line (efficient-no-trim-tab-string-split line))
+               (predicate (list-ref line 0))
+               (score (string->number  (list-ref line 1)))
+               (amount (string->number (list-ref line 2))))
+          (hash-set! return predicate (hash-set (hash-ref return predicate (hash))
+                                                score
+                                                amount))
+          (loop (read-line in 'any)))))))
                                  
              
     

@@ -22,6 +22,7 @@
   dict-key-enumerator
 
   dict:ref
+  dict.empty
 
   merge-join
   dict-join-ordered
