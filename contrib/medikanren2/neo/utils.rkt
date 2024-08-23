@@ -45,7 +45,7 @@
   (get-descendent-curies*-in-db
    (curies->synonyms-in-db curie-list)))
 
-(define (concept->name curie)
+#;(define (concept->name curie)
   (let ((id-name-val
          (remove-duplicates (filter (lambda (cl)
                                       (and (equal? (car cl) curie)
@@ -54,6 +54,10 @@
         (if (null? id-name-val)
             curie
             (caddar id-name-val))))
+
+(define (concept->name curie)
+  (let ((name (assoc "name" (curie->properties curie))))
+    (if name (cdr name) curie)))
 
 (define (concept->category curie)
   (let ((category (assoc "category" (curie->properties curie))))
