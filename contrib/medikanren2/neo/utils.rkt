@@ -57,7 +57,7 @@
 
 (define (concept->name curie)
   (let ((name (assoc "name" (curie->properties curie))))
-    (if name (cdr name) curie)))
+    (if name (cadr name) curie)))
 
 (define (concept->category curie)
   (let ((category (assoc "category" (curie->properties curie))))
