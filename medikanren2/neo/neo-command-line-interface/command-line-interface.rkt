@@ -4,6 +4,7 @@
   "../neo-low-level/query-low-level-multi-db.rkt"
   "utils.rkt"
   racket/string
+  readline
   )
 
 ;; TODO:
@@ -91,7 +92,7 @@
               (printf "The results are written in file ~a\n" path)
               )]
            [else
-            (displayln "Incomplete command. Please use 'activates <curie> ... > name-of-the-file'")]))]
+            (displayln "Incomplete command. Please use 'activates CURIE ... > name-of-the-file'")]))]
       [(string-prefix? input "inhibits")
        (let ([arug* (string-split (substring input (string-length "inhibits")))])
          (match arug*
@@ -103,7 +104,7 @@
               (printf "The results are written in file ~a\n" path)
               )]
            [else
-            (displayln "Incomplete command. Please use 'inhibits <curie> ... > name-of-the-file'")]))]
+            (displayln "Incomplete command. Please use 'inhibits CURIE ... > name-of-the-file'")]))]
       [(string-prefix? input "synonyms")
        (let* ([arug* (string-split (substring input (string-length "synonyms")))])
          (match arug*
@@ -113,7 +114,7 @@
               (printf "The synonyms of ~a are ~a\n" arug* synonym*)
               (mediKanren-synonyms synonym*)
               (printf "You may find the details in the file synonyms-details.tsv.\n"))]
-           [else (displayln "Incomplete command. Please use 'synonyms <curie> ...'")]))]
+           [else (displayln "Incomplete command. Please use 'synonyms CURIE ...'")]))]
       [(string-prefix? input "all relations")
        (let* ([arug* (string-split (substring input (string-length "all relations")))])
          (match arug*
@@ -125,7 +126,7 @@
               (printf "The results are written in file ~a\n" path)
               )]
            [else
-            (displayln "Incomplete command. Please use 'all relations <curie> ... > name-of-the-file'")]))]
+            (displayln "Incomplete command. Please use 'all relations CURIE ... > name-of-the-file'")]))]
       [(string-prefix? input "with predicates")
        (let* ([arug* (string-split (substring input (string-length "with predicates")))])
          (match arug*
@@ -138,13 +139,13 @@
               (printf "The results are written in file ~a\n" path)
               )]
            [else
-            (displayln "Incomplete command. Please use 'with predicates -predicate <predicate> ... -curie <curie> ... > name-of-the-file'")]))]
+            (displayln "Incomplete command. Please use 'with predicates -predicate PREDICATE ... -curie CURIE ... > name-of-the-file'")]))]
       [else (displayln "Unknown command. Please use
-'activates <curie> ... > name-of-the-file' or
-'inhibits <curie> ... > name-of-the-file' or
-'synonyms <curie> ...' or
-'all relations <curie> ... > name-of-the-file'
-'with predicates -predicate <predicate> ... -curie <curie> ... > name-of-the-file'")])
+'activates CURIE ... > name-of-the-file' or
+'inhibits CURIE ... > name-of-the-file' or
+'synonyms CURIE ...' or
+'all relations CURIE ... > name-of-the-file'
+'with predicates -predicate PREDICATE ... -curie CURIE ... > name-of-the-file'")])
     (main-loop)))
 
 ; Start the program
