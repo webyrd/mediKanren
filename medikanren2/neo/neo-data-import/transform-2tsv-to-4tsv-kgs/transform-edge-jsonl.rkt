@@ -84,10 +84,14 @@ ex-rows:
          (printf "finished processing edges\n")
          (printf "the current counters ~s\n\n" counters)]
         [else
-         (let ((subject (hash-ref line 'subject #f))
-               (object (hash-ref line 'object #f))
-               (predicate (hash-ref line 'predicate #f))
-               (robokop-primary_knowledge_source (hash-ref line 'primary_knowledge_source #f)))
+         (let* ((subject (hash-ref line 'subject #f))
+                (object (hash-ref line 'object #f))
+                (predicate (hash-ref line 'predicate #f))
+                ; the following line is for a fix for rtx-kg2 2.10.1pre
+                (predicate (if (and (string? predicate) (string-contains? predicate "biolink:biolink_"))
+                               (string-replace predicate "biolink:biolink_" "biolink:")
+                               predicate)) 
+                (robokop-primary_knowledge_source (hash-ref line 'primary_knowledge_source #f)))
            (if (equal? robokop-primary_knowledge_source "infores:text-mining-provider-targeted")
                (loop id (read-json edges-in))
                (begin
@@ -117,6 +121,9 @@ ex-rows:
                                            value)))
                            (unless (or (equal? "" value) (equal? 'null value))
                              (cond
+                               ; the following line is for a fix for rtx-kg2 2.10.1pre
+                               ((and (equal? propname 'predicate) (string-contains? value "biolink:biolink_"))
+                                (fprintf edge-props-out "~a\t~a\t~a\n" id propname (string-replace value "biolink:biolink_" "biolink:")))
                                ((equal? propname 'qualified_object_aspect)
                                 (fprintf edge-props-out "~a\tobject_aspect_qualifier\t~a\n" id value))
                                ((equal? propname 'qualified_object_direction)

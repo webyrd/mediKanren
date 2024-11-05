@@ -2,7 +2,7 @@
 (require "../../dbKanren/dbk/database.rkt"
          racket/list racket/pretty racket/runtime-path)
 
-(define BASE "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/rtx-kg2-2.10.0pre/")
+(define BASE "../../neo-data/raw_downloads_from_kge_archive_transformed_to_4tsv/rtx-kg2-2.10.1pre/")
 
 (define EDGEPROP_PATH (string-append BASE "rtx_kg2.edgeprop.tsv"))
 (define EDGE_PATH (string-append BASE "rtx_kg2.edge.tsv"))

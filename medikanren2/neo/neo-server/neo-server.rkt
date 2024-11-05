@@ -29,7 +29,7 @@
 
 (define DEFAULT_PORT 8384)
 
-(define NEO_SERVER_VERSION "1.53")
+(define NEO_SERVER_VERSION "1.54")
 
 ;; Maximum number of results to be returned from *each individual* KP,
 ;; or from mediKanren itself.

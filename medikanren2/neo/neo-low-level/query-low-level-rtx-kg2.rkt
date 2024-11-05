@@ -24,7 +24,7 @@
  racket/match)
 
 #;(define db-path-under-parent "rtx-kg2-may-9-2024/rtx-kg2-2.9.0pre/rtx-kg2.db")
-(define db-path-under-parent "rtx-kg2-Aug-6-2024/rtx-kg2-2.10.0pre/rtx-kg2.db")
+(define db-path-under-parent "rtx-kg2-oct-30-2024/rtx-kg2-2.10.1pre/rtx-kg2.db")
 
 (match-define
   (list
