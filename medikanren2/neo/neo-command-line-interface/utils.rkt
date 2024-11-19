@@ -49,6 +49,9 @@
                   (remove-duplicates (helper props '()))))
     pubs))
 
+(define (get-mediKanren-score props)
+  (string->number (get-assoc "mediKanren-score" props)))
+
 (define write-list-to-tsv
   (lambda (header-ls lol path)
     (with-output-to-file path
@@ -100,6 +103,7 @@
      "object"
      "object properties"
      "publications"
+     "mediKanren score"
      "edge properties")
    (map (lambda (e)
           (match e
@@ -110,6 +114,7 @@
                     (curie->name-remember obj)
                     (curie->properties obj)
                     (get-publications prop)
+                    (get-mediKanren-score prop)
                     prop)]
             [else '()]))
         (remove-duplicates edge*))
