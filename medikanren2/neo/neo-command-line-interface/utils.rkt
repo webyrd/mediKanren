@@ -16,6 +16,9 @@
          write-list-to-tsv
          curie->gene/protein-conflation
          synonym-format
+         curie->name-remember
+         get-assoc
+         curie->categories-remember
          )
 
 (define (get-assoc k m)
@@ -23,6 +26,12 @@
     (if r
         (cadr r)
         #f)))
+
+(define (list-assoc k m)
+  (let ((r (assoc k m)))
+    (if r
+        (cdr r)
+        '())))
 
 (define get-publications
   (lambda props
@@ -84,16 +93,28 @@
             curie
             (caddar id-name-val))))
 
-(define curie-names (make-hash))
+(define (concept->categories curie)
+  (let* ((props (curie->properties curie))
+         (categories (list-assoc "category" props)))
+    categories))
 
-(define (curie->name-remember curie)
-  (let ((name (hash-ref curie-names curie #f)))
-    (if name
-        name
-        (let ((name^ (concept->name curie)))
-          (if (> (hash-count curie-names) 10000)
-              (begin (set! curie-names (make-hash)) name^)
-              (begin (hash-set! curie-names curie name^) name^))))))   
+(define build-remember
+  (lambda (curie->b hash)
+    (lambda (curie)
+      (let ((b (hash-ref hash curie #f)))
+        (if b
+            b
+            (let ((b^ (curie->b curie)))
+              (if (> (hash-count hash) 10000)
+                  (begin (set! hash (make-hash)) b^)
+                  (begin (hash-set! hash curie b^) b^))))))))
+
+(define curie-names (make-hash))
+(define curie->name-remember (build-remember concept->name curie-names))
+
+(define curie-categories (make-hash))
+(define curie->categories-remember (build-remember concept->categories curie-categories))
+
 
 (define (write-out-prepared-answers edge* path)
   (write-list-to-tsv
