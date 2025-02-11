@@ -1,8 +1,9 @@
 #lang racket
 (provide efficient-no-trim-tab-string-split
-         build-buckets-with-top
-         build-buckets-with-interval
-         build-pred-score-amount-hash)
+         build-pred-score-amount-hash
+         find-index
+         write-list-to-tsv
+         unwrap)
 
 #|
 
@@ -53,33 +54,6 @@ delimiter.
             (add1 i)
             indices)])))))
 
-(define (build-buckets-with-top top n)
-  (if (< n top)
-      n
-      top))
-
-; 0 base
-(define (index-of lst ele)
-  (let loop ((l lst)
-             (i 0))
-    (cond
-      [(null? l) #f]
-      [(equal? (car l) ele) i]
-      [else (loop (cdr l) (add1 i))])))
-
-;; (list 0 1 2 (3 . 4) 5) == 0-0, 1-1, 2-2, 3-4, 5&5+
-(define (build-buckets-with-interval interval* n)
-  (define (helper new-interval*)
-    (cond
-      [(null? (cdr new-interval*)) (- (length interval*) 1)]
-      [(equal? (car new-interval*) n) (index-of interval* n)]
-      [(pair? (car new-interval*)) (if (and (not (< n (caar new-interval*)))
-                                            (not (> n (cdar new-interval*))))
-                                       (index-of interval* (car new-interval*))
-                                       (helper (cdr new-interval*)))]
-      [else (helper (cdr new-interval*))]))
-  (helper interval*))
-
 (define (build-pred-score-amount-hash path)
   (define in
       (open-input-file path))
@@ -98,6 +72,43 @@ delimiter.
                                                 score
                                                 amount))
           (loop (read-line in 'any)))))))
-                                 
+                                
+
+(define (find-index lst ele)
+  (let loop ((lst lst) (idx 0))
+    (cond
+      [(null? lst) #f]
+      [(equal? (car lst) ele) idx]
+      [else (loop (cdr lst) (add1 idx))])))
+
+(define write-list-to-tsv
+  (lambda (header-ls lol path)
+    (with-output-to-file path
+      ;; thunk -- procedure that takes no arguments
+      (lambda ()
+        (for-each
+          (lambda (l)
+            (let loop ([l l])
+              (cond
+                ((null? l)
+                 (error 'output-to-tsv "where's the data!?"))
+                ((null? (cdr l)) ;; l contains exactly 1 element
+                 (display (car l))
+                 (display #\newline))
+                (else
+                 (display (car l))
+                 (display #\tab)
+                 (loop (cdr l))))))
+          (cons header-ls lol)))
+      #:mode 'text
+      #:exists 'replace)))
+
+(define unwrap
+  (lambda (lol)
+    (let loop ((lol lol) (accu '()))
+      (cond
+        ((null? lol) accu)
+        ((not (pair? (car lol))) (cons lol accu))
+        (else (append (loop (car lol) accu) (loop (cdr lol) accu)))))))
              
     

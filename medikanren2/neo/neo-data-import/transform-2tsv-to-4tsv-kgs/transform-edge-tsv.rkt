@@ -16,9 +16,6 @@ Output edge and edge-props file formats:
 
 |#
 
-(define text-mining-bucket-needed-path "../../neo-data/raw_downloads_from_kge_archive/text-mining-aug-5-2024/buckets-needed.tsv")
-(define text-mining-start-bucket-numbers-path "../../neo-data/raw_downloads_from_kge_archive/text-mining-aug-5-2024/start-bucket-numbers.tsv")
-
 
 (define counters (hash))
 (define build-buckets-with-distribution
@@ -100,6 +97,20 @@ Output edge and edge-props file formats:
                          (bucket-num (build-buckets-with-distribution
                                       predicate score buckets-needed start-bucket-numbers)))
                     (list predicate subject object score bucket-num))]
+                 [(eq? which-kg 'rtx-kg2)
+                  (let* ((predicate (list-ref line (find-index header "predicate")))
+                         (subject (list-ref line (find-index header "subject")))
+                         (object (list-ref line (find-index header "object")))
+                         (pubs (list-ref line (find-index header "publications")))
+                         (score (if (equal? pubs "")
+                                    0
+                                    (length (string-split pubs "|"))))
+                         (bucket-num (cond
+                                       [(equal? predicate "biolink:subclass_of") 1111]
+                                       [(equal? predicate "biolink:gene_product_of") 1112]
+                                       [else (build-buckets-with-distribution
+                                              predicate score buckets-needed start-bucket-numbers)])))
+                    (list predicate subject object score bucket-num))]
                  [else (error "unknown KG")]))
              (unless (or (string=? "" subject) (string=? "" object))
                (fprintf edges-export-out "~a\t~a\t~a\n" id subject object)
@@ -115,7 +126,7 @@ Output edge and edge-props file formats:
                      (fprintf edge-props-out "~a\t~a\t~a\n" id propname value)))
                  (loop-inner (cdr props) (cdr headers))))
              (fprintf edge-props-out "~a\tmediKanren-score\t~a\n" id score)
-             (fprintf edge-props-out "~a\tprimary_knowledge_source\tinfores:text-mining-provider-targeted\n" id)
+             #;(fprintf edge-props-out "~a\tprimary_knowledge_source\tinfores:text-mining-provider-targeted\n" id)
              (loop
               (add1 id)
               (read-line edges-in 'any)))))))))
