@@ -24,7 +24,7 @@ Use this script to automate your workflow without having to manually execute eac
 
 ## Getting Started
 
-1. **Have the data ready** Please ensure that the data is stored in the directories specified in the Racket and Python files.
+1. **Ensure the data is ready:** Please ensure that the data is stored in the directories specified in the Racket and Python files.
 
 2. **Make the script executable** (if it isn’t already):
    ```bash
@@ -32,4 +32,4 @@ Use this script to automate your workflow without having to manually execute eac
 
 3. **Run the script:**
   ```bash
-  ./run.sh
+   ./run.sh
