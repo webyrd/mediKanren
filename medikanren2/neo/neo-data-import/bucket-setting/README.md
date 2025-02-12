@@ -31,5 +31,5 @@ Use this script to automate your workflow without having to manually execute eac
    chmod +x run.sh
 
 3. **Run the script:**
-  ```bash
+   ```bash
    ./run.sh
