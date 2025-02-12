@@ -1,5 +1,3 @@
-# Instructions
-
 The Bash script, **`run.sh`**, performs the following tasks in order:
 
 1. Runs a Racket file (`rtx-kg2-publication-distribution.rkt`).
