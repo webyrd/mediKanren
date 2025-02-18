@@ -21,29 +21,29 @@ extract the "same_as" edges from RTX-KG2
 ***
 |#
 (define rtx-kg2-edges-in (open-input-file RTX-KG2-EDGE))
-#;(define same-as-export-out (open-output-file (string-append NODE-NORM-DIRECTORY "rtx-kg2-same-as.jsonl")))
+(define same-as-export-out (open-output-file (string-append NODE-NORM-DIRECTORY "rtx-kg2-same-as.jsonl")))
 
-#;(let* ((header (read-line rtx-kg2-edges-in 'any))
-      (header (string-split header "\t" #:trim? #f)))
-      (let loop ((id 0)
-                 (line-str (read-line rtx-kg2-edges-in 'any)))
-        (when (zero? (modulo id 1000000))
-          (printf "processing edges line ~s\n" id))
-        (cond
-          ((eof-object? line-str)
-           (close-input-port rtx-kg2-edges-in)
-           (printf "finished extracting same_as edges from RTX-KG2\n"))
-          (else
-           (let* ((line (efficient-no-trim-tab-string-split line-str))
-                  (predicate (list-ref line (find-index header "predicate"))))
-             (when (equal? predicate "biolink:same_as")
-               (let* ((subject (list-ref line (find-index header "subject")))
-                     (object (list-ref line (find-index header "object")))
-                     (h (hash 'subject subject
-                              'object object))
-                     (js (jsexpr->string h)))
-                 (fprintf same-as-export-out "~a\n" js)))
-               (loop (add1 id) (read-line rtx-kg2-edges-in 'any)))))))
+(let* ((header (read-line rtx-kg2-edges-in 'any))
+       (header (string-split header "\t" #:trim? #f)))
+  (let loop ((id 0)
+             (line-str (read-line rtx-kg2-edges-in 'any)))
+    (when (zero? (modulo id 1000000))
+      (printf "processing edges line ~s\n" id))
+    (cond
+      ((eof-object? line-str)
+       (close-input-port rtx-kg2-edges-in)
+       (printf "finished extracting same_as edges from RTX-KG2\n"))
+      (else
+       (let* ((line (efficient-no-trim-tab-string-split line-str))
+              (predicate (list-ref line (find-index header "predicate"))))
+         (when (equal? predicate "biolink:same_as")
+           (let* ((subject (list-ref line (find-index header "subject")))
+                  (object (list-ref line (find-index header "object")))
+                  (h (hash 'subject subject
+                           'object object))
+                  (js (jsexpr->string h)))
+             (fprintf same-as-export-out "~a\n" js)))
+         (loop (add1 id) (read-line rtx-kg2-edges-in 'any)))))))
 
 #|
 ***
@@ -64,7 +64,7 @@ extract the "same_as" edges from RTX-KG2
   (make-directory cleaned-dir))
 
 ;; Clean each .jsonl file using jq if the file is not empty.
-#;(for-each
+(for-each
  (lambda (in-file-str)
    (let ((in-file-full-str (string-append NODE-NORM-DIRECTORY in-file-str)))
      (if (> (file-size (string->path in-file-full-str)) 0)
@@ -90,7 +90,7 @@ extract the "same_as" edges from RTX-KG2
   (format "cat ~a > ~a"
           (string-join cleaned-files " ")
           merged-file))
-#;(system* "/bin/sh" "-c" cat-cmd)
+(system* "/bin/sh" "-c" cat-cmd)
 
 (printf "Merged cleaned files into ~a\n" merged-file)
 
@@ -117,5 +117,5 @@ import the equivalence dbk from the merged .jsonl generated from above
 
 (define db.equiv
   (build-equivalence-database
-    (build-path path.here "test-equivalence.db")
+    (build-path path.here "equivalence.db")
     (json-port-enumerator (open-input-file merged-file))))
