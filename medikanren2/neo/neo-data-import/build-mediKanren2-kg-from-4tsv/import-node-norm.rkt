@@ -23,6 +23,7 @@ extract the "same_as" edges from RTX-KG2
 (define rtx-kg2-edges-in (open-input-file RTX-KG2-EDGE))
 (define same-as-export-out (open-output-file (string-append NODE-NORM-DIRECTORY "rtx-kg2-same-as.jsonl")))
 
+(displayln "===Extract the 'same_as' edges from RTX-KG2===")
 (let* ((header (read-line rtx-kg2-edges-in 'any))
        (header (string-split header "\t" #:trim? #f)))
   (let loop ((id 0)
@@ -52,6 +53,7 @@ extract the "same_as" edges from RTX-KG2
 ***
 |#
 
+(displayln "===Remove the empty lines from each .jsonl in the Node Norm KG directory===")
 ;; Find all .jsonl files in the Node Norm KG directory
 (define input-files
   (filter (lambda (p)
@@ -75,7 +77,7 @@ extract the "same_as" edges from RTX-KG2
          (printf "Skipping empty file ~a\n" in-file-full-str))))
  input-files)
 
-
+(displayln "===Merge the non-empty cleaned .jsonl files into one===")
 ;; Merge all cleaned files into one final file.
 (define merged-file (string-append cleaned-dir "/" "NodeNorm-RTXKG2-Merged.jsonl"))
 ;; Collect only those cleaned files that were created (exist)
@@ -100,6 +102,8 @@ extract the "same_as" edges from RTX-KG2
 import the equivalence dbk from the merged .jsonl generated from above
 ***
 |#
+
+(displayln "===Import the equivalence dbk from the merged .jsonl generated from above===")
 (define-runtime-path path.here "../../neo-data/")
 
 (define ((json-port-enumerator in) yield)
