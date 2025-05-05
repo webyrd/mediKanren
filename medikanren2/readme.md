@@ -15,13 +15,13 @@ Here is an example of getting synonyms and subclasses:
 ```
 (require "lw-reasoning.rkt")
 
-(define meformin "CHEBI:6801")
+(define metformin "CHEBI:6801")
 
-;; get diseases/phenotypes treated by meformin and its synonyms
+;; get diseases/phenotypes treated by metformin and its synonyms
 (define treated-diseases
   (run* disease-or-phen
     (fresh (drug)
-      (kgx-synonym drug meformin)
+      (kgx-synonym drug metformin)
       (triple drug "biolink:treats" disease-or-phen)
       (conde ((is-a disease-or-phen "biolink:PhenotypicFeature")) ; *
              ((is-a disease-or-phen "biolink:Disease"))))))
