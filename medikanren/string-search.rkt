@@ -6,6 +6,7 @@
   suffix:corpus-find*/disk
   string:corpus->index
   string:corpus-find*
+  string:corpus-find/disk
   string:corpus-find*/disk)
 (require
   "repr.rkt"
@@ -328,7 +329,8 @@
                                       (range rstart rend))))))
           (else '()))))
 
-(define (string:corpus-find*/disk cid->concept in-index str*)
+
+(define (string:corpus-find*/disk cid->concept lookup str*)
   (remove-duplicates
-    (sort (append* (map (lambda (s) (string:corpus-find/disk cid->concept in-index s)) str*))
+    (sort (append* (map lookup str*))
           <)))
