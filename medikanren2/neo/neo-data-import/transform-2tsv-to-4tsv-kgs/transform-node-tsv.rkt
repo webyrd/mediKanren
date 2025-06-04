@@ -51,7 +51,8 @@ Output node and node-props file formats:
            (let ((line (efficient-no-trim-tab-string-split line-str)))               
              (let ((id (cond
                          [(eq? which-kg 'text-mining) (car line)]
-                         [(eq? which-kg 'rtx-kg2) (list-ref line 7)])))
+                         [(eq? which-kg 'rtx-kg2) (list-ref line 7)]
+                         [else (list-ref line (find-index header "id"))])))
                (when (set-member? seen-nodes id)
                  (error 'make-kg-node (format "already seen node: ~a" id)))
                (fprintf node-out "~a\n" id)

@@ -1,6 +1,7 @@
 #lang racket
 (require "transform-utils.rkt")
-(provide transform-edge-tsv)
+(provide transform-edge-tsv
+         transform-edge-tsv-no-bucket)
 
 #|
 Output edge and edge-props file formats:
@@ -127,6 +128,59 @@ Output edge and edge-props file formats:
                  (loop-inner (cdr props) (cdr headers))))
              (fprintf edge-props-out "~a\tmediKanren-score\t~a\n" id score)
              #;(fprintf edge-props-out "~a\tprimary_knowledge_source\tinfores:text-mining-provider-targeted\n" id)
+             (loop
+              (add1 id)
+              (read-line edges-in 'any)))))))))
+
+(define transform-edge-tsv-no-bucket
+  (lambda (edges-file-import-path
+           edge-file-export-path
+           edge-props-file-export-path)
+    
+    (printf "transform-edge-tsv\n")
+    (printf "transform-edge-tsv-no-bucket called\n")
+    (printf "input edges tsv: ~s\n" edges-file-import-path)
+    (printf "output edge tsv: ~s\n" edge-file-export-path)
+    (printf "output edge props tsv: ~s\n" edge-props-file-export-path)
+    
+    (define edges-export-out
+      (open-output-file edge-file-export-path))
+    (fprintf edges-export-out ":ID\t:START\t:END\n")
+    (define edge-props-out
+      (open-output-file edge-props-file-export-path))
+    (fprintf edge-props-out ":ID\tpropname\tvalue\n")
+
+    (define edges-in
+      (open-input-file edges-file-import-path))
+    
+    (let* ((header (read-line edges-in 'any))
+           (header (string-split header "\t" #:trim? #f)))
+      (let loop ((id 0)
+                 (line-str (read-line edges-in 'any)))
+        (when (zero? (modulo id 100000))
+          (printf "processing edges line ~s\n" id))
+        (cond
+          ((eof-object? line-str)
+           (close-input-port edges-in)
+           (close-output-port edges-export-out)
+           (close-output-port edge-props-out)
+           (printf "finished processing edges\n\n"))
+          (else
+           (let* ((line (efficient-no-trim-tab-string-split line-str))
+                  (predicate (list-ref line (find-index header "predicate")))
+                  (subject (list-ref line (find-index header "subject")))
+                  (object (list-ref line (find-index header "object"))))
+             (unless (or (string=? "" subject) (string=? "" object))
+               (fprintf edges-export-out "~a\t~a\t~a\n" id subject object))
+               
+             (let loop-inner ((props line)
+                              (headers header))
+               (when (not (null? props))
+                 (unless (string=? "" (car props))
+                   (let ((propname (car headers))
+                         (value (car props)))
+                     (fprintf edge-props-out "~a\t~a\t~a\n" id propname value)))
+                 (loop-inner (cdr props) (cdr headers))))
              (loop
               (add1 id)
               (read-line edges-in 'any)))))))))

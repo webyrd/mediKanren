@@ -2,7 +2,8 @@
 
 (require json
          "transform-utils.rkt")
-(provide transform-edge-jsonl)
+(provide transform-edge-jsonl
+         transform-edge-jsonl-no-bucket)
 
 #|
 Output edge and edge-props file formats:
@@ -137,3 +138,53 @@ ex-rows:
                  (loop
                   (add1 id)
                   (read-json edges-in)))))]))))
+
+(define transform-edge-jsonl-no-bucket
+  (lambda (edges-file-import-path
+           edge-file-export-path
+           edge-props-file-export-path)
+
+    (printf "transform-edge-jsonl-no-bucket called\n")
+    (printf "input edges jsonl: ~s\n" edges-file-import-path)
+    (printf "output edge tsv: ~s\n" edge-file-export-path)
+    (printf "output edge props tsv: ~s\n" edge-props-file-export-path)
+    
+    (define edges-export-out
+      (open-output-file edge-file-export-path))
+    (fprintf edges-export-out ":ID\t:START\t:END\n")
+    (define edge-props-out
+      (open-output-file edge-props-file-export-path))
+    (fprintf edge-props-out ":ID\tpropname\tvalue\n")
+
+    (define edges-in
+      (open-input-file edges-file-import-path))
+
+    (let loop ((id 0)
+               (line (read-json edges-in)))
+      (when (zero? (modulo id 100000))
+        (printf "processing edges line ~s\n" id))
+      (cond
+        [(eof-object? line)
+         (close-input-port edges-in)
+         (close-output-port edges-export-out)
+         (close-output-port edge-props-out)
+         (printf "finished processing edges\n")]
+        [else
+         (let* ((subject (hash-ref line 'subject #f))
+                (object (hash-ref line 'object #f))
+                (predicate (hash-ref line 'predicate #f)))
+           (when (and subject object predicate)
+             (fprintf edges-export-out "~a\t~a\t~a\n" id subject object)
+             (let loop-inner ((propnames (hash-keys line)))
+               (when (not (null? propnames))
+                 (let* ((propname (car propnames))
+                        (value (hash-ref line propname))
+                        (value (if (hash? value)
+                                   (jsexpr->string value)
+                                   value)))
+                   (unless (or (equal? "" value) (equal? 'null value))
+                     (fprintf edge-props-out "~a\t~a\t~a\n" id propname value)))
+                 (loop-inner (cdr propnames)))))
+           (loop
+            (add1 id)
+            (read-json edges-in)))]))))
