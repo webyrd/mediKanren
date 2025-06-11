@@ -8,13 +8,13 @@
 ; These variables need your input
 ; --------------------------------------------------------
 ; The folder name that the raw data you store in               
-(define raw-data-folder-name "my_tp_kg_json/")
+(define raw-data-folder-name "NAGPA/")
 ; The file name of the edge data, inside the folder above
 (define nodes-file-name "nodes.jsonl")
 ; The file name of the node data, inside the folder above
 (define edges-file-name "edges.jsonl")
 ; The database name for your dbKanren data
-(define output-database-name "my_kg_from_jsonl")
+(define output-database-name "NAGPA")
 ; --------------------------------------------------------
 
 

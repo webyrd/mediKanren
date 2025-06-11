@@ -21,7 +21,7 @@
 ; These variables need your input
 ; --------------------------------------------------------
 ; replace "my_kg_from_jsonl.db" with the path of your KG (.db)
-(define db-path-under-parent "my_kg_from_jsonl.db")
+(define db-path-under-parent "NAGPA.db")
 ; --------------------------------------------------------
 
 (match-define
