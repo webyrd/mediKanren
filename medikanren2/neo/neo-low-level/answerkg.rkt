@@ -56,8 +56,8 @@
               (display "Known->X")
               (query:Known->X (synonyms subject) predicates (to-unknown object)))
 	     (else
-              (display "Unclear")
-              (query:Known->X (list subject) predicates (list object))))))
+              (display "Known->Known")
+              (query:Known->Known (list subject) predicates (list object))))))
       ;;(set! r (cleanup r))
       r)))
 
