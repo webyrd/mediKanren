@@ -39,7 +39,7 @@
   (list x))
 
 (define (query subject predicate object)
-  (display (list subject predicate object))
+  (displayln (list subject predicate object))
   (let ((predicates
          (set->list
           (if (string-contains? predicate " ")
@@ -47,17 +47,18 @@
               (if (string=? "" predicate)
                   all-predicates
                   (get-non-deprecated-mixed-ins-and-descendent-predicates* (if (string=? "biolink:treats" predicate) '("biolink:treats" "biolink:treats_or_applied_or_studied_to_treat") (list predicate))))))))
-    (let ((r
+    (let ((q
            (cond
 	     ((entity-query-unknown? subject)
-              (display "X->Known")
-              (query:X->Known (to-unknown subject) predicates (synonyms object)))
+              (displayln "X->Known")
+              (list query:X->Known (to-unknown subject) predicates (synonyms object)))
 	     ((entity-query-unknown? object)
-              (display "Known->X")
-              (query:Known->X (synonyms subject) predicates (to-unknown object)))
+              (displayln "Known->X")
+              (list query:Known->X (synonyms subject) predicates (to-unknown object)))
 	     (else
-              (display "Known->Known")
-              (query:Known->Known (list subject) predicates (list object))))))
+              (displayln "Known->Known")
+              (list query:Known->Known (list subject) predicates (list object))))))
+      (let ((r (apply (car q) (map curies-in-db (cdr q)))))
       ;;(set! r (cleanup r))
-      r)))
+      r))))
 
