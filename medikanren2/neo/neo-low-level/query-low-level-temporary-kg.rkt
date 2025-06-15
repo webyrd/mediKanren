@@ -1,6 +1,6 @@
 #lang racket/base
 
-#;(provide
+(provide
   query:Known->Known
   query:Known->X
   query:X->Known  
@@ -14,6 +14,7 @@
   edge-property-values
   edge-id->properties
   )
+
 (require
  "make-query-low-level.rkt"
  racket/match)
