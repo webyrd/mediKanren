@@ -8,13 +8,13 @@
 ; These variables need your input
 ; --------------------------------------------------------
 ; The folder name that the raw data you store in               
-(define raw-data-folder-name "NAGPA/")
+(define raw-data-folder-name "FLT1/")
 ; The file name of the edge data, inside the folder above
 (define nodes-file-name "nodes.jsonl")
 ; The file name of the node data, inside the folder above
 (define edges-file-name "edges.jsonl")
 ; The database name for your dbKanren data
-(define output-database-name "NAGPA")
+(define output-database-name "FLT1")
 ; --------------------------------------------------------
 
 

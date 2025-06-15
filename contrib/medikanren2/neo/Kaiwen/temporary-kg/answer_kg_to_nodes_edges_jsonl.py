@@ -2,7 +2,7 @@ import requests
 import json
 
 # Load TRAPI JSON
-url = "https://answerkg.metareflective.systems/NAGPA.json"
+url = "https://answerkg.metareflective.systems/FLT1.json"
 response = requests.get(url)
 data = response.json()
 
