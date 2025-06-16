@@ -1,5 +1,7 @@
 #lang racket/base
 
+(provide query)
+
 (require
  "query-low-level-temporary-kg.rkt"
   "../neo-reasoning/neo-biolink-reasoning.rkt"
@@ -38,6 +40,9 @@
   ;; TODO
   (list x))
 
+(define (curies-in-db-safe x)
+  (and x (curies-in-db x)))
+
 (define (query subject predicate object)
   (displayln (list subject predicate object))
   (let ((predicates
@@ -58,7 +63,7 @@
 	     (else
               (displayln "Known->Known")
               (list query:Known->Known (list subject) predicates (list object))))))
-      (let ((r (apply (car q) (map curies-in-db (cdr q)))))
+      (let ((r (apply (car q) (map curies-in-db-safe (cdr q)))))
       ;;(set! r (cleanup r))
       r))))
 
